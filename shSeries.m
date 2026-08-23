@@ -1289,6 +1289,100 @@ methods
         end
     end
 
+    function b = toGrid(obj, latDeg, lonDeg, opts)
+        %TOGRID Synthesize every epoch into one stack, with its metadata.
+        %   B = ts.toGrid(LAT, LON, quantity ("ewh")=..., kn ([])=...,
+        %       LatType ("geodetic")=...) is shCoefficients.toGrid over a
+        %   whole series: B.Z is (nlat x nlon x nEpochs) and B.Epoch
+        %   carries the decimal years, so an animation can label its own
+        %   frames from the data rather than from a filename.
+        %
+        %   ZMIN/ZMAX ARE TAKEN OVER THE WHOLE STACK, not per frame. That
+        %   is the point of building the stack here: an animation drawn
+        %   with a per-frame colour scale shows the scale changing and
+        %   the signal not, which is the one way to make 240 honest maps
+        %   into a misleading film.
+        %
+        %   The Legendre recursion is cached across epochs (the grid does
+        %   not change), so the cost is one recursion plus nEpochs
+        %   coefficient sums, not nEpochs recursions.
+        %
+        %   Inputs
+        %     latDeg  (1,:) double  latitudes [deg], convention per LatType
+        %     lonDeg  (1,:) double  longitudes [deg]
+        %   Outputs
+        %     b          (1 x 1) struct   as shCoefficients.toGrid, with Z
+        %                (nlat x nlon x nEpochs) double, Epoch and C00
+        %                (nEpochs x 1) double, and FieldKind "mixed" if
+        %                the epochs disagree
+        %
+        %   Options
+        %     quantity ("ewh")  any kernelFactors quantity
+        %     kn ([])  load Love numbers k'_n (mass quantities; never hardcoded)
+        %     hn ([])  load Love numbers h'_n (deformation_up only)
+        %     nmin (0)  degrees below nmin are zeroed
+        %     nmax (NaN)  truncation degree; NaN uses the series nmax
+        %     Height (0)  evaluation height above R [m]
+        %     rho_ave (5517)  mean Earth density [kg/m^3]
+        %     rho_water (1000)  water density [kg/m^3]
+        %     LatType ("geodetic")  "geodetic" | "geocentric"
+        %     Flattening (1/298.257223563)  ellipsoid flattening (WGS84)
+        %     MaxMemGB (4)  budget for the STACK itself; exceeding it is an
+        %         error naming the size, not a silent swap-thrash
+        %
+        %   Example
+        %     b = ts.toGrid(-89.5:89.5, 0.5:359.5, quantity = "ewh", kn = kn);
+        %     size(b.Z)        % [180 360 nEpochs]
+        arguments
+            obj
+            latDeg (1,:) double
+            lonDeg (1,:) double
+            opts.quantity (1,1) string = "ewh"
+            opts.kn double = []
+            opts.hn double = []
+            opts.nmin (1,1) double = 0
+            opts.nmax (1,1) double = NaN
+            opts.Height (1,1) double = 0
+            opts.rho_ave (1,1) double = 5517
+            opts.rho_water (1,1) double = 1000
+            opts.LatType (1,1) string ...
+                {mustBeMember(opts.LatType, ["geocentric","geodetic"])} = "geodetic"
+            opts.Flattening (1,1) double = 1/298.257223563
+            opts.MaxMemGB (1,1) double {mustBePositive} = 4
+        end
+        T = obj.nEpochs;
+        assert(T > 0, 'shSeries:toGrid:empty', 'The series has no epochs.');
+        nlat = numel(latDeg); nlon = numel(lonDeg);
+        needGB = nlat * nlon * T * 8 / 2^30;
+        assert(needGB <= opts.MaxMemGB, 'shSeries:toGrid:tooLarge', ...
+            ['The stack would be %d x %d x %d = %.2f GB, over MaxMemGB ' ...
+             '(%.2f). Coarsen the grid, select fewer epochs, or raise ' ...
+             'the budget deliberately.'], nlat, nlon, T, needGB, opts.MaxMemGB);
+        nmaxEff = opts.nmax;
+        if isnan(nmaxEff), nmaxEff = obj.nmax; end
+        Z = zeros(nlat, nlon, T);
+        c00 = zeros(T, 1);
+        lat = []; lon = [];
+        for k = 1:T
+            g = obj.at(k);
+            [Zk, lat, lon] = g.synthesis(latDeg, lonDeg, ...
+                quantity = opts.quantity, kn = opts.kn, hn = opts.hn, ...
+                nmin = opts.nmin, nmax = nmaxEff, Height = opts.Height, ...
+                rho_ave = opts.rho_ave, rho_water = opts.rho_water, ...
+                LatType = opts.LatType, Flattening = opts.Flattening);
+            Z(:, :, k) = Zk;
+            c00(k) = obj.Cs(1, 1, k);
+        end
+        [~, ~, units] = shLowLevel.kernelFactors(char(opts.quantity), ...
+            nmaxEff, obj.GM, obj.R, kn = opts.kn, hn = opts.hn, ...
+            rho_ave = opts.rho_ave, rho_water = opts.rho_water);
+        nm = "";
+        if ~isempty(obj.names), nm = obj.names(1); end
+        b = shLowLevel.gridHandover(Z, lat, lon, units, opts.LatType, ...
+            opts.quantity, obj.productType, nm, obj.epochs, c00, ...
+            obj.history, nmaxEff, opts.nmin);
+    end
+
     function disp(obj)
         %DISP Compact display: months, span, gaps, processing history.
         %   disp(TS) prints the product type, the number of epochs, the

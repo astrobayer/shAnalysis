@@ -1,5 +1,5 @@
 % shAnalysis - Spherical harmonic analysis toolbox
-% Version 3.30.0 (R2026a-compatible) 22-Aug-2026
+% Version 3.31.0 (R2026a-compatible) 23-Aug-2026
 %
 % The line above is what ver('shAnalysis') reports as the product name:
 % keep it a SHORT name, not a sentence and not a version string (pinned
@@ -115,6 +115,10 @@
 %   shLowLevel.combineCenters - per-(center,month) VCE combination with
 %     partial redundancies, robust block-median option, inter-center
 %     correlation diagnostic, posterior sigmas
+%   shCoefficients.toGrid / shSeries.toGrid - a synthesized field WITH its
+%     units, latitude convention, product type and field kind, for
+%     handover to a cartographic toolbox (v3.31.0)
+%   shLowLevel.gridHandover - the metadata assembly both bridges share
 %   shLowLevel.shSynthesisGradient / g.gradient - north/east/up gradient of
 %     ANY kernelFactors quantity (v3.30.0); the exact derivative of
 %     shSynthesis under identical options
@@ -215,6 +219,30 @@
 %     (fixture-tested parser) and .gfc download by name; temporal
 %     section returns series roots (superseded in v3.1.1 - the series are
 %     downloadable now, see below)
+%
+% New in v3.31.0 (the cartographic bridge: numbers that know what they are)
+%   - shCoefficients.toGrid / shSeries.toGrid return the synthesized
+%     field TOGETHER WITH units, latitude convention, product type,
+%     epoch, provenance and field kind. The interface to a map toolbox
+%     is numbers, which is right - but an array of metres is an array of
+%     metres, and a static field expressed as water (1.16e7 m) is
+%     indistinguishable from a mass anomaly (+-1.2 m) to any renderer.
+%   - FIX: synthesis returned the CONVERTED latitudes, so
+%     LatType="geodetic" handed back geocentric ones. It now returns the
+%     convention that was asked for. The offset is 0.1924 deg = 21.4 km
+%     at +-45 - 1.6 mm of systematic shift on a regional map, in the
+%     direction a reader takes for a real geophysical offset. gradient
+%     carries the convention in info.latType for the same reason.
+%   - kernelFactors returns the quantity's UNITS as a third output. The
+%     unit belongs to the quantity, so it comes from where the quantity
+%     is defined instead of being retyped at every boundary.
+%   - FieldKind ("full" | "anomaly" | "unknown" | "mixed") is read off
+%     C(1,1), which is exactly 1 for a field carrying the total mass and
+%     0 for a residual - an identity, not a heuristic. A MASS quantity
+%     synthesized from a full field warns.
+%   - shSeries.toGrid stacks every epoch and reports Zmin/Zmax over the
+%     WHOLE stack: an animation with a per-frame colour scale shows the
+%     scale changing and the signal not.
 %
 % New in v3.30.0 (the NEU gradient of an arbitrary quantity)
 %   - shLowLevel.shSynthesisGradient / shCoefficients.gradient: north,

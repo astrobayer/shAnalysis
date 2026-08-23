@@ -1436,3 +1436,120 @@ d = shLowLevel.shSynthesisGradient(C, S, g.GM, g.R, latGc, lon, ...
 verifyEqual(testCase, c.north, d.north);
 verifyGreaterThan(testCase, max(abs(c.north(:) - a.north(:))), 0);
 end
+
+% --------------------------------- geoMap bridge (v3.31.0)
+function testToGridCarriesWhatTheNumbersAre(testCase)
+%TESTTOGRIDCARRIESWHATTHENUMBERSARE the interface between this toolbox
+%   and a cartographic one is numbers, which is right - but an array of
+%   metres is an array of metres, and three things did not survive the
+%   trip when it was measured end to end: the latitude convention, the
+%   units and the product type. Each had to be retyped by a user who
+%   could get it wrong with nothing noticing.
+rng(77);
+L = 6; n1 = L + 1;
+C = tril(randn(n1)) * 1e-10;
+S = tril(randn(n1), -1) * 1e-10; S(:, 1) = 0;
+kn = -0.3 * (1 - exp(-(0:L)'/3));
+g = shCoefficients(C, S, ProductType = "GSM", Name = "ITSG-Grace2018", ...
+    Epoch = 2008.292);
+lat = -80:20:80; lon = 0:45:315;
+
+b = g.toGrid(lat, lon, quantity = "ewh", kn = kn);
+verifyEqual(testCase, size(b.Z), [numel(lat), numel(lon)]);
+verifyEqual(testCase, b.lat, lat(:));            % column, as geo.grid wants
+verifyEqual(testCase, b.lon, lon);               % row
+verifyEqual(testCase, b.Units, "m");
+verifyEqual(testCase, b.LatType, "geodetic");    % a map wants geodetic
+verifyEqual(testCase, b.Quantity, "ewh");
+verifyEqual(testCase, b.ProductType, "GSM");
+verifyEqual(testCase, b.Name, "ITSG-Grace2018");
+verifyEqual(testCase, b.Epoch, 2008.292);
+verifyEqual(testCase, b.Nmax, L);
+verifyTrue(testCase, contains(b.Source, "shAnalysis"));
+verifyTrue(testCase, contains(b.Source, "GSM"));
+verifyTrue(testCase, contains(b.Source, "geodetic"));
+
+% the values are the synthesis, unchanged - the bridge adds no arithmetic
+Z = g.synthesis(lat, lon, quantity = "ewh", kn = kn, LatType = "geodetic");
+verifyEqual(testCase, b.Z, Z);
+verifyEqual(testCase, b.Zmin, min(Z(:)));
+verifyEqual(testCase, b.Zmax, max(Z(:)));
+
+% units follow the quantity, they are not a property of the bridge
+bp = g.toGrid(lat, lon, quantity = "potential");
+verifyEqual(testCase, bp.Units, "m^2/s^2");
+bs = g.toGrid(lat, lon, quantity = "surface_density", kn = kn);
+verifyEqual(testCase, bs.Units, "kg/m^2");
+end
+
+function testToGridFieldKindIsReadOffDegreeZero(testCase)
+%TESTTOGRIDFIELDKINDISREADOFFDEGREEZERO a full field and a residual are
+%   indistinguishable by units - measured: twelve GSM solutions meaned
+%   and synthesized to EWH give 1.16e7 m, the static field expressed as
+%   water, which a symmetric colour scale renders as one flat colour.
+%   C(1,1) tells them apart as an IDENTITY, not a guess: exactly 1 for a
+%   field carrying the total mass, 0 for a residual.
+L = 5; n1 = L + 1;
+kn = -0.3 * (1 - exp(-(0:L)'/3));
+lat = -60:30:60; lon = 0:90:270;
+
+Cres = zeros(n1); Cres(3, 1) = 1e-10;
+gRes = shCoefficients(Cres, zeros(n1));
+bRes = gRes.toGrid(lat, lon, quantity = "geoid");
+verifyEqual(testCase, bRes.FieldKind, "anomaly");
+verifyEqual(testCase, bRes.C00, 0);
+
+Cfull = Cres; Cfull(1, 1) = 1;
+gFull = shCoefficients(Cfull, zeros(n1));
+bFull = gFull.toGrid(lat, lon, quantity = "geoid");
+verifyEqual(testCase, bFull.FieldKind, "full");
+
+Codd = Cres; Codd(1, 1) = 0.5;
+gOdd = shCoefficients(Codd, zeros(n1));
+bOdd = gOdd.toGrid(lat, lon, quantity = "geoid");
+verifyEqual(testCase, bOdd.FieldKind, "unknown", ...
+    'in between is reported, not decided');
+
+% a MASS quantity from a full field is the one case worth interrupting for
+verifyWarning(testCase, @() gFull.toGrid(lat, lon, quantity = "ewh", ...
+    kn = kn), 'shCoefficients:toGrid:fullFieldAsMass');
+% ... and geoid from a full field is legitimate, so it must stay silent.
+% The warning is deliberately NOT disabled here - a suppressed warning
+% would make verifyWarningFree pass whatever the code did.
+verifyWarningFree(testCase, @() gFull.toGrid(lat, lon, quantity = "geoid"));
+end
+
+function testSeriesToGridStacksWithOneColourScale(testCase)
+%TESTSERIESTOGRIDSTACKSWITHONECOLOURSCALE Zmin/Zmax are taken over the
+%   WHOLE stack. An animation drawn with a per-frame scale shows the
+%   scale changing and the signal not, which is how 240 honest maps
+%   become a misleading film.
+rng(1212);
+L = 5; n1 = L + 1; T = 4;
+Cs = zeros(n1, n1, T); Ss = zeros(n1, n1, T);
+for k = 1:T
+    Cs(:, :, k) = tril(randn(n1)) * 1e-10 * k;
+    Ss(:, :, k) = tril(randn(n1), -1) * 1e-10;
+end
+ts = shSeries(Cs, Ss = Ss, Epochs = (2008:2008+T-1)', ProductType = "GSM");
+kn = -0.3 * (1 - exp(-(0:L)'/3));
+lat = -60:30:60; lon = 0:90:270;
+
+b = ts.toGrid(lat, lon, quantity = "ewh", kn = kn);
+verifyEqual(testCase, size(b.Z), [numel(lat), numel(lon), T]);
+verifyEqual(testCase, b.Epoch, (2008:2008+T-1)');
+verifyEqual(testCase, numel(b.C00), T);
+verifyEqual(testCase, b.FieldKind, "anomaly");
+verifyEqual(testCase, b.Zmin, min(b.Z(:)));
+verifyEqual(testCase, b.Zmax, max(b.Z(:)));
+
+% every frame equals the single-epoch bridge - no second implementation
+for k = 1:T
+    bk = ts.at(k).toGrid(lat, lon, quantity = "ewh", kn = kn);
+    verifyEqual(testCase, b.Z(:, :, k), bk.Z);
+end
+
+% the budget is a stated error, not a silent thrash
+verifyError(testCase, @() ts.toGrid(-89.9:0.02:89.9, 0:0.02:359.98, ...
+    quantity = "geoid", MaxMemGB = 0.01), 'shSeries:toGrid:tooLarge');
+end

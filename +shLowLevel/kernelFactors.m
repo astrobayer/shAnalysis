@@ -1,4 +1,4 @@
-function [kernel, radialExp] = kernelFactors(quantity, nmax, GM, R, opts)
+function [kernel, radialExp, units] = kernelFactors(quantity, nmax, GM, R, opts)
 %KERNELFACTORS Degree-dependent spectral factors for SH synthesis/analysis.
 %
 %   KERNEL = shLowLevel.kernelFactors(QUANTITY, NMAX, GM, R, kn ([])=..., ...) returns
@@ -62,6 +62,12 @@ function [kernel, radialExp] = kernelFactors(quantity, nmax, GM, R, opts)
 %               restated: shLowLevel.shSynthesisGradient needs it for
 %               d/dr = -(p_n/r) f_n, and a second copy of these exponents
 %               would be a fact written twice.
+%     units     (1,1) string  the SI unit of the quantity ("" for the
+%               dimensionless passthrough). Same reason as radialExp: the
+%               unit belongs to the quantity, so it is returned from
+%               where the quantity is defined rather than restated in
+%               every bridge, plot label and export header. Consumed by
+%               shCoefficients.toGrid.
 %
 %   Claude (Fable 5), 2026-08-07 (v2.3 same day); radialExp output
 %   Claude (Opus 5), 2026-08-22 (v3.30.0).
@@ -106,34 +112,44 @@ needKn = @(q) assert(~isempty(opts.kn), 'shSynthesis:missingLoveNumbers', ...
 switch lower(char(quantity))
     case 'none'
         kernel = ones(nmax+1, 1);          % dimensionless passthrough
+        units = "";
     case 'geoid'
         kernel = R * ones(nmax+1, 1);
+        units = "m";
     case 'potential'
         kernel = (GM/R) * ones(nmax+1, 1);
+        units = "m^2/s^2";
     case 'gravity_anomaly'
         kernel = (GM/R^2) * (n - 1);
+        units = "m/s^2";
     case 'gravity_disturbance'
         kernel = (GM/R^2) * (n + 1);
+        units = "m/s^2";
     case 'gravity_gradient_rr'
         kernel = (GM/R^3) * (n + 1) .* (n + 2);
+        units = "1/s^2";
     case 'ewh'
         needKn('EWH');
         kernel = (R * opts.rho_ave) / (3 * opts.rho_water) ...
             * (2*n + 1) ./ (1 + opts.kn(1:nmax+1));
+        units = "m";
     case 'surface_density'
         needKn('surface_density');
         kernel = (R * opts.rho_ave) / 3 ...
             * (2*n + 1) ./ (1 + opts.kn(1:nmax+1));
+        units = "kg/m^2";
     case 'bottom_pressure'
         needKn('bottom_pressure');
         kernel = (GM/R^2) * (R * opts.rho_ave) / 3 ...
             * (2*n + 1) ./ (1 + opts.kn(1:nmax+1));
+        units = "Pa";
     case 'deformation_up'
         needKn('deformation_up');
         assert(~isempty(opts.hn), 'shSynthesis:missingLoveNumbers', ...
             ['deformation_up requires load Love numbers h''_n in ' ...
              'addition to k''_n. Pass them explicitly via ''hn''.']);
         kernel = R * opts.hn(1:nmax+1) ./ (1 + opts.kn(1:nmax+1));
+        units = "m";
     otherwise
         error('shSynthesis:badQuantity', 'Unknown quantity: %s', quantity);
 end

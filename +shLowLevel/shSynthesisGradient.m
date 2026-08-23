@@ -97,8 +97,12 @@ function [dq, info] = shSynthesisGradient(C, S, GM, R, latDeg, lonDeg, opts)
 %           finite, meaningless number if it is not caught. UP is []
 %           for surface quantities (see above)
 %     info  (1,1) struct  quantity, units, r [m], nmin, nmax, hasUp
-%           (1,1) logical, lat (1 x nlat) double, lon (1 x nlon) double -
-%           the geocentric latitudes and longitudes actually used
+%           (1,1) logical, lat (1 x nlat) double, latType (1,1) string,
+%           lon (1 x nlon) double - the latitudes and longitudes actually
+%           used. latType is always "geocentric" here: this function has
+%           no ellipsoid. shCoefficients.gradient overwrites both when it
+%           was handed geodetic input, so the convention travels with the
+%           numbers instead of being remembered by the caller
 %
 %   Example
 %     % a zonal degree-2 pattern: the east gradient must vanish exactly
@@ -251,5 +255,5 @@ end
 dq = struct('north', gN, 'east', gE, 'up', gU);
 info = struct('quantity', opts.quantity, 'units', opts.Units, 'r', r, ...
     'nmin', opts.nmin, 'nmax', nmax, 'hasUp', hasUp, ...
-    'lat', latDeg(:)', 'lon', lonDeg(:)');
+    'lat', latDeg(:)', 'latType', "geocentric", 'lon', lonDeg(:)');
 end
