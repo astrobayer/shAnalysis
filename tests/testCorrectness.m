@@ -3596,23 +3596,37 @@ GM = 3.986004415e14; R = 6378136.3;
 kn = -0.3 * (1 - exp(-(0:L)'/3));
 lat = [-52.5, -7.0, 18.25, 63.0];
 lon = [11.0, 133.5, 271.0];
-h = 1e-4;                                   % rad; central difference
+%   The stencil is FIVE-point, and that is not fussiness. A two-point
+%   central difference at h = 1e-4 rad carries a truncation error of
+%   (h^2/6) f''', and f''' of a degree-10 field is ~n^3 times the field
+%   itself - so wherever a component happens to be small against the
+%   field it sits in, the RELATIVE error of the difference reaches 1e-5.
+%   It did: CI failed here on east/ewh at 2.4e-5, EWH being the quantity
+%   whose (2n+1)/(1+kn) kernel amplifies the high degrees hardest. The
+%   five-point stencil drops the truncation to (h^4/30) f^(5), measured
+%   at 1e-10 on this field class, which lets the tolerance be a hundred
+%   times TIGHTER than the one that failed. AbsTol excuses only the
+%   near-zero crossings, where a relative comparison means nothing.
+h = 1e-4;                                   % rad; 5-point stencil below
 for q = ["none", "geoid", "potential", "gravity_anomaly", ...
          "gravity_disturbance", "ewh"]
     g = shLowLevel.shSynthesisGradient(C, S, GM, R, lat, lon, ...
         quantity = q, kn = kn, Units = "perRadian");
     scal = @(la, lo) shLowLevel.shSynthesis(C, S, GM, R, la, lo, ...
         'quantity', char(q), 'kn', kn);
+    d5 = @(f, x) (f(x - 2*rad2deg(h)) - 8*f(x - rad2deg(h)) ...
+                + 8*f(x + rad2deg(h)) - f(x + 2*rad2deg(h))) / (12*h);
+    aN = 1e-8 * max(abs(g.north(:)));
+    aE = 1e-8 * max(abs(g.east(:)));
     for i = 1:numel(lat)
         for j = 1:numel(lon)
-            dN = (scal(lat(i) + rad2deg(h), lon(j)) ...
-                - scal(lat(i) - rad2deg(h), lon(j))) / (2*h);
-            dE = (scal(lat(i), lon(j) + rad2deg(h)) ...
-                - scal(lat(i), lon(j) - rad2deg(h))) / (2*h) ...
-                / cosd(lat(i));
-            verifyEqual(testCase, g.north(i, j), dN, 'RelTol', 1e-5, ...
+            dN = d5(@(x) scal(x, lon(j)), lat(i));
+            dE = d5(@(x) scal(lat(i), x), lon(j)) / cosd(lat(i));
+            verifyEqual(testCase, g.north(i, j), dN, ...
+                'RelTol', 1e-7, 'AbsTol', aN, ...
                 sprintf('north, %s at (%g,%g)', q, lat(i), lon(j)));
-            verifyEqual(testCase, g.east(i, j), dE, 'RelTol', 1e-5, ...
+            verifyEqual(testCase, g.east(i, j), dE, ...
+                'RelTol', 1e-7, 'AbsTol', aE, ...
                 sprintf('east, %s at (%g,%g)', q, lat(i), lon(j)));
         end
     end
