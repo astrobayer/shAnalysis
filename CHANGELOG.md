@@ -77,24 +77,41 @@ v3.31.0. This toolbox no longer draws maps.
   blocks; it does not parse MATLAB grammar, so it could not see this
   until it was told to look.
 
+### Verified on hardware
+The MATLAB bridge came back and the gap named below was closed. On the
+acceptance machine (R2026a Update 4, geoMap 2.0.541), against a shadow
+checkout of this branch: the v3.30 gradient identities, the v3.31 bridge
+and latitude fix, `requireGeoMap`, `g.map`, `writeAnimation` and
+`writeFrames` - **10 of 10**, with `g.map` returning a real geo.map
+handle struct and `writeAnimation` writing a 166 kB video whose frames
+geoMap drew.
+
+**It found one defect that no static gate could have.** `writeAnimation`
+reused one figure across frames, and `geo.map` fits the figure to the
+map it drew while `clf` does not undo that, so the figure RATCHETED:
+six successive draws of the same three grids came back 365, 387, 407,
+424, 439 and 453 pixels tall, and the second frame failed the
+preallocated stack. Pinning `Position` at the top of each iteration does
+not help - `geo.map` resizes after it, to a different height each time
+(364.6, 340, 386.9, 365). A fresh figure per frame is deterministic: 365
+every frame, for different data. There is now also a named
+`shLowLevel:writeAnimation:frameSizeChanged` instead of MATLAB's
+`subsassigndimmismatch`, because frames of different sizes are not a
+video and the reason should say so.
+
 ### Notes
 - **This is API-breaking for anyone drawing maps.** `g.map` now needs
   geoMap on the path and no longer takes the display options above;
   `shLowLevel.plotSHMap` is gone. `g.toGrid` needs no geoMap at all and
   hands over everything a figure needs, which is what the error message
   points at.
-- **Not verified on hardware, and this release has a real gap.** The
-  MATLAB bridge was unavailable and CI has no geoMap, so **no `geo.map`
-  call in this release has ever been executed**. What CI does check: the
-  two entry points raise `shAnalysis:geoMapRequired`, the animation
-  refuses before writing anything, the container mechanics still pass,
-  the renderer stays deleted, and the gate is green. What it does not
-  check: that the arguments handed to `geo.map` are the ones it wants.
-  Those were read from geoMap's own `arguments` blocks - `Parent` is an
-  **axes**, not a figure, and `CLim` belongs to `geo.basemap` rather
-  than `geo.map`, both of which I had wrong in the first draft - but
-  reading a signature is not running it. First acceptance run with both
-  toolboxes on the path should start here.
+- **CI still cannot see the drawing**, and that has not changed: the CI
+  machine has no geoMap, so it checks only that the entry points raise
+  `shAnalysis:geoMapRequired`, that the animation refuses before writing
+  anything, that the container mechanics pass and that the renderer
+  stays deleted. The drawing itself is covered by the acceptance run
+  above and by geoMap's own suite, and that split is now permanent
+  rather than temporary.
 
 ## [3.31.0] - 2026-08-23 - the cartographic bridge, and a latitude that lied
 

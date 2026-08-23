@@ -38,7 +38,10 @@ function writeAnimation(ts, filename, opts)
 %     LatType ("geodetic")  "geodetic" | "geocentric"; a map wants geodetic
 %     FrameRate (4)  frames per second
 %     Sidecar (true)  write <file>.provenance.json alongside the output
-%     Size ([900 470])  figure size in pixels, [width height]
+%     Size ([900 470])  STARTING figure size in pixels, [width height].
+%         geo.map fits the figure to the map from there, so the frames
+%         are usually taller than this; they are identical to each other,
+%         which is what matters
 %     CRS ("equirectangular")  forwarded to geo.map as its projection
 %     Basemap (struct())  forwarded to geo.map's Basemap element. The
 %         stack-wide CLim and the Divergent flag are inserted into it
@@ -100,12 +103,20 @@ if ~isfield(bm, 'Divergent')
     bm.Divergent = (b.FieldKind == "anomaly");
 end
 
-fig = figure('Visible', 'off', ...
-    'Position', [50 50 opts.Size(1) opts.Size(2)]);
-figCloser = onCleanup(@() close(fig)); %#ok<NASGU>
+% ONE FIGURE PER FRAME, and it is not wastefulness. geo.map fits the
+% figure to the map it drew, and clf does not undo that, so a REUSED
+% figure ratchets: measured on the acceptance machine, six successive
+% draws of the same three grids came back 365, 387, 407, 424, 439 and
+% 453 pixels tall. Pinning Position at the top of each iteration does not
+% help - geo.map resizes after that, and to a different height each time
+% (364.6, 340, 386.9, 365). A fresh figure is deterministic: 365 every
+% frame, for different data. The frames must agree pixel for pixel or
+% there is no video.
 frames = uint8.empty;
 for k = 1:T
-    clf(fig);
+    fig = figure('Visible', 'off', ...
+        'Position', [50 50 opts.Size(1) opts.Size(2)]);
+    figCloser = onCleanup(@() close(fig)); %#ok<NASGU>
     ax = axes('Parent', fig);       % geo.map's Parent is an AXES
     G = geo.grid(b.lon, b.lat, b.Z(:, :, k), ...
         Source = b.Source, Units = b.Units);
@@ -118,6 +129,14 @@ for k = 1:T
     F = getframe(fig);
     if isempty(frames)
         frames = zeros([size(F.cdata), T], 'uint8');
+    elseif ~isequal(size(F.cdata), size(frames, 1:3))
+        error('shLowLevel:writeAnimation:frameSizeChanged', ...
+            ['Frame %d came back %s where frame 1 was %s. geo.map fits ' ...
+             'the figure to what it drew, so a frame whose layout ' ...
+             'differs - a longer title, a wider colourbar - changes the ' ...
+             'pixel count, and frames of different sizes are not a ' ...
+             'video. Keep the per-frame layout constant.'], k, ...
+            mat2str(size(F.cdata)), mat2str(size(frames, 1:3)));
     end
     frames(:, :, :, k) = F.cdata;
 end
