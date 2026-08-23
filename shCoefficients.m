@@ -847,6 +847,90 @@ methods
             ln = opts.ln, nmin = opts.nmin, Mode = opts.Mode);
     end
 
+    function [dq, info] = gradient(obj, latDeg, lonDeg, opts)
+        %GRADIENT North/east/up gradient of a synthesized quantity.
+        %   [DQ, INFO] = g.gradient(LAT, LON, quantity ("geoid")=...,
+        %       Units ("perMeter")=..., Mode ("grid")=...) is the exact
+        %   spatial derivative of what g.synthesis would return under the
+        %   SAME options - the vector field to draw over a scalar map, or
+        %   to advect tracers through. DQ.up is EMPTY for surface
+        %   quantities (ewh, geoid, surface_density, bottom_pressure,
+        %   deformation_up, none), which have no radial law; INFO.hasUp
+        %   says so. See shLowLevel.shSynthesisGradient for the formulas,
+        %   the validation, and why this is NOT g.deformation's horizontal
+        %   pair (those carry l'_n, these carry the quantity's own kernel).
+        %
+        %   Inputs
+        %     latDeg  (1,:) double  latitudes [deg]
+        %     lonDeg  (1,:) double  longitudes [deg]
+        %   Outputs
+        %     dq       (1 x 1) struct   fields north, east, up: each
+        %                (nlat x nlon) double, or (npts x 1) for
+        %                Mode="points"; up is [] for surface quantities
+        %     info       (1 x 1) struct   quantity, units, r, nmin, nmax,
+        %                hasUp, lat, lon
+        %
+        %   Options
+        %     quantity ("geoid")  any kernelFactors quantity
+        %     kn ([])  load Love numbers k'_n (mass quantities; never hardcoded)
+        %     hn ([])  load Love numbers h'_n (deformation_up only)
+        %     nmin (0)  degrees below nmin are zeroed
+        %     nmax (NaN)  truncation degree; NaN uses the object's nmax
+        %     Height (0)  evaluation height above R [m]; surface
+        %         quantities reject it
+        %     rho_ave (5517)  mean Earth density [kg/m^3]
+        %     rho_water (1000)  water density [kg/m^3]
+        %     Mode ("grid")  "grid" | "points" (pairwise LAT/LON)
+        %     Units ("perMeter")  "perMeter" | "perRadian" (= r x perMeter)
+        %     MaxMemGB (4)  Legendre memory budget [GB]
+        %     LatType ("geocentric")  "geocentric" | "geodetic": how the
+        %         latitude inputs are read. NOTE that only the evaluation
+        %         POINT is converted - the components stay in the
+        %         geocentric local frame, which differs from the geodetic
+        %         one by up to 0.19 deg of meridian convergence. For a map
+        %         that is invisible; for a station comparison it is not
+        %     Flattening (1/298.257223563)  ellipsoid flattening for that
+        %         conversion (WGS84; overridable, never silently assumed)
+        %
+        %   Example
+        %     lat = -89:2:89; lon = 0:2:358;
+        %     [dq, info] = g.gradient(lat, lon, quantity = "ewh", kn = kn);
+        %     info.hasUp        % false - EWH is a surface quantity
+        arguments
+            obj
+            latDeg (1,:) double
+            lonDeg (1,:) double
+            opts.quantity (1,1) string = "geoid"
+            opts.kn double = []
+            opts.hn double = []
+            opts.nmin (1,1) double = 0
+            opts.nmax (1,1) double = NaN
+            opts.Height (1,1) double = 0
+            opts.rho_ave (1,1) double = 5517
+            opts.rho_water (1,1) double = 1000
+            opts.Mode (1,1) string ...
+                {mustBeMember(opts.Mode, ["grid","points"])} = "grid"
+            opts.Units (1,1) string ...
+                {mustBeMember(opts.Units, ["perMeter","perRadian"])} = "perMeter"
+            opts.MaxMemGB (1,1) double {mustBePositive} = 4
+            opts.LatType (1,1) string ...
+                {mustBeMember(opts.LatType, ["geocentric","geodetic"])} = "geocentric"
+            opts.Flattening (1,1) double = 1/298.257223563
+        end
+        if opts.LatType == "geodetic"
+            latDeg = shLowLevel.geodetic2geocentric(latDeg, ...
+                Flattening = opts.Flattening);
+        end
+        nmaxEff = opts.nmax;
+        if isnan(nmaxEff), nmaxEff = obj.nmax; end
+        [dq, info] = shLowLevel.shSynthesisGradient(obj.C, obj.S, obj.GM, ...
+            obj.R, latDeg, lonDeg, quantity = opts.quantity, ...
+            kn = opts.kn, hn = opts.hn, nmin = opts.nmin, nmax = nmaxEff, ...
+            Height = opts.Height, rho_ave = opts.rho_ave, ...
+            rho_water = opts.rho_water, Mode = opts.Mode, ...
+            Units = opts.Units, MaxMemGB = opts.MaxMemGB);
+    end
+
     function out = applyDDK(obj, W)
         %APPLYDDK Apply a DDK (order-block-diagonal) decorrelation filter.
         %   OUT = obj.applyDDK(W) with W from shLowLevel.readDDK (struct, .mat,

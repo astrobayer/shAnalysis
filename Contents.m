@@ -1,5 +1,5 @@
 % shAnalysis - Spherical harmonic analysis toolbox
-% Version 3.29.0 (R2026a-compatible) 20-Aug-2026
+% Version 3.30.0 (R2026a-compatible) 22-Aug-2026
 %
 % The line above is what ver('shAnalysis') reports as the product name:
 % keep it a SHORT name, not a sentence and not a version string (pinned
@@ -115,6 +115,9 @@
 %   shLowLevel.combineCenters - per-(center,month) VCE combination with
 %     partial redundancies, robust block-median option, inter-center
 %     correlation diagnostic, posterior sigmas
+%   shLowLevel.shSynthesisGradient / g.gradient - north/east/up gradient of
+%     ANY kernelFactors quantity (v3.30.0); the exact derivative of
+%     shSynthesis under identical options
 %   shLowLevel.shSynthesisGradientTensor - full NEU tensor at altitude
 %     (Laplace trace 7e-16 self-check); legendreALFDeriv 2nd derivative
 %   shLowLevel.seaLevelFingerprint - elastic sea-level equation (mass exactly
@@ -212,6 +215,32 @@
 %     (fixture-tested parser) and .gfc download by name; temporal
 %     section returns series roots (superseded in v3.1.1 - the series are
 %     downloadable now, see below)
+%
+% New in v3.30.0 (the NEU gradient of an arbitrary quantity)
+%   - shLowLevel.shSynthesisGradient / shCoefficients.gradient: north,
+%     east and up derivatives of ANY quantity kernelFactors knows, in
+%     the local NEU frame, on a grid or at scattered points. Written for
+%     vector overlays and particle advection, where the only field the
+%     toolbox could previously offer was elastic deformation - which is
+%     a vector because of l'_n, not because gradients were available.
+%   - The contract is "exact derivative of shSynthesis under identical
+%     options": same defaults, same kernels, same nmin. A gradient that
+%     silently used a different truncation than the scalar map it is
+%     drawn over would be arrows over the wrong picture, so the test
+%     differentiates shSynthesis itself rather than a second model.
+%   - d/dr exists exactly where an upward-continuation law does, i.e.
+%     exactly where kernelFactors accepts Height. For the surface
+%     quantities (ewh, geoid, surface_density, bottom_pressure,
+%     deformation_up, none) g.up is EMPTY, not NaN and not zero, and
+%     info.hasUp says so: empty fails at first use, a NaN field gets
+%     plotted. kernelFactors now RETURNS that radial exponent instead of
+%     restating it in a second switch.
+%   - Units="perRadian" returns r times the gradient (dQ/dphi,
+%     sec(phi) dQ/dlambda, dQ/d(ln r)) - the form a lat/lon advection
+%     step consumes directly.
+%   - east is NaN at |lat| = 90: the direction does not exist there, and
+%     the cos(phi) division returns a finite, meaningless number if it
+%     is not caught.
 %
 % New in v3.28.0 (guide chapter 27: the Kalman/VAR module; kalmanChain
 % Structure passthrough)

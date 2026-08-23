@@ -11,7 +11,7 @@ td,th{border:1px solid #ccc;padding:3px 8px;font-size:13px;text-align:left}
 h2{margin-top:34px;border-bottom:2px solid #444}
 .toc a{margin-right:10px;font-size:13px}
 </style></head><body>
-<h1>shAnalysis API reference (v3.29.0)</h1>
+<h1>shAnalysis API reference (v3.30.0)</h1>
 <p>Generated from the source arguments blocks and help text - inputs,
 name-value options with defaults, and outputs for every public function
 and method. Regenerated with every release; the source of truth is the
@@ -115,6 +115,7 @@ code itself.</p>
 <a href="#shLowLevel.shSpectralCrossover">shSpectralCrossover</a>
 <a href="#shLowLevel.shSynthesis">shSynthesis</a>
 <a href="#shLowLevel.shSynthesisDeformation">shSynthesisDeformation</a>
+<a href="#shLowLevel.shSynthesisGradient">shSynthesisGradient</a>
 <a href="#shLowLevel.shSynthesisGradientTensor">shSynthesisGradientTensor</a>
 <a href="#shLowLevel.signalVarianceKaula">signalVarianceKaula</a>
 <a href="#shLowLevel.slepianBasis">slepianBasis</a>
@@ -768,7 +769,7 @@ code itself.</p>
 <b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>quantity</code></td><td>n x m</td><td>-</td><td>required</td></tr><tr><td><code>nmax</code></td><td>1 x 1</td><td>double</td><td>required</td></tr><tr><td><code>GM</code></td><td>1 x 1</td><td>double</td><td>required</td></tr><tr><td><code>R</code></td><td>1 x 1</td><td>double</td><td>required</td></tr></table>
 <b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>kn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>hn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>rho_ave</code></td><td>1 x 1</td><td>double</td><td>5517</td></tr><tr><td><code>rho_water</code></td><td>1 x 1</td><td>double</td><td>1000</td></tr><tr><td><code>Height</code></td><td>1 x 1</td><td>double</td><td>0</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
-<tr><td><code>kernel</code></td><td>(nmax+1,1) double  (zeros where the quantity carries no information, e.g. n=1 for gravity_anomaly)</td></tr>
+<tr><td><code>kernel</code></td><td>(nmax+1,1) double  (zeros where the quantity carries no information, e.g. n=1 for gravity_anomaly) radialExp (nmax+1,1) double  the upward-continuation exponent p_n in f_n(r) = kernel_n (R/r)^p_n, or EMPTY for a quantity that has no radial law (a surface concept). This is the same p_n the Height branch below applies, returned rather than restated: shLowLevel.shSynthesisGradient needs it for d/dr = -(p_n/r) f_n, and a second copy of these exponents would be a fact written twice.</td></tr>
 </table>
 </div>
 <div class="entry" id="shLowLevel.leakageCorrect">
@@ -1344,6 +1345,41 @@ code itself.</p>
 <tr><td><code>east</code></td><td>same size   horizontal east component [m]</td></tr>
 </table>
 </div>
+<div class="entry" id="shLowLevel.shSynthesisGradient">
+<h3><code>shLowLevel.shSynthesisGradient(C, S, GM, R, latDeg, lonDeg, opts)</code></h3>
+<p class="h1line">North/east/up gradient of any synthesized quantity.</p>
+<p>[DQ, INFO] = shLowLevel.shSynthesisGradient(C, S, GM, R, LAT, LON, quantity (&quot;geoid&quot;)=..., Units (&quot;perMeter&quot;)=..., Mode (&quot;grid&quot;)=...) returns the spatial gradient of the field that shLowLevel.shSynthesis would produce from the SAME coefficients and the SAME options, resolved in the local north-east-up frame:</p>
+<b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>C</code></td><td>n x m</td><td>double</td><td>required</td></tr><tr><td><code>S</code></td><td>n x m</td><td>double</td><td>required</td></tr><tr><td><code>GM</code></td><td>1 x 1</td><td>double</td><td>required</td></tr><tr><td><code>R</code></td><td>1 x 1</td><td>double</td><td>required</td></tr><tr><td><code>latDeg</code></td><td>1 x :</td><td>double</td><td>required</td></tr><tr><td><code>lonDeg</code></td><td>1 x :</td><td>double</td><td>required</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>quantity</code></td><td>1 x 1</td><td>string</td><td>&quot;geoid&quot;</td></tr><tr><td><code>kn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>hn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>nmin</code></td><td>1 x 1</td><td>double</td><td>0</td></tr><tr><td><code>nmax</code></td><td>1 x 1</td><td>double</td><td>NaN</td></tr><tr><td><code>Height</code></td><td>1 x 1</td><td>double</td><td>0</td></tr><tr><td><code>rho_ave</code></td><td>1 x 1</td><td>double</td><td>5517</td></tr><tr><td><code>rho_water</code></td><td>1 x 1</td><td>double</td><td>1000</td></tr><tr><td><code>Mode</code></td><td>1 x 1</td><td>string</td><td>&quot;grid&quot;</td></tr><tr><td><code>Units</code></td><td>1 x 1</td><td>string</td><td>&quot;perMeter&quot;</td></tr><tr><td><code>MaxMemGB</code></td><td>1 x 1</td><td>double</td><td>4</td></tr></table>
+<b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
+<tr><td><code>dq</code></td><td>(1,1) struct  fields north, east, up, each (nlat x nlon) double for Mode &quot;grid&quot; or (npts x 1) double for &quot;points&quot;. EAST is NaN where |lat| = 90 - the east direction does not exist at a pole, and the cos(phi) division there returns a finite, meaningless number if it is not caught. UP is [] for surface quantities (see above)</td></tr>
+<tr><td><code>info</code></td><td>(1,1) struct  quantity, units, r [m], nmin, nmax, hasUp (1,1) logical, lat (1 x nlat) double, lon (1 x nlon) double - the geocentric latitudes and longitudes actually used</td></tr>
+</table>
+<b>Example</b><pre>    % a zonal degree-2 pattern: the east gradient must vanish exactly
+    C = zeros(3); S = zeros(3); C(3,1) = 1;              % C_20
+    lat = -80:10:80; lon = 0:20:340;
+    dq = shLowLevel.shSynthesisGradient(C, S, 3.986004415e14, ...
+            6378136.3, lat, lon, quantity = &quot;none&quot;, Units = &quot;perRadian&quot;);
+    max(abs(dq.east(:)))            % 0
+    quiver(lon, lat, dq.east, dq.north)
+
+  References
+    Wahr, Molenaar &amp; Bryan (1998), JGR 103(B12) - the degree factors.
+    Holmes &amp; Featherstone (2002), J Geod 76 - the Legendre recursion
+    whose exact latitude derivative shLowLevel.legendreALFDeriv carries.
+
+  Python-validated before implementation (tools/dev/validate_gradient.py):
+  all three components against 5-point finite differences of an
+  independent scalar synthesis at 1e-12 (the difference floor), the
+  radial identities d(potential)/dr = -gravity_disturbance and
+  d(gravity_disturbance)/dr = -gravity_gradient_rr at 4e-16, and
+  single-coefficient closed forms at 2e-16.
+
+  See also SHSYNTHESIS, SHSYNTHESISDEFORMATION, SHSYNTHESISGRADIENTTENSOR,
+  KERNELFACTORS, LEGENDREALFDERIV.
+
+  Claude (Opus 5), 2026-08-22 (v3.30.0).</pre>
+</div>
 <div class="entry" id="shLowLevel.shSynthesisGradientTensor">
 <h3><code>shLowLevel.shSynthesisGradientTensor(C, S, GM, R, latDeg, lonDeg, opts)</code></h3>
 <p class="h1line">Full gravity gradient tensor in the local NEU frame.</p>
@@ -1636,6 +1672,7 @@ code itself.</p>
 <a href="#shCoefficients.fan">fan</a>
 <a href="#shCoefficients.fromVec">fromVec</a>
 <a href="#shCoefficients.gaussian">gaussian</a>
+<a href="#shCoefficients.gradient">gradient</a>
 <a href="#shCoefficients.map">map</a>
 <a href="#shCoefficients.minus">minus</a>
 <a href="#shCoefficients.mtimes">mtimes</a>
@@ -1782,6 +1819,20 @@ code itself.</p>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
 <tr><td><code>out</code></td><td>(1 x 1) shCoefficients   Gaussian-smoothed; sigmas scaled by Wn</td></tr>
 </table>
+</div>
+<div class="entry" id="shCoefficients.gradient">
+<h3><code>shCoefficients.gradient(obj, latDeg, lonDeg, opts)</code></h3>
+<p class="h1line">North/east/up gradient of a synthesized quantity.</p>
+<p>[DQ, INFO] = g.gradient(LAT, LON, quantity (&quot;geoid&quot;)=..., Units (&quot;perMeter&quot;)=..., Mode (&quot;grid&quot;)=...) is the exact spatial derivative of what g.synthesis would return under the SAME options - the vector field to draw over a scalar map, or to advect tracers through. DQ.up is EMPTY for surface quantities (ewh, geoid, surface_density, bottom_pressure, deformation_up, none), which have no radial law; INFO.hasUp says so. See shLowLevel.shSynthesisGradient for the formulas, the validation, and why this is NOT g.deformation&#x27;s horizontal pair (those carry l&#x27;_n, these carry the quantity&#x27;s own kernel).</p>
+<b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td>required</td></tr><tr><td><code>latDeg</code></td><td>1 x :</td><td>double</td><td>required</td></tr><tr><td><code>lonDeg</code></td><td>1 x :</td><td>double</td><td>required</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>quantity</code></td><td>1 x 1</td><td>string</td><td>&quot;geoid&quot;</td></tr><tr><td><code>kn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>hn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>nmin</code></td><td>1 x 1</td><td>double</td><td>0</td></tr><tr><td><code>nmax</code></td><td>1 x 1</td><td>double</td><td>NaN</td></tr><tr><td><code>Height</code></td><td>1 x 1</td><td>double</td><td>0</td></tr><tr><td><code>rho_ave</code></td><td>1 x 1</td><td>double</td><td>5517</td></tr><tr><td><code>rho_water</code></td><td>1 x 1</td><td>double</td><td>1000</td></tr><tr><td><code>Mode</code></td><td>1 x 1</td><td>string</td><td>&quot;grid&quot;</td></tr><tr><td><code>Units</code></td><td>1 x 1</td><td>string</td><td>&quot;perMeter&quot;</td></tr><tr><td><code>MaxMemGB</code></td><td>1 x 1</td><td>double</td><td>4</td></tr><tr><td><code>LatType</code></td><td>1 x 1</td><td>string</td><td>&quot;geocentric&quot;</td></tr><tr><td><code>Flattening</code></td><td>1 x 1</td><td>double</td><td>1/298.257223563</td></tr></table>
+<b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
+<tr><td><code>dq</code></td><td>(1 x 1) struct   fields north, east, up: each (nlat x nlon) double, or (npts x 1) for Mode=&quot;points&quot;; up is [] for surface quantities</td></tr>
+<tr><td><code>info</code></td><td>(1 x 1) struct   quantity, units, r, nmin, nmax, hasUp, lat, lon</td></tr>
+</table>
+<b>Example</b><pre>    lat = -89:2:89; lon = 0:2:358;
+    [dq, info] = g.gradient(lat, lon, quantity = &quot;ewh&quot;, kn = kn);
+    info.hasUp        % false - EWH is a surface quantity</pre>
 </div>
 <div class="entry" id="shCoefficients.map">
 <h3><code>shCoefficients.map(obj, latDeg, lonDeg, opts)</code></h3>
@@ -2313,4 +2364,4 @@ code itself.</p>
 <tr><td><code>obj</code></td><td>(1 x 1) shClimatology   copy with the note appended to its history</td></tr>
 </table>
 </div>
-<hr><p style="font-size:11px;color:#888">Developed by Matthias Weigelt with the help of Claude (Fable 5), 20-Aug-2026 (v3.29.0). Generated by tools - do not edit.</p></body></html>
+<hr><p style="font-size:11px;color:#888">Developed by Matthias Weigelt with the help of Claude (Fable 5), 22-Aug-2026 (v3.30.0). Generated by tools - do not edit.</p></body></html>
