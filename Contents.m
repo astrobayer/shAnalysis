@@ -1,5 +1,5 @@
 % shAnalysis - Spherical harmonic analysis toolbox
-% Version 3.32.0 (R2026a-compatible) 23-Aug-2026
+% Version 3.32.1 (R2026a-compatible) 23-Aug-2026
 %
 % The line above is what ver('shAnalysis') reports as the product name:
 % keep it a SHORT name, not a sentence and not a version string (pinned
@@ -224,6 +224,22 @@
 %     (fixture-tested parser) and .gfc download by name; temporal
 %     section returns series roots (superseded in v3.1.1 - the series are
 %     downloadable now, see below)
+%
+% New in v3.32.1 (the acceptance run, installed - and what it found)
+%   - tools/dev/acceptance_geomap.m: the checks CI structurally cannot
+%     run. It exercises every path where shAnalysis hands work to geoMap
+%     and then hides geoMap and runs the mirror half, because a dev
+%     machine never executes the refusal paths either.
+%   - FIX: writeAnimation's frame capture was racing geo.map's resize.
+%     "A fresh figure per frame" looked deterministic over four draws and
+%     was not - the acceptance run produced 365, 340, 365 px, where 340
+%     is the unresized starting height. Frames are now captured only
+%     after the layout has been stable for three consecutive polls, and
+%     every later frame is PINNED to the first frame's settled size, so
+%     the sizes are equal by construction rather than by timing.
+%   - writeFrames records frameSize in the provenance sidecar. Two
+%     exports of the same data differed by 0.4% in bytes and nothing on
+%     disk could explain it; now the geometry is a recorded fact.
 %
 % New in v3.32.0 (geoMap is the single cartographic authority)
 %   - REMOVED shLowLevel.plotSHMap. This toolbox carried its own map
