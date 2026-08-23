@@ -67,7 +67,7 @@ dq.up    = &part;Q/&part;r                  = -(1/r) &Sigma; p&#8345; f&#8345; &
 <h2>Vector overlays and particle animation</h2>
 <p>The intended consumer is a vector overlay or a tracer advection drawn <em>over</em> a scalar map. Three points decide whether that is honest rather than decorative:</p>
 <ul>
-<li><b>Advect in geographic space, project only to draw.</b> Stepping a tracer in projected coordinates makes its speed wrong by the local scale factor. With <code class="inline">Units="perRadian"</code>, d&phi;/dt is <code class="inline">dq.north</code>/r directly.</li>
+<li><b>Advect in geographic space, project only to draw.</b> Stepping a tracer in projected coordinates makes its speed wrong by the local scale factor. With <code class="inline">Units="perRadian"</code> the components are angular rates of change of Q, so an angular mobility &mu; gives d&phi;/dt = &mu;&middot;<code class="inline">dq.north</code> with no metric factor left to remember; with <code class="inline">Units="perMeter"</code> a linear mobility gives a velocity v = &mu;&middot;<code class="inline">dq.north</code> in m/s and d&phi;/dt = v/r. (The first printing of this page put the /r on the perRadian form, which belongs to the perMeter one.)</li>
 <li><b>Grid and interpolate, do not evaluate per tracer per frame.</b> <code class="inline">Mode="points"</code> pays a Legendre recursion per point; it is for when the exact value at a station matters, not for 10&#8308; tracers at 30&nbsp;fps.</li>
 <li><b>A tracer image shows direction and relative speed, never magnitude.</b> Nothing in a flowing-tracer picture carries a number, so it must be drawn over a scalar field that does &mdash; never instead of one.</li>
 </ul>
