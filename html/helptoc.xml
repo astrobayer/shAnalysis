@@ -75,8 +75,8 @@
     <tocitem target="seaLevelFingerprint.html">Sea-level fingerprints</tocitem>
   </tocitem>
 
-  <tocitem target="plotSHMap.html">Visualization
-    <tocitem target="plotSHMap.html">Visualization suite (maps, series, covariance)</tocitem>
+  <tocitem target="mapBridge.html">Visualization
+    <tocitem target="mapBridge.html">Maps: geoMap draws them (toGrid, g.map)</tocitem>
     <tocitem target="plotSHSpectrum.html">plotSHSpectrum</tocitem>
     <tocitem target="plotSHCoeffTriangle.html">plotSHCoeffTriangle</tocitem>
   </tocitem>

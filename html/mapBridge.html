@@ -43,6 +43,16 @@ b = g.toGrid(lat, lon, quantity="geoid", LatType="geocentric")</pre>
 <h3>One colour scale across a whole animation</h3>
 <p><code class="inline">shSeries.toGrid</code> returns <code class="inline">b.Z</code> as (nlat &times; nlon &times; nEpochs) and takes <code class="inline">Zmin</code>/<code class="inline">Zmax</code> over the <b>whole stack</b>. That is the point of building the stack in one call: an animation drawn with a per-frame colour scale shows the scale changing and the signal not, which is how 240 honest maps become a misleading film. <code class="inline">b.Epoch</code> lets the frames label themselves from the data rather than from a filename.</p>
 
+<h2>geoMap draws; this toolbox does not</h2>
+<p>As of v3.32.0 shAnalysis renders no maps. <code class="inline">shLowLevel.plotSHMap</code> is gone &mdash; it had its own coastlines, its own colour limits and two projections, beside sixteen certified ones next door, and no instrument compared the two. <code class="inline">g.map</code> and <code class="inline">shLowLevel.writeAnimation</code> now synthesize, hand over, and let <code class="inline">geo.map</code> draw.</p>
+<p><b>The scope was measured before anything was deleted.</b> <code class="inline">shLowLevel.errorMap</code> and <code class="inline">shLowLevel.resolutionMap</code> sound like renderers and contain zero graphics calls: they compute formal-error and resolution fields and return arrays. Both stay. The renderer was 114 lines in one file.</p>
+<ul>
+<li><code class="inline">shLowLevel.requireGeoMap</code> is the one place that checks for geoMap, so the dependency has one spelling and one error message &mdash; and that message shows how to draw the numbers without it. The dependency is <em>checked, not required</em>: shAnalysis still runs on base MATLAB, and only the two drawing entry points need geoMap.</li>
+<li><code class="inline">shLowLevel.writeFrames</code> writes a video container from ready-made RGB frames and contains no graphics. That split is deliberate: codec selection, extension validation, frame rate and the provenance sidecar are the parts that have bitten before, they never needed a renderer, and keeping them separate keeps them under test on a machine without geoMap.</li>
+<li><code class="inline">tools/dev/no_map_renderer.py</code> runs in CI and keeps the renderer gone. A rule enforced by review erodes.</li>
+</ul>
+<p><b>geoMap's options are not restated here.</b> <code class="inline">CRS</code> picks the projection, <code class="inline">Basemap</code> configures the raster element, and <code class="inline">GeoArgs</code> is forwarded verbatim. Mirroring another toolbox's option table is how two renderers drift apart in the first place.</p>
+
 <h2>Outputs</h2>
 <table><tr><th>Field</th><th>Type</th><th>Description</th></tr>
 <tr><td>Z</td><td>(nlat,nlon[,T]) double</td><td>the synthesized values, unchanged &mdash; the bridge adds no arithmetic</td></tr>

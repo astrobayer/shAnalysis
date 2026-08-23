@@ -114,7 +114,7 @@ end
 function reg = registry()
 reg = [ ...
     mk("D01", "Read & spectral diagnostics", "shReadGFC, shDegreeRMS, plotSHCoeffTriangle, plotSHSpectrum", @d01)
-    mk("D02", "Synthesis quantities & maps", "shSynthesis, kernelFactors, plotSHMap, Height", @d02)
+    mk("D02", "Synthesis quantities & maps", "shSynthesis, kernelFactors, toGrid, Height", @d02)
     mk("D03", "Normal field -> geoid", "normalFieldCS, subtractNormalField, toReference", @d03)
     mk("D04", "Filter comparison", "shGaussianFilter, shFanFilter, shDestripe, readDDK, triangle RefC/RefS", @d04)
     mk("D05", "Climatology & basin series", "shSeries, climatology, basinKernel, plotBasinSeries", @d05)
@@ -254,17 +254,18 @@ kn = synthLove(g.nmax);
 lat = -89:2:89; lon = 0:2:358;
 newfig(vis, 'D02 quantities');
 subplot(1, 2, 1);
-g.map(lat, lon, quantity = "geoid", Units = "m", Title = "geoid, plate");
+showMap(g.synthesis(lat, lon, quantity = "geoid"), lat, lon, ...
+    "geoid", "m");
 subplot(1, 2, 2);
-gd.gaussian(350).map(lat, lon, quantity = "ewh", kn = kn, ...
-    Units = "m EWH", Projection = "hammer", ...
-    Title = "mass change 2008-2025, Gaussian 350 (EWH; synthetic kn!)");
+showMap(gd.gaussian(350).synthesis(lat, lon, quantity = "ewh", kn = kn), ...
+    lat, lon, "mass change 2008-2025, Gaussian 350 (EWH; synthetic kn!)", ...
+    "m EWH", CRS = "hammer");
 newfig(vis, 'D02 upward continuation');
 g = g.truncate(min(g.nmax, 45));
 ga0 = g.synthesis(lat, lon, quantity = "gravity_anomaly");
 ga4 = g.synthesis(lat, lon, quantity = "gravity_anomaly", Height = 400e3);
-subplot(1, 2, 1); shLowLevel.plotSHMap(ga0*1e5, lat, lon, Units="mGal", Title="anomaly, surface", ax=gca);
-subplot(1, 2, 2); shLowLevel.plotSHMap(ga4*1e5, lat, lon, Units="mGal", Title="anomaly at 400 km", ax=gca);
+subplot(1, 2, 1); showMap(ga0*1e5, lat, lon, "anomaly, surface", "mGal");
+subplot(1, 2, 2); showMap(ga4*1e5, lat, lon, "anomaly at 400 km", "mGal");
 fprintf('  attenuation at 400 km: rms ratio %.3f\n', sqrt(mean(ga4(:).^2))/sqrt(mean(ga0(:).^2)));
 end
 
@@ -281,8 +282,8 @@ if isempty(g)
 end
 T = g.subtractNormalField();                  % WGS84, auto-rescaled
 newfig(vis, 'D03 disturbing geoid');
-T.map(-89:89, 0:359, quantity = "geoid", Units = "m", ...
-    Title = "geoid undulation (normal field subtracted)");
+showMap(T.synthesis(-89:89, 0:359, quantity = "geoid"), -89:89, 0:359, ...
+    "geoid undulation (normal field subtracted)", "m");
 fprintf('  C20 before %.3e -> after %.3e\n', g.C(3, 1), T.C(3, 1));
 end
 
@@ -337,13 +338,13 @@ cl = ts.climatology();
 lat = -89:3:88; lon = 0:3:357;
 newfig(vis, 'D05 climatology maps');
 subplot(1, 2, 1);
-shLowLevel.plotSHMap(shLowLevel.shSynthesis(cl.trendC, cl.trendS, ts.GM, ts.R, lat, lon), ...
-    lat, lon, Units = "geoid m/yr", Title = "trend", ax = gca);
+showMap(shLowLevel.shSynthesis(cl.trendC, cl.trendS, ts.GM, ts.R, lat, lon), ...
+    lat, lon, "trend", "geoid m/yr");
 subplot(1, 2, 2);
 amp = sqrt(shLowLevel.shSynthesis(cl.cosAnnC, cl.cosAnnS, ts.GM, ts.R, lat, lon).^2 ...
     + shLowLevel.shSynthesis(cl.sinAnnC, cl.sinAnnS, ts.GM, ts.R, lat, lon).^2);
-shLowLevel.plotSHMap(amp, lat, lon, Units = "geoid m", Title = "annual amplitude", ...
-    CLim = [0, shLowLevel.pctile(amp, 98)], Colormap = "parula", ax = gca);
+showMap(amp, lat, lon, "annual amplitude", "geoid m", ...
+    CLim = [0, shLowLevel.pctile(amp, 98)]);
 % basin series: synthetic gets an artificial gap; real series carry
 % their own (2017-2018 mission gap, dropouts)
 idx = shLowLevel.shIndex(30, MinDegree = 0);
@@ -403,8 +404,8 @@ L = 24; idx = shLowLevel.shIndex(L, MinDegree = 0);
 newfig(vis, 'D08 basin kernel (tapered)');
 lat = -60:2:60; lon = 40:2:180;
 [Cb, Sb] = shLowLevel.csFromVec(b, idx);
-shLowLevel.plotSHMap(shLowLevel.shSynthesis(Cb, Sb, 1, 1, lat, lon), lat, lon, ...
-    Title = sprintf('basin kernel, taper 200 km (area %.4f)', infoB.areaFraction));
+showMap(shLowLevel.shSynthesis(Cb, Sb, 1, 1, lat, lon), lat, lon, ...
+    sprintf('basin kernel, taper 200 km (area %.4f)', infoB.areaFraction), "");
 % scaling factor on a Gaussian operator
 ts = demoSeries(L, 12, 18);
 Wn = shLowLevel.shGaussianWeights(L, 400);
@@ -423,8 +424,8 @@ shLowLevel.plotCovariance(M, idx, ax = gca);
 subplot(1, 2, 2);
 lat = -85:5:85; lon = 0:5:355;
 sig = shLowLevel.errorMap(M, idx, lat, lon, quantity = "geoid");
-shLowLevel.plotSHMap(sig, lat, lon, Units = "m", Title = "formal sigma (geoid)", ...
-    CLim = [0, shLowLevel.pctile(sig, 98)], Colormap = "parula", ax = gca);
+showMap(sig, lat, lon, "formal sigma (geoid)", "m", ...
+    CLim = [0, shLowLevel.pctile(sig, 98)]);
 end
 
 function d10(vis, ~)
@@ -457,8 +458,7 @@ newfig(vis, 'D11 gradient tensor at 250 km (Eotvos)');
 f = ["uu" "nn" "ee" "un" "ue" "ne"];
 for k = 1:6
     subplot(2, 3, k);
-    shLowLevel.plotSHMap(G.(f(k)) * 1e9, lat, lon, Title = "G_{" + f(k) + "}", ...
-        Coast = false, ax = gca);
+    showMap(G.(f(k)) * 1e9, lat, lon, "G_{" + f(k) + "}", "");
 end
 fprintf('  Laplace trace residual: %.1e (built-in self-check)\n', ...
     info.maxTraceResidual);
@@ -477,8 +477,10 @@ ts = shSeries(Cs, Ss = zeros(n1, n1, T), Epochs = 2015 + (1:T)'/12);
 [modes, pcs, ve] = shLowLevel.eofAnalysis(ts, NModes = 2);
 newfig(vis, 'D12 EOF modes');
 lat = -87:3:87; lon = 0:3:357;
-subplot(2, 2, 1); modes{1}.map(lat, lon, Title = sprintf("mode 1 (%.0f%%)", 100*ve(1)));
-subplot(2, 2, 2); modes{2}.map(lat, lon, Title = sprintf("mode 2 (%.0f%%)", 100*ve(2)));
+subplot(2, 2, 1); showMap(modes{1}.synthesis(lat, lon), lat, lon, ...
+    sprintf("mode 1 (%.0f%%)", 100*ve(1)), "");
+subplot(2, 2, 2); showMap(modes{2}.synthesis(lat, lon), lat, lon, ...
+    sprintf("mode 2 (%.0f%%)", 100*ve(2)), "");
 subplot(2, 1, 2); plot(ts.epochs, pcs, '.-'); grid on;
 legend('PC1', 'PC2'); xlabel('epoch [yr]'); title('principal components');
 end
@@ -547,9 +549,10 @@ loadF = @(la, lo) -100 * double(la > 65 & lo < 40);
     kn = kn, hn = hn);
 newfig(vis, 'D15 sea-level fingerprint');
 Sn = info.S2D / info.eustatic; Sn(info.S2D == 0) = NaN;
-shLowLevel.plotSHMap(Sn, grid.latDeg, grid.lonDeg, Units = "S / eustatic", ...
-    Title = sprintf('fingerprint (%d iters, mass residual %.0e)', ...
-    info.iterations, abs(info.massResidual)), CLim = [-1.5 1.5]);
+showMap(Sn, grid.latDeg, grid.lonDeg, ...
+    sprintf('fingerprint (%d iters, mass residual %.0e)', ...
+    info.iterations, abs(info.massResidual)), "S / eustatic", ...
+    CLim = [-1.5 1.5]);
 fprintf('  eustatic %.4g m | conservation residual %.1e | converged: %d\n', ...
     info.eustatic, info.massResidual, info.converged);
 end
@@ -570,4 +573,31 @@ mp4 = fullfile(outdir, 'shx_demo_anim.mp4');
 shLowLevel.writeAnimation(ts, mp4, quantity = "geoid", lat = -85:5:85, ...
     lon = 0:5:355, FrameRate = 2, Units = "m");
 fprintf('  wrote %s\n', mp4);
+end
+
+
+function showMap(Z, lat, lon, ttl, units, opts)
+% Demo-local map panel. geoMap draws every map in this project (v3.32.0),
+% so when it is absent the panel says so rather than quietly substituting
+% a lesser picture - a demo that silently degrades teaches the wrong
+% thing. This is scaffolding, not a renderer: it forwards and nothing else.
+arguments
+    Z double
+    lat (1,:) double
+    lon (1,:) double
+    ttl (1,1) string
+    units (1,1) string = ""
+    opts.CRS (1,1) string = "equirectangular"
+    opts.CLim double = []
+end
+if isempty(which('geo.map'))
+    ax = gca; cla(ax); axis(ax, 'off');
+    text(0.5, 0.5, ["geoMap not on the path"; ttl], 'Parent', ax, ...
+        'HorizontalAlignment', 'center', 'Units', 'normalized');
+    return
+end
+bm = struct('Divergent', true);
+if ~isempty(opts.CLim), bm.CLim = opts.CLim; end
+G = geo.grid(lon, lat, Z, Units = units);
+geo.map(G, opts.CRS, Parent = gca, Basemap = bm, Title = ttl);
 end

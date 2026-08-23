@@ -151,8 +151,8 @@
  },
  {
   "name": "shCoefficients.map",
-  "example": "g.map(quantity = \"geoid\", Title = \"Geoid 2008-04 [m]\");",
-  "run": true
+  "example": "g.map(-89:89, 0:359, quantity = \"ewh\", kn = kn, CRS = \"robinson\");   % needs geoMap on the path",
+  "run": false
  },
  {
   "name": "shCoefficients.minus",
@@ -475,11 +475,6 @@
   "run": true
  },
  {
-  "name": "shLowLevel.plotSHMap",
-  "example": "shLowLevel.plotSHMap(grid, lat, lon, Title = \"EWH 2008-04 [m]\");",
-  "run": true
- },
- {
   "name": "shLowLevel.plotSHSpectrum",
   "example": "spec = shLowLevel.shDegreeRMS(g.C, g.S);\nshLowLevel.plotSHSpectrum(spec, Kaula = true, MarkCrossover = true);",
   "run": true
@@ -676,7 +671,7 @@
  },
  {
   "name": "shLowLevel.writeAnimation",
-  "example": "shLowLevel.writeAnimation(ts, \"ewh_2019_2022.avi\", quantity = \"ewh\", kn = kn);   % .avi portable, .mp4 on Windows/macOS",
+  "example": "shLowLevel.writeAnimation(ts, \"ewh.avi\", quantity = \"ewh\", kn = kn);   % needs geoMap on the path",
   "run": false
  },
  {
@@ -852,6 +847,21 @@
  {
   "name": "shLowLevel.slepianProject",
   "example": "a = shLowLevel.slepianProject(ts.Cs, ts.Ss, G(:, 1:K), idx);\nplot(ts.epochs, a)                      % regional Slepian modes",
+  "run": false
+ },
+ {
+  "name": "shLowLevel.writeFrames",
+  "example": "shLowLevel.writeFrames(uint8(zeros(60,120,3,3)), fullfile(tempdir,\"demo.avi\"), FrameRate = 2);",
+  "run": true
+ },
+ {
+  "name": "shLowLevel.requireGeoMap",
+  "example": "loc = shLowLevel.requireGeoMap();   % errors if geoMap is absent",
+  "run": false
+ },
+ {
+  "name": "shLowLevel.gridHandover",
+  "example": "b = shLowLevel.gridHandover(Z, lat, lon, \"m\", \"geodetic\", \"ewh\", \"GSM\", \"ITSG\", 2008.29, 0, string.empty(0,1), 60, 0);",
   "run": false
  }
 ]

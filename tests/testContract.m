@@ -358,40 +358,53 @@ for n = 0:L
 end
 end
 
-function testPlotSuiteRuns(testCase)
-rng(81);
-fig = figure('Visible', 'off');
-cleanup = onCleanup(@() close(fig)); %#ok<NASGU>
-L = 12; n1 = L + 1;
-C = tril(randn(n1)) * 1e-8; S = tril(randn(n1), -1) * 1e-8; S(:, 1) = 0;
-grid = shLowLevel.shSynthesis(C, S, 3.986004415e14, 6378136.3, ...
-    -85:5:85, 0:5:355, 'quantity', 'geoid');
-ax1 = axes('Parent', fig);
-h = shLowLevel.plotSHMap(grid, -85:5:85, 0:5:355, ax = ax1, Units = "m");
-verifyClass(testCase, h, 'matlab.graphics.axis.Axes');
-cla(ax1);
-h2 = shLowLevel.plotSHMap(grid, -85:5:85, 0:5:355, ax = ax1, ...
-    Projection = "hammer");
-verifyClass(testCase, h2, 'matlab.graphics.axis.Axes');
-% basin series with gap + band
-t = [2010 + (0:40)/12, 2015 + (0:30)/12];
-c = sin(2*pi*t(:)) + 0.01*(t(:) - 2012);
-cla(ax1);
-h3 = shLowLevel.plotBasinSeries(t(:), c, 0.2 + 0*c, ax = ax1, Units = "cm");
-verifyClass(testCase, h3, 'matlab.graphics.axis.Axes');
-% covariance plot
-idx = shLowLevel.shIndex(6, MinDegree = 2);
-A = randn(idx.P); M = A*A';
-cla(ax1);
-h4 = shLowLevel.plotCovariance(M, idx, ax = ax1);
-verifyClass(testCase, h4, 'matlab.graphics.axis.Axes');
-% triangle diff mode
-cla(ax1);
-h5 = shLowLevel.plotSHCoeffTriangle(C, S, 'RefC', 0.9*C, 'RefS', 0.9*S, 'ax', ax1);
-verifyClass(testCase, h5, 'matlab.graphics.axis.Axes');
-verifyError(testCase, ...
-    @() shLowLevel.plotSHCoeffTriangle(C, S, 'RefC', C, 'ax', axes('Parent', fig)), ...
-    'shLowLevel:plotSHCoeffTriangle:needRefS');
+
+function testNoMapIsDrawnHere(testCase)
+%TESTNOMAPISDRAWNHERE geoMap is the single cartographic authority
+%   (v3.32.0). This replaces the contract test of shLowLevel.plotSHMap,
+%   which is gone: there were two renderers in two toolboxes, in
+%   different projections, and no instrument compared them.
+%
+%   What is asserted here is that the drawing entry points FAIL WELL
+%   when geoMap is absent - which is the state of the CI machine, so
+%   this is the path a user without geoMap actually meets. The drawing
+%   itself is geoMap's territory and is tested there.
+%
+%   NOTE the early return below: on a machine WITH geoMap this test stops
+%   after the first assertion, so everything past it runs only in CI.
+%   That is how a bad shSeries constructor call in this very test passed
+%   a 264-test acceptance run and failed CI - the two runs cover
+%   different halves, and neither is redundant.
+verifyEmpty(testCase, which('shLowLevel.plotSHMap'), ...
+    'the second renderer must stay deleted');
+
+if ~isempty(which('geo.map'))
+    return      % geoMap present: the error path below cannot be reached
+end
+rng(9);
+L = 5; n1 = L + 1;
+C = tril(randn(n1)) * 1e-10;
+g = shCoefficients(C, zeros(n1));
+lat = -60:30:60; lon = 0:90:270;
+
+verifyError(testCase, @() g.map(lat, lon, quantity = "geoid"), ...
+    'shAnalysis:geoMapRequired');
+verifyError(testCase, @() shLowLevel.requireGeoMap(), ...
+    'shAnalysis:geoMapRequired');
+
+% the numbers are still available without geoMap - that is the point of
+% the bridge, and the error message says so
+b = g.toGrid(lat, lon, quantity = "geoid");
+verifyEqual(testCase, size(b.Z), [numel(lat), numel(lon)]);
+verifyEqual(testCase, b.Units, "m");
+
+% and the animation refuses BEFORE synthesizing, not after
+ts = shSeries(repmat(C, 1, 1, 2), Ss = zeros(n1, n1, 2), ...
+    Epochs = [2010.1; 2010.2]);   % raw-stack form needs a matching Ss
+verifyError(testCase, @() shLowLevel.writeAnimation(ts, ...
+    fullfile(tempdir, 'never_written.avi'), quantity = "geoid"), ...
+    'shAnalysis:geoMapRequired');
+verifyFalse(testCase, isfile(fullfile(tempdir, 'never_written.avi')));
 end
 
 function testSpectrumOverlays(testCase)
@@ -420,13 +433,27 @@ end
 ts = shSeries(Cs, Ss = Ss, Epochs = [2010.1 2010.2]);
 tmp = fullfile(tempdir, sprintf('shx_anim_%d.avi', randi(1e9)));  % CI-portable
 cleanup = onCleanup(@() deleteIfThere(tmp)); %#ok<NASGU>
-shLowLevel.writeAnimation(ts, tmp, quantity = "geoid", ...
-    lat = -80:10:80, lon = 0:10:350, FrameRate = 2);
+% v3.32.0: geoMap draws the frames and is not on this machine, so what
+% is exercised here is the CONTAINER - codec choice, extension
+% validation, frame rate and the sidecar, which are the parts that have
+% bitten before and which never needed a renderer.
+frames = uint8(randi([0 255], 60, 120, 3, 3));
+shLowLevel.writeFrames(frames, tmp, FrameRate = 2, ...
+    SidecarExtra = struct('quantity', 'geoid'));
 verifyTrue(testCase, isfile(tmp));
 d = dir(tmp);
 verifyGreaterThan(testCase, d.bytes, 1000);
 verifyTrue(testCase, isfile([tmp '.provenance.json']));   % v2.7.0
+txt = fileread([tmp '.provenance.json']);
+verifyTrue(testCase, contains(txt, '"nFrames"'));
+verifyTrue(testCase, contains(txt, '"quantity"'));
 delete([tmp '.provenance.json']);
+
+% the named errors, not a codec complaint
+verifyError(testCase, @() shLowLevel.writeFrames(frames, ...
+    fullfile(tempdir, 'x.gif')), 'shLowLevel:writeAnimation:badExtension');
+verifyError(testCase, @() shLowLevel.writeFrames(uint8(zeros(4, 4, 3)), ...
+    tmp), 'shLowLevel:writeFrames:badSize');
 end
 
 function deleteIfThere(f)

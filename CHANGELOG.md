@@ -1,5 +1,125 @@
 # Changelog
 
+## [3.32.0] - 2026-08-23 - geoMap is the single cartographic authority
+
+Matthias's decision, taken on the open question left at the end of
+v3.31.0. This toolbox no longer draws maps.
+
+### Removed
+- **`shLowLevel.plotSHMap`.** It had its own coastlines, its own colour
+  limits and two projections, beside sixteen certified against PROJC in
+  geoMap - one fact with two implementations, and no instrument
+  comparing them.
+
+  **The scope was measured before anything was deleted, and it was
+  smaller than the handover that raised it said.** That document counted
+  "693 lines of plotting-ish files" by NAME. By behaviour:
+  `shLowLevel.errorMap` and `shLowLevel.resolutionMap` contain **zero
+  graphics calls** - they compute formal-error and resolution fields and
+  return arrays. The renderer was 114 lines in one file. Both computing
+  functions stay untouched.
+
+### Changed
+- `shCoefficients.map` synthesizes through `toGrid` and hands the result
+  to `geo.map`. It draws nothing. Its `Units`, `Title`, `Projection`,
+  `Colormap`, `CLim` and `Coast` options are gone: **geoMap's option
+  table is not restated here.** `CRS` picks the projection, `Basemap`
+  configures the raster element, and `GeoArgs` forwards verbatim -
+  mirroring another toolbox's options is how two renderers drift apart,
+  and `geo.map` applies the same rule to its own elements.
+- `shLowLevel.writeAnimation` likewise: shAnalysis assembles the stack
+  and writes the container, geoMap draws every frame. It now refuses
+  **before** synthesizing - a two-minute stack followed by an
+  undefined-function error is the wrong order to discover a missing
+  dependency in. The fixed stack-wide colour scale is unchanged, still
+  the robust 98th percentile, and now recorded in the sidecar beside the
+  data's true range.
+- `demo_shAnalysis` routes its fourteen map panels through one local
+  helper that draws with geoMap or says the panel was skipped. A demo
+  that silently degrades to a lesser picture teaches the wrong thing.
+
+### Added
+- `shLowLevel.requireGeoMap` - the ONE place that checks for geoMap, so
+  the dependency has one spelling and one error message, and a future
+  drawing entry point cannot invent a third way of failing. The message
+  shows how to draw the numbers without geoMap. The dependency is
+  **checked, not required**: shAnalysis still runs on base MATLAB with
+  no toolboxes, and only the two drawing entry points need it.
+- `shLowLevel.writeFrames` - a video container written from ready-made
+  RGB frames, with no graphics at all. This split is why CI still tests
+  codec selection, extension validation, frame rate and the provenance
+  sidecar: those are the parts that have bitten before, they never
+  needed a renderer, and folding them in with the drawing would have
+  taken them out of the suite along with it.
+- **`tools/dev/no_map_renderer.py`, wired into CI.** Deleting a renderer
+  is a one-line commit; keeping it deleted is a gate. The coastline
+  check is universal and has no exemptions - run against the retired
+  file it fires three times on the `coastlines`/`coastlat`/`coastlon` it
+  loaded. The projection check is a secondary signal and cannot tell
+  "names a projection" from "computes one", since both are quoted
+  strings, so it is skipped for the short list of files that forward a
+  name to geoMap; that list is the mechanism and is stated as such.
+
+- `docs/apiExamples.json` - the committed example registry the suite
+  executes - lost its `shLowLevel.plotSHMap` entry, and the `g.map` and
+  `writeAnimation` entries are marked `run: false` with examples that
+  show the current API. They need geoMap, which the CI machine does not
+  have. `writeFrames` is registered as a runnable one in their place.
+  This file is a second place documentation lives, and only CI saw that
+  it had gone stale: the static gates read help text and HTML, not it.
+- `tools/dev/mlint_lite.py` gained rule **R5**: a `name = value`
+  argument before a `{:}` expansion in the same call. MATLAB requires
+  name-value arguments to come last, so `f(a, Name = v, rest{:})` is a
+  **parse** error - and a parse error inside a classdef takes the whole
+  class down. Both `geo.map` call sites in this release were written
+  that way, `shCoefficients.m` stopped loading, and forty unrelated
+  tests failed in CI for one line. `mlint_lite` counts brackets and
+  blocks; it does not parse MATLAB grammar, so it could not see this
+  until it was told to look.
+
+### Verified on hardware
+The MATLAB bridge came back and the gap named below was closed. On the
+acceptance machine (R2026a Update 4, geoMap 2.0.541), against a shadow
+checkout of this branch: the v3.30 gradient identities, the v3.31 bridge
+and latitude fix, `requireGeoMap`, `g.map`, `writeAnimation` and
+`writeFrames` - **10 of 10**, with `g.map` returning a real geo.map
+handle struct and `writeAnimation` writing a 166 kB video whose frames
+geoMap drew.
+
+**It found one defect that no static gate could have.** `writeAnimation`
+reused one figure across frames, and `geo.map` fits the figure to the
+map it drew while `clf` does not undo that, so the figure RATCHETED:
+six successive draws of the same three grids came back 365, 387, 407,
+424, 439 and 453 pixels tall, and the second frame failed the
+preallocated stack. Pinning `Position` at the top of each iteration does
+not help - `geo.map` resizes after it, to a different height each time
+(364.6, 340, 386.9, 365). A fresh figure per frame is deterministic: 365
+every frame, for different data. There is now also a named
+`shLowLevel:writeAnimation:frameSizeChanged` instead of MATLAB's
+`subsassigndimmismatch`, because frames of different sizes are not a
+video and the reason should say so.
+
+**The two runs cover different halves, and neither is redundant.** A bad
+`shSeries` constructor call inside `testNoMapIsDrawnHere` itself passed
+the 264-test acceptance run and failed CI: that test returns early when
+geoMap is present, so everything past the early return executes only on
+a machine WITHOUT geoMap. It was then reproduced here by taking geoMap
+off the path deliberately, rather than by pushing and waiting.
+
+### Notes
+- **This is API-breaking for anyone drawing maps.** `g.map` now needs
+  geoMap on the path and no longer takes the display options above;
+  `shLowLevel.plotSHMap` is gone. `g.toGrid` needs no geoMap at all and
+  hands over everything a figure needs, which is what the error message
+  points at.
+- **CI still cannot see the drawing**, and that has not changed: the CI
+  machine has no geoMap, so it checks only that the entry points raise
+  `shAnalysis:geoMapRequired`, that the animation refuses before writing
+  anything, that the container mechanics pass and that the renderer
+  stays deleted. The drawing itself is covered by the acceptance run
+  above and by geoMap's own suite, and that split is now permanent
+  rather than temporary.
+
 ## [3.31.0] - 2026-08-23 - the cartographic bridge, and a latitude that lied
 
 ### Fixed

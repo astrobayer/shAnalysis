@@ -11,7 +11,7 @@ td,th{border:1px solid #ccc;padding:3px 8px;font-size:13px;text-align:left}
 h2{margin-top:34px;border-bottom:2px solid #444}
 .toc a{margin-right:10px;font-size:13px}
 </style></head><body>
-<h1>shAnalysis API reference (v3.31.0)</h1>
+<h1>shAnalysis API reference (v3.32.0)</h1>
 <p>Generated from the source arguments blocks and help text - inputs,
 name-value options with defaults, and outputs for every public function
 and method. Regenerated with every release; the source of truth is the
@@ -86,7 +86,6 @@ code itself.</p>
 <a href="#shLowLevel.plotBasinSeries">plotBasinSeries</a>
 <a href="#shLowLevel.plotCovariance">plotCovariance</a>
 <a href="#shLowLevel.plotSHCoeffTriangle">plotSHCoeffTriangle</a>
-<a href="#shLowLevel.plotSHMap">plotSHMap</a>
 <a href="#shLowLevel.plotSHSpectrum">plotSHSpectrum</a>
 <a href="#shLowLevel.poleTideConvert">poleTideConvert</a>
 <a href="#shLowLevel.readDDK">readDDK</a>
@@ -96,6 +95,7 @@ code itself.</p>
 <a href="#shLowLevel.readSINEX">readSINEX</a>
 <a href="#shLowLevel.readTN13">readTN13</a>
 <a href="#shLowLevel.readTN14">readTN14</a>
+<a href="#shLowLevel.requireGeoMap">requireGeoMap</a>
 <a href="#shLowLevel.rescaleGMR">rescaleGMR</a>
 <a href="#shLowLevel.resolutionMap">resolutionMap</a>
 <a href="#shLowLevel.rtsSmoother">rtsSmoother</a>
@@ -134,6 +134,7 @@ code itself.</p>
 <a href="#shLowLevel.vecFromCS">vecFromCS</a>
 <a href="#shLowLevel.version">version</a>
 <a href="#shLowLevel.writeAnimation">writeAnimation</a>
+<a href="#shLowLevel.writeFrames">writeFrames</a>
 <a href="#shLowLevel.writeGFC">writeGFC</a>
 <a href="#shLowLevel.writeGrid">writeGrid</a>
 <a href="#shLowLevel.ylm">ylm</a>
@@ -1021,16 +1022,6 @@ code itself.</p>
 <tr><td><code>h</code></td><td>(1 x 1) graphics handle   butterfly triangle image (abs log10 or signed diff with RefC/RefS)</td></tr>
 </table>
 </div>
-<div class="entry" id="shLowLevel.plotSHMap">
-<h3><code>shLowLevel.plotSHMap(grid, latDeg, lonDeg, opts)</code></h3>
-<p class="h1line">Global map plot with coastlines and a sane divergent scale.</p>
-<p>H = shLowLevel.plotSHMap(GRID, LAT, LON) renders a synthesized field the way a GRACE map should look by default: divergent blue-white-red colormap symmetric about zero, robust color limits (98th percentile of |value|), coastline overlay (base MATLAB &#x27;coastlines&#x27;), correct aspect. The convenience method g.map(...) synthesizes and plots in one call.</p>
-<b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>grid</code></td><td>nlat x nlon</td><td>double</td><td>required</td></tr><tr><td><code>latDeg</code></td><td>1 x :</td><td>double</td><td>required</td></tr><tr><td><code>lonDeg</code></td><td>1 x :</td><td>double</td><td>required</td></tr></table>
-<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Projection</code></td><td>1 x 1</td><td>string</td><td>&quot;plate&quot;</td></tr><tr><td><code>Coast</code></td><td>1 x 1</td><td>logical</td><td>true</td></tr><tr><td><code>CLim</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>Colormap</code></td><td>1 x 1</td><td>string</td><td>&quot;divergent&quot;</td></tr><tr><td><code>Title</code></td><td>1 x 1</td><td>string</td><td>&quot;&quot;</td></tr><tr><td><code>Units</code></td><td>1 x 1</td><td>string</td><td>&quot;&quot;</td></tr><tr><td><code>ax</code></td><td>n x m</td><td>-</td><td>[]</td></tr></table>
-<b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
-<tr><td><code>h</code></td><td>(1,1) graphics handle  axes of the map plot</td></tr>
-</table>
-</div>
 <div class="entry" id="shLowLevel.plotSHSpectrum">
 <h3><code>shLowLevel.plotSHSpectrum(specs, varargin)</code></h3>
 <p class="h1line">Log-log degree-amplitude spectrum plot.</p>
@@ -1134,6 +1125,19 @@ code itself.</p>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
 <tr><td><code>tn</code></td><td>(1,1) struct  fields: t (T x 1 double, decimal years), C20/C30 (T x 1 double), sigmaC20/sigmaC30 (T x 1 double)</td></tr>
 </table>
+</div>
+<div class="entry" id="shLowLevel.requireGeoMap">
+<h3><code>shLowLevel.requireGeoMap()</code></h3>
+<p class="h1line">Assert that geoMap is on the path; say where it is.</p>
+<p>LOC = shLowLevel.requireGeoMap() returns the path of geo.map, or raises shAnalysis:geoMapRequired with a message that says what to do instead of reporting an undefined function three frames deeper.</p>
+<b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
+<tr><td><code>loc</code></td><td>(1,:) char  full path of geo.map, for provenance records</td></tr>
+</table>
+<b>Example</b><pre>    loc = shLowLevel.requireGeoMap();   % errors if geoMap is absent
+
+  See also SHCOEFFICIENTS/MAP, SHCOEFFICIENTS/TOGRID, WRITEANIMATION.
+
+  Claude (Opus 5), 2026-08-23 (v3.32.0).</pre>
 </div>
 <div class="entry" id="shLowLevel.rescaleGMR">
 <h3><code>shLowLevel.rescaleGMR(C, S, GM1, R1, GM2, R2, sigmaC, sigmaS)</code></h3>
@@ -1588,10 +1592,30 @@ code itself.</p>
 </div>
 <div class="entry" id="shLowLevel.writeAnimation">
 <h3><code>shLowLevel.writeAnimation(ts, filename, opts)</code></h3>
-<p class="h1line">Export a monthly series as an MP4 map animation.</p>
-<p>shLowLevel.writeAnimation(TS, &#x27;ewh.mp4&#x27;, quantity=&quot;ewh&quot;, kn ([])=kn) renders one shLowLevel.plotSHMap frame per epoch into an MPEG-4 via VideoWriter (base MATLAB), with a FIXED color scale over all epochs (robust 98th percentile across the whole stack - the single most common animation mistake is a per-frame scale).</p>
-<b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>ts</code></td><td>1 x 1</td><td>shSeries</td><td>required</td></tr><tr><td><code>filename</code></td><td>n x m</td><td>-</td><td>required</td></tr></table>
-<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>quantity</code></td><td>1 x 1</td><td>string</td><td>&quot;ewh&quot;</td></tr><tr><td><code>kn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>hn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>lat</code></td><td>1 x :</td><td>double</td><td>-89:2:89</td></tr><tr><td><code>lon</code></td><td>1 x :</td><td>double</td><td>0:2:358</td></tr><tr><td><code>FrameRate</code></td><td>1 x 1</td><td>double</td><td>4</td></tr><tr><td><code>Sidecar</code></td><td>1 x 1</td><td>logical</td><td>true</td></tr><tr><td><code>CLim</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>Coast</code></td><td>1 x 1</td><td>logical</td><td>true</td></tr><tr><td><code>Units</code></td><td>1 x 1</td><td>string</td><td>&quot;&quot;</td></tr><tr><td><code>Projection</code></td><td>1 x 1</td><td>string</td><td>&quot;plate&quot;</td></tr></table>
+<p class="h1line">Export a series as a map animation, drawn by geoMap.</p>
+<p>shLowLevel.writeAnimation(TS, &#x27;ewh.avi&#x27;, quantity (&quot;ewh&quot;)=..., kn ([])=...) synthesizes every epoch of TS onto one grid, draws each frame with geo.map, and writes them to a video container with a provenance sidecar.</p>
+<b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>ts</code></td><td>1 x 1</td><td>shSeries</td><td>required</td></tr><tr><td><code>filename</code></td><td>1 x 1</td><td>string</td><td>required</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>quantity</code></td><td>1 x 1</td><td>string</td><td>&quot;ewh&quot;</td></tr><tr><td><code>kn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>hn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>lat</code></td><td>1 x :</td><td>double</td><td>-89:2:89</td></tr><tr><td><code>lon</code></td><td>1 x :</td><td>double</td><td>0:2:358</td></tr><tr><td><code>LatType</code></td><td>1 x 1</td><td>string</td><td>&quot;geodetic&quot;</td></tr><tr><td><code>FrameRate</code></td><td>1 x 1</td><td>double</td><td>4</td></tr><tr><td><code>Sidecar</code></td><td>1 x 1</td><td>logical</td><td>true</td></tr><tr><td><code>Size</code></td><td>1 x 2</td><td>double</td><td>[900 470]</td></tr><tr><td><code>CRS</code></td><td>1 x 1</td><td>string</td><td>&quot;equirectangular&quot;</td></tr><tr><td><code>Basemap</code></td><td>1 x 1</td><td>struct</td><td>struct()</td></tr><tr><td><code>GeoArgs</code></td><td>n x m</td><td>cell</td><td>{}</td></tr></table>
+<b>Example</b><pre>    shLowLevel.writeAnimation(ts, fullfile(tempdir, &#x27;ewh.avi&#x27;), ...
+        quantity = &quot;ewh&quot;, kn = kn, FrameRate = 6);
+
+  See also SHSERIES/TOGRID, SHLOWLEVEL/WRITEFRAMES, REQUIREGEOMAP.
+
+  Claude (Fable 5), 2026-08-07 (v2.4); routed through geoMap
+  Claude (Opus 5), 2026-08-23 (v3.32.0).</pre>
+</div>
+<div class="entry" id="shLowLevel.writeFrames">
+<h3><code>shLowLevel.writeFrames(frames, filename, opts)</code></h3>
+<p class="h1line">Write ready-made RGB frames to a video container.</p>
+<p>shLowLevel.writeFrames(FRAMES, &#x27;out.avi&#x27;, FrameRate (4)=..., ...) writes an (H x W x 3 x T) uint8 stack to an MPEG-4 or Motion-JPEG AVI file and, by default, a provenance sidecar beside it.</p>
+<b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>frames</code></td><td>H x W x 3 x T</td><td>uint8</td><td>required</td></tr><tr><td><code>filename</code></td><td>1 x 1</td><td>string</td><td>required</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>FrameRate</code></td><td>1 x 1</td><td>double</td><td>4</td></tr><tr><td><code>Sidecar</code></td><td>1 x 1</td><td>logical</td><td>true</td></tr><tr><td><code>SidecarExtra</code></td><td>1 x 1</td><td>struct</td><td>struct()</td></tr></table>
+<b>Example</b><pre>    F = uint8(zeros(120, 240, 3, 5));
+    shLowLevel.writeFrames(F, fullfile(tempdir, &#x27;demo.avi&#x27;), FrameRate = 2);
+
+  See also SHLOWLEVEL/WRITEANIMATION, SHSERIES/TOGRID.
+
+  Claude (Opus 5), 2026-08-23 (v3.32.0).</pre>
 </div>
 <div class="entry" id="shLowLevel.writeGFC">
 <h3><code>shLowLevel.writeGFC(filename, C, S, GM, R, opts)</code></h3>
@@ -1838,13 +1862,15 @@ code itself.</p>
 </div>
 <div class="entry" id="shCoefficients.map">
 <h3><code>shCoefficients.map(obj, latDeg, lonDeg, opts)</code></h3>
-<p class="h1line">Synthesize and plot in one call (shLowLevel.plotSHMap).</p>
-<p>H = g.map(-89:89, 0:359, quantity (&quot;geoid&quot;)=&quot;ewh&quot;, kn ([])=kn) - all synthesis options plus the plotSHMap display options.</p>
-<b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td>required</td></tr><tr><td><code>latDeg</code></td><td>1 x :</td><td>double</td><td>-89:2:89</td></tr><tr><td><code>lonDeg</code></td><td>1 x :</td><td>double</td><td>0:2:358</td></tr></table>
-<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>quantity</code></td><td>1 x 1</td><td>string</td><td>&quot;geoid&quot;</td></tr><tr><td><code>kn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>hn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>Height</code></td><td>1 x 1</td><td>double</td><td>0</td></tr><tr><td><code>nmin</code></td><td>1 x 1</td><td>double</td><td>0</td></tr><tr><td><code>Projection</code></td><td>1 x 1</td><td>string</td><td>&quot;plate&quot;</td></tr><tr><td><code>Coast</code></td><td>1 x 1</td><td>logical</td><td>true</td></tr><tr><td><code>CLim</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>Units</code></td><td>1 x 1</td><td>string</td><td>&quot;&quot;</td></tr><tr><td><code>Title</code></td><td>1 x 1</td><td>string</td><td>&quot;&quot;</td></tr><tr><td><code>ax</code></td><td>n x m</td><td>-</td><td>[]</td></tr></table>
+<p class="h1line">Synthesize and draw in one call, through geoMap.</p>
+<p>H = g.map(-89:89, 0:359, quantity (&quot;ewh&quot;)=..., kn ([])=...) builds the handover struct with g.toGrid and hands it to geo.map. It draws NOTHING itself.</p>
+<b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td>required</td></tr><tr><td><code>latDeg</code></td><td>1 x :</td><td>double</td><td>required</td></tr><tr><td><code>lonDeg</code></td><td>1 x :</td><td>double</td><td>required</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>quantity</code></td><td>1 x 1</td><td>string</td><td>&quot;ewh&quot;</td></tr><tr><td><code>kn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>hn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>nmin</code></td><td>1 x 1</td><td>double</td><td>0</td></tr><tr><td><code>nmax</code></td><td>1 x 1</td><td>double</td><td>NaN</td></tr><tr><td><code>Height</code></td><td>1 x 1</td><td>double</td><td>0</td></tr><tr><td><code>rho_ave</code></td><td>1 x 1</td><td>double</td><td>5517</td></tr><tr><td><code>rho_water</code></td><td>1 x 1</td><td>double</td><td>1000</td></tr><tr><td><code>LatType</code></td><td>1 x 1</td><td>string</td><td>&quot;geodetic&quot;</td></tr><tr><td><code>Flattening</code></td><td>1 x 1</td><td>double</td><td>1/298.257223563</td></tr><tr><td><code>CRS</code></td><td>1 x 1</td><td>string</td><td>&quot;equirectangular&quot;</td></tr><tr><td><code>Basemap</code></td><td>1 x 1</td><td>struct</td><td>struct()</td></tr><tr><td><code>GeoArgs</code></td><td>n x m</td><td>cell</td><td>{}</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
-<tr><td><code>h</code></td><td>(1 x 1) graphics handle   synthesized map plot</td></tr>
+<tr><td><code>H</code></td><td>(1 x 1) struct   the handle struct geo.map returns</td></tr>
 </table>
+<b>Example</b><pre>    H = g.map(-89.5:89.5, 0.5:359.5, quantity = &quot;ewh&quot;, kn = kn, ...
+            CRS = &quot;robinson&quot;);</pre>
 </div>
 <div class="entry" id="shCoefficients.minus">
 <h3><code>shCoefficients.minus(a, b)</code></h3>
@@ -2392,4 +2418,4 @@ code itself.</p>
 <tr><td><code>obj</code></td><td>(1 x 1) shClimatology   copy with the note appended to its history</td></tr>
 </table>
 </div>
-<hr><p style="font-size:11px;color:#888">Developed by Matthias Weigelt with the help of Claude (Fable 5), 23-Aug-2026 (v3.31.0). Generated by tools - do not edit.</p></body></html>
+<hr><p style="font-size:11px;color:#888">Developed by Matthias Weigelt with the help of Claude (Fable 5), 23-Aug-2026 (v3.32.0). Generated by tools - do not edit.</p></body></html>
