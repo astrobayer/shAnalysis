@@ -11,7 +11,7 @@ td,th{border:1px solid #ccc;padding:3px 8px;font-size:13px;text-align:left}
 h2{margin-top:34px;border-bottom:2px solid #444}
 .toc a{margin-right:10px;font-size:13px}
 </style></head><body>
-<h1>shAnalysis API reference (v3.30.0)</h1>
+<h1>shAnalysis API reference (v3.31.0)</h1>
 <p>Generated from the source arguments blocks and help text - inputs,
 name-value options with defaults, and outputs for every public function
 and method. Regenerated with every release; the source of truth is the
@@ -770,6 +770,7 @@ code itself.</p>
 <b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>kn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>hn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>rho_ave</code></td><td>1 x 1</td><td>double</td><td>5517</td></tr><tr><td><code>rho_water</code></td><td>1 x 1</td><td>double</td><td>1000</td></tr><tr><td><code>Height</code></td><td>1 x 1</td><td>double</td><td>0</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
 <tr><td><code>kernel</code></td><td>(nmax+1,1) double  (zeros where the quantity carries no information, e.g. n=1 for gravity_anomaly) radialExp (nmax+1,1) double  the upward-continuation exponent p_n in f_n(r) = kernel_n (R/r)^p_n, or EMPTY for a quantity that has no radial law (a surface concept). This is the same p_n the Height branch below applies, returned rather than restated: shLowLevel.shSynthesisGradient needs it for d/dr = -(p_n/r) f_n, and a second copy of these exponents would be a fact written twice.</td></tr>
+<tr><td><code>units</code></td><td>(1,1) string  the SI unit of the quantity (&quot;&quot; for the dimensionless passthrough). Same reason as radialExp: the unit belongs to the quantity, so it is returned from where the quantity is defined rather than restated in every bridge, plot label and export header. Consumed by shCoefficients.toGrid.</td></tr>
 </table>
 </div>
 <div class="entry" id="shLowLevel.leakageCorrect">
@@ -1353,7 +1354,7 @@ code itself.</p>
 <b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>quantity</code></td><td>1 x 1</td><td>string</td><td>&quot;geoid&quot;</td></tr><tr><td><code>kn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>hn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>nmin</code></td><td>1 x 1</td><td>double</td><td>0</td></tr><tr><td><code>nmax</code></td><td>1 x 1</td><td>double</td><td>NaN</td></tr><tr><td><code>Height</code></td><td>1 x 1</td><td>double</td><td>0</td></tr><tr><td><code>rho_ave</code></td><td>1 x 1</td><td>double</td><td>5517</td></tr><tr><td><code>rho_water</code></td><td>1 x 1</td><td>double</td><td>1000</td></tr><tr><td><code>Mode</code></td><td>1 x 1</td><td>string</td><td>&quot;grid&quot;</td></tr><tr><td><code>Units</code></td><td>1 x 1</td><td>string</td><td>&quot;perMeter&quot;</td></tr><tr><td><code>MaxMemGB</code></td><td>1 x 1</td><td>double</td><td>4</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
 <tr><td><code>dq</code></td><td>(1,1) struct  fields north, east, up, each (nlat x nlon) double for Mode &quot;grid&quot; or (npts x 1) double for &quot;points&quot;. EAST is NaN where |lat| = 90 - the east direction does not exist at a pole, and the cos(phi) division there returns a finite, meaningless number if it is not caught. UP is [] for surface quantities (see above)</td></tr>
-<tr><td><code>info</code></td><td>(1,1) struct  quantity, units, r [m], nmin, nmax, hasUp (1,1) logical, lat (1 x nlat) double, lon (1 x nlon) double - the geocentric latitudes and longitudes actually used</td></tr>
+<tr><td><code>info</code></td><td>(1,1) struct  quantity, units, r [m], nmin, nmax, hasUp (1,1) logical, lat (1 x nlat) double, latType (1,1) string, lon (1 x nlon) double - the latitudes and longitudes actually used. latType is always &quot;geocentric&quot; here: this function has no ellipsoid. shCoefficients.gradient overwrites both when it was handed geodetic input, so the convention travels with the numbers instead of being remembered by the caller</td></tr>
 </table>
 <b>Example</b><pre>    % a zonal degree-2 pattern: the east gradient must vanish exactly
     C = zeros(3); S = zeros(3); C(3,1) = 1;              % C_20
@@ -1684,6 +1685,7 @@ code itself.</p>
 <a href="#shCoefficients.subtractNormalField">subtractNormalField</a>
 <a href="#shCoefficients.synthesis">synthesis</a>
 <a href="#shCoefficients.times">times</a>
+<a href="#shCoefficients.toGrid">toGrid</a>
 <a href="#shCoefficients.toReference">toReference</a>
 <a href="#shCoefficients.triangle">triangle</a>
 <a href="#shCoefficients.truncate">truncate</a>
@@ -1828,7 +1830,7 @@ code itself.</p>
 <b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>quantity</code></td><td>1 x 1</td><td>string</td><td>&quot;geoid&quot;</td></tr><tr><td><code>kn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>hn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>nmin</code></td><td>1 x 1</td><td>double</td><td>0</td></tr><tr><td><code>nmax</code></td><td>1 x 1</td><td>double</td><td>NaN</td></tr><tr><td><code>Height</code></td><td>1 x 1</td><td>double</td><td>0</td></tr><tr><td><code>rho_ave</code></td><td>1 x 1</td><td>double</td><td>5517</td></tr><tr><td><code>rho_water</code></td><td>1 x 1</td><td>double</td><td>1000</td></tr><tr><td><code>Mode</code></td><td>1 x 1</td><td>string</td><td>&quot;grid&quot;</td></tr><tr><td><code>Units</code></td><td>1 x 1</td><td>string</td><td>&quot;perMeter&quot;</td></tr><tr><td><code>MaxMemGB</code></td><td>1 x 1</td><td>double</td><td>4</td></tr><tr><td><code>LatType</code></td><td>1 x 1</td><td>string</td><td>&quot;geocentric&quot;</td></tr><tr><td><code>Flattening</code></td><td>1 x 1</td><td>double</td><td>1/298.257223563</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
 <tr><td><code>dq</code></td><td>(1 x 1) struct   fields north, east, up: each (nlat x nlon) double, or (npts x 1) for Mode=&quot;points&quot;; up is [] for surface quantities</td></tr>
-<tr><td><code>info</code></td><td>(1 x 1) struct   quantity, units, r, nmin, nmax, hasUp, lat, lon</td></tr>
+<tr><td><code>info</code></td><td>(1 x 1) struct   quantity, units, r, nmin, nmax, hasUp, lat (as given), latType, lon</td></tr>
 </table>
 <b>Example</b><pre>    lat = -89:2:89; lon = 0:2:358;
     [dq, info] = g.gradient(lat, lon, quantity = &quot;ewh&quot;, kn = kn);
@@ -1918,7 +1920,7 @@ code itself.</p>
 <b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>quantity</code></td><td>1 x 1</td><td>string</td><td>&quot;geoid&quot;</td></tr><tr><td><code>kn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>hn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>Height</code></td><td>1 x 1</td><td>double</td><td>0</td></tr><tr><td><code>nmin</code></td><td>1 x 1</td><td>double</td><td>0</td></tr><tr><td><code>nmax</code></td><td>1 x 1</td><td>double</td><td>NaN</td></tr><tr><td><code>rho_ave</code></td><td>1 x 1</td><td>double</td><td>5517</td></tr><tr><td><code>rho_water</code></td><td>1 x 1</td><td>double</td><td>1000</td></tr><tr><td><code>UseCache</code></td><td>1 x 1</td><td>logical</td><td>true</td></tr><tr><td><code>Method</code></td><td>1 x 1</td><td>string</td><td>&quot;auto&quot;</td></tr><tr><td><code>LatType</code></td><td>1 x 1</td><td>string</td><td>&quot;geocentric&quot;</td></tr><tr><td><code>Flattening</code></td><td>1 x 1</td><td>double</td><td>1/298.257223563</td></tr><tr><td><code>MaxMemGB</code></td><td>1 x 1</td><td>double</td><td>4</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
 <tr><td><code>grid</code></td><td>(nlat x nlon) double   synthesized field</td></tr>
-<tr><td><code>lat</code></td><td>(1 x nlat) double   geocentric latitudes</td></tr>
+<tr><td><code>lat</code></td><td>(1 x nlat) double   the latitudes AS GIVEN, in the convention named by LatType - not the internally converted ones (changed in v3.31.0)</td></tr>
 <tr><td><code>lon</code></td><td>(1 x nlon) double   longitudes</td></tr>
 </table>
 </div>
@@ -1929,6 +1931,19 @@ code itself.</p>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
 <tr><td><code>out</code></td><td>(1 x 1) shCoefficients   elementwise-scaled coefficients</td></tr>
 </table>
+</div>
+<div class="entry" id="shCoefficients.toGrid">
+<h3><code>shCoefficients.toGrid(obj, latDeg, lonDeg, opts)</code></h3>
+<p class="h1line">Synthesized field plus the metadata a map needs to draw it.</p>
+<p>B = g.toGrid(LAT, LON, quantity (&quot;ewh&quot;)=..., kn ([])=..., LatType (&quot;geodetic&quot;)=...) synthesizes exactly as g.synthesis does and returns the values TOGETHER WITH what they are: units, latitude convention, product type, epoch, provenance, and whether the field is a full field or an anomaly.</p>
+<b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td>required</td></tr><tr><td><code>latDeg</code></td><td>1 x :</td><td>double</td><td>required</td></tr><tr><td><code>lonDeg</code></td><td>1 x :</td><td>double</td><td>required</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>quantity</code></td><td>1 x 1</td><td>string</td><td>&quot;ewh&quot;</td></tr><tr><td><code>kn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>hn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>nmin</code></td><td>1 x 1</td><td>double</td><td>0</td></tr><tr><td><code>nmax</code></td><td>1 x 1</td><td>double</td><td>NaN</td></tr><tr><td><code>Height</code></td><td>1 x 1</td><td>double</td><td>0</td></tr><tr><td><code>rho_ave</code></td><td>1 x 1</td><td>double</td><td>5517</td></tr><tr><td><code>rho_water</code></td><td>1 x 1</td><td>double</td><td>1000</td></tr><tr><td><code>LatType</code></td><td>1 x 1</td><td>string</td><td>&quot;geodetic&quot;</td></tr><tr><td><code>Flattening</code></td><td>1 x 1</td><td>double</td><td>1/298.257223563</td></tr><tr><td><code>Method</code></td><td>1 x 1</td><td>string</td><td>&quot;auto&quot;</td></tr><tr><td><code>MaxMemGB</code></td><td>1 x 1</td><td>double</td><td>4</td></tr></table>
+<b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
+<tr><td><code>b</code></td><td>(1 x 1) struct   Z (nlat x nlon) double values; lat (nlat x 1) double AS GIVEN; lon (1 x nlon) double; Units, LatType, Quantity, ProductType, Source, Name, FieldKind (1,1) string; Epoch, C00, Zmin, Zmax, Zmean (1,1) double; History (: x 1) string</td></tr>
+</table>
+<b>Example</b><pre>    b = g.toGrid(-89.5:89.5, 0.5:359.5, quantity = &quot;ewh&quot;, kn = kn);
+    b.Units          % &quot;m&quot;
+    b.FieldKind      % &quot;anomaly&quot; for a residual field</pre>
 </div>
 <div class="entry" id="shCoefficients.toReference">
 <h3><code>shCoefficients.toReference(obj, opts)</code></h3>
@@ -1999,6 +2014,7 @@ code itself.</p>
 <a href="#shSeries.restore">restore</a>
 <a href="#shSeries.select">select</a>
 <a href="#shSeries.shSeries">shSeries</a>
+<a href="#shSeries.toGrid">toGrid</a>
 <a href="#shSeries.trendBreaks">trendBreaks</a>
 <a href="#shSeries.truncate">truncate</a>
 </p>
@@ -2223,6 +2239,18 @@ code itself.</p>
 <tr><td><code>obj</code></td><td>(1 x 1) shSeries   epoch-sorted monthly stack with sigmas and history</td></tr>
 </table>
 </div>
+<div class="entry" id="shSeries.toGrid">
+<h3><code>shSeries.toGrid(obj, latDeg, lonDeg, opts)</code></h3>
+<p class="h1line">Synthesize every epoch into one stack, with its metadata.</p>
+<p>B = ts.toGrid(LAT, LON, quantity (&quot;ewh&quot;)=..., kn ([])=..., LatType (&quot;geodetic&quot;)=...) is shCoefficients.toGrid over a whole series: B.Z is (nlat x nlon x nEpochs) and B.Epoch carries the decimal years, so an animation can label its own frames from the data rather than from a filename.</p>
+<b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td>required</td></tr><tr><td><code>latDeg</code></td><td>1 x :</td><td>double</td><td>required</td></tr><tr><td><code>lonDeg</code></td><td>1 x :</td><td>double</td><td>required</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>quantity</code></td><td>1 x 1</td><td>string</td><td>&quot;ewh&quot;</td></tr><tr><td><code>kn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>hn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>nmin</code></td><td>1 x 1</td><td>double</td><td>0</td></tr><tr><td><code>nmax</code></td><td>1 x 1</td><td>double</td><td>NaN</td></tr><tr><td><code>Height</code></td><td>1 x 1</td><td>double</td><td>0</td></tr><tr><td><code>rho_ave</code></td><td>1 x 1</td><td>double</td><td>5517</td></tr><tr><td><code>rho_water</code></td><td>1 x 1</td><td>double</td><td>1000</td></tr><tr><td><code>LatType</code></td><td>1 x 1</td><td>string</td><td>&quot;geodetic&quot;</td></tr><tr><td><code>Flattening</code></td><td>1 x 1</td><td>double</td><td>1/298.257223563</td></tr><tr><td><code>MaxMemGB</code></td><td>1 x 1</td><td>double</td><td>4</td></tr></table>
+<b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
+<tr><td><code>b</code></td><td>(1 x 1) struct   as shCoefficients.toGrid, with Z (nlat x nlon x nEpochs) double, Epoch and C00 (nEpochs x 1) double, and FieldKind &quot;mixed&quot; if the epochs disagree</td></tr>
+</table>
+<b>Example</b><pre>    b = ts.toGrid(-89.5:89.5, 0.5:359.5, quantity = &quot;ewh&quot;, kn = kn);
+    size(b.Z)        % [180 360 nEpochs]</pre>
+</div>
 <div class="entry" id="shSeries.trendBreaks">
 <h3><code>shSeries.trendBreaks(obj, opts)</code></h3>
 <p class="h1line">Piecewise-linear trends with break significance.</p>
@@ -2364,4 +2392,4 @@ code itself.</p>
 <tr><td><code>obj</code></td><td>(1 x 1) shClimatology   copy with the note appended to its history</td></tr>
 </table>
 </div>
-<hr><p style="font-size:11px;color:#888">Developed by Matthias Weigelt with the help of Claude (Fable 5), 22-Aug-2026 (v3.30.0). Generated by tools - do not edit.</p></body></html>
+<hr><p style="font-size:11px;color:#888">Developed by Matthias Weigelt with the help of Claude (Fable 5), 23-Aug-2026 (v3.31.0). Generated by tools - do not edit.</p></body></html>

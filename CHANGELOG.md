@@ -1,5 +1,87 @@
 # Changelog
 
+## [3.31.0] - 2026-08-23 - the cartographic bridge, and a latitude that lied
+
+### Fixed
+- **`shCoefficients.synthesis` returned the CONVERTED latitudes.** With
+  `LatType="geodetic"` it converted the input to geocentric, evaluated
+  there - correctly - and then handed the *converted* values back as its
+  `lat` output. A caller who fed that straight into a map drew a field
+  against a coastline it no longer matched, and nothing in either
+  toolbox could notice, because both sides were internally consistent.
+
+  The size, computed independently and agreeing with the measurement
+  made from the map side: **0.1924 deg = 21.4 km** north-south at +-45,
+  0.1240 deg = 13.8 km at 70 N. On a global 17 cm sheet that is under a
+  fifth of a millimetre and beneath the spherical approximation already
+  in use. On a **regional** map 20 deg tall - Greenland, West
+  Antarctica, the Amazon, which is what these fields are made for - it
+  is **1.6 mm**, a systematic shift of the whole signal relative to the
+  coast, in the direction a reader takes for a real geophysical offset.
+
+  `synthesis` now returns the latitudes in the convention that was
+  asked for. **This changes a return value**: code that relied on
+  getting geocentric latitudes back from a geodetic call must convert
+  explicitly with `shLowLevel.geodetic2geocentric`. The field itself is
+  unchanged, and a test pins that.
+- `shCoefficients.gradient` had the same defect in `info.lat`, freshly
+  introduced in v3.30.0. It now reports the latitudes as given plus
+  `info.latType`, so a mismatch can be refused downstream instead of
+  drawn.
+
+### Added
+- **`shCoefficients.toGrid` and `shSeries.toGrid`** - the synthesized
+  field together with what it is: `Units`, `LatType`, `Quantity`,
+  `ProductType`, `Name`, `Epoch`, `Source`, `FieldKind`, `C00`, `Zmin`,
+  `Zmax`, `Zmean`, `History`. Handover is then one line:
+
+  ```matlab
+  b = g.toGrid(lat, lon, quantity = "ewh", kn = kn);
+  G = geo.grid(b.lon, b.lat, b.Z, Source = b.Source, Units = b.Units);
+  ```
+
+  `LatType` defaults to `"geodetic"` here, unlike `synthesis`, because
+  coastlines are geodetic and a map is what this output is for. The
+  choice is stated in `b.LatType` rather than assumed.
+
+- **`FieldKind` is read off an identity, not guessed.** `C(1,1)` is the
+  degree-0 coefficient: exactly 1 for a field normalised by GM/R that
+  carries the total mass, 0 for a residual. So `"full"` and `"anomaly"`
+  are facts about the coefficients, and anything in between is reported
+  as `"unknown"` rather than decided. A **mass** quantity synthesized
+  from a full field warns
+  (`shCoefficients:toGrid:fullFieldAsMass`): measured, twelve GSM
+  solutions meaned and synthesized to EWH give 1.16e7 m, which is the
+  static field expressed as water, not a mass change - and which a
+  symmetric colour scale renders as one flat colour. `Units = "m"` is
+  true of both and distinguishes nothing.
+
+- `Zmin`/`Zmax`/`Zmean` are carried as measured numbers rather than
+  turned into a verdict. For `shSeries.toGrid` they span the **whole
+  stack**, which is the fixed colour scale an animation needs: a
+  per-frame scale shows the scale changing and the signal not.
+
+- `shLowLevel.gridHandover` - the metadata assembly both bridges share,
+  so the two cannot describe the same field differently.
+
+### Changed
+- `shLowLevel.kernelFactors` gained a third output, the quantity's
+  **units**, set in the same `switch` case that sets its kernel. The
+  unit belongs to the quantity; retyped by hand at a toolbox boundary it
+  was one more thing a user could get wrong silently.
+
+### Notes
+- **Not verified on hardware.** The MATLAB MCP bridge was still
+  unavailable; static gates, the independent latitude computation and CI
+  only.
+- The remaining item from the same measurement is **not** a defect in
+  any file and is not decided here: `shLowLevel.plotSHMap`,
+  `errorMap` and `resolutionMap` are a second cartographic renderer,
+  roughly 690 lines, in two projections. Whether it is routed through
+  the map toolbox, kept deliberately as a dependency-free quick-look and
+  said so in its help, or kept silently, is Matthias's decision. Only
+  the third option is certainly wrong.
+
 ## [3.30.0] - 2026-08-22 - north/east/up gradient of any quantity
 
 ### Added

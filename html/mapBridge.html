@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Handover to a map toolbox</title>
+<style>
+body { font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; margin: 0; padding: 0; background: #fff; color: #222; }
+.content { max-width: 900px; margin: 0 auto; padding: 24px 32px 60px 32px; }
+h1 { font-size: 24px; border-bottom: 1px solid #d6d6d6; padding-bottom: 8px; color: #1a1a1a; }
+h2 { font-size: 16px; margin-top: 28px; color: #0b5394; border-bottom: 1px solid #eaeaea; padding-bottom: 4px; }
+h3 { font-size: 13px; margin-top: 18px; color: #333; }
+p, li { font-size: 13px; line-height: 1.55; }
+code, pre { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 12.5px; }
+pre { background: #f7f7f7; border: 1px solid #e2e2e2; border-radius: 4px; padding: 10px 14px; overflow-x: auto; }
+code.inline { background: #f2f2f2; padding: 1px 4px; border-radius: 3px; }
+table { border-collapse: collapse; margin: 10px 0 18px 0; width: 100%; }
+th, td { border: 1px solid #ddd; padding: 6px 10px; font-size: 12.5px; text-align: left; vertical-align: top; }
+th { background: #f5f7fa; }
+.tag { display:inline-block; background:#eef3fb; color:#0b5394; border-radius:3px; padding:1px 7px; font-size:11px; margin-right:6px;}
+.seealso a { margin-right: 14px; }
+.note { background: #fff8e6; border-left: 3px solid #e0b400; padding: 8px 12px; font-size: 12.5px; margin: 12px 0; }
+</style>
+</head>
+<body><div class="content">
+<span class="tag">Spatial</span>
+<h1>Handover to a map toolbox</h1>
+<p><code class="inline">shCoefficients.toGrid</code>, <code class="inline">shSeries.toGrid</code> and <code class="inline">shLowLevel.gridHandover</code> &mdash; a synthesized field together with what it is.</p>
+
+<h2>Syntax</h2>
+<pre>b = g.toGrid(lat, lon, quantity="ewh", kn=kn)          % one epoch
+b = ts.toGrid(lat, lon, quantity="ewh", kn=kn)         % a stack, for animation
+b = g.toGrid(lat, lon, quantity="geoid", LatType="geocentric")</pre>
+
+<h2>Why it exists</h2>
+<p><code class="inline">g.synthesis</code> returns three numeric arrays, and that is the right interface: numbers cross a toolbox boundary without either side importing the other. But an array of metres is an array of metres. When the interface was measured end to end, three things did not survive the trip, and each was something a user had to retype and could get wrong with nothing noticing.</p>
+
+<table><tr><th>What was lost</th><th>Consequence</th><th>Carried now as</th></tr>
+<tr><td>The latitude convention</td><td>A geocentric field drawn against a geodetic coastline: 0.1924&nbsp;deg = 21.4&nbsp;km at &plusmn;45, which is 1.6&nbsp;mm of systematic shift on a regional map</td><td><code class="inline">b.LatType</code>, and <code class="inline">synthesis</code> now returns the convention that was <em>asked for</em></td></tr>
+<tr><td>The units</td><td>Typed by hand into the figure</td><td><code class="inline">b.Units</code>, from <code class="inline">kernelFactors</code></td></tr>
+<tr><td>The product type</td><td>A full field and a residual are both &ldquo;m&rdquo;, and one of them is unplottable</td><td><code class="inline">b.ProductType</code>, <code class="inline">b.FieldKind</code>, <code class="inline">b.C00</code></td></tr></table>
+
+<h3>The field kind is read off an identity</h3>
+<p><code class="inline">C(1,1)</code> is the degree-0 coefficient: exactly 1 for a field normalised by GM/R that carries the total mass, and 0 for a residual. So <code class="inline">"full"</code> and <code class="inline">"anomaly"</code> are facts about the coefficients rather than inferences from the values, and anything in between is reported as <code class="inline">"unknown"</code> rather than decided. A stack whose epochs disagree is <code class="inline">"mixed"</code>.</p>
+<div class="note">Measured: twelve GSM solutions meaned and synthesized to EWH give 1.16e7&nbsp;m &mdash; the static field expressed as water, not a mass change &mdash; which a symmetric colour scale renders as a single flat colour. Asking for a <b>mass</b> quantity from a full field therefore warns (<code class="inline">shCoefficients:toGrid:fullFieldAsMass</code>). Asking for a geoid from one is legitimate and stays silent.</div>
+
+<h3>One colour scale across a whole animation</h3>
+<p><code class="inline">shSeries.toGrid</code> returns <code class="inline">b.Z</code> as (nlat &times; nlon &times; nEpochs) and takes <code class="inline">Zmin</code>/<code class="inline">Zmax</code> over the <b>whole stack</b>. That is the point of building the stack in one call: an animation drawn with a per-frame colour scale shows the scale changing and the signal not, which is how 240 honest maps become a misleading film. <code class="inline">b.Epoch</code> lets the frames label themselves from the data rather than from a filename.</p>
+
+<h2>Outputs</h2>
+<table><tr><th>Field</th><th>Type</th><th>Description</th></tr>
+<tr><td>Z</td><td>(nlat,nlon[,T]) double</td><td>the synthesized values, unchanged &mdash; the bridge adds no arithmetic</td></tr>
+<tr><td>lat, lon</td><td>(nlat,1), (1,nlon) double</td><td>as given, in the convention named by LatType</td></tr>
+<tr><td>Units, Quantity, LatType, ProductType, Name, Source, FieldKind</td><td>(1,1) string</td><td>Source is one line a figure caption can carry verbatim</td></tr>
+<tr><td>Epoch, C00</td><td>(:,1) double</td><td>per epoch</td></tr>
+<tr><td>Zmin, Zmax, Zmean, Nmax, Nmin</td><td>(1,1) double</td><td>measured extremes, carried rather than judged</td></tr>
+<tr><td>History</td><td>(:,1) string</td><td>the processing history of the object</td></tr></table>
+
+<h2>Example</h2>
+<pre>ts = shSeries.fromFolder(folder);
+res = ts.minus(ts.mean());
+b = res.toGrid(-89.5:89.5, 0.5:359.5, quantity="ewh", kn=kn);
+b.FieldKind        % "anomaly"
+b.Units            % "m"</pre>
+<p>The struct's field names are chosen to feed a <code class="inline">geo.grid</code>-style constructor directly, so the handover is one line and no value is retyped.</p>
+
+<h2>See also</h2><p class="seealso"><a href="shSynthesis.html">shSynthesis</a> <a href="shSynthesisGradient.html">shSynthesisGradient</a> <a href="geodetic2geocentric.html">geodetic2geocentric</a> <a href="shSeries.html">shSeries</a></p>
+<p style="color:#999;font-size:11px;margin-top:40px;">shAnalysis v3.31.0 &mdash; Claude (Opus 5), 2026-08-23</p>
+</div><p class="provenance">Developed by Matthias Weigelt with the help of Claude (Opus 5).</p>
+</body></html>

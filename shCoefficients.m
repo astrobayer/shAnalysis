@@ -583,7 +583,9 @@ methods
         %   hardcoded).
         %   Outputs
         %     grid       (nlat x nlon) double   synthesized field
-        %     lat        (1 x nlat) double   geocentric latitudes
+        %     lat        (1 x nlat) double   the latitudes AS GIVEN, in the
+        %                convention named by LatType - not the internally
+        %                converted ones (changed in v3.31.0)
         %     lon        (1 x nlon) double   longitudes
         %
         %   Options
@@ -624,6 +626,7 @@ methods
             opts.Flattening (1,1) double = 1/298.257223563
             opts.MaxMemGB (1,1) double {mustBePositive} = 4
         end
+        latOut = latVec;        % the convention the CALLER asked for
         if opts.LatType == "geodetic"
             % map grids are usually geodetic; SH math needs geocentric
             latVec = shLowLevel.geodetic2geocentric(latVec, ...
@@ -644,8 +647,14 @@ methods
             P = shLowLevel.legendreCached(nmaxEff, deg2rad(latVec(:)'));
             args = [args, {'P', P}];
         end
-        [grid, lat, lon] = shLowLevel.shSynthesis(obj.C, obj.S, obj.GM, obj.R, ...
+        [grid, ~, lon] = shLowLevel.shSynthesis(obj.C, obj.S, obj.GM, obj.R, ...
             latVec, lonVec, args{:});
+        % LAT comes back in the convention that was ASKED FOR (v3.31.0).
+        % It used to be the converted one, so LatType="geodetic" returned
+        % geocentric latitudes - 0.1924 deg = 21.4 km at +-45, measured -
+        % and a caller who fed them to a map drew the field against a
+        % geodetic coastline it no longer matched. Nothing could notice.
+        lat = latOut(:)';
     end
 
     function out = toReference(obj, opts)
@@ -868,7 +877,7 @@ methods
         %                (nlat x nlon) double, or (npts x 1) for
         %                Mode="points"; up is [] for surface quantities
         %     info       (1 x 1) struct   quantity, units, r, nmin, nmax,
-        %                hasUp, lat, lon
+        %                hasUp, lat (as given), latType, lon
         %
         %   Options
         %     quantity ("geoid")  any kernelFactors quantity
@@ -917,6 +926,7 @@ methods
                 {mustBeMember(opts.LatType, ["geocentric","geodetic"])} = "geocentric"
             opts.Flattening (1,1) double = 1/298.257223563
         end
+        latOut = latDeg;        % the convention the CALLER asked for
         if opts.LatType == "geodetic"
             latDeg = shLowLevel.geodetic2geocentric(latDeg, ...
                 Flattening = opts.Flattening);
@@ -929,6 +939,112 @@ methods
             Height = opts.Height, rho_ave = opts.rho_ave, ...
             rho_water = opts.rho_water, Mode = opts.Mode, ...
             Units = opts.Units, MaxMemGB = opts.MaxMemGB);
+        % INFO.lat reports what was ASKED FOR, and INFO.latType says which
+        % convention that is, so a mismatch can be refused downstream
+        % rather than drawn (v3.31.0)
+        info.lat = latOut(:)';
+        info.latType = opts.LatType;
+    end
+
+    function b = toGrid(obj, latDeg, lonDeg, opts)
+        %TOGRID Synthesized field plus the metadata a map needs to draw it.
+        %   B = g.toGrid(LAT, LON, quantity ("ewh")=..., kn ([])=...,
+        %       LatType ("geodetic")=...) synthesizes exactly as
+        %   g.synthesis does and returns the values TOGETHER WITH what
+        %   they are: units, latitude convention, product type, epoch,
+        %   provenance, and whether the field is a full field or an
+        %   anomaly.
+        %
+        %   WHY THIS EXISTS. g.synthesis returns three numeric arrays, and
+        %   an array of metres is an array of metres: a static field
+        %   expressed as water (1.16e7 m) and a monthly mass anomaly
+        %   (+-1.2 m) are indistinguishable to any renderer, and one of
+        %   them is unplottable. The interface between this toolbox and a
+        %   cartographic one was measured end to end and three things did
+        %   not survive the trip - the latitude convention, the units and
+        %   the product type - each of which a user had to retype and
+        %   could get wrong with nothing noticing.
+        %
+        %   LATTYPE DEFAULTS TO "geodetic" HERE, unlike g.synthesis, and
+        %   that is deliberate: coastlines are geodetic (Natural Earth,
+        %   GSHHG), so a map wants geodetic. The convention travels in
+        %   B.LatType, so the choice is stated rather than assumed.
+        %
+        %   FIELDKIND COMES FROM AN IDENTITY, NOT A GUESS. C(1,1) is the
+        %   degree-0 coefficient, which is exactly 1 for a field carrying
+        %   the total mass and 0 for a residual - so "full" and "anomaly"
+        %   are read off, and anything else is reported as "unknown"
+        %   rather than decided. Synthesizing a MASS quantity from a full
+        %   field warns (shCoefficients:toGrid:fullFieldAsMass): it is the
+        %   static field expressed as water, not a mass change.
+        %
+        %   Handover into geoMap is then one line:
+        %     G = geo.grid(b.lon, b.lat, b.Z, Source = b.Source, ...
+        %             Units = b.Units);
+        %
+        %   Inputs
+        %     latDeg  (1,:) double  latitudes [deg], convention per LatType
+        %     lonDeg  (1,:) double  longitudes [deg]
+        %   Outputs
+        %     b          (1 x 1) struct   Z (nlat x nlon) double values;
+        %                lat (nlat x 1) double AS GIVEN; lon (1 x nlon)
+        %                double; Units, LatType, Quantity, ProductType,
+        %                Source, Name, FieldKind (1,1) string; Epoch,
+        %                C00, Zmin, Zmax, Zmean (1,1) double; History
+        %                (: x 1) string
+        %
+        %   Options
+        %     quantity ("ewh")  any kernelFactors quantity; the default is
+        %         the one a map of a GRACE field almost always wants
+        %     kn ([])  load Love numbers k'_n (mass quantities; never hardcoded)
+        %     hn ([])  load Love numbers h'_n (deformation_up only)
+        %     nmin (0)  degrees below nmin are zeroed
+        %     nmax (NaN)  truncation degree; NaN uses the object's nmax
+        %     Height (0)  evaluation height above R [m]
+        %     rho_ave (5517)  mean Earth density [kg/m^3]
+        %     rho_water (1000)  water density [kg/m^3]
+        %     LatType ("geodetic")  "geodetic" | "geocentric"
+        %     Flattening (1/298.257223563)  ellipsoid flattening (WGS84)
+        %     Method ("auto")  "auto" | "direct" | "fft"
+        %     MaxMemGB (4)  synthesis memory budget [GB]
+        %
+        %   Example
+        %     b = g.toGrid(-89.5:89.5, 0.5:359.5, quantity = "ewh", kn = kn);
+        %     b.Units          % "m"
+        %     b.FieldKind      % "anomaly" for a residual field
+        arguments
+            obj
+            latDeg (1,:) double
+            lonDeg (1,:) double
+            opts.quantity (1,1) string = "ewh"
+            opts.kn double = []
+            opts.hn double = []
+            opts.nmin (1,1) double = 0
+            opts.nmax (1,1) double = NaN
+            opts.Height (1,1) double = 0
+            opts.rho_ave (1,1) double = 5517
+            opts.rho_water (1,1) double = 1000
+            opts.LatType (1,1) string ...
+                {mustBeMember(opts.LatType, ["geocentric","geodetic"])} = "geodetic"
+            opts.Flattening (1,1) double = 1/298.257223563
+            opts.Method (1,1) string ...
+                {mustBeMember(opts.Method, ["auto","direct","fft"])} = "auto"
+            opts.MaxMemGB (1,1) double {mustBePositive} = 4
+        end
+        nmaxEff = opts.nmax;
+        if isnan(nmaxEff), nmaxEff = obj.nmax; end
+        [Z, lat, lon] = obj.synthesis(latDeg, lonDeg, ...
+            quantity = opts.quantity, kn = opts.kn, hn = opts.hn, ...
+            nmin = opts.nmin, nmax = nmaxEff, Height = opts.Height, ...
+            rho_ave = opts.rho_ave, rho_water = opts.rho_water, ...
+            LatType = opts.LatType, Flattening = opts.Flattening, ...
+            Method = opts.Method, MaxMemGB = opts.MaxMemGB);
+        [~, ~, units] = shLowLevel.kernelFactors(char(opts.quantity), ...
+            nmaxEff, obj.GM, obj.R, kn = opts.kn, hn = opts.hn, ...
+            rho_ave = opts.rho_ave, rho_water = opts.rho_water);
+        b = shLowLevel.gridHandover(Z, lat, lon, units, opts.LatType, ...
+            opts.quantity, obj.productType, obj.name, obj.epoch, ...
+            obj.C(1, 1), obj.history, nmaxEff, opts.nmin);
     end
 
     function out = applyDDK(obj, W)

@@ -3692,3 +3692,61 @@ function M = local_one(n, m, isC, wantC)
 M = zeros(n + 1);
 if isC == wantC, M(n + 1, m + 1) = 1; end
 end
+
+% --------------------------------- geoMap bridge (v3.31.0)
+function testSynthesisReturnsTheRequestedLatConvention(testCase)
+%TESTSYNTHESISRETURNSTHEREQUESTEDLATCONVENTION synthesis used to return
+%   the CONVERTED latitudes, so LatType="geodetic" handed back geocentric
+%   ones. Nothing in either toolbox could notice: a caller fed them
+%   straight into a map and drew a geocentric field against a geodetic
+%   coastline. The offset is 0.1924 deg = 21.4 km north-south at +-45,
+%   which on a regional 20-deg map is 1.6 mm of systematic shift - the
+%   size a reader would take for a real geophysical offset.
+rng(505);
+L = 6; n1 = L + 1;
+C = tril(randn(n1)) * 1e-10;
+S = tril(randn(n1), -1) * 1e-10; S(:, 1) = 0;
+g = shCoefficients(C, S);
+lat = -85:10:85; lon = 0:60:300;
+
+[Zgd, laGd] = g.synthesis(lat, lon, LatType = "geodetic");
+verifyEqual(testCase, laGd, lat, ...
+    'the latitudes must come back in the convention that was asked for');
+
+latGc = shLowLevel.geodetic2geocentric(lat);
+[Zgc, laGc] = g.synthesis(latGc, lon, LatType = "geocentric");
+verifyEqual(testCase, laGc, latGc);
+verifyEqual(testCase, Zgd, Zgc, 'RelTol', 1e-12, ...
+    'only the reported latitude changed, never the field');
+
+% the discrepancy is real and this pins its size
+d = max(abs(lat - latGc));
+verifyEqual(testCase, d, 0.1924, 'AbsTol', 2e-3);
+
+% the gradient carries the convention rather than leaving it to be remembered
+[~, info] = g.gradient(lat, lon, quantity = "potential", LatType = "geodetic");
+verifyEqual(testCase, info.lat, lat);
+verifyEqual(testCase, info.latType, "geodetic");
+[~, info2] = g.gradient(lat, lon, quantity = "potential");
+verifyEqual(testCase, info2.latType, "geocentric");
+end
+
+function testKernelFactorsReportsItsUnits(testCase)
+%TESTKERNELFACTORSREPORTSITSUNITS the unit belongs to the quantity, so it
+%   is returned from where the quantity is defined. Retyped by hand at
+%   the toolbox boundary it was a thing a user could get wrong silently.
+GM = 3.986004415e14; R = 6378136.3; L = 4;
+kn = -0.3 * (1 - exp(-(0:L)'/3));
+hn = -ones(L + 1, 1);
+expected = ["none", ""; "geoid", "m"; "potential", "m^2/s^2"; ...
+            "gravity_anomaly", "m/s^2"; "gravity_disturbance", "m/s^2"; ...
+            "gravity_gradient_rr", "1/s^2"; "ewh", "m"; ...
+            "surface_density", "kg/m^2"; "bottom_pressure", "Pa"; ...
+            "deformation_up", "m"];
+for k = 1:size(expected, 1)
+    [~, ~, u] = shLowLevel.kernelFactors(char(expected(k, 1)), L, GM, R, ...
+        kn = kn, hn = hn);
+    verifyEqual(testCase, u, expected(k, 2), ...
+        sprintf('units of %s', expected(k, 1)));
+end
+end
