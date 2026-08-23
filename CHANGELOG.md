@@ -1,5 +1,54 @@
 # Changelog
 
+## [3.32.1] - 2026-08-23 - the acceptance run, installed
+
+### Added
+- **`tools/dev/acceptance_geomap.m`** - the checks CI structurally
+  cannot run, now repeatable instead of living in one session's
+  scrollback. It exercises every path where shAnalysis hands work to
+  geoMap, then takes geoMap off the path and runs the mirror half.
+
+  Both halves, because **neither machine runs both**. CI has no geoMap,
+  so it only sees the refusals. A developer machine has geoMap, so it
+  never reaches them - `testNoMapIsDrawnHere` returns early when geoMap
+  is present, and a bad `shSeries` call inside that very test once
+  survived a 264-test acceptance run and failed CI.
+
+  The frame-geometry check runs the shipped `writeAnimation` three times
+  rather than re-implementing its loop. A check that copies the loop
+  tests its own copy and drifts from the real one - which is the same
+  mistake, one level up, as the two renderers this toolbox just removed.
+
+### Fixed
+- **`writeAnimation` was racing geo.map's resize, and v3.32.0's fix was
+  luck.** "One fresh figure per frame" was measured over four draws,
+  came back 365 px every time, and shipped. The first acceptance run
+  produced **365, 340, 365** - 340 being the unresized starting height,
+  i.e. `getframe` capturing before the resize landed. A single `drawnow`
+  is not a barrier for it.
+
+  The first repair attempt was a settle loop, and it had a hole worth
+  recording: **two equal polls of a figure whose resize has not started
+  look exactly like a settled one.** Frames are now captured only after
+  the height has been stable across three consecutive polls and at least
+  four polls have run, and every later frame is **pinned** to the first
+  frame's settled size - equal by construction, not by timing. Nine
+  consecutive exports of the same data are now byte-identical at
+  165770 B, 365x640; before, one in three differed.
+
+- `shLowLevel.writeFrames` records `frameSize` in the provenance
+  sidecar. Two exports of the same data differed by 0.4% in bytes and
+  nothing on disk could explain it. That difference turned out to BE the
+  defect above; the geometry is now a recorded fact rather than
+  something to infer from a file size.
+
+### Notes
+- Verified on the acceptance machine (R2026a Update 4, geoMap 2.0.541):
+  **10 of 10, three passes in a row**, plus the nine byte-identical
+  exports. A race deserves more than one green run.
+- CI still cannot see any of this, and that remains permanent rather
+  than temporary. The split is now written down in the script itself.
+
 ## [3.32.0] - 2026-08-23 - geoMap is the single cartographic authority
 
 Matthias's decision, taken on the open question left at the end of
