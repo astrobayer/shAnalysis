@@ -1,5 +1,5 @@
 % shAnalysis - Spherical harmonic analysis toolbox
-% Version 3.31.0 (R2026a-compatible) 23-Aug-2026
+% Version 3.32.0 (R2026a-compatible) 23-Aug-2026
 %
 % The line above is what ver('shAnalysis') reports as the product name:
 % keep it a SHORT name, not a sentence and not a version string (pinned
@@ -119,6 +119,10 @@
 %     units, latitude convention, product type and field kind, for
 %     handover to a cartographic toolbox (v3.31.0)
 %   shLowLevel.gridHandover - the metadata assembly both bridges share
+%   shCoefficients.map / shLowLevel.writeAnimation - draw through geoMap;
+%     this toolbox renders no maps of its own (v3.32.0)
+%   shLowLevel.requireGeoMap, shLowLevel.writeFrames - the dependency
+%     check and the graphics-free video container
 %   shLowLevel.shSynthesisGradient / g.gradient - north/east/up gradient of
 %     ANY kernelFactors quantity (v3.30.0); the exact derivative of
 %     shSynthesis under identical options
@@ -219,6 +223,32 @@
 %     (fixture-tested parser) and .gfc download by name; temporal
 %     section returns series roots (superseded in v3.1.1 - the series are
 %     downloadable now, see below)
+%
+% New in v3.32.0 (geoMap is the single cartographic authority)
+%   - REMOVED shLowLevel.plotSHMap. This toolbox carried its own map
+%     renderer - own coastlines, own colour limits, two projections -
+%     beside sixteen certified ones in geoMap, and no instrument
+%     compared the two. Measured, not assumed: the renderer was 114
+%     lines in ONE file. errorMap and resolutionMap sound like renderers
+%     and contain zero graphics calls; they compute fields and stay.
+%   - g.map now synthesizes through g.toGrid and hands the result to
+%     geo.map. It draws nothing. shLowLevel.writeAnimation likewise:
+%     shAnalysis assembles the stack and writes the container, geoMap
+%     draws every frame.
+%   - GEOMAP'S OPTIONS ARE NOT RESTATED. CRS picks the projection,
+%     Basemap configures the raster element, GeoArgs forwards verbatim.
+%     Mirroring another toolbox's option table is how two renderers
+%     drift apart in the first place.
+%   - shLowLevel.requireGeoMap is the ONE place that checks for geoMap,
+%     so the dependency has one spelling and one error message. It is
+%     checked, not required: shAnalysis still runs on base MATLAB, and
+%     only the two drawing entry points need geoMap.
+%   - shLowLevel.writeFrames writes a video container from ready-made
+%     RGB frames. It has no graphics, so codec choice, extension
+%     validation, frame rate and the provenance sidecar stay under test
+%     on a machine without geoMap.
+%   - tools/dev/no_map_renderer.py runs in CI and keeps the renderer
+%     gone. A rule enforced by review erodes; this one is a gate.
 %
 % New in v3.31.0 (the cartographic bridge: numbers that know what they are)
 %   - shCoefficients.toGrid / shSeries.toGrid return the synthesized

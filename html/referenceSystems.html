@@ -28,7 +28,7 @@ th { background: #f5f7fa; }
 <p>Needed whenever conventions meet: the WGS84 GM (3.986004418e14) and a (6378137.0) DIFFER from the ICGEM values (3.986004415e14, 6378136.3); coefficient-wise mixing without rescaling costs millimetres. The arithmetic operators guard against it (<code class="inline">shCoefficients:constantsMismatch</code>).</p>
 <h2>shLowLevel.normalFieldCS / g.subtractNormalField</h2>
 <pre>T = g.subtractNormalField();          % WGS84 (default) | System="GRS80"
-T.map(quantity="geoid", Units="m")    % proper +-100 m undulations</pre>
+T.map(lat, lon, quantity="geoid")    % proper +-100 m undulations, drawn by geoMap</pre>
 <p>The even zonals are COMPUTED from the defining constants (GM, a, f, &omega;) via the Heiskanen-Moritz closed form (q&#8320; series &rarr; J&#8322; &rarr; J&#8322;&#8342;) &mdash; no coefficient tables; validated against NIMA TR8350.2 to all published digits (J&#8322; = 1.082629821313e-3, Cbar&#8322;&#8320;/&#8324;&#8320;/&#8326;&#8320;/&#8328;&#8320;). subtractNormalField rescales the ellipsoid field to the model's (GM, R) automatically, including the degree-0 GM-ratio term.</p>
 <div class="note"><b>Permanent tide.</b> The ellipsoid is tide-free by construction; your model's C20 carries its own convention (ICGEM header 'tide_system'; zero-tide vs tide-free differ by ~4.2e-9 in Cbar20). The toolbox does not convert silently &mdash; check the header.</div>
 <h2>Pole-tide conventions: C21/S21 <span class="tag">v2.7.0</span></h2>

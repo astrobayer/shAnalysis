@@ -739,55 +739,96 @@ methods
             infoN.GM, obj.GM, infoN.a, obj.R);
     end
 
-    function h = map(obj, latDeg, lonDeg, opts)
-        %MAP Synthesize and plot in one call (shLowLevel.plotSHMap).
-        %   H = g.map(-89:89, 0:359, quantity ("geoid")="ewh", kn ([])=kn) - all
-        %   synthesis options plus the plotSHMap display options.
+    function H = map(obj, latDeg, lonDeg, opts)
+        %MAP Synthesize and draw in one call, through geoMap.
+        %   H = g.map(-89:89, 0:359, quantity ("ewh")=..., kn ([])=...)
+        %   builds the handover struct with g.toGrid and hands it to
+        %   geo.map. It draws NOTHING itself.
+        %
+        %   GEOMAP IS THE SINGLE CARTOGRAPHIC AUTHORITY (v3.32.0). This
+        %   toolbox used to carry its own renderer, shLowLevel.plotSHMap,
+        %   with its own coastlines, colour limits and two projections,
+        %   beside sixteen certified ones next door - one fact with two
+        %   implementations, and no instrument comparing them. The
+        %   renderer is gone; tools/dev/no_map_renderer.py keeps it gone.
+        %
+        %   GEOMAP'S OPTIONS ARE NOT RESTATED HERE. CRS picks the
+        %   projection, Basemap configures the raster element, and
+        %   GeoArgs is forwarded verbatim. Mirroring another toolbox's
+        %   option table is how the two renderers drifted apart; geo.map
+        %   applies the same rule to its own elements.
+        %
+        %   Without geoMap on the path this raises
+        %   shAnalysis:geoMapRequired, whose message shows how to draw
+        %   the numbers yourself. g.toGrid needs no geoMap at all.
         %
         %   Inputs
+        %     latDeg  (1,:) double  latitudes [deg]
         %     lonDeg  (1,:) double  longitudes [deg]
-        %     latDeg  (1,:) double  latitudes [deg, geocentric]
         %   Outputs
-        %     h          (1 x 1) graphics handle   synthesized map plot
+        %     H          (1 x 1) struct   the handle struct geo.map returns
         %
         %   Options
-        %     hn ([])  vertical-deformation Love numbers, degrees 0..nmax (user-supplied)
-        %     Height (0)  evaluation height above the reference sphere [m]
-        %     nmin (0)  lowest degree included in the map
-        %     Projection ("plate")  "plate" (plate carree) | "hammer"
-        %     Coast (true)  draw coastlines
-        %     CLim ([])  color limits [lo hi]; [] uses a robust symmetric
-        %         scale from the data percentiles
-        %     Units ("")  colorbar label
-        %     Title ("")  axes title
-        %     ax ([])  target axes handle; [] creates a new figure
+        %     quantity ("ewh")  any kernelFactors quantity
+        %     kn ([])  load Love numbers k'_n (mass quantities; never hardcoded)
+        %     hn ([])  load Love numbers h'_n (deformation_up only)
+        %     nmin (0)  degrees below nmin are zeroed
+        %     nmax (NaN)  truncation degree; NaN uses the object's nmax
+        %     Height (0)  evaluation height above R [m]
+        %     rho_ave (5517)  mean Earth density [kg/m^3]
+        %     rho_water (1000)  water density [kg/m^3]
+        %     LatType ("geodetic")  "geodetic" | "geocentric"; coastlines
+        %         are geodetic, so a map wants geodetic
+        %     Flattening (1/298.257223563)  ellipsoid flattening (WGS84)
+        %     CRS ("equirectangular")  projection, forwarded to geo.map
+        %     Basemap (struct())  forwarded to geo.map's Basemap element;
+        %         a robust symmetric CLim and the Divergent flag are
+        %         inserted unless you set them yourself
+        %     GeoArgs ({})  name-value pairs forwarded to geo.map verbatim
+        %
+        %   Example
+        %     H = g.map(-89.5:89.5, 0.5:359.5, quantity = "ewh", kn = kn, ...
+        %             CRS = "robinson");
         arguments
             obj
-            latDeg (1,:) double = -89:2:89
-            lonDeg (1,:) double = 0:2:358
-            opts.quantity (1,1) string = "geoid"
+            latDeg (1,:) double
+            lonDeg (1,:) double
+            opts.quantity (1,1) string = "ewh"
             opts.kn double = []
             opts.hn double = []
-            opts.Height (1,1) double = 0
             opts.nmin (1,1) double = 0
-            opts.Projection (1,1) string = "plate"
-            opts.Coast (1,1) logical = true
-            opts.CLim double = []
-            opts.Units (1,1) string = ""
-            opts.Title (1,1) string = ""
-            opts.ax = []
+            opts.nmax (1,1) double = NaN
+            opts.Height (1,1) double = 0
+            opts.rho_ave (1,1) double = 5517
+            opts.rho_water (1,1) double = 1000
+            opts.LatType (1,1) string ...
+                {mustBeMember(opts.LatType, ["geocentric","geodetic"])} = "geodetic"
+            opts.Flattening (1,1) double = 1/298.257223563
+            opts.CRS (1,1) string = "equirectangular"
+            opts.Basemap (1,1) struct = struct()
+            opts.GeoArgs cell = {}
         end
-        grid = obj.synthesis(latDeg, lonDeg, quantity = opts.quantity, ...
-            kn = opts.kn, hn = opts.hn, Height = opts.Height, ...
-            nmin = opts.nmin);
-        ttl = opts.Title;
-        if strlength(ttl) == 0
-            ttl = sprintf("%s (%s)", obj.name, opts.quantity);
+        shLowLevel.requireGeoMap();
+        b = obj.toGrid(latDeg, lonDeg, quantity = opts.quantity, ...
+            kn = opts.kn, hn = opts.hn, nmin = opts.nmin, ...
+            nmax = opts.nmax, Height = opts.Height, ...
+            rho_ave = opts.rho_ave, rho_water = opts.rho_water, ...
+            LatType = opts.LatType, Flattening = opts.Flattening);
+        bm = opts.Basemap;
+        if ~isfield(bm, 'CLim')
+            a = shLowLevel.pctile(abs(b.Z(:)), 98);
+            if a == 0, a = 1; end
+            if b.FieldKind == "anomaly"
+                bm.CLim = [-a, a];      % signed field: symmetric about zero
+            else
+                bm.CLim = [b.Zmin, b.Zmax];
+            end
         end
-        h = shLowLevel.plotSHMap(grid, latDeg, lonDeg, ...
-            Projection = opts.Projection, Coast = opts.Coast, ...
-            CLim = opts.CLim, Units = opts.Units, Title = ttl, ...
-            ax = opts.ax);
+        if ~isfield(bm, 'Divergent')
+            bm.Divergent = (b.FieldKind == "anomaly");
+        end
+        G = geo.grid(b.lon, b.lat, b.Z, Source = b.Source, Units = b.Units);
+        H = geo.map(G, opts.CRS, Basemap = bm, opts.GeoArgs{:});
     end
 
     function out = fan(obj, rDegKm, rOrdKm)

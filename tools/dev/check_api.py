@@ -119,7 +119,7 @@ def scan_methods(name, text, apis):
     txt = strip_comments(fold(text))
     for mm in re.finditer(r"\b([a-zA-Z]\w*)\.([a-zA-Z]\w*)\s*\(", txt):
         var, meth = mm.group(1), mm.group(2)
-        if var == "shLowLevel" or meth in IGNORE_METHODS:
+        if var in ("shLowLevel", "geo") or meth in IGNORE_METHODS:
             continue
         cls = None
         for pre, c in PREFIX_MAP:

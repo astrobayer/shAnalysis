@@ -65,6 +65,9 @@ jobs:
       - name: Documentation sync audit (help vs html vs guide)
         run: python3 tools/doc_sync_audit.py
 
+      - name: No map renderer (geoMap is the single cartographic authority)
+        run: python3 tools/dev/no_map_renderer.py
+
       - name: Set up MATLAB
         # this is the step that hangs; cap it tightly so a retry costs
         # eight minutes rather than the whole job budget
