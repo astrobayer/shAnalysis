@@ -1,5 +1,56 @@
 # Changelog
 
+## [3.32.2] - 2026-08-23 - the acceptance run refuted the fix that installed it
+
+v3.32.1 added `acceptance_geomap` and, in the same release, a fix for
+the frame-capture defect. Its first run against the **installed**
+v3.32.1 failed: `[401 656; 365 640; 365 640]`. The instrument refuted
+the repair it shipped alongside.
+
+### Fixed
+- **`writeAnimation` frame capture, third attempt.** Under rapid figure
+  churn the layout passes through a transient state - 401x656 against a
+  target of 640x365, changing **both** dimensions - and `settleFigure`
+  watched only the height, so it declared that state settled after three
+  polls. It now watches the full `Position` and requires five stable
+  polls, and `captureFrame` validates every capture against the **pin**,
+  the size each frame of that video must have, rather than against
+  whatever the figure reports at the moment of asking.
+
+  Three hypotheses were measured and **refuted** before this one was
+  adopted:
+
+  | hypothesis | measurement | verdict |
+  |---|---|---|
+  | cold-session warm-up | clear geoMap's cache, redraw | refuted - a warm draw failed, cleared ones did not |
+  | a geo.map layout difference | figure `Position` over 20 draws | refuted - never left 640 wide |
+  | `set(Position)` not sticking | 12 isolated draws | refuted - stuck 12 of 12 |
+
+  In isolation with a longer settle the fault did not appear at all, 12
+  of 12. That is precisely why a timing-based repair could not be
+  trusted: more waiting makes the symptom rare, not absent.
+
+- `shLowLevel.requireGeoMap`'s message now mentions `savepath`. An
+  `addpath` made by a setup script may last only for that session, and
+  someone who has installed geoMap and still meets this error deserves
+  the next step rather than a restatement of the problem.
+
+### Notes
+- **This is the third attempt at one defect, and the evidence behind the
+  first two was too thin.** v3.32.0 shipped on four clean draws, v3.32.1
+  on three. The base rate is about **1 in 6 exports**, so three runs
+  pass by luck more often than not. This release rests on **32 exports
+  across 8 acceptance passes, 96 frames, all byte-identical at
+  365x640** - and on three refuted hypotheses rather than one confirmed
+  guess.
+- The instrument earned its place immediately: without
+  `acceptance_geomap`, v3.32.1 would have shipped a defect that no
+  static gate and no CI run can see, because CI has no geoMap.
+- The geoMap path not surviving a MATLAB restart is **not a defect
+  here**: `geoMapSetup` currently adds the path for the session only,
+  and that is tracked in the Mapping project. The message change above
+  is generic and stays correct once it is fixed.
+
 ## [3.32.1] - 2026-08-23 - the acceptance run, installed
 
 ### Added

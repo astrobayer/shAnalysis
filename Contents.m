@@ -1,5 +1,5 @@
 % shAnalysis - Spherical harmonic analysis toolbox
-% Version 3.32.1 (R2026a-compatible) 23-Aug-2026
+% Version 3.32.2 (R2026a-compatible) 23-Aug-2026
 %
 % The line above is what ver('shAnalysis') reports as the product name:
 % keep it a SHORT name, not a sentence and not a version string (pinned
@@ -224,6 +224,28 @@
 %     (fixture-tested parser) and .gfc download by name; temporal
 %     section returns series roots (superseded in v3.1.1 - the series are
 %     downloadable now, see below)
+%
+% New in v3.32.2 (the acceptance run refuted v3.32.1's own fix)
+%   - FIX: writeAnimation's frame capture, third attempt. Under rapid
+%     figure churn the layout passes through a transient state - 401x656
+%     against a target of 640x365, in BOTH dimensions - and settleFigure
+%     watched only the height, so it called that state settled. It now
+%     watches the full Position and requires five stable polls, and
+%     captureFrame validates each capture against the PIN, the size every
+%     frame must have, rather than against whatever the figure reports at
+%     the moment of asking.
+%   - Three hypotheses were measured and REFUTED first: a cold-session
+%     warm-up (clearing geoMap's cache did not reproduce it), a geo.map
+%     layout difference (the figure Position never left 640 wide over 20
+%     draws), and set(Position) not sticking (12 of 12 it stuck). In
+%     isolation with a longer settle the fault vanished, 12 of 12, which
+%     is why a timing-based fix could not be trusted: it makes the
+%     symptom rare, not absent.
+%   - Verified over 32 exports in 8 acceptance passes, all byte-identical
+%     at 365x640. The base rate was about 1 in 6, so three runs - the
+%     evidence behind v3.32.1 - would have passed by luck.
+%   - requireGeoMap's message now mentions savepath: an addpath made by a
+%     setup script may last only for that session.
 %
 % New in v3.32.1 (the acceptance run, installed - and what it found)
 %   - tools/dev/acceptance_geomap.m: the checks CI structurally cannot

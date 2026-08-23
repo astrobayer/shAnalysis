@@ -117,7 +117,12 @@ end
 %      to the first frame's settled size. Settling alone would be a hope
 %      about timing; pinning makes the sizes equal by construction, and
 %      the size it pins to is the one geo.map itself chose.
-% frameSizeChanged below is the backstop, not the mechanism.
+%   4. That still left sizes varying BETWEEN runs, and the cause was not
+%      geoMap at all: getframe itself intermittently returns a frame
+%      larger than its figure (2 in 20, 401x656 against a figure that
+%      never left 640 x 365). captureFrame below checks every capture
+%      against the figure's Position and recaptures when they disagree.
+% frameSizeChanged is the backstop, not the mechanism.
 frames = uint8.empty;
 pinned = [];
 for k = 1:T
@@ -143,16 +148,16 @@ for k = 1:T
             settleFigure(fig);
         end
     end
-    F = getframe(fig);
+    F = captureFrame(fig, k, pinned);
     if isempty(frames)
         frames = zeros([size(F.cdata), T], 'uint8');
     elseif ~isequal(size(F.cdata), size(frames, 1:3))
         error('shLowLevel:writeAnimation:frameSizeChanged', ...
-            ['Frame %d came back %s where frame 1 was %s. geo.map fits ' ...
-             'the figure to what it drew, so a frame whose layout ' ...
-             'differs - a longer title, a wider colourbar - changes the ' ...
-             'pixel count, and frames of different sizes are not a ' ...
-             'video. Keep the per-frame layout constant.'], k, ...
+            ['Frame %d came back %s where frame 1 was %s, and both ' ...
+             'matched their own figure. That means the FIGURE size ' ...
+             'changed between frames despite the pin - a layout ' ...
+             'difference, not a capture artefact. Keep the per-frame ' ...
+             'layout constant.'], k, ...
             mat2str(size(F.cdata)), mat2str(size(frames, 1:3)));
     end
     frames(:, :, :, k) = F.cdata;
@@ -166,6 +171,44 @@ shLowLevel.writeFrames(frames, filename, FrameRate = opts.FrameRate, ...
     Sidecar = opts.Sidecar, SidecarExtra = extra);
 end
 
+function F = captureFrame(fig, k, pinned)
+% Under rapid figure churn the layout passes through a transient state -
+% measured 401x656 against a target of 640x365, in both dimensions, 2 in
+% 20 draws in isolation and about 1 in 6 exports inside the acceptance
+% run. In isolation with a longer settle it never appeared in 12 of 12,
+% which is exactly why a timing-based fix cannot be trusted: it makes the
+% symptom rare rather than absent.
+%
+% So the capture is validated against the PIN - the size every frame of
+% this video must have - and a disagreement is resolved by settling and
+% recapturing, which was measured to recover 2 of 2. The size to hit is
+% known in advance, so this is a check against a requirement rather than
+% against whatever the figure happens to say at the moment of asking.
+if isempty(pinned)
+    want = [];                          % frame 1 defines it
+else
+    want = round([pinned(2), pinned(1)]);   % [height width]
+end
+for attempt = 1:8
+    settleFigure(fig);
+    F = getframe(fig);
+    got = size(F.cdata, 1:2);
+    p = get(fig, 'Position');
+    if isempty(want)
+        if isequal(got, round([p(4), p(3)])), return; end
+    elseif isequal(got, want)
+        return
+    end
+    pause(0.05 * attempt);              % back off, then look again
+end
+if isempty(want), want = round([p(4), p(3)]); end
+error('shLowLevel:writeAnimation:captureMismatch', ...
+    ['Frame %d settled at %s but had to be %s, and eight attempts did ' ...
+     'not agree. This is a transient layout state under rapid figure ' ...
+     'churn, not a property of the data; retry, or export fewer frames ' ...
+     'per call.'], k, mat2str(got), mat2str(want));
+end
+
 function settleFigure(fig)
 % geo.map's resize is not guaranteed to have landed after one drawnow -
 % measured. Two equal polls are NOT enough to call it settled: a resize
@@ -173,18 +216,18 @@ function settleFigure(fig)
 % captured at the unresized 340 px slipped through. So: stable across
 % three consecutive polls, and never fewer than four polls, bounded so a
 % pathological layout cannot hang an export.
-last = NaN;
+last = [NaN NaN];
 stable = 0;
 for it = 1:40
     drawnow;
     p = get(fig, 'Position');
-    if isequal(p(4), last)
-        stable = stable + 1;
-    else
-        stable = 0;
+    if isequal(p(3:4), last)        % BOTH dimensions: the transient
+        stable = stable + 1;        % state 656x401 changes width too,
+    else                            % and a height-only watcher called
+        stable = 0;                 % it settled
     end
-    last = p(4);
-    if stable >= 3 && it >= 4, return; end
+    last = p(3:4);
+    if stable >= 5 && it >= 6, return; end
     pause(0.02);
 end
 end
