@@ -40,6 +40,7 @@
     <tocitem target="shAnalysisGrid.html">shAnalysisGrid (SH analysis)</tocitem>
     <tocitem target="legendreALF.html">legendreALF / legendreALFDeriv</tocitem>
     <tocitem target="shSynthesisDeformation.html">Load deformation (up/north/east)</tocitem>
+    <tocitem target="shSynthesisGradient.html">NEU gradient of a quantity</tocitem>
     <tocitem target="gradientTensor.html">Gravity gradient tensor</tocitem>
     <tocitem target="referenceSystems.html">Normal field and GM/R rescaling</tocitem>
     <tocitem target="geodetic2geocentric.html">Latitude conversions</tocitem>

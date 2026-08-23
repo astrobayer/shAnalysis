@@ -1,5 +1,71 @@
 # Changelog
 
+## [3.30.0] - 2026-08-22 - north/east/up gradient of any quantity
+
+### Added
+- `shLowLevel.shSynthesisGradient` and the class method
+  `shCoefficients.gradient`: the spatial gradient of any quantity
+  `kernelFactors` knows, resolved in the local north-east-up frame, on a
+  grid (`Mode="grid"`) or at scattered points (`Mode="points"`).
+  The horizontal components come from the exact `dPbar/dphi` of
+  `shLowLevel.legendreALFDeriv`; the up component from the quantity's own
+  upward-continuation exponent.
+
+  The motivating gap: the only vector field the toolbox could produce was
+  elastic load deformation, and that is a vector because horizontal
+  displacement carries `l'_n` - not because gradients were available. Any
+  scalar quantity has a gradient; only one quantity had a deformation.
+
+- `Units="perRadian"` returns `r` times the gradient in every component
+  (`dQ/dphi`, `sec(phi) dQ/dlambda`, `dQ/d(ln r)`), which is what a
+  lat/lon advection step consumes without a further metric factor.
+
+### Changed
+- `shLowLevel.kernelFactors` gained a second output, the radial exponent
+  `p_n` in `f_n(r) = kernel_n (R/r)^p_n`, and its `Height` branch now
+  uses it. The exponent was previously written down inside that branch;
+  the gradient needs the same number for `d/dr = -(p_n/r) f_n`, and a
+  second copy would be the same fact decided in two places.
+
+### Notes
+- **`up` is empty, not zero, for surface quantities.** `ewh`, `geoid`,
+  `surface_density`, `bottom_pressure`, `deformation_up` and `none` have
+  no radial law - an equivalent water height one kilometre up is not a
+  smaller equivalent water height, it is nothing. `g.up` is `[]` and
+  `info.hasUp` is `false`. Empty fails at the first use; a NaN field
+  would be plotted. `Height` is refused for the same quantities and for
+  the same reason, by the same test.
+- **The declared contract is "exact derivative of `shSynthesis` under
+  identical options"**, so the defaults match `shSynthesis` (`quantity`
+  `"geoid"`, `nmin` 0) and `testCorrectness` differentiates
+  `shSynthesis` itself rather than a second model of it. Arrows drawn
+  over a map that was truncated differently are arrows over the wrong
+  picture, and no other test would see it.
+- `east` is `NaN` at `|lat| = 90`. Without the guard the `cos(phi)`
+  division returns a finite, meaningless number - confirmed in the
+  Python pre-validation, which printed exactly that.
+- Python-validated before implementation
+  (`tools/dev/validate_gradient.py`): all three components against
+  5-point finite differences of an independent scalar synthesis at
+  1e-12, the identities `d(potential)/dr = -gravity_disturbance` and
+  `d(gravity_disturbance)/dr = -gravity_gradient_rr` at 4e-16, and
+  single-coefficient closed forms at 2e-16. The first run failed at
+  2.9e-1 on `north` only - a doubled `sqrt(2)` in the Python model's own
+  normalisation, visible only through the m/m+-1 mixing of the
+  derivative stencil.
+### Fixed (tooling)
+- `tools/dev/make_apiref.py` wrote the regenerated API reference to
+  `/tmp/shx_git/html/apiReference.html` - a clone location from an
+  earlier session, i.e. outside the tree being built. It now derives the
+  path from `SRC`, like every other path in that file. Nothing in the
+  repository was wrong; the next person to regenerate the reference
+  would simply have found it unchanged and not known why.
+
+### Notes (continued)
+- **Not verified on hardware.** The MATLAB MCP bridge was unavailable
+  this session; everything here rests on the static gates, the Python
+  pre-validation and CI.
+
 ## [3.29.0] - 2026-08-20 - mean over a user-given period; two sigma/selection fixes
 
 `shSeries.mean` gains `Range=` (decimal years or datetime) and a second

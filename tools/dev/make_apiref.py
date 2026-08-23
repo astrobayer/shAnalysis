@@ -7,7 +7,10 @@ import re
 exec(open('/home/claude/api_data.py').read())
 PK = 'shLowLevel'
 SRC = '/home/claude/shx_build/shAnalysis'
-OUT = '/tmp/shx_git/html/apiReference.html'
+# derived from SRC, not a second path: this pointed at /tmp/shx_git,
+# a clone location from an earlier session, so a regenerated reference
+# was written outside the tree being built (v3.30.0)
+OUT = SRC + '/html/apiReference.html'
 
 
 def toolbox_version(root=SRC):

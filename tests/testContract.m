@@ -1320,3 +1320,119 @@ win = ts.select(Range = [2004 2010]);
 verifyEqual(testCase, win.nEpochs, nnz(t >= 2004 & t <= 2010));
 verifyGreaterThan(testCase, win.nEpochs, 2000);
 end
+
+% --------------------------------- NEU gradient (v3.30.0)
+function testGradientContract(testCase)
+%TESTGRADIENTCONTRACT the invariants a particle animation depends on:
+%   points and grid agree, the two unit conventions differ by exactly r,
+%   the east component is NaN where east does not exist, and a zonal
+%   field has an east gradient of exactly zero (not "small").
+rng(31);
+L = 8; n1 = L + 1;
+C = tril(randn(n1)) * 1e-10;
+S = tril(randn(n1), -1) * 1e-10; S(:, 1) = 0;
+GM = 3.986004415e14; R = 6378136.3;
+lat = [-60, -12.5, 33, 71]; lon = [0, 47, 190, 359.5];
+
+% points reproduces the grid diagonal exactly (same code path, same data)
+gg = shLowLevel.shSynthesisGradient(C, S, GM, R, lat, lon);
+gp = shLowLevel.shSynthesisGradient(C, S, GM, R, lat, lon, Mode = "points");
+verifyEqual(testCase, size(gg.north), [numel(lat), numel(lon)]);
+verifyEqual(testCase, size(gp.north), [numel(lat), 1]);
+for k = 1:numel(lat)
+    verifyEqual(testCase, gp.north(k), gg.north(k, k), 'RelTol', 1e-13);
+    verifyEqual(testCase, gp.east(k), gg.east(k, k), 'RelTol', 1e-13);
+end
+
+% perRadian is r times perMeter in EVERY component, up included
+a = shLowLevel.shSynthesisGradient(C, S, GM, R, lat, lon, quantity = "potential");
+b = shLowLevel.shSynthesisGradient(C, S, GM, R, lat, lon, ...
+    quantity = "potential", Units = "perRadian");
+for f = ["north", "east", "up"]
+    verifyEqual(testCase, b.(f), R * a.(f), 'RelTol', 1e-13);
+end
+
+% the pole: east does not exist, north does. Without the guard the
+% cos(phi) division returns a finite, meaningless number.
+gpole = shLowLevel.shSynthesisGradient(C, S, GM, R, [90, -90, 45], lon);
+verifyTrue(testCase, all(isnan(gpole.east(1, :))));
+verifyTrue(testCase, all(isnan(gpole.east(2, :))));
+verifyTrue(testCase, all(isfinite(gpole.east(3, :))));
+verifyTrue(testCase, all(isfinite(gpole.north(:))));
+
+% a zonal field has NO east gradient - exactly zero, not nearly
+Cz = zeros(3); Sz = zeros(3); Cz(3, 1) = 1;                % C_20
+gz = shLowLevel.shSynthesisGradient(Cz, Sz, GM, R, [-45 0 45], lon, ...
+    quantity = "none");
+verifyEqual(testCase, gz.east, zeros(3, numel(lon)));
+verifyTrue(testCase, any(abs(gz.north(:)) > 0));
+end
+
+function testGradientSurfaceQuantitiesHaveNoUp(testCase)
+%TESTGRADIENTSURFACEQUANTITIESHAVENOUP an EWH one kilometre up is not a
+%   smaller EWH, it is nothing. The up component is EMPTY for surface
+%   quantities - empty fails at first use, a NaN field would be plotted.
+L = 6; n1 = L + 1;
+C = tril(ones(n1)) * 1e-10; S = zeros(n1);
+GM = 3.986004415e14; R = 6378136.3;
+kn = -0.3 * (1 - exp(-(0:L)'/3));
+hn = -1.0 * ones(n1, 1);
+lat = -60:30:60; lon = 0:90:270;
+for q = ["none", "geoid", "ewh", "surface_density", "bottom_pressure", ...
+         "deformation_up"]
+    [g, info] = shLowLevel.shSynthesisGradient(C, S, GM, R, lat, lon, ...
+        quantity = q, kn = kn, hn = hn);
+    verifyEmpty(testCase, g.up, sprintf('%s must have no up component', q));
+    verifyFalse(testCase, info.hasUp);
+    verifyEqual(testCase, size(g.north), [numel(lat), numel(lon)]);
+end
+for q = ["potential", "gravity_anomaly", "gravity_disturbance", ...
+         "gravity_gradient_rr"]
+    [g, info] = shLowLevel.shSynthesisGradient(C, S, GM, R, lat, lon, ...
+        quantity = q);
+    verifyTrue(testCase, info.hasUp);
+    verifyEqual(testCase, size(g.up), [numel(lat), numel(lon)]);
+end
+% Height and d/dr are the same fact, so they are refused together
+verifyError(testCase, @() shLowLevel.shSynthesisGradient(C, S, GM, R, ...
+    lat, lon, quantity = "ewh", kn = kn, Height = 250e3), ...
+    'shSynthesis:heightInvalid');
+% mass quantities still refuse to invent Love numbers
+verifyError(testCase, @() shLowLevel.shSynthesisGradient(C, S, GM, R, ...
+    lat, lon, quantity = "ewh"), 'shSynthesis:missingLoveNumbers');
+% and the input gates hold
+verifyError(testCase, @() shLowLevel.shSynthesisGradient(C, S, GM, R, ...
+    lat, lon, nmax = L + 3), 'shSynthesis:badInput');
+verifyError(testCase, @() shLowLevel.shSynthesisGradient(C, S, GM, R, ...
+    [0 10 20], [0 10], Mode = "points"), 'shSynthesis:badInput');
+verifyError(testCase, @() shLowLevel.shSynthesisGradient(C, S, GM, R, ...
+    [0 95], lon), 'MATLAB:validators:mustBeInRange');
+end
+
+function testGradientClassMethodMatchesCore(testCase)
+%TESTGRADIENTCLASSMETHODMATCHESCORE the class method must be a pass-
+%   through, not a second implementation - and its geodetic option must
+%   convert the evaluation POINT, exactly as synthesis does.
+rng(19);
+L = 7; n1 = L + 1;
+C = tril(randn(n1)) * 1e-10;
+S = tril(randn(n1), -1) * 1e-10; S(:, 1) = 0;
+g = shCoefficients(C, S);          % GM/R defaults are the toolbox's own
+lat = [-40, 5, 52]; lon = [15, 200];
+[a, ia] = g.gradient(lat, lon, quantity = "potential");
+b = shLowLevel.shSynthesisGradient(C, S, g.GM, g.R, lat, lon, ...
+    quantity = "potential");
+for f = ["north", "east", "up"]
+    verifyEqual(testCase, a.(f), b.(f));
+end
+verifyEqual(testCase, ia.quantity, "potential");
+verifyTrue(testCase, ia.hasUp);
+verifyEqual(testCase, ia.r, g.R);
+% geodetic input is converted before evaluation
+c = g.gradient(lat, lon, quantity = "potential", LatType = "geodetic");
+latGc = shLowLevel.geodetic2geocentric(lat);
+d = shLowLevel.shSynthesisGradient(C, S, g.GM, g.R, latGc, lon, ...
+    quantity = "potential");
+verifyEqual(testCase, c.north, d.north);
+verifyGreaterThan(testCase, max(abs(c.north(:) - a.north(:))), 0);
+end

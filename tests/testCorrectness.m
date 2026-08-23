@@ -3578,3 +3578,103 @@ verifyError(testCase, @() shLowLevel.fetchITSG("", Quiet = true), ...
 verifyError(testCase, @() shLowLevel.fetchITSG(["", ""], Quiet = true), ...
     'shLowLevel:fetchITSG:noSelection');
 end
+
+% --------------------------------- NEU gradient (v3.30.0)
+function testGradientMatchesSynthesisDerivative(testCase)
+%TESTGRADIENTMATCHESSYNTHESISDERIVATIVE the declared contract of
+%   shSynthesisGradient is "exact derivative of shSynthesis under
+%   identical options". This test differentiates shSynthesis ITSELF
+%   rather than a second model of it, which is the only version of the
+%   test that can fail for the right reason: if the two ever disagree
+%   about a kernel, an nmin or a normalisation, the map and the arrows
+%   drawn over it disagree, and nothing else would notice.
+rng(4211);
+L = 10; n1 = L + 1;
+C = tril(randn(n1)) * 1e-10;
+S = tril(randn(n1), -1) * 1e-10; S(:, 1) = 0;
+GM = 3.986004415e14; R = 6378136.3;
+kn = -0.3 * (1 - exp(-(0:L)'/3));
+lat = [-52.5, -7.0, 18.25, 63.0];
+lon = [11.0, 133.5, 271.0];
+h = 1e-4;                                   % rad; central difference
+for q = ["none", "geoid", "potential", "gravity_anomaly", ...
+         "gravity_disturbance", "ewh"]
+    g = shLowLevel.shSynthesisGradient(C, S, GM, R, lat, lon, ...
+        quantity = q, kn = kn, Units = "perRadian");
+    scal = @(la, lo) shLowLevel.shSynthesis(C, S, GM, R, la, lo, ...
+        'quantity', char(q), 'kn', kn);
+    for i = 1:numel(lat)
+        for j = 1:numel(lon)
+            dN = (scal(lat(i) + rad2deg(h), lon(j)) ...
+                - scal(lat(i) - rad2deg(h), lon(j))) / (2*h);
+            dE = (scal(lat(i), lon(j) + rad2deg(h)) ...
+                - scal(lat(i), lon(j) - rad2deg(h))) / (2*h) ...
+                / cosd(lat(i));
+            verifyEqual(testCase, g.north(i, j), dN, 'RelTol', 1e-5, ...
+                sprintf('north, %s at (%g,%g)', q, lat(i), lon(j)));
+            verifyEqual(testCase, g.east(i, j), dE, 'RelTol', 1e-5, ...
+                sprintf('east, %s at (%g,%g)', q, lat(i), lon(j)));
+        end
+    end
+end
+end
+
+function testGradientRadialIdentities(testCase)
+%TESTGRADIENTRADIALIDENTITIES the up component is not a new claim: it
+%   reduces to kernels this toolbox already validates.
+%     d(potential)/dr           = -gravity_disturbance
+%     d(gravity_disturbance)/dr = -gravity_gradient_rr
+%   Machine precision, not a tolerance dressed up as one - both sides
+%   come from the same kernelFactors radial exponent.
+rng(88);
+L = 9; n1 = L + 1;
+C = tril(randn(n1)) * 1e-10;
+S = tril(randn(n1), -1) * 1e-10; S(:, 1) = 0;
+GM = 3.986004415e14; R = 6378136.3;
+lat = -75:25:75; lon = 0:60:300;
+for hgt = [0, 250e3]
+    g = shLowLevel.shSynthesisGradient(C, S, GM, R, lat, lon, ...
+        quantity = "potential", Height = hgt);
+    dg = shLowLevel.shSynthesis(C, S, GM, R, lat, lon, ...
+        'quantity', 'gravity_disturbance', 'Height', hgt);
+    verifyEqual(testCase, g.up, -dg, 'RelTol', 1e-12);
+    g2 = shLowLevel.shSynthesisGradient(C, S, GM, R, lat, lon, ...
+        quantity = "gravity_disturbance", Height = hgt);
+    trr = shLowLevel.shSynthesis(C, S, GM, R, lat, lon, ...
+        'quantity', 'gravity_gradient_rr', 'Height', hgt);
+    verifyEqual(testCase, g2.up, -trr, 'RelTol', 1e-12);
+end
+end
+
+function testGradientClosedForms(testCase)
+%TESTGRADIENTCLOSEDFORMS single coefficients whose gradient is written
+%   down by hand, so at least one test depends on no other part of the
+%   toolbox. Pbar_10 = sqrt(3) sin(phi), Pbar_11 = sqrt(3) cos(phi).
+R = 6378136.3; GM = 3.986004415e14;
+lat = [-68.7, 12.3, 41.0]; lon = [23.0, 205.0];
+[LO, LA] = meshgrid(deg2rad(lon), deg2rad(lat));
+mk = @(n, m, isC) deal(local_one(n, m, isC, true), local_one(n, m, isC, false));
+
+[C, S] = mk(1, 0, true);                       % C_10
+g = shLowLevel.shSynthesisGradient(C, S, GM, R, lat, lon, ...
+    quantity = "none", Units = "perRadian");
+verifyEqual(testCase, g.north, sqrt(3) * cos(LA), 'AbsTol', 1e-13);
+verifyEqual(testCase, g.east, zeros(size(LA)), 'AbsTol', 1e-14);
+
+[C, S] = mk(1, 1, true);                       % C_11
+g = shLowLevel.shSynthesisGradient(C, S, GM, R, lat, lon, ...
+    quantity = "none", Units = "perRadian");
+verifyEqual(testCase, g.north, -sqrt(3) * sin(LA) .* cos(LO), 'AbsTol', 1e-13);
+verifyEqual(testCase, g.east, -sqrt(3) * sin(LO), 'AbsTol', 1e-13);
+
+[C, S] = mk(1, 1, false);                      % S_11
+g = shLowLevel.shSynthesisGradient(C, S, GM, R, lat, lon, ...
+    quantity = "none", Units = "perRadian");
+verifyEqual(testCase, g.north, -sqrt(3) * sin(LA) .* sin(LO), 'AbsTol', 1e-13);
+verifyEqual(testCase, g.east, sqrt(3) * cos(LO), 'AbsTol', 1e-13);
+end
+
+function M = local_one(n, m, isC, wantC)
+M = zeros(n + 1);
+if isC == wantC, M(n + 1, m + 1) = 1; end
+end

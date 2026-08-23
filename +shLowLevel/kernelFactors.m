@@ -1,4 +1,4 @@
-function kernel = kernelFactors(quantity, nmax, GM, R, opts)
+function [kernel, radialExp] = kernelFactors(quantity, nmax, GM, R, opts)
 %KERNELFACTORS Degree-dependent spectral factors for SH synthesis/analysis.
 %
 %   KERNEL = shLowLevel.kernelFactors(QUANTITY, NMAX, GM, R, kn ([])=..., ...) returns
@@ -55,8 +55,16 @@ function kernel = kernelFactors(quantity, nmax, GM, R, opts)
 %   Outputs
 %     kernel    (nmax+1,1) double  (zeros where the quantity carries no
 %               information, e.g. n=1 for gravity_anomaly)
+%     radialExp (nmax+1,1) double  the upward-continuation exponent p_n in
+%               f_n(r) = kernel_n (R/r)^p_n, or EMPTY for a quantity that
+%               has no radial law (a surface concept). This is the same
+%               p_n the Height branch below applies, returned rather than
+%               restated: shLowLevel.shSynthesisGradient needs it for
+%               d/dr = -(p_n/r) f_n, and a second copy of these exponents
+%               would be a fact written twice.
 %
-%   Claude (Fable 5), 2026-08-07 (v2.3 same day).
+%   Claude (Fable 5), 2026-08-07 (v2.3 same day); radialExp output
+%   Claude (Opus 5), 2026-08-22 (v3.30.0).
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 
 arguments
@@ -130,21 +138,29 @@ switch lower(char(quantity))
         error('shSynthesis:badQuantity', 'Unknown quantity: %s', quantity);
 end
 
+% The radial law, stated ONCE. p_n is the exponent in
+% f_n(r) = kernel_n (R/r)^p_n; empty marks a quantity that has no radial
+% law at all, and for those Height and d/dr are undefined together - the
+% same fact, so it must not be decided in two places (v3.30.0).
+switch lower(char(quantity))
+    case 'potential'
+        radialExp = n + 1;
+    case {'gravity_anomaly', 'gravity_disturbance'}
+        radialExp = n + 2;
+    case 'gravity_gradient_rr'
+        radialExp = n + 3;
+    otherwise
+        radialExp = [];
+end
+
 if opts.Height > 0
     q = lower(char(quantity));
-    r = R + opts.Height;
-    switch q
-        case 'potential'
-            kernel = kernel .* (R/r).^(n + 1);
-        case {'gravity_anomaly', 'gravity_disturbance'}
-            kernel = kernel .* (R/r).^(n + 2);
-        case 'gravity_gradient_rr'
-            kernel = kernel .* (R/r).^(n + 3);
-        otherwise
-            error('shSynthesis:heightInvalid', ...
-                ['Height applies to potential-type quantities only ' ...
-                 '(potential, gravity_anomaly, gravity_disturbance, ' ...
-                 'gravity_gradient_rr); ''%s'' is a surface concept.'], q);
+    if isempty(radialExp)
+        error('shSynthesis:heightInvalid', ...
+            ['Height applies to potential-type quantities only ' ...
+             '(potential, gravity_anomaly, gravity_disturbance, ' ...
+             'gravity_gradient_rr); ''%s'' is a surface concept.'], q);
     end
+    kernel = kernel .* (R/(R + opts.Height)).^radialExp;
 end
 end
