@@ -369,6 +369,12 @@ function testNoMapIsDrawnHere(testCase)
 %   when geoMap is absent - which is the state of the CI machine, so
 %   this is the path a user without geoMap actually meets. The drawing
 %   itself is geoMap's territory and is tested there.
+%
+%   NOTE the early return below: on a machine WITH geoMap this test stops
+%   after the first assertion, so everything past it runs only in CI.
+%   That is how a bad shSeries constructor call in this very test passed
+%   a 264-test acceptance run and failed CI - the two runs cover
+%   different halves, and neither is redundant.
 verifyEmpty(testCase, which('shLowLevel.plotSHMap'), ...
     'the second renderer must stay deleted');
 
@@ -393,7 +399,8 @@ verifyEqual(testCase, size(b.Z), [numel(lat), numel(lon)]);
 verifyEqual(testCase, b.Units, "m");
 
 % and the animation refuses BEFORE synthesizing, not after
-ts = shSeries(repmat(C, 1, 1, 2), Epochs = [2010.1; 2010.2]);
+ts = shSeries(repmat(C, 1, 1, 2), Ss = zeros(n1, n1, 2), ...
+    Epochs = [2010.1; 2010.2]);   % raw-stack form needs a matching Ss
 verifyError(testCase, @() shLowLevel.writeAnimation(ts, ...
     fullfile(tempdir, 'never_written.avi'), quantity = "geoid"), ...
     'shAnalysis:geoMapRequired');

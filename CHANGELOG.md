@@ -99,6 +99,13 @@ every frame, for different data. There is now also a named
 `subsassigndimmismatch`, because frames of different sizes are not a
 video and the reason should say so.
 
+**The two runs cover different halves, and neither is redundant.** A bad
+`shSeries` constructor call inside `testNoMapIsDrawnHere` itself passed
+the 264-test acceptance run and failed CI: that test returns early when
+geoMap is present, so everything past the early return executes only on
+a machine WITHOUT geoMap. It was then reproduced here by taking geoMap
+off the path deliberately, rather than by pushing and waiting.
+
 ### Notes
 - **This is API-breaking for anyone drawing maps.** `g.map` now needs
   geoMap on the path and no longer takes the display options above;
