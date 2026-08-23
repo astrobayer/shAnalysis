@@ -21,14 +21,15 @@ function out = acceptance_geomap(opts)
 %   Neither half is redundant, so this script takes geoMap off the path
 %   at the end and runs the other one too.
 %
-%   FRAME GEOMETRY is checked explicitly because it is where it broke.
-%   geo.map fits the figure to the map it drew and clf does not undo
-%   that, so a REUSED figure ratchets - measured 365, 387, 407, 424, 439,
-%   453 px tall over six draws of the same grids - while a fresh figure
-%   per frame is deterministic. writeAnimation uses a fresh figure; this
-%   asserts the frames it produced agree, and REPORTS the reused-figure
-%   sizes as information rather than asserting them, because the bug's
-%   shape belongs to geoMap and may change while the fix must hold.
+%   FRAME GEOMETRY is checked by REPEATING writeAnimation, not by a
+%   second copy of its loop. geo.map's resize does not reliably land
+%   within one drawnow, so frame sizes vary run to run: a fresh figure
+%   per frame looked deterministic over four draws and then produced
+%   365, 340, 365 here, where 340 is the unresized starting height. A
+%   check that re-implemented the loop would be testing its own copy and
+%   would drift from the real one, so this runs the shipped function
+%   three times and requires all three to survive - which is what a race
+%   demands.
 %
 %   Inputs
 %     none
@@ -112,7 +113,8 @@ lat = -88:4:88; lon = 0:4:356;
 if ~opts.Quiet, fprintf('=== with geoMap on the path\n'); end
 ck('requireGeoMap finds it', @() string(shLowLevel.requireGeoMap()));
 ck('g.map returns a geo.map handle struct', @() checkMap(g, kn));
-ck('frame geometry is deterministic', @() checkFrames(ts, kn));
+ck('writeAnimation is repeatable (3 runs)', ...
+    @() checkRepeat(ts, kn, opts.OutDir));
 ck('writeAnimation writes a usable file', @() checkAnim(ts, kn, opts.OutDir));
 ck('writeFrames container and its named errors', @() checkFrames2(opts.OutDir));
 
@@ -177,40 +179,21 @@ end
 note = "fields: " + strjoin(string(fieldnames(H))', ",");
 end
 
-function note = checkFrames(ts, kn)
-% the fix must hold; the bug's shape is reported, not asserted
-b = ts.toGrid(-80:8:80, 0:8:352, quantity = "ewh", kn = kn);
-bm = struct('CLim', [-1 1] * shLowLevel.pctile(abs(b.Z(:)), 98), ...
-    'Divergent', true);
-fresh = zeros(3, 2);
-for k = 1:3
-    f = figure('Visible', 'off', 'Position', [50 50 640 340]);
-    drawOne(f, b, bm, k);
-    sz = size(getframe(f).cdata);
-    fresh(k, :) = sz(1:2);
-    close(f);
+function note = checkRepeat(ts, kn, outDir)
+% the race only shows up across runs, so run the SHIPPED function - a
+% local copy of its loop would be testing itself, not what ships
+sz = strings(3, 1);
+for r = 1:3
+    tmp = fullfile(char(outDir), sprintf('shx_rep%d_%d.avi', r, randi(1e9)));
+    shLowLevel.writeAnimation(ts, tmp, quantity = "ewh", kn = kn, ...
+        lat = -80:8:80, lon = 0:8:352, FrameRate = 2, Size = [640 340]);
+    d = dir(tmp);
+    assert(~isempty(d) && d.bytes > 1000, 'run %d wrote nothing usable', r);
+    p = jsondecode(fileread([tmp '.provenance.json']));
+    sz(r) = string(d.bytes) + "B/" + string(p.nFrames) + "f";
+    cleanFile(tmp);
 end
-assert(all(fresh(:, 1) == fresh(1, 1)) && all(fresh(:, 2) == fresh(1, 2)), ...
-    'fresh figures gave differing frame sizes: %s', mat2str(fresh));
-
-reused = zeros(3, 1);
-f = figure('Visible', 'off', 'Position', [50 50 640 340]);
-c = onCleanup(@() close(f)); %#ok<NASGU>
-for k = 1:3
-    clf(f);
-    drawOne(f, b, bm, k);
-    reused(k) = size(getframe(f).cdata, 1);
-end
-note = sprintf('fresh %dx%d constant; reused figure would give %s', ...
-    fresh(1, 1), fresh(1, 2), mat2str(reused'));
-end
-
-function drawOne(fig, b, bm, k)
-ax = axes('Parent', fig);
-G = geo.grid(b.lon, b.lat, b.Z(:, :, k), Source = b.Source, Units = b.Units);
-args = [{'Parent', ax, 'Basemap', bm, 'Title', sprintf('f%d', k)}, {}];
-geo.map(G, "equirectangular", args{:});
-drawnow;
+note = "runs: " + strjoin(sz', ", ");
 end
 
 function note = checkAnim(ts, kn, outDir)

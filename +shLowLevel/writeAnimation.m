@@ -103,16 +103,23 @@ if ~isfield(bm, 'Divergent')
     bm.Divergent = (b.FieldKind == "anomaly");
 end
 
-% ONE FIGURE PER FRAME, and it is not wastefulness. geo.map fits the
-% figure to the map it drew, and clf does not undo that, so a REUSED
-% figure ratchets: measured on the acceptance machine, six successive
-% draws of the same three grids came back 365, 387, 407, 424, 439 and
-% 453 pixels tall. Pinning Position at the top of each iteration does not
-% help - geo.map resizes after that, and to a different height each time
-% (364.6, 340, 386.9, 365). A fresh figure is deterministic: 365 every
-% frame, for different data. The frames must agree pixel for pixel or
-% there is no video.
+% ONE FIGURE PER FRAME, SETTLED, THEN PINNED. Three measurements on the
+% acceptance machine, in this order:
+%   1. A REUSED figure ratchets. geo.map fits the figure to the map it
+%      drew and clf does not undo that, so six successive draws of the
+%      same three grids came back 365, 387, 407, 424, 439, 453 px tall.
+%   2. A fresh figure per frame LOOKED deterministic - 365 every time
+%      over four draws - and was not. It is a race: the acceptance run
+%      later saw 365, 340, 365, where 340 is the unresized starting
+%      height, so getframe sometimes captures before geo.map's resize
+%      lands. A single drawnow is not a barrier for it.
+%   3. So: settle until Position stops moving, then PIN every later frame
+%      to the first frame's settled size. Settling alone would be a hope
+%      about timing; pinning makes the sizes equal by construction, and
+%      the size it pins to is the one geo.map itself chose.
+% frameSizeChanged below is the backstop, not the mechanism.
 frames = uint8.empty;
+pinned = [];
 for k = 1:T
     fig = figure('Visible', 'off', ...
         'Position', [50 50 opts.Size(1) opts.Size(2)]);
@@ -125,7 +132,17 @@ for k = 1:T
     args = [{'Parent', ax, 'Basemap', bm, 'Title', ...
         sprintf('%s  %.3f', opts.quantity, b.Epoch(k))}, opts.GeoArgs];
     geo.map(G, opts.CRS, args{:});
-    drawnow;
+    settleFigure(fig);
+    if isempty(pinned)
+        p = get(fig, 'Position');
+        pinned = p(3:4);            % whatever geo.map settled on
+    else
+        p = get(fig, 'Position');
+        if ~isequal(p(3:4), pinned)
+            set(fig, 'Position', [p(1:2), pinned]);
+            settleFigure(fig);
+        end
+    end
     F = getframe(fig);
     if isempty(frames)
         frames = zeros([size(F.cdata), T], 'uint8');
@@ -147,4 +164,18 @@ extra = struct('nEpochs', T, 'quantity', char(opts.quantity), ...
     'dataRange', [b.Zmin, b.Zmax]);
 shLowLevel.writeFrames(frames, filename, FrameRate = opts.FrameRate, ...
     Sidecar = opts.Sidecar, SidecarExtra = extra);
+end
+
+function settleFigure(fig)
+% geo.map's resize is not guaranteed to have landed after one drawnow -
+% measured. Wait until the figure height stops moving, bounded so a
+% pathological layout cannot hang an export.
+last = NaN;
+for it = 1:25 %#ok<NASGU>
+    drawnow;
+    p = get(fig, 'Position');
+    if isequal(p(4), last), return; end
+    last = p(4);
+    pause(0.02);
+end
 end
