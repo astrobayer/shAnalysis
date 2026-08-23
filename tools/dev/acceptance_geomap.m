@@ -22,7 +22,9 @@ function out = acceptance_geomap(opts)
 %   at the end and runs the other one too.
 %
 %   FRAME GEOMETRY is checked by REPEATING writeAnimation, not by a
-%   second copy of its loop. geo.map's resize does not reliably land
+%   second copy of its loop. Repetition is the point: the capture defect
+%   it caught shows up about one draw in ten, so a single run would have
+%   passed nine times out of ten and taught nothing. geo.map's resize does not reliably land
 %   within one drawnow, so frame sizes vary run to run: a fresh figure
 %   per frame looked deterministic over four draws and then produced
 %   365, 340, 365 here, where 340 is the unresized starting height. A
@@ -197,9 +199,11 @@ for r = 1:3
     cleanFile(tmp);
 end
 assert(all(geom(:, 1) == geom(1, 1)) && all(geom(:, 2) == geom(1, 2)), ...
-    ['frame geometry differs BETWEEN runs: %s. The per-run pin holds ' ...
-     'inside a run, so this means frame 1 itself was captured before ' ...
-     'geo.map resized.'], mat2str(geom));
+    ['frame geometry differs BETWEEN runs: %s. The figure layout is ' ...
+     'pinned within a run, so a difference here means a capture was ' ...
+     'accepted that did not match its own figure - see captureFrame in ' ...
+     'writeAnimation, which exists because getframe intermittently ' ...
+     'returns a frame larger than the figure it captured.'], mat2str(geom));
 note = "runs: " + strjoin(sz', ", ");
 end
 

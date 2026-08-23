@@ -117,7 +117,12 @@ end
 %      to the first frame's settled size. Settling alone would be a hope
 %      about timing; pinning makes the sizes equal by construction, and
 %      the size it pins to is the one geo.map itself chose.
-% frameSizeChanged below is the backstop, not the mechanism.
+%   4. That still left sizes varying BETWEEN runs, and the cause was not
+%      geoMap at all: getframe itself intermittently returns a frame
+%      larger than its figure (2 in 20, 401x656 against a figure that
+%      never left 640 x 365). captureFrame below checks every capture
+%      against the figure's Position and recaptures when they disagree.
+% frameSizeChanged is the backstop, not the mechanism.
 frames = uint8.empty;
 pinned = [];
 for k = 1:T
@@ -143,16 +148,16 @@ for k = 1:T
             settleFigure(fig);
         end
     end
-    F = getframe(fig);
+    F = captureFrame(fig, k);
     if isempty(frames)
         frames = zeros([size(F.cdata), T], 'uint8');
     elseif ~isequal(size(F.cdata), size(frames, 1:3))
         error('shLowLevel:writeAnimation:frameSizeChanged', ...
-            ['Frame %d came back %s where frame 1 was %s. geo.map fits ' ...
-             'the figure to what it drew, so a frame whose layout ' ...
-             'differs - a longer title, a wider colourbar - changes the ' ...
-             'pixel count, and frames of different sizes are not a ' ...
-             'video. Keep the per-frame layout constant.'], k, ...
+            ['Frame %d came back %s where frame 1 was %s, and both ' ...
+             'matched their own figure. That means the FIGURE size ' ...
+             'changed between frames despite the pin - a layout ' ...
+             'difference, not a capture artefact. Keep the per-frame ' ...
+             'layout constant.'], k, ...
             mat2str(size(F.cdata)), mat2str(size(frames, 1:3)));
     end
     frames(:, :, :, k) = F.cdata;
@@ -164,6 +169,32 @@ extra = struct('nEpochs', T, 'quantity', char(opts.quantity), ...
     'dataRange', [b.Zmin, b.Zmax]);
 shLowLevel.writeFrames(frames, filename, FrameRate = opts.FrameRate, ...
     Sidecar = opts.Sidecar, SidecarExtra = extra);
+end
+
+function F = captureFrame(fig, k)
+% getframe intermittently returns a frame LARGER than its figure. Measured
+% on the acceptance machine: 2 of 20 draws came back 401x656 while the
+% figure's own Position never left 640 x 365 - so it is not a layout
+% difference, and geoMap is not involved. An immediate second getframe on
+% the same untouched figure returned the correct size both times.
+%
+% So the capture is checked against the figure's Position, which is the
+% truth, rather than against the previous frame, which is only a guess at
+% it. This is what removes the between-run size variation the acceptance
+% run found: the figure was always right; the picture of it was not.
+for attempt = 1:6 %#ok<NASGU>
+    settleFigure(fig);
+    p = get(fig, 'Position');
+    want = round([p(4), p(3)]);         % [height width] in pixels
+    F = getframe(fig);
+    if isequal(size(F.cdata, 1:2), want)
+        return
+    end
+end
+error('shLowLevel:writeAnimation:captureMismatch', ...
+    ['Frame %d: getframe returned %s for a figure measuring %s, and six ' ...
+     'recaptures did not agree. The figure layout is stable; the capture ' ...
+     'is not.'], k, mat2str(size(F.cdata, 1:2)), mat2str(want));
 end
 
 function settleFigure(fig)
