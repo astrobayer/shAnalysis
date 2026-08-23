@@ -109,9 +109,11 @@ for k = 1:T
     ax = axes('Parent', fig);       % geo.map's Parent is an AXES
     G = geo.grid(b.lon, b.lat, b.Z(:, :, k), ...
         Source = b.Source, Units = b.Units);
-    geo.map(G, opts.CRS, Parent = ax, Basemap = bm, ...
-        Title = sprintf('%s  %.3f', opts.quantity, b.Epoch(k)), ...
-        opts.GeoArgs{:});
+    % name=value must come last, so everything goes in one cell (see
+    % shCoefficients.map for what mixing the two forms costs)
+    args = [{'Parent', ax, 'Basemap', bm, 'Title', ...
+        sprintf('%s  %.3f', opts.quantity, b.Epoch(k))}, opts.GeoArgs];
+    geo.map(G, opts.CRS, args{:});
     drawnow;
     F = getframe(fig);
     if isempty(frames)

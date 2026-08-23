@@ -279,10 +279,46 @@ def check_arguments_blocks(name, txt):
     return bad
 
 
+def check_nv_before_expansion(name, txt):
+    """R5: a name=value argument before a {:} expansion in the same call.
+
+    MATLAB requires name=value arguments to come LAST, so
+        f(a, Name = v, opts.Rest{:})
+    is a PARSE error - and a parse error inside a classdef takes the whole
+    class down, so one such line failed forty unrelated tests in CI before
+    this check existed. Written the other way round it is fine:
+        args = [{'Name', v}, opts.Rest];  f(a, args{:})
+    """
+    bad = []
+    for mm in re.finditer(r"[A-Za-z_]\w*(?:\.\w+)*\s*\(", txt):
+        j = mm.end() - 1
+        depth = 0
+        while j < len(txt):
+            if txt[j] == "(":
+                depth += 1
+            elif txt[j] == ")":
+                depth -= 1
+                if depth == 0:
+                    break
+            j += 1
+        if j >= len(txt):
+            continue
+        inner = txt[mm.end():j]
+        nv = re.search(r"[,(]\s*[A-Za-z_]\w*\s*=(?!=)", "(" + inner)
+        if not nv:
+            continue
+        if "{:}" in inner[nv.end() - 1:]:
+            ln = txt[:mm.start()].count("\n") + 1
+            bad.append((name, ln, "name=value before a {:} expansion -- "
+                                  "name=value must come last (parse error)"))
+    return bad
+
+
 def lint_text(name, src):
     txt = fold_continuations(strip_tokens(src))
     return (check_balance(name, txt) + check_dot_rules(name, txt)
-            + check_arguments_blocks(name, txt))
+            + check_arguments_blocks(name, txt)
+            + check_nv_before_expansion(name, txt))
 
 
 def main(paths):

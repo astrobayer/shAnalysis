@@ -828,7 +828,12 @@ methods
             bm.Divergent = (b.FieldKind == "anomaly");
         end
         G = geo.grid(b.lon, b.lat, b.Z, Source = b.Source, Units = b.Units);
-        H = geo.map(G, opts.CRS, Basemap = bm, opts.GeoArgs{:});
+        % NOT "Basemap = bm, opts.GeoArgs{:}": MATLAB requires name=value
+        % arguments to come last, so a cell expansion after one is a PARSE
+        % error - and a parse error in a classdef takes the whole class
+        % down, which is how one line failed forty unrelated tests.
+        args = [{'Basemap', bm}, opts.GeoArgs];
+        H = geo.map(G, opts.CRS, args{:});
     end
 
     function out = fan(obj, rDegKm, rOrdKm)

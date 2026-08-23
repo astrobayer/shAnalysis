@@ -60,6 +60,16 @@ v3.31.0. This toolbox no longer draws maps.
   strings, so it is skipped for the short list of files that forward a
   name to geoMap; that list is the mechanism and is stated as such.
 
+- `tools/dev/mlint_lite.py` gained rule **R5**: a `name = value`
+  argument before a `{:}` expansion in the same call. MATLAB requires
+  name-value arguments to come last, so `f(a, Name = v, rest{:})` is a
+  **parse** error - and a parse error inside a classdef takes the whole
+  class down. Both `geo.map` call sites in this release were written
+  that way, `shCoefficients.m` stopped loading, and forty unrelated
+  tests failed in CI for one line. `mlint_lite` counts brackets and
+  blocks; it does not parse MATLAB grammar, so it could not see this
+  until it was told to look.
+
 ### Notes
 - **This is API-breaking for anyone drawing maps.** `g.map` now needs
   geoMap on the path and no longer takes the display options above;
