@@ -1,5 +1,5 @@
 % shAnalysis - Spherical harmonic analysis toolbox
-% Version 3.32.2 (R2026a-compatible) 23-Aug-2026
+% Version 3.32.3 (R2026a-compatible) 23-Aug-2026
 %
 % The line above is what ver('shAnalysis') reports as the product name:
 % keep it a SHORT name, not a sentence and not a version string (pinned
@@ -224,6 +224,22 @@
 %     (fixture-tested parser) and .gfc download by name; temporal
 %     section returns series roots (superseded in v3.1.1 - the series are
 %     downloadable now, see below)
+%
+% New in v3.32.3 (review of v3.29-v3.32: two documentation defects)
+%   - A fresh-eyes review of everything since v3.28.0 re-derived the
+%     kernel table, radial exponents, the sinc period-mean and the
+%     design-matrix alignment (all correct), and verified on real data:
+%     attenuation is exactly 0 for annual AND semi-annual terms on a
+%     whole-year window; model and arithmetic means agree to 2e-16 on a
+%     complete 2021 GRACE-FO year; the n96 gradient matches a 5-point
+%     finite difference of synthesis at 1e-11 and yields a 5.35 arcsec
+%     deflection-of-the-vertical RMS (n=2..96), the physically expected
+%     value; n96 synthesis/gradient on 180x360 take 0.04/0.07 s.
+%   - FIXED shSynthesisGradient.html: the advection note put the /r on
+%     the perRadian form; it belongs to the perMeter one. perRadian
+%     needs no metric factor - that is its point.
+%   - FIXED README: it never mentioned the geoMap relationship, so a
+%     reader calling g.map met an error the front page never hinted at.
 %
 % New in v3.32.2 (the acceptance run refuted v3.32.1's own fix)
 %   - FIX: writeAnimation's frame capture, third attempt. Under rapid

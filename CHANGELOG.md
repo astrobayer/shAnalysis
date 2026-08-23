@@ -1,5 +1,58 @@
 # Changelog
 
+## [3.32.3] - 2026-08-23 - review of v3.29-v3.32.2, with fresh eyes
+
+A model change is a review opportunity: everything since v3.28.0 was
+re-read for mathematical, implementation and documentation defects,
+with the mathematics re-derived rather than re-tested.
+
+### Verified (container, by derivation)
+The kernel table against the standard formulas (Wahr 1998 mass kernels,
+free-air `n-1`, disturbance `n+1`, Trr `(n+1)(n+2)`), the radial
+exponents n+1/n+2/n+3 and their chained identities, the sinc period-mean
+derivation (trend and sine terms vanish for a centred T0; whole years
+kill annual and semi-annual exactly), the design-matrix column
+alignment of the `u` weights in `shSeries.mean`, the cofactor
+u'(A'A)^-1 u, the per-coefficient sigma denominator, `select`'s
+index/range disambiguation, `flatten` ordering, the FieldKind identity
+and the stack-wide colour extremes. **No defect found.**
+
+### Verified (acceptance machine, real data)
+- The deferred whole-year check from the v3.28 handover:
+  `mean(Range=[2021 2022], Estimator="model")` on 12 ITSG GRACE-FO n96
+  months gives attenuation **exactly 0** for the annual and semi-annual
+  terms, and agrees with the arithmetic mean to **2.2e-16** - the
+  "round-off" claim in the help, measured true (ITSG epochs sit on
+  exact twelfths, which is what makes the two estimators coincide).
+- The deferred n96 runtime: synthesis 0.04 s, gradient 0.07 s on a
+  180x360 grid. Not a concern.
+- The gradient against a 5-point finite difference of `synthesis` on
+  the real n96 field: north 1.1e-11, east 5.0e-12 relative; the up
+  channel against the closed identity at 1.3e-14.
+- Physics, not self-consistency: the deflection of the vertical from
+  the n=2..96 field is **5.35 arcsec RMS**, where the published
+  truncated value sits - a check against knowledge outside the toolbox.
+
+### Fixed
+- `html/shSynthesisGradient.html`: the advection note said "with
+  Units='perRadian', dphi/dt is dq.north/r directly". Dimensionally the
+  /r belongs to the **perMeter** form (v = mu*dq.north in m/s, dphi/dt
+  = v/r); the point of perRadian is that an angular mobility needs no
+  metric factor at all. The sentence now says so, and says it was
+  wrong.
+- `README.md` never mentioned the geoMap relationship: a reader calling
+  `g.map` met an error the front page never hinted at. Four sentences
+  now state who draws, that a gate keeps it that way, and that the
+  dependency is checked rather than required.
+
+### Noted, deliberately not changed
+- `gradient` documents that geodetic input is converted and the vector
+  resolved in the geocentric local frame (up to 0.19 deg of meridian
+  convergence) - present and correct in the help since v3.31.0.
+- `gravity_anomaly` keeps its `n-1` kernel down to degree 0, where a
+  full field produces a large spurious term; unchanged since long
+  before this window, out of scope here.
+
 ## [3.32.2] - 2026-08-23 - the acceptance run refuted the fix that installed it
 
 v3.32.1 added `acceptance_geomap` and, in the same release, a fix for

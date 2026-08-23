@@ -16,6 +16,16 @@ building block is callable directly from the `+shLowLevel` package.
 Requires MATLAB R2021a or newer (`arguments` name=value syntax) and
 **nothing beyond base MATLAB**: no toolboxes.
 
+**Maps are drawn by [geoMap](https://github.com/matweigelt/geomapper),
+not by this toolbox** (v3.32.0). shAnalysis renders no cartography of
+its own; `g.map` and `shLowLevel.writeAnimation` synthesize, hand the
+grid over, and let `geo.map` draw - a CI gate keeps it that way. The
+dependency is checked, not required: everything numerical runs without
+geoMap, including `g.toGrid`, which returns the field together with its
+units, latitude convention and provenance so that any renderer - or a
+plain `imagesc` - can draw it honestly. Only the two drawing entry
+points ask for geoMap, and they say so before doing any work.
+
 Validated against the published GravIS Greenland ice-mass series: 2.8%
 on the mass trend over 2002-04..2023-02 (217 monthly solutions - the
 span of the auxiliary correction tables at the time of the
