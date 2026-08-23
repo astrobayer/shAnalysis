@@ -168,14 +168,23 @@ end
 
 function settleFigure(fig)
 % geo.map's resize is not guaranteed to have landed after one drawnow -
-% measured. Wait until the figure height stops moving, bounded so a
+% measured. Two equal polls are NOT enough to call it settled: a resize
+% that has not STARTED yet looks exactly the same, which is how a frame
+% captured at the unresized 340 px slipped through. So: stable across
+% three consecutive polls, and never fewer than four polls, bounded so a
 % pathological layout cannot hang an export.
 last = NaN;
-for it = 1:25 %#ok<NASGU>
+stable = 0;
+for it = 1:40
     drawnow;
     p = get(fig, 'Position');
-    if isequal(p(4), last), return; end
+    if isequal(p(4), last)
+        stable = stable + 1;
+    else
+        stable = 0;
+    end
     last = p(4);
+    if stable >= 3 && it >= 4, return; end
     pause(0.02);
 end
 end

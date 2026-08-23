@@ -25,6 +25,7 @@ function writeFrames(frames, filename, opts)
 %   Options
 %     FrameRate (4)  frames per second
 %     Sidecar (true)  write <file>.provenance.json alongside the output
+%         (nFrames, frameRate and frameSize are always recorded)
 %     SidecarExtra (struct())  extra fields merged into the sidecar
 %
 %   Outputs
@@ -77,6 +78,10 @@ if opts.Sidecar
     extra = opts.SidecarExtra;
     extra.nFrames = T;
     extra.frameRate = opts.FrameRate;
+    % the geometry, recorded rather than inferred: two exports of the
+    % same data differing by 0.4% in bytes should be explainable from
+    % the sidecar alone, not from guessing at the renderer
+    extra.frameSize = [size(frames, 1), size(frames, 2)];
     writeSidecar(filename, extra);
 end
 end

@@ -183,6 +183,7 @@ function note = checkRepeat(ts, kn, outDir)
 % the race only shows up across runs, so run the SHIPPED function - a
 % local copy of its loop would be testing itself, not what ships
 sz = strings(3, 1);
+geom = zeros(3, 2);
 for r = 1:3
     tmp = fullfile(char(outDir), sprintf('shx_rep%d_%d.avi', r, randi(1e9)));
     shLowLevel.writeAnimation(ts, tmp, quantity = "ewh", kn = kn, ...
@@ -190,9 +191,15 @@ for r = 1:3
     d = dir(tmp);
     assert(~isempty(d) && d.bytes > 1000, 'run %d wrote nothing usable', r);
     p = jsondecode(fileread([tmp '.provenance.json']));
-    sz(r) = string(d.bytes) + "B/" + string(p.nFrames) + "f";
+    sz(r) = string(d.bytes) + "B/" + string(p.nFrames) + "f/" + ...
+        string(p.frameSize(1)) + "x" + string(p.frameSize(2));
+    geom(r, :) = p.frameSize(:)'; %#ok<AGROW>
     cleanFile(tmp);
 end
+assert(all(geom(:, 1) == geom(1, 1)) && all(geom(:, 2) == geom(1, 2)), ...
+    ['frame geometry differs BETWEEN runs: %s. The per-run pin holds ' ...
+     'inside a run, so this means frame 1 itself was captured before ' ...
+     'geo.map resized.'], mat2str(geom));
 note = "runs: " + strjoin(sz', ", ");
 end
 
