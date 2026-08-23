@@ -100,7 +100,8 @@
 %
 % New in v2.4 (visualization + computation extensions; Python-validated)
 %   Visualization: shLowLevel.plotSHMap / g.map (divergent map, coastlines,
-%     Hammer projection), shLowLevel.plotBasinSeries (sigma band, gaps, trend),
+%     Hammer projection; plotSHMap REMOVED in v3.32.0 - see below),
+%     shLowLevel.plotBasinSeries (sigma band, gaps, trend),
 %     triangle difference mode (RefC/RefS), shLowLevel.plotCovariance (block
 %     boundaries), plotSHSpectrum Kaula + crossover overlays,
 %     shLowLevel.writeAnimation (MP4, fixed robust scale)

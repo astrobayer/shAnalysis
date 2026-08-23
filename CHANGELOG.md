@@ -60,6 +60,13 @@ v3.31.0. This toolbox no longer draws maps.
   strings, so it is skipped for the short list of files that forward a
   name to geoMap; that list is the mechanism and is stated as such.
 
+- `docs/apiExamples.json` - the committed example registry the suite
+  executes - lost its `shLowLevel.plotSHMap` entry, and the `g.map` and
+  `writeAnimation` entries are marked `run: false` with examples that
+  show the current API. They need geoMap, which the CI machine does not
+  have. `writeFrames` is registered as a runnable one in their place.
+  This file is a second place documentation lives, and only CI saw that
+  it had gone stale: the static gates read help text and HTML, not it.
 - `tools/dev/mlint_lite.py` gained rule **R5**: a `name = value`
   argument before a `{:}` expansion in the same call. MATLAB requires
   name-value arguments to come last, so `f(a, Name = v, rest{:})` is a
