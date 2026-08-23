@@ -148,7 +148,7 @@ for k = 1:T
             settleFigure(fig);
         end
     end
-    F = captureFrame(fig, k);
+    F = captureFrame(fig, k, pinned);
     if isempty(frames)
         frames = zeros([size(F.cdata), T], 'uint8');
     elseif ~isequal(size(F.cdata), size(frames, 1:3))
@@ -171,30 +171,42 @@ shLowLevel.writeFrames(frames, filename, FrameRate = opts.FrameRate, ...
     Sidecar = opts.Sidecar, SidecarExtra = extra);
 end
 
-function F = captureFrame(fig, k)
-% getframe intermittently returns a frame LARGER than its figure. Measured
-% on the acceptance machine: 2 of 20 draws came back 401x656 while the
-% figure's own Position never left 640 x 365 - so it is not a layout
-% difference, and geoMap is not involved. An immediate second getframe on
-% the same untouched figure returned the correct size both times.
+function F = captureFrame(fig, k, pinned)
+% Under rapid figure churn the layout passes through a transient state -
+% measured 401x656 against a target of 640x365, in both dimensions, 2 in
+% 20 draws in isolation and about 1 in 6 exports inside the acceptance
+% run. In isolation with a longer settle it never appeared in 12 of 12,
+% which is exactly why a timing-based fix cannot be trusted: it makes the
+% symptom rare rather than absent.
 %
-% So the capture is checked against the figure's Position, which is the
-% truth, rather than against the previous frame, which is only a guess at
-% it. This is what removes the between-run size variation the acceptance
-% run found: the figure was always right; the picture of it was not.
-for attempt = 1:6 %#ok<NASGU>
+% So the capture is validated against the PIN - the size every frame of
+% this video must have - and a disagreement is resolved by settling and
+% recapturing, which was measured to recover 2 of 2. The size to hit is
+% known in advance, so this is a check against a requirement rather than
+% against whatever the figure happens to say at the moment of asking.
+if isempty(pinned)
+    want = [];                          % frame 1 defines it
+else
+    want = round([pinned(2), pinned(1)]);   % [height width]
+end
+for attempt = 1:8
     settleFigure(fig);
-    p = get(fig, 'Position');
-    want = round([p(4), p(3)]);         % [height width] in pixels
     F = getframe(fig);
-    if isequal(size(F.cdata, 1:2), want)
+    got = size(F.cdata, 1:2);
+    p = get(fig, 'Position');
+    if isempty(want)
+        if isequal(got, round([p(4), p(3)])), return; end
+    elseif isequal(got, want)
         return
     end
+    pause(0.05 * attempt);              % back off, then look again
 end
+if isempty(want), want = round([p(4), p(3)]); end
 error('shLowLevel:writeAnimation:captureMismatch', ...
-    ['Frame %d: getframe returned %s for a figure measuring %s, and six ' ...
-     'recaptures did not agree. The figure layout is stable; the capture ' ...
-     'is not.'], k, mat2str(size(F.cdata, 1:2)), mat2str(want));
+    ['Frame %d settled at %s but had to be %s, and eight attempts did ' ...
+     'not agree. This is a transient layout state under rapid figure ' ...
+     'churn, not a property of the data; retry, or export fewer frames ' ...
+     'per call.'], k, mat2str(got), mat2str(want));
 end
 
 function settleFigure(fig)
@@ -204,18 +216,18 @@ function settleFigure(fig)
 % captured at the unresized 340 px slipped through. So: stable across
 % three consecutive polls, and never fewer than four polls, bounded so a
 % pathological layout cannot hang an export.
-last = NaN;
+last = [NaN NaN];
 stable = 0;
 for it = 1:40
     drawnow;
     p = get(fig, 'Position');
-    if isequal(p(4), last)
-        stable = stable + 1;
-    else
-        stable = 0;
+    if isequal(p(3:4), last)        % BOTH dimensions: the transient
+        stable = stable + 1;        % state 656x401 changes width too,
+    else                            % and a height-only watcher called
+        stable = 0;                 % it settled
     end
-    last = p(4);
-    if stable >= 3 && it >= 4, return; end
+    last = p(3:4);
+    if stable >= 5 && it >= 6, return; end
     pause(0.02);
 end
 end
