@@ -1,4 +1,4 @@
-# shAnalysis CI - GitHub Actions workflow template (v2.6.0)
+# shAnalysis CI - GitHub Actions workflow template (v2.7.0)
 #
 # INSTALL: copy this file to <repo-root>/.github/workflows/shanalysis-ci.yml
 # (workflow files only take effect at the repository root, so from within
@@ -11,16 +11,28 @@
 #   private repo - request a MATLAB batch licensing token (MathWorks
 #                  Batch Licensing Pilot form), store it as the GitHub
 #                  secret MATLAB_BATCH_TOKEN; the env line below maps it
-#   self-hosted  - change runs-on to [self-hosted] on a machine with
-#                  MATLAB installed; no token needed
+#   self-hosted  - runs-on is [self-hosted]; MATLAB is expected to
+#                  already be installed and on PATH on the runner, so
+#                  Set up MATLAB is skipped (matlab-actions/setup-matlab
+#                  only supports self-hosted UNIX, not Windows - see its
+#                  README, "Required Software on Self-Hosted Runners");
+#                  no token needed
 #
 # The suite is CI-safe by design: all fetch* tests are offline
 # (skip/mirror patterns), fixtures come from the orphan branch 'testdata'
 # (checkout step below), and no
 # toolboxes beyond base MATLAB are required.
 #
+# v2.7.0 (2026-09-05): matrix target switched from ubuntu-latest to
+# self-hosted (repo owner's runner). Set up MATLAB is now conditional
+# on matrix.os and skipped for self-hosted; a fast MATLAB-on-PATH probe
+# replaces it so a missing/misconfigured install fails clearly instead
+# of surfacing as a confusing test-suite error. NOTE: the three python3
+# steps below were NOT verified against the self-hosted runner's actual
+# execution account - see PR description.
+#
 # Developed by Matthias Weigelt with the help of Claude (Fable 5),
-# 2026-08-08 (v2.6.0).
+# 2026-08-08 (v2.6.0); Claude (Sonnet 5), 2026-09-05 (v2.7.0).
 
 name: shAnalysis CI
 
@@ -35,7 +47,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
+        os: [self-hosted]
     runs-on: ${{ matrix.os }}
     # The whole job normally finishes in about three minutes. A cap well
     # above that turns a hung step into a fast, visible failure instead
@@ -69,6 +81,10 @@ jobs:
         run: python3 tools/dev/no_map_renderer.py
 
       - name: Set up MATLAB
+        # Only for GitHub-hosted matrix legs. setup-matlab does not
+        # support self-hosted Windows runners (self-hosted UNIX only);
+        # on self-hosted, MATLAB must already be installed and on PATH.
+        if: ${{ matrix.os != 'self-hosted' }}
         # this is the step that hangs; cap it tightly so a retry costs
         # eight minutes rather than the whole job budget
         timeout-minutes: 8
@@ -76,7 +92,18 @@ jobs:
         with:
           release: R2026a
           cache: true
- 
+
+      - name: Verify MATLAB on PATH (self-hosted)
+        # Fails fast with an unambiguous message if the self-hosted
+        # runner's MATLAB installation is missing/not on PATH, instead
+        # of that surfacing as a cryptic failure in "Run test suite".
+        if: ${{ matrix.os == 'self-hosted' }}
+        timeout-minutes: 2
+        uses: matlab-actions/run-command@v3
+        with:
+          command: >
+            fprintf('MATLAB on self-hosted runner: %s\n', version);
+
       - name: Run test suite
         uses: matlab-actions/run-command@v3
         with:
