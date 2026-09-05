@@ -56,12 +56,11 @@ gate enforces a coverage floor, not completeness.
 
 ## Regenerating the documentation
 
-The generators expect a build copy at `/home/claude/shx_build/shAnalysis`
+The generators derive the repository root from their own location
 and write `api_data.py` next to themselves. Order matters:
 
 ```bash
-cp -r <repo> /home/claude/shx_build/shAnalysis
-python3 tools/dev/api_extract.py     # source  -> /home/claude/api_data.py
+python3 tools/dev/api_extract.py     # source  -> tools/dev/api_data.py
 #   merge docs/apiExamples.json into api_data.py (examples + run flags)
 python3 tools/dev/make_apiref.py     # api_data -> html/apiReference.html
 python3 tools/dev/make_guide.py      # api_data -> docs/..._guide.pdf

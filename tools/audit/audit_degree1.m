@@ -8,6 +8,7 @@ function audit_degree1
 %   = the n=1 analysis of the total field with the same operator the
 %   estimator inverts (convention cancels by construction).
 %   Audit script, Claude (Fable 5), 2026-08-12.
+%   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 rng(42);
 GM = 3.986004415e14; R = 6378136.3;
 kn = readmatrix('E:\DATAPOOL\GravityField\loveNumbers\loadLoveNumbers_Gegout97.txt', ...

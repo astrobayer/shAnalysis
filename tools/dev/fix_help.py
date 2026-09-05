@@ -1,6 +1,9 @@
 """Audit-driven help completion. Reads help_audit findings, patches files."""
 import re, sys, subprocess, os
-sys.path.insert(0, os.path.join('/tmp/shx_git', 'tools'))
+_HERE = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.environ.get('SHX_ROOT',
+                      os.path.dirname(os.path.dirname(_HERE)))
+sys.path.insert(0, os.path.join(ROOT, 'tools'))
 
 OPTDESC = {
  'kn': 'load Love numbers, degrees 0..nmax (user-supplied; e.g. shLowLevel.fetchLoveNumbers)',
@@ -38,18 +41,18 @@ def load():
 
 def findings():
     r = subprocess.run(['python3', 'tools/help_audit.py'],
-                       capture_output=True, text=True, cwd='/tmp/shx_git')
+                       capture_output=True, text=True, cwd=ROOT)
     return [l.strip()[2:] for l in r.stdout.splitlines() if l.startswith('  - ')]
 
 def locate(label):
     """label -> (path, entry) using the audit parsers"""
     ha = load()
     if label.startswith('shLowLevel.'):
-        p = os.path.join('/tmp/shx_git', '+shLowLevel', label.split('.')[1] + '.m')
+        p = os.path.join(ROOT, '+shLowLevel', label.split('.')[1] + '.m')
         return p, ha.parse_file(p)
     if '.' in label and label.split('.')[0] in ('shCoefficients', 'shSeries', 'shClimatology'):
         cls, meth = label.split('.')
-        p = os.path.join('/tmp/shx_git', cls + '.m')
+        p = os.path.join(ROOT, cls + '.m')
         lines = open(p, encoding='utf-8').readlines()
         for i, L in enumerate(lines):
             if re.match(r'^\s*function\s+.*\b' + meth + r'\s*\(', L):
@@ -57,7 +60,7 @@ def locate(label):
                 if e and e['name'] == meth:
                     return p, e
         raise KeyError(label)
-    p = os.path.join('/tmp/shx_git', label + '.m')
+    p = os.path.join(ROOT, label + '.m')
     return p, ha.parse_file(p)
 
 def helpspan(path, entry):
@@ -209,7 +212,7 @@ def fix_outputs(label):
     return True
 
 def run():
-    os.chdir('/tmp/shx_git')
+    os.chdir(ROOT)
     F = findings()
     done = skip = 0
     for f in F:

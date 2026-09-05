@@ -30,8 +30,12 @@ from reportlab.platypus import (BaseDocTemplate, Frame, Image,  # noqa: E402
 
 matplotlib.rcParams["mathtext.fontset"] = "cm"
 
+_HERE = os.path.dirname(os.path.abspath(__file__))
+_ROOT = os.environ.get("SHX_ROOT",
+                       os.path.dirname(os.path.dirname(_HERE)))
 OUT = os.environ.get("SHX_GUIDE_OUT",
-                     "/tmp/shx_git/docs/shAnalysis_workflow_guide.pdf")
+                     os.path.join(_ROOT, "docs",
+                                  "shAnalysis_workflow_guide.pdf"))
 # figures live IN THE REPO (they were lost once when a container path
 # vanished; recovered from the shipped PDF and committed since v3.1.2)
 ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)),
@@ -40,7 +44,7 @@ EQDIR = "/tmp/guide_eq"
 os.makedirs(EQDIR, exist_ok=True)
 
 import re as _re
-_cm = open("/tmp/shx_git/Contents.m").read()
+_cm = open(os.path.join(_ROOT, "Contents.m")).read()
 VERSION = "v" + _re.search(r"% Version (\S+)", _cm).group(1)
 STAMP = ("shAnalysis %s - Workflow & Theory Guide - Developed by "
          "Matthias Weigelt with the help of Claude, 2026-08-18"
@@ -2429,8 +2433,8 @@ story += [PageBreak()]
 
 # ===================================================== Part IV API reference
 import sys as _sys
-if "/home/claude" not in _sys.path:
-    _sys.path.insert(0, "/home/claude")
+if _HERE not in _sys.path:
+    _sys.path.insert(0, _HERE)
 from api_data import API as _API
 
 

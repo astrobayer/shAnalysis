@@ -10,7 +10,10 @@ import os
 import re
 import sys
 
-ROOT = "/home/claude/shx_build/shAnalysis"
+import os as _os
+_HERE = _os.path.dirname(_os.path.abspath(__file__))
+ROOT = _os.environ.get("SHX_ROOT",
+                       _os.path.dirname(_os.path.dirname(_HERE)))
 STMT = "Developed by Matthias Weigelt with the help of Claude (Fable 5)."
 
 

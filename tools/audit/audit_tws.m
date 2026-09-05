@@ -10,6 +10,7 @@ function audit_tws
 %   Reference: GravIS TWS portal series (COST-G, VDK5+VDK3 blend with
 %   earthquake steps removed - both declared differences).
 %   Claude (Fable 5), 2026-08-12.
+%   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 
 aux = 'E:\DATAPOOL\GravityField\GravIS';
 ser = 'E:\DATAPOOL\GravityField\icgem\series\02_COST-G__COST-G_Grace-Grace-FO_RL02.1';

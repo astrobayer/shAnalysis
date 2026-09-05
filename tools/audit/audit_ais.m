@@ -6,6 +6,7 @@ function audit_ais
 %   (301..325, COST-G): total -146.9 Gt/yr over <=2023.10 (n=217);
 %   full-record -135.4 (2002.29..2025.96, n=252).
 %   Claude (Fable 5), 2026-08-12.
+%   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 
 aux = 'E:\DATAPOOL\GravityField\GravIS';
 S  = load(fullfile(aux, 'audit_chain_cache_g445.mat'));

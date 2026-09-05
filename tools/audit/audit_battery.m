@@ -2,6 +2,7 @@ function audit_battery
 %AUDIT_BATTERY Unhappy-path battery (audit item 5) + gridScaling pipeline
 %   invariance. Each case classified LOUD (error w/ id) / WARN / SILENT.
 %   Claude (Fable 5), 2026-08-12.
+%   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 root = fileparts(mfilename('fullpath'));
 dd = fullfile(root, 'tests', 'test_data');
 tmp = tempname; mkdir(tmp); c = onCleanup(@() rmdir(tmp, 's'));

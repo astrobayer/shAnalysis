@@ -1,6 +1,6 @@
 """make_figs.py - regenerate guide figures from the Python port + real data.
 
-Outputs to /home/claude/guide_assets: d01.png (triangle + spectrum, real
+Outputs to tools/dev/guide_assets: d01.png (triangle + spectrum, real
 ITSG 2008-04), d04_gains.png (Gaussian / fan / DDK3 gain triangles),
 d04_diff.png (NEW: signed-difference triangle on the real GRACE-FO -
 GRACE field, full sine wing incl. sectorals - the v2.4.2 fix).
@@ -14,11 +14,18 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
 
-sys.path.insert(0, "/home/claude/shx_port")
+import os as _os
+_HERE = _os.path.dirname(_os.path.abspath(__file__))
+ROOT = _os.environ.get("SHX_ROOT",
+                       _os.path.dirname(_os.path.dirname(_HERE)))
+# the Python port lives outside the repo; override when it moves
+sys.path.insert(0, _os.environ.get("SHX_PORT", "/home/claude/shx_port"))
 import shx_port as sp  # noqa: E402
 
-DATA = "/home/claude/shx_build/shAnalysis/tests/test_data"
-OUT = "/home/claude/guide_assets"
+DATA = _os.environ.get("SHX_TESTDATA_FOLDER",
+                       _os.path.join(ROOT, "tests", "test_data"))
+OUT = _os.environ.get("SHX_GUIDE_ASSETS",
+                      _os.path.join(_HERE, "guide_assets"))
 
 g1 = sp.read_gfc(f"{DATA}/ITSG-Grace2018_n60_2008-04.gfc")
 g2 = sp.read_gfc(f"{DATA}/ITSG-Grace_operational_n60_2025-12.gfc")

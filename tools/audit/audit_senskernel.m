@@ -2,6 +2,7 @@ function audit_senskernel
 %AUDIT_SENSKERNEL Reproduce the 2-16% claim: tailored vs Gaussian at
 %   matched noise & gain=1, across FarField weightings. Audit script,
 %   Claude (Fable 5), 2026-08-12.
+%   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 idx = shLowLevel.shIndex(30, MinDegree = 0);
 cap = @(la, lo) double(acosd(min(1, max(-1, sind(15)*sind(la) + ...
     cosd(15)*cosd(la).*cosd(lo - 300)))) <= 10);

@@ -4,12 +4,18 @@ defaults, and documented outputs. Single source: the arguments blocks
 and help text parsed by api_extract."""
 import html as H
 import re
-exec(open('/home/claude/api_data.py').read())
+import os as _os
+_HERE = _os.path.dirname(_os.path.abspath(__file__))
+_API = _os.environ.get('SHX_API_DATA', _os.path.join(_HERE, 'api_data.py'))
+exec(open(_API).read())
 PK = 'shLowLevel'
-SRC = '/home/claude/shx_build/shAnalysis'
-# derived from SRC, not a second path: this pointed at /tmp/shx_git,
-# a clone location from an earlier session, so a regenerated reference
-# was written outside the tree being built (v3.30.0)
+SRC = _os.environ.get('SHX_ROOT',
+                      _os.path.dirname(_os.path.dirname(_HERE)))
+# derived from SRC, not a second path. SRC itself is now derived from
+# __file__: it had pointed at /tmp/shx_git (v3.30.0) and then at a
+# second absolute clone path, each time writing the regenerated
+# reference outside the tree being built, so doc_sync kept reporting a
+# stale page that had just been rebuilt
 OUT = SRC + '/html/apiReference.html'
 
 
