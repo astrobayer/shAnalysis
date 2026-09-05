@@ -1,4 +1,4 @@
-# shAnalysis CI - GitHub Actions workflow template (v2.9.0)
+# shAnalysis CI - GitHub Actions workflow template (v2.10.0)
 #
 # INSTALL: copy this file to <repo-root>/.github/workflows/shanalysis-ci.yml
 # (workflow files only take effect at the repository root, so from within
@@ -59,6 +59,10 @@
 #
 # v2.9.0 (2026-09-05): fixtures pinned to the tag 'fixtures-2026-08'
 # instead of the branch 'testdata'. See the checkout step for why.
+#
+# v2.10.0 (2026-09-05): static gates moved to their own ubuntu-latest
+# job, restoring Linux coverage for the doc audits without any MATLAB
+# licence. New gate tools/fixture_tag_audit.py.
 
 # Developed by Matthias Weigelt with the help of Claude (Fable 5),
 # 2026-08-08 (v2.6.0); Claude (Sonnet 5), 2026-09-05 (v2.7.0).
@@ -84,6 +88,41 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # The static gates need no MATLAB and no licence, so they run on a
+  # GitHub-hosted Linux image. Two things follow. They give back the
+  # Linux coverage lost when the ubuntu-latest matrix leg was dropped -
+  # and for a MATLAB toolbox the realistic platform-specific defect is
+  # filename case, which Windows forgives and Linux does not. And they
+  # report in seconds without occupying the single self-hosted runner,
+  # which is the fast feedback the old in-job ordering was reaching for.
+  #
+  # Deliberately NOT duplicated on the self-hosted leg: running them on
+  # Windows as well adds no signal that the Linux run does not already
+  # give, and would only make the two jobs' results ambiguous.
+  gates:
+    name: gates (ubuntu-latest)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Documentation completeness audit
+        run: python3 tools/help_audit.py
+
+      - name: Documentation sync audit (help vs html vs guide)
+        run: python3 tools/doc_sync_audit.py
+
+      - name: No map renderer (geoMap is the single cartographic authority)
+        run: python3 tools/dev/no_map_renderer.py
+
+      # Guards the failure mode the tag arrangement introduced in
+      # v2.9.0: publish a newer fixtures-* tag, forget to bump 'ref:'
+      # below, and CI keeps passing against stale data. Needs the
+      # checkout's persisted credentials for git ls-remote.
+      - name: Fixture tag currency
+        run: python3 tools/fixture_tag_audit.py
+
   test:
     name: runAllTests (${{ matrix.os }})
     strategy:
@@ -100,15 +139,6 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
-
-      - name: Documentation completeness audit
-        run: python tools/help_audit.py
-
-      - name: Documentation sync audit (help vs html vs guide)
-        run: python tools/doc_sync_audit.py
-
-      - name: No map renderer (geoMap is the single cartographic authority)
-        run: python tools/dev/no_map_renderer.py
 
       - name: Set up MATLAB
         # Only for GitHub-hosted matrix legs. setup-matlab does not
