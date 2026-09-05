@@ -89,7 +89,7 @@ evmin = inf; evmax = -inf;
 for m = 0:nmax
     for cs = 'cs'
         if cs == 's' && m == 0, continue, end
-        nlo = max(n0, m);                       % degrees >= max(m, MinDegree)
+        nlo = max(n0, m);                       % degrees >= max(m, Nmin)
         if m == 0, nlo = max(nlo, 1); end       % degree 0 never filtered
         nvec = nlo:nmax;
         if isempty(nvec), continue, end

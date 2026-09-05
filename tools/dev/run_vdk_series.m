@@ -58,7 +58,7 @@ disp(array2table(ab, VariableNames = ["a", "b"], ...
     RowNames = string(1:12)'));
 
 %% 2 - month loop (resumable)
-idx = shLowLevel.shIndex(cfg.Nmax, MinDegree = 2);
+idx = shLowLevel.shIndex(cfg.Nmax, Nmin = 2);
 fid = fopen(cfg.LogFile, 'a');
 fprintf(fid, '=== run %s | alpha %g | nmax %d ===\n', ...
     string(datetime("now")), cfg.Alpha, cfg.Nmax);
@@ -107,7 +107,7 @@ fprintf('done: %d ok, %d skipped (present), %d failed - log: %s\n', ...
     nOK, nSkip, nFail, cfg.LogFile);
 
 %% 3 - numerical self-test (closed form, no data needed)
-idxT = shLowLevel.shIndex(10, MinDegree = 2);
+idxT = shLowLevel.shIndex(10, Nmin = 2);
 rng(1, 'twister');
 A = randn(idxT.P, ceil(idxT.P/3));
 Nt = A*A' + idxT.P*eye(idxT.P);

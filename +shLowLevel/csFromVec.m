@@ -1,7 +1,7 @@
 function [cnm, snm] = csFromVec(x, idx)
 %CSFROMVEC Unpack a shLowLevel vector into lower-triangular Cnm/Snm matrices.
 %   [cnm, snm] = shLowLevel.csFromVec(x, idx). Coefficients outside the index
-%   range (n < MinDegree) are zero.
+%   range (n < Nmin) are zero.
 %   Outputs
 %     cnm  (nmax+1 x nmax+1) double  cosine coefficients, C(n+1, m+1)
 %     snm  (nmax+1 x nmax+1) double  sine coefficients, S(:, 1) = 0

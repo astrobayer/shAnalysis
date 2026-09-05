@@ -28,7 +28,7 @@ function [b, info] = basinKernel(idx, region, opts)
 %     info  struct: areaFraction (quadrature area of the mask / 4pi),
 %           nGridPoints, buffered/tapered flags
 %
-%   Note: with MinDegree > 0 in IDX the kernel misses the low degrees of
+%   Note: with Nmin > 0 in IDX the kernel misses the low degrees of
 %   the indicator (incl. its mean); basinAverage's (B'B) normalization
 %   accounts for that consistently.
 %

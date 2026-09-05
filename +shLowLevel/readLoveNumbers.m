@@ -22,7 +22,7 @@ function [LN, info] = readLoveNumbers(filename, opts)
 %   Options
 %     Columns ("auto")   explicit column meaning, tokens from {n,k,h,l},
 %                        e.g. "n k h l" (overrides header detection)
-%     Nmax ([])     verify coverage of degrees 0..MaxDegree and
+%     Nmax ([])     verify coverage of degrees 0..Nmax and
 %                        truncate; with sparse tables combine with Interp ("none")
 %     Interp ("none")    "none" | "pchip": fill degree gaps by shape-
 %                        preserving pchip in log(1+n) - Farrell-style

@@ -186,7 +186,7 @@ else
         error('shLowLevel:shAnalysisGrid:badInput', ...
             'Method="ls" requires nmax >= 1 (use "rings" for nmax=0).');
     end
-    idx = shLowLevel.shIndex(nmax, MinDegree = 0);
+    idx = shLowLevel.shIndex(nmax, Nmin = 0);
     est = kernel(idx.n + 1) ~= 0;
     Pn = nnz(est);
     ATA = zeros(Pn); ATb = zeros(Pn, 1);

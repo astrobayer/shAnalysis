@@ -11,7 +11,7 @@ function [sig, latDeg, lonDeg] = errorMap(M, idx, latDeg, lonDeg, opts)
 %
 %   Inputs
 %     M       (P,P) double   covariance in IDX ordering (symmetric PSD)
-%     idx     struct         shLowLevel.shIndex (analysis-style MinDegree
+%     idx     struct         shLowLevel.shIndex (analysis-style Nmin
 %                            matching M)
 %     latDeg  (1,nlat), lonDeg (1,nlon) double [deg] geocentric
 %   Options

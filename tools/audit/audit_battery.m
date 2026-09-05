@@ -57,7 +57,7 @@ ts2 = shSeries(Cs2, Ss=Ss2, Epochs=[2008.29; 2008.37]);
 probe('B9 two-epoch climatology', @() ts2.climatology(), []);
 
 % B10 basinKernel: degenerate zero-area polygon
-idx = shLowLevel.shIndex(20, MinDegree=0);
+idx = shLowLevel.shIndex(20, Nmin=0);
 polyDeg = [10 10; 10 10; 10 10];
 probe('B10 basin zero-area polygon', @() shLowLevel.basinKernel(idx, polyDeg), @(b) chkZero(b));
 

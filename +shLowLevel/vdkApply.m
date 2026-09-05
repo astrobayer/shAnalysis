@@ -48,7 +48,7 @@ function [xf, info] = vdkApply(x, N, degOfPar, sigM, opts)
 %          factorized cleanly)
 %
 %   Example
-%     idx = shLowLevel.shIndex(96, MinDegree = 2);
+%     idx = shLowLevel.shIndex(96, Nmin = 2);
 %     snx = shLowLevel.readSINEX(f, Index = idx);
 %     xf = shLowLevel.vdkApply(snx.x, snx.M, idx.n, ab(mo, :), Alpha = 1);
 %

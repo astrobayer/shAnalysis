@@ -156,7 +156,7 @@ else
 end
 
 % 3. monthly VCE factors
-s = shLowLevel.vceRescale(N, Xres, idx, MinDegree = opts.VCEMinDegree);
+s = shLowLevel.vceRescale(N, Xres, idx, Nmin = opts.VCEMinDegree);
 assert(all(isfinite(s)), 'shLowLevel:tvANSFilter:nonFiniteVCE', ...
     'Non-finite VCE factors at months: %s', mat2str(find(~isfinite(s))'));
 banded = ~isempty(opts.VCEBands);
@@ -175,9 +175,9 @@ if banded
         inB = idx.m >= edges(q) & idx.m < edges(q+1);
         if any(inB & (idx.n >= opts.VCEMinDegree))
             sBand(q, :) = shLowLevel.vceRescale(N, Xres, idx, ...
-                MinDegree = opts.VCEMinDegree, Rows = inB);
+                Nmin = opts.VCEMinDegree, Rows = inB);
         else
-            sBand(q, :) = s;                    % band empty above MinDegree
+            sBand(q, :) = s;                    % band empty above Nmin
         end
     end
     assert(all(isfinite(sBand(:))), 'shLowLevel:tvANSFilter:nonFiniteVCE', ...

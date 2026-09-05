@@ -78,7 +78,7 @@ grid cannot express:</p>
 <pre>dg = shLowLevel.synthesisPoints(g.C, g.S, g.GM, g.R, ...
         [10; 12], [100; 101], (g.R + 450e3) * [1; 1], ...
         Quantity = "disturbance") * 1e5;      % mGal at 450 km</pre>
-<p><code class="inline">MinDegree</code> defaults to 2; set it to 0 to evaluate the full field
+<p><code class="inline">Nmin</code> defaults to 2; set it to 0 to evaluate the full field
 including the central term. Latitudes are geocentric and coefficients fully normalized in the
 C(n+1,m+1) layout, as everywhere in the toolbox &mdash; convert with
 <a href="geodetic2geocentric.html">geodetic2geocentric</a> if your points are geodetic. The radial

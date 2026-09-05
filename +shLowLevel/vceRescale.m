@@ -4,7 +4,7 @@ function s = vceRescale(N, Xres, idx, opts)
 %   month such that N_t = s(t) * N. The factor is the robust (median-based,
 %   chi-square(1) corrected) ratio between the observed squared residuals
 %   and the formal variances, evaluated over noise-dominated coefficients
-%   (n >= MinDegree, default round(2/3 * idx.Lmax)). This is the single-component
+%   (n >= Nmin, default round(2/3 * idx.Lmax)). This is the single-component
 %   Helmert VCE specialization; it absorbs the month-to-month noise level
 %   changes (orbit geometry, beta-prime angle, instrument state) that a
 %   stationary filter ignores.
@@ -37,7 +37,7 @@ hi = idx.n >= opts.Nmin;
 if ~isempty(opts.Rows)
     hi = hi & opts.Rows(:);
 end
-assert(any(hi), 'No coefficients above MinDegree - lower it.');
+assert(any(hi), 'No coefficients above Nmin - lower it.');
 if isstruct(N), d = N.diagN; else, d = diag(N); end
 T  = size(Xres, 2);
 s  = zeros(T, 1);

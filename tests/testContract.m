@@ -182,7 +182,7 @@ n = (spec.degree(1):spec.degree(end))';
 verifyEqual(tc, numel(spec.degRMS), numel(n));
 verifyEqual(tc, numel(spec.degAmplitude), numel(n));
 
-idx = shLowLevel.shIndex(g.nmax, MinDegree = 2);
+idx = shLowLevel.shIndex(g.nmax, Nmin = 2);
 x = g.vec(idx);
 verifySize(tc, x, [idx.P, 1]);
 g5 = shCoefficients.fromVec(x, idx, g);
@@ -463,7 +463,7 @@ end
 function testBasinScalingRecoversFactor(testCase)
 rng(84);
 % operator: pure Gaussian attenuation as a tvANS-like op via matFilter
-L = 20; idx = shLowLevel.shIndex(L, MinDegree = 0);
+L = 20; idx = shLowLevel.shIndex(L, Nmin = 0);
 Wn = shLowLevel.shGaussianWeights(L, 500);
 W = diag(Wn(idx.n + 1));
 T = 10; ep = 2010 + (0:T-1)/12;
@@ -578,7 +578,7 @@ ws.kn = -0.3 * nn ./ (nn + 6);
 lnRows = compose("%d %.6f %.6f %.6f", nn, -0.9 * nn ./ (nn + 4), ...
     0.1 * nn ./ (nn + 8), -0.3 * nn ./ (nn + 6));
 writelines(["# n h l k"; lnRows], "ln_table.txt");
-ws.LN = shLowLevel.readLoveNumbers("ln_table.txt", MaxDegree = 120);
+ws.LN = shLowLevel.readLoveNumbers("ln_table.txt", Nmax = 120);
 copyfile("ln_table.txt", "prem_load.txt");   % readLoveNumbers help example
 ws.lat = -88:8:88; ws.lon = 0:12:348;    % = the grid axes below
 ws.latPts = [10 20 30]; ws.lonPts = [40 50 60];

@@ -26,7 +26,7 @@ function [a, rec] = slepianProject(Cs, Ss, G, idx)
 %       Ss (n+1 x n+1 x T) reconstructed sine coefficients
 %
 %   Example
-%     idx = shLowLevel.shIndex(30, MinDegree = 0);
+%     idx = shLowLevel.shIndex(30, Nmin = 0);
 %     [G, lam, info] = shLowLevel.slepianBasis(idx, @(la, lo) la > 60);
 %     K = round(info.shannon);
 %     a = shLowLevel.slepianProject(ts.Cs, ts.Ss, G(:, 1:K), idx);

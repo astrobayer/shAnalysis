@@ -347,7 +347,7 @@ showMap(amp, lat, lon, "annual amplitude", "geoid m", ...
     CLim = [0, shLowLevel.pctile(amp, 98)]);
 % basin series: synthetic gets an artificial gap; real series carry
 % their own (2017-2018 mission gap, dropouts)
-idx = shLowLevel.shIndex(30, MinDegree = 0);
+idx = shLowLevel.shIndex(30, Nmin = 0);
 b = shLowLevel.basinKernel(idx, [-5 90; -5 130; 25 130; 25 90]);
 if synth
     keep = [1:30, 41:60];                      % artificial gap 31-40
@@ -398,7 +398,7 @@ fprintf('  ring roundtrip max error %.2e\n', max(abs(g2.C(:) - g.C(:))));
 end
 
 function d08(vis, ~)
-L = 24; idx = shLowLevel.shIndex(L, MinDegree = 0);
+L = 24; idx = shLowLevel.shIndex(L, Nmin = 0);
 [b, infoB] = shLowLevel.basinKernel(idx, [-5 90; -5 130; 25 130; 25 90], ...
     TaperKm = 200);
 newfig(vis, 'D08 basin kernel (tapered)');
@@ -416,7 +416,7 @@ end
 
 function d09(vis, ~)
 rng(19);
-idx = shLowLevel.shIndex(8, MinDegree = 2);
+idx = shLowLevel.shIndex(8, Nmin = 2);
 A = randn(idx.P) * 1e-10; M = A * A' + 1e-22 * eye(idx.P);
 newfig(vis, 'D09 covariance & error map');
 subplot(1, 2, 1);
@@ -542,7 +542,7 @@ end
 
 function d15(vis, ~)
 L = 32; [kn, hn] = synthLove(L);
-idx = shLowLevel.shIndex(L, MinDegree = 0);
+idx = shLowLevel.shIndex(L, Nmin = 0);
 ocean = @(la, lo) ~(la > 55 & (lo < 60 | lo > 300));
 loadF = @(la, lo) -100 * double(la > 65 & lo < 40);
 [~, grid, info] = shLowLevel.seaLevelFingerprint(loadF, ocean, idx, ...

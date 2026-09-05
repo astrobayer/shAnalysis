@@ -11,7 +11,7 @@ td,th{border:1px solid #ccc;padding:3px 8px;font-size:13px;text-align:left}
 h2{margin-top:34px;border-bottom:2px solid #444}
 .toc a{margin-right:10px;font-size:13px}
 </style></head><body>
-<h1>shAnalysis API reference (v3.32.3)</h1>
+<h1>shAnalysis API reference (v3.33.0)</h1>
 <p>Generated from the source arguments blocks and help text - inputs,
 name-value options with defaults, and outputs for every public function
 and method. Regenerated with every release; the source of truth is the
@@ -296,7 +296,7 @@ code itself.</p>
 <div class="entry" id="shLowLevel.csFromVec">
 <h3><code>shLowLevel.csFromVec(x, idx)</code></h3>
 <p class="h1line">Unpack a shLowLevel vector into lower-triangular Cnm/Snm matrices.</p>
-<p>[cnm, snm] = shLowLevel.csFromVec(x, idx). Coefficients outside the index range (n &lt; MinDegree) are zero.</p>
+<p>[cnm, snm] = shLowLevel.csFromVec(x, idx). Coefficients outside the index range (n &lt; Nmin) are zero.</p>
 <b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>x</code></td><td>: x 1</td><td>double</td><td>required</td></tr><tr><td><code>idx</code></td><td>1 x 1</td><td>struct</td><td>required</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
 <tr><td><code>cnm</code></td><td>(nmax+1 x nmax+1) double  cosine coefficients, C(n+1, m+1)</td></tr>
@@ -1293,11 +1293,11 @@ code itself.</p>
 <div class="entry" id="shLowLevel.shIndex">
 <h3><code>shLowLevel.shIndex(Lmax, opts)</code></h3>
 <p class="h1line">Canonical order-major index for SH coefficient vectors.</p>
-<p>idx = shLowLevel.shIndex(Lmax) builds the index table used by all shLowLevel functions: order-major ordering, C before S per (n,m), degrees n = MinDegree..Lmax (default Nmin = 2; degree 0/1 and the SLR-C20 replacement are assumed to be handled upstream).</p>
+<p>idx = shLowLevel.shIndex(Lmax) builds the index table used by all shLowLevel functions: order-major ordering, C before S per (n,m), degrees n = Nmin..Lmax (default Nmin = 2; degree 0/1 and the SLR-C20 replacement are assumed to be handled upstream).</p>
 <b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Lmax</code></td><td>1 x 1</td><td>double</td><td>required</td></tr></table>
 <b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Nmin</code></td><td>1 x 1</td><td>double</td><td>2</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
-<tr><td><code>idx</code></td><td>struct: n/m/cs (P x 1), P (1 x 1), nmax, MinDegree - the canonical vector ordering of the toolbox</td></tr>
+<tr><td><code>idx</code></td><td>struct: n/m/cs (P x 1), P (1 x 1), nmax, Nmin - the canonical vector ordering of the toolbox</td></tr>
 </table>
 </div>
 <div class="entry" id="shLowLevel.shOrderRMS">
@@ -1429,7 +1429,7 @@ code itself.</p>
 <tr><td><code>a</code></td><td>(K x T) Slepian-domain coefficient time series</td></tr>
 <tr><td><code>rec</code></td><td>(1 x 1) struct with fields Cs (n+1 x n+1 x T) reconstructed cosine coefficients Ss (n+1 x n+1 x T) reconstructed sine coefficients</td></tr>
 </table>
-<b>Example</b><pre>    idx = shLowLevel.shIndex(30, MinDegree = 0);
+<b>Example</b><pre>    idx = shLowLevel.shIndex(30, Nmin = 0);
     [G, lam, info] = shLowLevel.slepianBasis(idx, @(la, lo) la &gt; 60);
     K = round(info.shannon);
     a = shLowLevel.slepianProject(ts.Cs, ts.Ss, G(:, 1:K), idx);
@@ -1551,7 +1551,7 @@ code itself.</p>
 <div class="entry" id="shLowLevel.vceRescale">
 <h3><code>shLowLevel.vceRescale(N, Xres, idx, opts)</code></h3>
 <p class="h1line">Per-month variance factors for the noise covariance shape.</p>
-<p>s = shLowLevel.vceRescale(N, Xres, idx) estimates one variance factor per month such that N_t = s(t) * N. The factor is the robust (median-based, chi-square(1) corrected) ratio between the observed squared residuals and the formal variances, evaluated over noise-dominated coefficients (n &gt;= MinDegree, default round(2/3 * idx.Lmax)). This is the single-component Helmert VCE specialization; it absorbs the month-to-month noise level changes (orbit geometry, beta-prime angle, instrument state) that a stationary filter ignores.</p>
+<p>s = shLowLevel.vceRescale(N, Xres, idx) estimates one variance factor per month such that N_t = s(t) * N. The factor is the robust (median-based, chi-square(1) corrected) ratio between the observed squared residuals and the formal variances, evaluated over noise-dominated coefficients (n &gt;= Nmin, default round(2/3 * idx.Lmax)). This is the single-component Helmert VCE specialization; it absorbs the month-to-month noise level changes (orbit geometry, beta-prime angle, instrument state) that a stationary filter ignores.</p>
 <b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>N</code></td><td>n x m</td><td>-</td><td>required</td></tr><tr><td><code>Xres</code></td><td>n x m</td><td>double</td><td>required</td></tr><tr><td><code>idx</code></td><td>1 x 1</td><td>struct</td><td>required</td></tr></table>
 <b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Nmin</code></td><td>1 x 1</td><td>double</td><td>round(2/3 * idx.Lmax)</td></tr><tr><td><code>Rows</code></td><td>1 x 1</td><td>logical</td><td>true(0, 1)</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
@@ -1567,7 +1567,7 @@ code itself.</p>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
 <tr><td><code>xf</code></td><td>(P x 1) double  filtered coefficient vector info (1 x 1) struct  alpha, P, cholOK (true when (N + alpha M) factorized cleanly)</td></tr>
 </table>
-<b>Example</b><pre>    idx = shLowLevel.shIndex(96, MinDegree = 2);
+<b>Example</b><pre>    idx = shLowLevel.shIndex(96, Nmin = 2);
     snx = shLowLevel.readSINEX(f, Index = idx);
     xf = shLowLevel.vdkApply(snx.x, snx.M, idx.n, ab(mo, :), Alpha = 1);</pre>
 </div>
@@ -2148,7 +2148,7 @@ code itself.</p>
 <div class="entry" id="shSeries.filter">
 <h3><code>shSeries.filter(obj, method, opts)</code></h3>
 <p class="h1line">Optimal time-variable filtering of the series.</p>
-<p>[TSF, OP, INFO] = ts.filter(&quot;tvANS&quot;, Constraints ([])=..., NoiseCov ([])=..., SignalMode (&quot;isotropic&quot;)=&quot;isotropic&quot;|&quot;inhomogeneous&quot;, NIterSignal (3)=3, Robust (false)=false, Nmin (2)=2) runs the tvANS chain (see shLowLevel.tvANSFilter): deterministic-model separation, empirical or supplied noise covariance, monthly VCE scaling, data-driven signal covariance, per-month anisotropic Wiener filter, optional hard constraints. OP is the stored linear operator - required for basinAverage(..., Deconvolve=true) and shLowLevel.resolutionMap. v2.1: Blocks (&quot;auto&quot;)=&quot;auto&quot;|&quot;on&quot;|&quot;off&quot; engages the block-diagonal fast path (isotropic + empirical N + no constraints; identical results, tractable to Lmax ~ 120). The filtered series carries per-coefficient posterior 1-sigma stacks in OUT.sigmaCs/Ss (from info.sigmaXfres; degrees below MinDegree are NaN). v3.1.1: the three noise-covariance tuning options of shLowLevel.tvANSFilter are forwarded, so the class method is the full single point of access: Shrinkage ([])=empirical noise- covariance shrinkage, VCEMinDegree ([])=first degree entering the variance-component estimation, VCEBands ([])=order-band edges for per-band monthly VCE factors (block path only). [] means &quot;leave the shLowLevel.tvANSFilter default in place&quot; (0.1, round(2/3*Lmax) and no banding respectively) - the defaults are NOT duplicated here, they have exactly one home.</p>
+<p>[TSF, OP, INFO] = ts.filter(&quot;tvANS&quot;, Constraints ([])=..., NoiseCov ([])=..., SignalMode (&quot;isotropic&quot;)=&quot;isotropic&quot;|&quot;inhomogeneous&quot;, NIterSignal (3)=3, Robust (false)=false, Nmin (2)=2) runs the tvANS chain (see shLowLevel.tvANSFilter): deterministic-model separation, empirical or supplied noise covariance, monthly VCE scaling, data-driven signal covariance, per-month anisotropic Wiener filter, optional hard constraints. OP is the stored linear operator - required for basinAverage(..., Deconvolve=true) and shLowLevel.resolutionMap. v2.1: Blocks (&quot;auto&quot;)=&quot;auto&quot;|&quot;on&quot;|&quot;off&quot; engages the block-diagonal fast path (isotropic + empirical N + no constraints; identical results, tractable to Lmax ~ 120). The filtered series carries per-coefficient posterior 1-sigma stacks in OUT.sigmaCs/Ss (from info.sigmaXfres; degrees below Nmin are NaN). v3.1.1: the three noise-covariance tuning options of shLowLevel.tvANSFilter are forwarded, so the class method is the full single point of access: Shrinkage ([])=empirical noise- covariance shrinkage, VCEMinDegree ([])=first degree entering the variance-component estimation, VCEBands ([])=order-band edges for per-band monthly VCE factors (block path only). [] means &quot;leave the shLowLevel.tvANSFilter default in place&quot; (0.1, round(2/3*Lmax) and no banding respectively) - the defaults are NOT duplicated here, they have exactly one home.</p>
 <b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td>required</td></tr><tr><td><code>method</code></td><td>1 x 1</td><td>string</td><td>required</td></tr></table>
 <b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>NoiseCov</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>Constraints</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>SignalMode</code></td><td>1 x 1</td><td>string</td><td>&quot;isotropic&quot;</td></tr><tr><td><code>NIterSignal</code></td><td>1 x 1</td><td>double</td><td>3</td></tr><tr><td><code>Robust</code></td><td>1 x 1</td><td>logical</td><td>false</td></tr><tr><td><code>Nmin</code></td><td>1 x 1</td><td>double</td><td>2</td></tr><tr><td><code>Blocks</code></td><td>1 x 1</td><td>string</td><td>&quot;auto&quot;</td></tr><tr><td><code>Shrinkage</code></td><td>1 x 1</td><td>double</td><td>[]</td></tr><tr><td><code>VCEMinDegree</code></td><td>1 x 1</td><td>double</td><td>[]</td></tr><tr><td><code>VCEBands</code></td><td>1 x :</td><td>double</td><td>[]</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
@@ -2418,4 +2418,4 @@ code itself.</p>
 <tr><td><code>obj</code></td><td>(1 x 1) shClimatology   copy with the note appended to its history</td></tr>
 </table>
 </div>
-<hr><p style="font-size:11px;color:#888">Developed by Matthias Weigelt with the help of Claude (Fable 5), 23-Aug-2026 (v3.32.3). Generated by tools - do not edit.</p></body></html>
+<hr><p style="font-size:11px;color:#888">Developed by Matthias Weigelt with the help of Claude (Fable 5), 05-Sep-2026 (v3.33.0). Generated by tools - do not edit.</p></body></html>

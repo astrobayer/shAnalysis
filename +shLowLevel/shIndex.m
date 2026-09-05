@@ -2,7 +2,7 @@ function idx = shIndex(Lmax, opts)
 %SHINDEX Canonical order-major index for SH coefficient vectors.
 %   idx = shLowLevel.shIndex(Lmax) builds the index table used by all shLowLevel
 %   functions: order-major ordering, C before S per (n,m), degrees
-%   n = MinDegree..Lmax (default Nmin = 2; degree 0/1 and the SLR-C20
+%   n = Nmin..Lmax (default Nmin = 2; degree 0/1 and the SLR-C20
 %   replacement are assumed to be handled upstream).
 %
 %   Fields: n, m, cs (0=C, 1=S) [P x 1], P, Lmax, minDegree,
@@ -12,7 +12,7 @@ function idx = shIndex(Lmax, opts)
 %     Lmax            maximum spherical-harmonic degree of the index
 %
 %   Outputs
-%     idx        struct: n/m/cs (P x 1), P (1 x 1), nmax, MinDegree - the canonical vector ordering of the toolbox
+%     idx        struct: n/m/cs (P x 1), P (1 x 1), nmax, Nmin - the canonical vector ordering of the toolbox
 %
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 

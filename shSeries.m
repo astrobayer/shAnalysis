@@ -1131,7 +1131,7 @@ methods
         %   fast path (isotropic + empirical N + no constraints; identical
         %   results, tractable to Lmax ~ 120). The filtered series carries
         %   per-coefficient posterior 1-sigma stacks in OUT.sigmaCs/Ss
-        %   (from info.sigmaXfres; degrees below MinDegree are NaN).
+        %   (from info.sigmaXfres; degrees below Nmin are NaN).
         %   v3.1.1: the three noise-covariance tuning options of
         %   shLowLevel.tvANSFilter are forwarded, so the class method is the
         %   full single point of access: Shrinkage ([])=empirical noise-
@@ -1163,7 +1163,7 @@ methods
         %     Shrinkage ([])     (1 x 1) shrink the empirical signal
         %         covariance toward its diagonal, 0..1; [] auto-selects
         %     VCEMinDegree ([])  (1 x 1) lowest degree in the VCE bands;
-        %         [] follows MinDegree
+        %         [] follows Nmin
         %     VCEBands ([])      (1 x B) variance-component band edges;
         %         [] uses the built-in banding
         %
@@ -1192,7 +1192,7 @@ methods
             error('shSeries:noEpoch', ...
                 'filter requires finite epochs for every entry.');
         end
-        idx = shLowLevel.shIndex(obj.nmax, MinDegree = opts.Nmin);
+        idx = shLowLevel.shIndex(obj.nmax, Nmin = opts.Nmin);
         X = zeros(idx.P, obj.nEpochs);
         for k = 1:obj.nEpochs
             X(:,k) = shLowLevel.vecFromCS(obj.Cs(:,:,k), obj.Ss(:,:,k), idx);
@@ -1223,7 +1223,7 @@ methods
         for k = 1:obj.nEpochs
             [cf, sf] = shLowLevel.csFromVec(Xf(:,k), idx);
             [sc, ss] = shLowLevel.csFromVec(info.sigmaXfres(:,k), idx);
-            % degrees below MinDegree pass through unfiltered
+            % degrees below Nmin pass through unfiltered
             out.Cs(:,:,k) = obj.Cs(:,:,k);
             out.Ss(:,:,k) = obj.Ss(:,:,k);
             nz = idx.minDegree + 1;
