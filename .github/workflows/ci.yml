@@ -1,4 +1,4 @@
-# shAnalysis CI - GitHub Actions workflow template (v2.7.1)
+# shAnalysis CI - GitHub Actions workflow template (v2.8.0)
 #
 # INSTALL: copy this file to <repo-root>/.github/workflows/shanalysis-ci.yml
 # (workflow files only take effect at the repository root, so from within
@@ -46,16 +46,39 @@
 # reads a fixture, so putting the 11 MB checkout first only meant that
 # a fixture problem masked every other result - which is exactly what
 # happened on the first self-hosted run.
+##
+# v2.8.0 (2026-09-05): trigger cleanup - push restricted to main and a
+# concurrency group added, so a commit on a PR branch runs the suite
+# once instead of twice.
 #
+# NOTE for whoever removes the Setup MATLAB step: it is skipped on
+# self-hosted but must STAY IN THE FILE. testContract/
+# testDocSyncAuditIsWired requires the setup action's id to be present
+# and to come after the doc gate; delete the step and the test fails on
+# the empty match, not on the ordering.
+
 # Developed by Matthias Weigelt with the help of Claude (Fable 5),
 # 2026-08-08 (v2.6.0); Claude (Sonnet 5), 2026-09-05 (v2.7.0).
 
 name: shAnalysis CI
 
+# push is limited to main. An unrestricted 'push:' alongside
+# 'pull_request:' fires BOTH events for every commit on a branch that
+# has an open PR, so the whole suite ran twice for the same tree - on a
+# single self-hosted runner that is not just waste, the second run
+# queues behind the first. Branch commits are now covered once, via
+# pull_request; main is covered once, via push.
 on:
   push:
+    branches: [main]
   pull_request:
   workflow_dispatch: {}
+
+# One run per ref. Pushing twice in quick succession used to leave the
+# superseded run occupying the only runner.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:
