@@ -1,4 +1,4 @@
-# shAnalysis CI - GitHub Actions workflow template (v2.11.0)
+# shAnalysis CI - GitHub Actions workflow template (v2.12.0)
 #
 # INSTALL: copy this file to <repo-root>/.github/workflows/shanalysis-ci.yml
 # (workflow files only take effect at the repository root, so from within
@@ -66,6 +66,8 @@
 #
 # v2.11.0 (2026-09-05): added tools/toolbox_dependency_audit.py to the
 # gates job - base MATLAB only, enforced by reading the source.
+#
+# v2.12.0 (2026-09-05): added tools/nv_casing_audit.py to the gates job.
 
 # Developed by Matthias Weigelt with the help of Claude (Fable 5),
 # 2026-08-08 (v2.6.0); Claude (Sonnet 5), 2026-09-05 (v2.7.0).
@@ -130,6 +132,13 @@ jobs:
       # gate reads the source instead of the environment.
       - name: Base MATLAB only (no add-on toolboxes)
         run: python3 tools/toolbox_dependency_audit.py
+
+      # Two NV names differing only by case compile and run in MATLAB
+      # with no warning, leaving one unreachable. The casing sweep is
+      # precisely the operation that can create such a pair, so this
+      # runs BEFORE the sweep, not after.
+      - name: Name-Value casing
+        run: python3 tools/nv_casing_audit.py
 
       - name: Fixture tag currency
         run: python3 tools/fixture_tag_audit.py
