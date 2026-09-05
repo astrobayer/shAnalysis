@@ -82,7 +82,7 @@ probe('B15 oceanRMS eroded to none', @() shLowLevel.oceanRMS(obs, lat, lon, oc1)
 % B16 shAnalysisGrid: NaN in grid
 obsN2 = obs; obsN2(10,10) = NaN;
 probe('B16 analysis NaN grid', @() shLowLevel.shAnalysisGrid(obsN2, lat, lon, 20, ...
-    quantity="ewh", kn=kn), @(C) chkAllNaN(C));
+    Quantity="ewh", kn=kn), @(C) chkAllNaN(C));
 
 % B17 gridScaling pipeline invariance k(507*m) == k(m)
 model = zeros(numel(lat), numel(lon)); model(60:80, 30:70) = 1; model(65:75,40:60)=2.5;

@@ -122,7 +122,7 @@ end
 % ------------------------------------------------------- degenerate opts
 function testDestripeMinOrderAboveNmax(tc)
 g = randomField(10, 2020);
-g2 = g.destripe(minOrder = 99);                 % nothing to filter
+g2 = g.destripe(MinOrder = 99);                 % nothing to filter
 verifyEqual(tc, g2.C, g.C, AbsTol = 0);
 verifyEqual(tc, g2.S, g.S, AbsTol = 0);
 end

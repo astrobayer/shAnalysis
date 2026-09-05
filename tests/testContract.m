@@ -91,7 +91,7 @@ end
 function testSynthesisIDs(tc)
 g = randomField(10, 2020);
 verifyError(tc, ...
-    @() g.synthesis(-80:10:80, 0:10:350, quantity = "ewh"), ...
+    @() g.synthesis(-80:10:80, 0:10:350, Quantity = "ewh"), ...
     'shSynthesis:missingLoveNumbers');
 verifyError(tc, ...
     @() shLowLevel.shSynthesis(g.C, g.S, g.GM, g.R, 0, 0, 'quantity', 'nonsense'), ...
@@ -149,7 +149,7 @@ end
 function testImmutability(tc)
 g = randomField(20, 2020);
 C0 = g.C; S0 = g.S; h0 = g.history;
-g2 = g.destripe(minOrder = 4); %#ok<NASGU>
+g2 = g.destripe(MinOrder = 4); %#ok<NASGU>
 g3 = g.gaussian(300);          %#ok<NASGU>
 g4 = g.truncate(10);           %#ok<NASGU>
 verifyEqual(tc, g.C, C0); verifyEqual(tc, g.S, S0);
@@ -387,14 +387,14 @@ C = tril(randn(n1)) * 1e-10;
 g = shCoefficients(C, zeros(n1));
 lat = -60:30:60; lon = 0:90:270;
 
-verifyError(testCase, @() g.map(lat, lon, quantity = "geoid"), ...
+verifyError(testCase, @() g.map(lat, lon, Quantity = "geoid"), ...
     'shAnalysis:geoMapRequired');
 verifyError(testCase, @() shLowLevel.requireGeoMap(), ...
     'shAnalysis:geoMapRequired');
 
 % the numbers are still available without geoMap - that is the point of
 % the bridge, and the error message says so
-b = g.toGrid(lat, lon, quantity = "geoid");
+b = g.toGrid(lat, lon, Quantity = "geoid");
 verifyEqual(testCase, size(b.Z), [numel(lat), numel(lon)]);
 verifyEqual(testCase, b.Units, "m");
 
@@ -402,7 +402,7 @@ verifyEqual(testCase, b.Units, "m");
 ts = shSeries(repmat(C, 1, 1, 2), Ss = zeros(n1, n1, 2), ...
     Epochs = [2010.1; 2010.2]);   % raw-stack form needs a matching Ss
 verifyError(testCase, @() shLowLevel.writeAnimation(ts, ...
-    fullfile(tempdir, 'never_written.avi'), quantity = "geoid"), ...
+    fullfile(tempdir, 'never_written.avi'), Quantity = "geoid"), ...
     'shAnalysis:geoMapRequired');
 verifyFalse(testCase, isfile(fullfile(tempdir, 'never_written.avi')));
 end
@@ -479,7 +479,7 @@ for t = 1:T
 end
 tsM = shSeries(Cs, Ss = Ss, Epochs = ep);
 b = shLowLevel.basinKernel(idx, [ -10 100; -10 140; 25 140; 25 100 ]);
-[k, info] = shLowLevel.basinScaling(W, b, tsM, idx = idx, tYears = ep);
+[k, info] = shLowLevel.basinScaling(W, b, tsM, Idx = idx, TYears = ep);
 % k must invert the operator's basin-average attenuation: with a FIXED
 % pattern, aTrue = k * aFilt exactly, so sigmaK ~ 0
 x1 = shLowLevel.vecFromCS(pat, patS, idx);
@@ -488,7 +488,7 @@ verifyEqual(testCase, k, kExact, 'RelTol', 1e-10);
 verifyLessThan(testCase, info.sigmaK, 1e-8 * abs(k));
 verifyEqual(testCase, info.nMatched, T);
 verifyError(testCase, ...
-    @() shLowLevel.basinScaling(W, b(1:3), tsM, idx = idx, tYears = ep), ...
+    @() shLowLevel.basinScaling(W, b(1:3), tsM, Idx = idx, TYears = ep), ...
     'shLowLevel:basinScaling:badKernel');
 end
 
@@ -1377,9 +1377,9 @@ for k = 1:numel(lat)
 end
 
 % perRadian is r times perMeter in EVERY component, up included
-a = shLowLevel.shSynthesisGradient(C, S, GM, R, lat, lon, quantity = "potential");
+a = shLowLevel.shSynthesisGradient(C, S, GM, R, lat, lon, Quantity = "potential");
 b = shLowLevel.shSynthesisGradient(C, S, GM, R, lat, lon, ...
-    quantity = "potential", Units = "perRadian");
+    Quantity = "potential", Units = "perRadian");
 for f = ["north", "east", "up"]
     verifyEqual(testCase, b.(f), R * a.(f), 'RelTol', 1e-13);
 end
@@ -1395,7 +1395,7 @@ verifyTrue(testCase, all(isfinite(gpole.north(:))));
 % a zonal field has NO east gradient - exactly zero, not nearly
 Cz = zeros(3); Sz = zeros(3); Cz(3, 1) = 1;                % C_20
 gz = shLowLevel.shSynthesisGradient(Cz, Sz, GM, R, [-45 0 45], lon, ...
-    quantity = "none");
+    Quantity = "none");
 verifyEqual(testCase, gz.east, zeros(3, numel(lon)));
 verifyTrue(testCase, any(abs(gz.north(:)) > 0));
 end
@@ -1413,7 +1413,7 @@ lat = -60:30:60; lon = 0:90:270;
 for q = ["none", "geoid", "ewh", "surface_density", "bottom_pressure", ...
          "deformation_up"]
     [g, info] = shLowLevel.shSynthesisGradient(C, S, GM, R, lat, lon, ...
-        quantity = q, kn = kn, hn = hn);
+        Quantity = q, kn = kn, hn = hn);
     verifyEmpty(testCase, g.up, sprintf('%s must have no up component', q));
     verifyFalse(testCase, info.hasUp);
     verifyEqual(testCase, size(g.north), [numel(lat), numel(lon)]);
@@ -1421,20 +1421,20 @@ end
 for q = ["potential", "gravity_anomaly", "gravity_disturbance", ...
          "gravity_gradient_rr"]
     [g, info] = shLowLevel.shSynthesisGradient(C, S, GM, R, lat, lon, ...
-        quantity = q);
+        Quantity = q);
     verifyTrue(testCase, info.hasUp);
     verifyEqual(testCase, size(g.up), [numel(lat), numel(lon)]);
 end
 % Height and d/dr are the same fact, so they are refused together
 verifyError(testCase, @() shLowLevel.shSynthesisGradient(C, S, GM, R, ...
-    lat, lon, quantity = "ewh", kn = kn, Height = 250e3), ...
+    lat, lon, Quantity = "ewh", kn = kn, Height = 250e3), ...
     'shSynthesis:heightInvalid');
 % mass quantities still refuse to invent Love numbers
 verifyError(testCase, @() shLowLevel.shSynthesisGradient(C, S, GM, R, ...
-    lat, lon, quantity = "ewh"), 'shSynthesis:missingLoveNumbers');
+    lat, lon, Quantity = "ewh"), 'shSynthesis:missingLoveNumbers');
 % and the input gates hold
 verifyError(testCase, @() shLowLevel.shSynthesisGradient(C, S, GM, R, ...
-    lat, lon, nmax = L + 3), 'shSynthesis:badInput');
+    lat, lon, Nmax = L + 3), 'shSynthesis:badInput');
 verifyError(testCase, @() shLowLevel.shSynthesisGradient(C, S, GM, R, ...
     [0 10 20], [0 10], Mode = "points"), 'shSynthesis:badInput');
 verifyError(testCase, @() shLowLevel.shSynthesisGradient(C, S, GM, R, ...
@@ -1451,9 +1451,9 @@ C = tril(randn(n1)) * 1e-10;
 S = tril(randn(n1), -1) * 1e-10; S(:, 1) = 0;
 g = shCoefficients(C, S);          % GM/R defaults are the toolbox's own
 lat = [-40, 5, 52]; lon = [15, 200];
-[a, ia] = g.gradient(lat, lon, quantity = "potential");
+[a, ia] = g.gradient(lat, lon, Quantity = "potential");
 b = shLowLevel.shSynthesisGradient(C, S, g.GM, g.R, lat, lon, ...
-    quantity = "potential");
+    Quantity = "potential");
 for f = ["north", "east", "up"]
     verifyEqual(testCase, a.(f), b.(f));
 end
@@ -1461,10 +1461,10 @@ verifyEqual(testCase, ia.quantity, "potential");
 verifyTrue(testCase, ia.hasUp);
 verifyEqual(testCase, ia.r, g.R);
 % geodetic input is converted before evaluation
-c = g.gradient(lat, lon, quantity = "potential", LatType = "geodetic");
+c = g.gradient(lat, lon, Quantity = "potential", LatType = "geodetic");
 latGc = shLowLevel.geodetic2geocentric(lat);
 d = shLowLevel.shSynthesisGradient(C, S, g.GM, g.R, latGc, lon, ...
-    quantity = "potential");
+    Quantity = "potential");
 verifyEqual(testCase, c.north, d.north);
 verifyGreaterThan(testCase, max(abs(c.north(:) - a.north(:))), 0);
 end
@@ -1486,7 +1486,7 @@ g = shCoefficients(C, S, ProductType = "GSM", Name = "ITSG-Grace2018", ...
     Epoch = 2008.292);
 lat = -80:20:80; lon = 0:45:315;
 
-b = g.toGrid(lat, lon, quantity = "ewh", kn = kn);
+b = g.toGrid(lat, lon, Quantity = "ewh", kn = kn);
 verifyEqual(testCase, size(b.Z), [numel(lat), numel(lon)]);
 verifyEqual(testCase, b.lat, lat(:));            % column, as geo.grid wants
 verifyEqual(testCase, b.lon, lon);               % row
@@ -1502,15 +1502,15 @@ verifyTrue(testCase, contains(b.Source, "GSM"));
 verifyTrue(testCase, contains(b.Source, "geodetic"));
 
 % the values are the synthesis, unchanged - the bridge adds no arithmetic
-Z = g.synthesis(lat, lon, quantity = "ewh", kn = kn, LatType = "geodetic");
+Z = g.synthesis(lat, lon, Quantity = "ewh", kn = kn, LatType = "geodetic");
 verifyEqual(testCase, b.Z, Z);
 verifyEqual(testCase, b.Zmin, min(Z(:)));
 verifyEqual(testCase, b.Zmax, max(Z(:)));
 
 % units follow the quantity, they are not a property of the bridge
-bp = g.toGrid(lat, lon, quantity = "potential");
+bp = g.toGrid(lat, lon, Quantity = "potential");
 verifyEqual(testCase, bp.Units, "m^2/s^2");
-bs = g.toGrid(lat, lon, quantity = "surface_density", kn = kn);
+bs = g.toGrid(lat, lon, Quantity = "surface_density", kn = kn);
 verifyEqual(testCase, bs.Units, "kg/m^2");
 end
 
@@ -1527,28 +1527,28 @@ lat = -60:30:60; lon = 0:90:270;
 
 Cres = zeros(n1); Cres(3, 1) = 1e-10;
 gRes = shCoefficients(Cres, zeros(n1));
-bRes = gRes.toGrid(lat, lon, quantity = "geoid");
+bRes = gRes.toGrid(lat, lon, Quantity = "geoid");
 verifyEqual(testCase, bRes.FieldKind, "anomaly");
 verifyEqual(testCase, bRes.C00, 0);
 
 Cfull = Cres; Cfull(1, 1) = 1;
 gFull = shCoefficients(Cfull, zeros(n1));
-bFull = gFull.toGrid(lat, lon, quantity = "geoid");
+bFull = gFull.toGrid(lat, lon, Quantity = "geoid");
 verifyEqual(testCase, bFull.FieldKind, "full");
 
 Codd = Cres; Codd(1, 1) = 0.5;
 gOdd = shCoefficients(Codd, zeros(n1));
-bOdd = gOdd.toGrid(lat, lon, quantity = "geoid");
+bOdd = gOdd.toGrid(lat, lon, Quantity = "geoid");
 verifyEqual(testCase, bOdd.FieldKind, "unknown", ...
     'in between is reported, not decided');
 
 % a MASS quantity from a full field is the one case worth interrupting for
-verifyWarning(testCase, @() gFull.toGrid(lat, lon, quantity = "ewh", ...
+verifyWarning(testCase, @() gFull.toGrid(lat, lon, Quantity = "ewh", ...
     kn = kn), 'shCoefficients:toGrid:fullFieldAsMass');
 % ... and geoid from a full field is legitimate, so it must stay silent.
 % The warning is deliberately NOT disabled here - a suppressed warning
 % would make verifyWarningFree pass whatever the code did.
-verifyWarningFree(testCase, @() gFull.toGrid(lat, lon, quantity = "geoid"));
+verifyWarningFree(testCase, @() gFull.toGrid(lat, lon, Quantity = "geoid"));
 end
 
 function testSeriesToGridStacksWithOneColourScale(testCase)
@@ -1567,7 +1567,7 @@ ts = shSeries(Cs, Ss = Ss, Epochs = (2008:2008+T-1)', ProductType = "GSM");
 kn = -0.3 * (1 - exp(-(0:L)'/3));
 lat = -60:30:60; lon = 0:90:270;
 
-b = ts.toGrid(lat, lon, quantity = "ewh", kn = kn);
+b = ts.toGrid(lat, lon, Quantity = "ewh", kn = kn);
 verifyEqual(testCase, size(b.Z), [numel(lat), numel(lon), T]);
 verifyEqual(testCase, b.Epoch, (2008:2008+T-1)');
 verifyEqual(testCase, numel(b.C00), T);
@@ -1577,11 +1577,11 @@ verifyEqual(testCase, b.Zmax, max(b.Z(:)));
 
 % every frame equals the single-epoch bridge - no second implementation
 for k = 1:T
-    bk = ts.at(k).toGrid(lat, lon, quantity = "ewh", kn = kn);
+    bk = ts.at(k).toGrid(lat, lon, Quantity = "ewh", kn = kn);
     verifyEqual(testCase, b.Z(:, :, k), bk.Z);
 end
 
 % the budget is a stated error, not a silent thrash
 verifyError(testCase, @() ts.toGrid(-89.9:0.02:89.9, 0:0.02:359.98, ...
-    quantity = "geoid", MaxMemGB = 0.01), 'shSeries:toGrid:tooLarge');
+    Quantity = "geoid", MaxMemGB = 0.01), 'shSeries:toGrid:tooLarge');
 end

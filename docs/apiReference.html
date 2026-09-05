@@ -11,7 +11,7 @@ td,th{border:1px solid #ccc;padding:3px 8px;font-size:13px;text-align:left}
 h2{margin-top:34px;border-bottom:2px solid #444}
 .toc a{margin-right:10px;font-size:13px}
 </style></head><body>
-<h1>shAnalysis API reference (v3.28.0)</h1>
+<h1>shAnalysis API reference (v3.33.0)</h1>
 <p>Generated from the source arguments blocks and help text - inputs,
 name-value options with defaults, and outputs for every public function
 and method. Regenerated with every release; the source of truth is the
@@ -86,7 +86,6 @@ code itself.</p>
 <a href="#shLowLevel.plotBasinSeries">plotBasinSeries</a>
 <a href="#shLowLevel.plotCovariance">plotCovariance</a>
 <a href="#shLowLevel.plotSHCoeffTriangle">plotSHCoeffTriangle</a>
-<a href="#shLowLevel.plotSHMap">plotSHMap</a>
 <a href="#shLowLevel.plotSHSpectrum">plotSHSpectrum</a>
 <a href="#shLowLevel.poleTideConvert">poleTideConvert</a>
 <a href="#shLowLevel.readDDK">readDDK</a>
@@ -96,6 +95,7 @@ code itself.</p>
 <a href="#shLowLevel.readSINEX">readSINEX</a>
 <a href="#shLowLevel.readTN13">readTN13</a>
 <a href="#shLowLevel.readTN14">readTN14</a>
+<a href="#shLowLevel.requireGeoMap">requireGeoMap</a>
 <a href="#shLowLevel.rescaleGMR">rescaleGMR</a>
 <a href="#shLowLevel.resolutionMap">resolutionMap</a>
 <a href="#shLowLevel.rtsSmoother">rtsSmoother</a>
@@ -115,6 +115,7 @@ code itself.</p>
 <a href="#shLowLevel.shSpectralCrossover">shSpectralCrossover</a>
 <a href="#shLowLevel.shSynthesis">shSynthesis</a>
 <a href="#shLowLevel.shSynthesisDeformation">shSynthesisDeformation</a>
+<a href="#shLowLevel.shSynthesisGradient">shSynthesisGradient</a>
 <a href="#shLowLevel.shSynthesisGradientTensor">shSynthesisGradientTensor</a>
 <a href="#shLowLevel.signalVarianceKaula">signalVarianceKaula</a>
 <a href="#shLowLevel.slepianBasis">slepianBasis</a>
@@ -133,6 +134,7 @@ code itself.</p>
 <a href="#shLowLevel.vecFromCS">vecFromCS</a>
 <a href="#shLowLevel.version">version</a>
 <a href="#shLowLevel.writeAnimation">writeAnimation</a>
+<a href="#shLowLevel.writeFrames">writeFrames</a>
 <a href="#shLowLevel.writeGFC">writeGFC</a>
 <a href="#shLowLevel.writeGrid">writeGrid</a>
 <a href="#shLowLevel.ylm">ylm</a>
@@ -188,7 +190,7 @@ code itself.</p>
 <p class="h1line">Leakage/attenuation scaling factors by forward modelling.</p>
 <p>[K, INFO] = shLowLevel.basinScaling(OP, B, TSMODEL) estimates the classic basin scaling (gain) factor: push a MODEL series (hydrology model, mascon-derived field, synthetic pattern) through the SAME filter operator OP that processed the data, and regress true against filtered basin averages: k = sum(aTrue .* aFilt) / sum(aFilt.^2) Scaled data series: k * (b&#x27; xFiltered)/(b&#x27;b). Complements shLowLevel.basinDeconvolve: deconvolution inverts the operator on a kernel set; scaling corrects a single series using external signal structure - the standard literature approach, with its standard caveat (K depends on the model&#x27;s spatial pattern; INFO reports the regression sigma and per-month factors so the assumption is checkable).</p>
 <b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>op</code></td><td>n x m</td><td>-</td><td>required</td></tr><tr><td><code>b</code></td><td>: x 1</td><td>double</td><td>required</td></tr><tr><td><code>tsModel</code></td><td>1 x 1</td><td>shSeries</td><td>required</td></tr></table>
-<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>idx</code></td><td>n x m</td><td>struct</td><td>struct()</td></tr><tr><td><code>tYears</code></td><td>1 x :</td><td>double</td><td>[]</td></tr><tr><td><code>PerMonth</code></td><td>1 x 1</td><td>logical</td><td>false</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Idx</code></td><td>n x m</td><td>struct</td><td>struct()</td></tr><tr><td><code>TYears</code></td><td>1 x :</td><td>double</td><td>[]</td></tr><tr><td><code>PerMonth</code></td><td>1 x 1</td><td>logical</td><td>false</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
 <tr><td><code>k</code></td><td>(1,1) double  regression scaling factor</td></tr>
 <tr><td><code>info</code></td><td>struct: sigmaK (regression 1-sigma), kMonthly (T x 1, if PerMonth), matched (T x 1 logical), aTrue, aFilt</td></tr>
@@ -398,9 +400,9 @@ code itself.</p>
 <div class="entry" id="shLowLevel.errorMap">
 <h3><code>shLowLevel.errorMap(M, idx, latDeg, lonDeg, opts)</code></h3>
 <p class="h1line">Analytic formal-error maps from a full coefficient covariance.</p>
-<p>[SIG, LAT, LON] = shLowLevel.errorMap(M, IDX, LAT, LON, quantity (&quot;geoid&quot;)=&quot;ewh&quot;, kn ([])=kn) computes the pointwise 1-sigma of a synthesized field from a full P x P covariance (e.g. shLowLevel.readSINEX(...,</p>
+<p>[SIG, LAT, LON] = shLowLevel.errorMap(M, IDX, LAT, LON, Quantity (&quot;geoid&quot;)=&quot;ewh&quot;, kn ([])=kn) computes the pointwise 1-sigma of a synthesized field from a full P x P covariance (e.g. shLowLevel.readSINEX(...,</p>
 <b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>M</code></td><td>P x P</td><td>double</td><td>required</td></tr><tr><td><code>idx</code></td><td>1 x 1</td><td>struct</td><td>required</td></tr><tr><td><code>latDeg</code></td><td>1 x :</td><td>double</td><td>required</td></tr><tr><td><code>lonDeg</code></td><td>1 x :</td><td>double</td><td>required</td></tr></table>
-<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>quantity</code></td><td>1 x 1</td><td>string</td><td>&quot;geoid&quot;</td></tr><tr><td><code>kn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>hn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>GM</code></td><td>1 x 1</td><td>double</td><td>3.986004415e14</td></tr><tr><td><code>R</code></td><td>1 x 1</td><td>double</td><td>6378136.3</td></tr><tr><td><code>Height</code></td><td>1 x 1</td><td>double</td><td>0</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Quantity</code></td><td>1 x 1</td><td>string</td><td>&quot;geoid&quot;</td></tr><tr><td><code>kn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>hn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>GM</code></td><td>1 x 1</td><td>double</td><td>3.986004415e14</td></tr><tr><td><code>R</code></td><td>1 x 1</td><td>double</td><td>6378136.3</td></tr><tr><td><code>Height</code></td><td>1 x 1</td><td>double</td><td>0</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
 <tr><td><code>sig</code></td><td>(nlat x nlon) double  1-sigma of the synthesized quantity</td></tr>
 <tr><td><code>latDeg</code></td><td>(1, nlat) double  latitude grid used [deg]</td></tr>
@@ -768,7 +770,8 @@ code itself.</p>
 <b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>quantity</code></td><td>n x m</td><td>-</td><td>required</td></tr><tr><td><code>nmax</code></td><td>1 x 1</td><td>double</td><td>required</td></tr><tr><td><code>GM</code></td><td>1 x 1</td><td>double</td><td>required</td></tr><tr><td><code>R</code></td><td>1 x 1</td><td>double</td><td>required</td></tr></table>
 <b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>kn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>hn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>rho_ave</code></td><td>1 x 1</td><td>double</td><td>5517</td></tr><tr><td><code>rho_water</code></td><td>1 x 1</td><td>double</td><td>1000</td></tr><tr><td><code>Height</code></td><td>1 x 1</td><td>double</td><td>0</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
-<tr><td><code>kernel</code></td><td>(nmax+1,1) double  (zeros where the quantity carries no information, e.g. n=1 for gravity_anomaly)</td></tr>
+<tr><td><code>kernel</code></td><td>(nmax+1,1) double  (zeros where the quantity carries no information, e.g. n=1 for gravity_anomaly) radialExp (nmax+1,1) double  the upward-continuation exponent p_n in f_n(r) = kernel_n (R/r)^p_n, or EMPTY for a quantity that has no radial law (a surface concept). This is the same p_n the Height branch below applies, returned rather than restated: shLowLevel.shSynthesisGradient needs it for d/dr = -(p_n/r) f_n, and a second copy of these exponents would be a fact written twice.</td></tr>
+<tr><td><code>units</code></td><td>(1,1) string  the SI unit of the quantity (&quot;&quot; for the dimensionless passthrough). Same reason as radialExp: the unit belongs to the quantity, so it is returned from where the quantity is defined rather than restated in every bridge, plot label and export header. Consumed by shCoefficients.toGrid.</td></tr>
 </table>
 </div>
 <div class="entry" id="shLowLevel.leakageCorrect">
@@ -781,7 +784,7 @@ code itself.</p>
 <tr><td><code>mCorr</code></td><td>(nLat x nLon) double   leakage-corrected field, same units and grid as GRID</td></tr>
 <tr><td><code>info</code></td><td>(1,1) struct  fields: iterations (1,1 double), residual (1,1 double, final relative residual - with a mask this floors above Tol and that is correct), history (1,K double, the residual per iteration - plot it, a rising curve means Gain is too large), step (1,K double, the relative change of the solution per iteration; this is what Tol tests), stoppedBy (1,1 string: &quot;discrepancy&quot; | &quot;step&quot; | &quot;maxIter&quot; | &quot;zeroField&quot; - always check this, it says whether the result was regularised), residualRMS (1,1 double, over ResidualRegion), residualRMSGlobal (1,1 double, over the whole grid - a large gap between the two means unmodelled signal elsewhere) and noiseLevel (1,1 double, as given), converged (1,1 logical), nmax (1,1 double), filter (1,1 string), masked (1,1 logical)</td></tr>
 </table>
-<b>Example</b><pre>    ewh = g.synthesis(-89:89, 0:359, quantity = &quot;ewh&quot;, kn = kn);
+<b>Example</b><pre>    ewh = g.synthesis(-89:89, 0:359, Quantity = &quot;ewh&quot;, kn = kn);
     [m, info] = shLowLevel.leakageCorrect(ewh, -89:89, 0:359, ...
         Filter = &quot;gauss300&quot;, Mask = basinMask);
     fprintf(&quot;%d iterations, residual %.2e\n&quot;, info.iterations, info.residual);
@@ -909,7 +912,7 @@ code itself.</p>
 <p class="h1line">Ocean-bottom-pressure fields (GravIS Level-3 OBP recipe).</p>
 <p>[OUT, REP] = shLowLevel.obpChain(FOLDER, kn = KN, OceanMask = OC, GADFolder = GAD) produces gridded ocean-bottom-pressure anomalies in EWH following the GravIS/GFZ Level-3 OBP definition: gravisL2B corrections (C20/C30/C21/S21, degree 1, minus NFIL mean, GIA) -&gt; GAD added back on the coefficient level -&gt; filter (AFTER the GAD addition - the GravIS order) -&gt; EWH synthesis -&gt; anomalies against the mean over RefPeriod, land set to NaN.</p>
 <b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>folder</code></td><td>1 x 1</td><td>string</td><td>required</td></tr></table>
-<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>kn</code></td><td>n x 1</td><td>double</td><td>[]</td></tr><tr><td><code>OceanMask</code></td><td>n x m</td><td>-</td><td>[]</td></tr><tr><td><code>GADFolder</code></td><td>1 x 1</td><td>string</td><td>&quot;&quot;</td></tr><tr><td><code>gravisFolder</code></td><td>1 x 1</td><td>string</td><td>&quot;&quot;</td></tr><tr><td><code>GIAFile</code></td><td>1 x 1</td><td>string</td><td>&quot;GRAVIS-2B_COSTG_0200_GIA_ICE-6G_D_VM5a_0001.gz&quot;</td></tr><tr><td><code>GIAEpoch</code></td><td>1 x 1</td><td>double</td><td>2011</td></tr><tr><td><code>GridStep</code></td><td>1 x 1</td><td>double</td><td>1</td></tr><tr><td><code>SpanEnd</code></td><td>1 x 1</td><td>double</td><td>[]</td></tr><tr><td><code>Filter</code></td><td>1 x 1</td><td>string</td><td>&quot;gauss445&quot;</td></tr><tr><td><code>RefPeriod</code></td><td>1 x 2</td><td>double</td><td>[2002.25, 2020.25]</td></tr><tr><td><code>Quiet</code></td><td>1 x 1</td><td>logical</td><td>true</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>kn</code></td><td>n x 1</td><td>double</td><td>[]</td></tr><tr><td><code>OceanMask</code></td><td>n x m</td><td>-</td><td>[]</td></tr><tr><td><code>GADFolder</code></td><td>1 x 1</td><td>string</td><td>&quot;&quot;</td></tr><tr><td><code>GravisFolder</code></td><td>1 x 1</td><td>string</td><td>&quot;&quot;</td></tr><tr><td><code>GIAFile</code></td><td>1 x 1</td><td>string</td><td>&quot;GRAVIS-2B_COSTG_0200_GIA_ICE-6G_D_VM5a_0001.gz&quot;</td></tr><tr><td><code>GIAEpoch</code></td><td>1 x 1</td><td>double</td><td>2011</td></tr><tr><td><code>GridStep</code></td><td>1 x 1</td><td>double</td><td>1</td></tr><tr><td><code>SpanEnd</code></td><td>1 x 1</td><td>double</td><td>[]</td></tr><tr><td><code>Filter</code></td><td>1 x 1</td><td>string</td><td>&quot;gauss445&quot;</td></tr><tr><td><code>RefPeriod</code></td><td>1 x 2</td><td>double</td><td>[2002.25, 2020.25]</td></tr><tr><td><code>Quiet</code></td><td>1 x 1</td><td>logical</td><td>true</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
 <tr><td><code>out</code></td><td>(1 x 1) struct with fields</td></tr>
 <tr><td><code>grid</code></td><td>(nLat x nLon x T) OBP anomaly [cm EWH], land NaN</td></tr>
@@ -929,7 +932,7 @@ code itself.</p>
 <p class="h1line">Global-ocean mass chain: barystatic series from GSM + GravIS.</p>
 <p>[OUT, REP] = shLowLevel.oceanChain(FOLDER, kn = KN, OceanMask = OC) runs the ocean sibling of the validated chains (roadmap item 7): gravisL2B corrections (C20/C30/C21/S21, degree 1, minus NFIL mean, GIA rate ON by default - the ocean-floor GIA correction matters for barystatic trends) -&gt; global EWH synthesis on a GridStep graticule -&gt; area-weighted ocean-mean series [cm] -&gt; trend + annual fit. The residual after the per-pixel trend+seasonal fit is what remains for the noise proxy: this chain SEPARATES the real open-ocean signal (barystatic rise + seasonal circulation) from the residual that oceanRMS should see - the guide-V6 finding (&quot;the trend&#x27;s open-ocean RMS is mostly real barystatic signal, not error&quot;) as an API.</p>
 <b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>folder</code></td><td>1 x 1</td><td>string</td><td>required</td></tr></table>
-<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>kn</code></td><td>n x 1</td><td>double</td><td>[]</td></tr><tr><td><code>OceanMask</code></td><td>n x m</td><td>-</td><td>[]</td></tr><tr><td><code>gravisFolder</code></td><td>1 x 1</td><td>string</td><td>&quot;&quot;</td></tr><tr><td><code>GIAFile</code></td><td>1 x 1</td><td>string</td><td>&quot;GRAVIS-2B_COSTG_0200_GIA_ICE-6G_D_VM5a_0001.gz&quot;</td></tr><tr><td><code>GIAEpoch</code></td><td>1 x 1</td><td>double</td><td>2011</td></tr><tr><td><code>Filter</code></td><td>1 x 1</td><td>string</td><td>&quot;gauss445&quot;</td></tr><tr><td><code>GridStep</code></td><td>1 x 1</td><td>double</td><td>1</td></tr><tr><td><code>SpanEnd</code></td><td>1 x 1</td><td>double</td><td>[]</td></tr><tr><td><code>GADFolder</code></td><td>1 x 1</td><td>string</td><td>&quot;&quot;</td></tr><tr><td><code>GAAFolder</code></td><td>1 x 1</td><td>string</td><td>&quot;&quot;</td></tr><tr><td><code>SeparateCirculation</code></td><td>1 x 1</td><td>logical</td><td>false</td></tr><tr><td><code>CoastBufferKm</code></td><td>1 x 1</td><td>double</td><td>300</td></tr><tr><td><code>RemoveLandLeakage</code></td><td>1 x 1</td><td>logical</td><td>false</td></tr><tr><td><code>LandLeakIter</code></td><td>1 x 1</td><td>double</td><td>1</td></tr><tr><td><code>Quiet</code></td><td>1 x 1</td><td>logical</td><td>true</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>kn</code></td><td>n x 1</td><td>double</td><td>[]</td></tr><tr><td><code>OceanMask</code></td><td>n x m</td><td>-</td><td>[]</td></tr><tr><td><code>GravisFolder</code></td><td>1 x 1</td><td>string</td><td>&quot;&quot;</td></tr><tr><td><code>GIAFile</code></td><td>1 x 1</td><td>string</td><td>&quot;GRAVIS-2B_COSTG_0200_GIA_ICE-6G_D_VM5a_0001.gz&quot;</td></tr><tr><td><code>GIAEpoch</code></td><td>1 x 1</td><td>double</td><td>2011</td></tr><tr><td><code>Filter</code></td><td>1 x 1</td><td>string</td><td>&quot;gauss445&quot;</td></tr><tr><td><code>GridStep</code></td><td>1 x 1</td><td>double</td><td>1</td></tr><tr><td><code>SpanEnd</code></td><td>1 x 1</td><td>double</td><td>[]</td></tr><tr><td><code>GADFolder</code></td><td>1 x 1</td><td>string</td><td>&quot;&quot;</td></tr><tr><td><code>GAAFolder</code></td><td>1 x 1</td><td>string</td><td>&quot;&quot;</td></tr><tr><td><code>SeparateCirculation</code></td><td>1 x 1</td><td>logical</td><td>false</td></tr><tr><td><code>CoastBufferKm</code></td><td>1 x 1</td><td>double</td><td>300</td></tr><tr><td><code>RemoveLandLeakage</code></td><td>1 x 1</td><td>logical</td><td>false</td></tr><tr><td><code>LandLeakIter</code></td><td>1 x 1</td><td>double</td><td>1</td></tr><tr><td><code>Quiet</code></td><td>1 x 1</td><td>logical</td><td>true</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
 <tr><td><code>out</code></td><td>(1 x 1) struct with fields</td></tr>
 <tr><td><code>epochs</code></td><td>(T x 1) decimal years oceanMean (T x 1) area-weighted ocean-mean EWH [cm]</td></tr>
@@ -996,7 +999,7 @@ code itself.</p>
 <p class="h1line">Basin time series with 1-sigma band, gaps, trend.</p>
 <p>H = shLowLevel.plotBasinSeries(TYEARS, C, SIGMA) draws the standard basin- average figure: shaded 1-sigma band (fill), data line, the GRACE &lt;-&gt; GRACE-FO gap (or any gap &gt; GapThreshold (0.3) years) hatched grey, and an annotated trend fitted with the toolbox climatology design (bias/ trend/annual/semi-annual, AR(1)-corrected sigma).</p>
 <b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>tYears</code></td><td>: x 1</td><td>double</td><td>required</td></tr><tr><td><code>c</code></td><td>: x 1</td><td>double</td><td>required</td></tr><tr><td><code>sigma</code></td><td>T x 1</td><td>double</td><td>[]</td></tr></table>
-<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Label</code></td><td>1 x 1</td><td>string</td><td>&quot;basin average&quot;</td></tr><tr><td><code>Units</code></td><td>1 x 1</td><td>string</td><td>&quot;&quot;</td></tr><tr><td><code>GapThreshold</code></td><td>1 x 1</td><td>double</td><td>0.3</td></tr><tr><td><code>Trend</code></td><td>1 x 1</td><td>logical</td><td>true</td></tr><tr><td><code>ax</code></td><td>n x m</td><td>-</td><td>[]</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Label</code></td><td>1 x 1</td><td>string</td><td>&quot;basin average&quot;</td></tr><tr><td><code>Units</code></td><td>1 x 1</td><td>string</td><td>&quot;&quot;</td></tr><tr><td><code>GapThreshold</code></td><td>1 x 1</td><td>double</td><td>0.3</td></tr><tr><td><code>Trend</code></td><td>1 x 1</td><td>logical</td><td>true</td></tr><tr><td><code>Ax</code></td><td>n x m</td><td>-</td><td>[]</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
 <tr><td><code>h</code></td><td>(1,1) graphics handle  axes of the basin series plot</td></tr>
 </table>
@@ -1006,7 +1009,7 @@ code itself.</p>
 <p class="h1line">Covariance/correlation image with order-block boundaries.</p>
 <p>H = shLowLevel.plotCovariance(M, IDX) shows a P x P covariance (e.g. from shLowLevel.readSINEX with Index=IDX) as an image in shIndex ordering, with the (order, C/S) block boundaries drawn - the one-look check of how good the block-diagonal approximation (tvANS block path, DDK structure) is for THIS matrix.</p>
 <b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>M</code></td><td>P x P</td><td>double</td><td>required</td></tr><tr><td><code>idx</code></td><td>1 x 1</td><td>struct</td><td>required</td></tr></table>
-<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Type</code></td><td>1 x 1</td><td>string</td><td>&quot;correlation&quot;</td></tr><tr><td><code>BlockLines</code></td><td>1 x 1</td><td>logical</td><td>true</td></tr><tr><td><code>ax</code></td><td>n x m</td><td>-</td><td>[]</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Type</code></td><td>1 x 1</td><td>string</td><td>&quot;correlation&quot;</td></tr><tr><td><code>BlockLines</code></td><td>1 x 1</td><td>logical</td><td>true</td></tr><tr><td><code>Ax</code></td><td>n x m</td><td>-</td><td>[]</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
 <tr><td><code>h</code></td><td>(1 x 1) graphics handle   image of the covariance/correlation structure</td></tr>
 </table>
@@ -1017,16 +1020,6 @@ code itself.</p>
 <p>PLOTSHCOEFFTRIANGLE(C, S) shows |Cnm| (left half) and |Snm| (right half) as a single degree/order &quot;butterfly&quot; triangle image on a log color scale -- the standard first diagnostic for spotting striping, leakage, or bad coefficients before spectral/spatial analysis. x-axis: order m (mirrored: Snm on the LEFT, Cnm on the RIGHT), y-axis: degree n with the apex (n=0) at the TOP - the triangle&#x27;s peak points upwards. The data aspect ratio is fixed to 1:1, so the axes box is 2:1 (x spans 2*nmax+1 units, y spans nmax+1) and every imagesc cell renders square (v2.3.1).</p>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
 <tr><td><code>h</code></td><td>(1 x 1) graphics handle   butterfly triangle image (abs log10 or signed diff with RefC/RefS)</td></tr>
-</table>
-</div>
-<div class="entry" id="shLowLevel.plotSHMap">
-<h3><code>shLowLevel.plotSHMap(grid, latDeg, lonDeg, opts)</code></h3>
-<p class="h1line">Global map plot with coastlines and a sane divergent scale.</p>
-<p>H = shLowLevel.plotSHMap(GRID, LAT, LON) renders a synthesized field the way a GRACE map should look by default: divergent blue-white-red colormap symmetric about zero, robust color limits (98th percentile of |value|), coastline overlay (base MATLAB &#x27;coastlines&#x27;), correct aspect. The convenience method g.map(...) synthesizes and plots in one call.</p>
-<b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>grid</code></td><td>nlat x nlon</td><td>double</td><td>required</td></tr><tr><td><code>latDeg</code></td><td>1 x :</td><td>double</td><td>required</td></tr><tr><td><code>lonDeg</code></td><td>1 x :</td><td>double</td><td>required</td></tr></table>
-<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Projection</code></td><td>1 x 1</td><td>string</td><td>&quot;plate&quot;</td></tr><tr><td><code>Coast</code></td><td>1 x 1</td><td>logical</td><td>true</td></tr><tr><td><code>CLim</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>Colormap</code></td><td>1 x 1</td><td>string</td><td>&quot;divergent&quot;</td></tr><tr><td><code>Title</code></td><td>1 x 1</td><td>string</td><td>&quot;&quot;</td></tr><tr><td><code>Units</code></td><td>1 x 1</td><td>string</td><td>&quot;&quot;</td></tr><tr><td><code>ax</code></td><td>n x m</td><td>-</td><td>[]</td></tr></table>
-<b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
-<tr><td><code>h</code></td><td>(1,1) graphics handle  axes of the map plot</td></tr>
 </table>
 </div>
 <div class="entry" id="shLowLevel.plotSHSpectrum">
@@ -1133,6 +1126,19 @@ code itself.</p>
 <tr><td><code>tn</code></td><td>(1,1) struct  fields: t (T x 1 double, decimal years), C20/C30 (T x 1 double), sigmaC20/sigmaC30 (T x 1 double)</td></tr>
 </table>
 </div>
+<div class="entry" id="shLowLevel.requireGeoMap">
+<h3><code>shLowLevel.requireGeoMap()</code></h3>
+<p class="h1line">Assert that geoMap is on the path; say where it is.</p>
+<p>LOC = shLowLevel.requireGeoMap() returns the path of geo.map, or raises shAnalysis:geoMapRequired with a message that says what to do instead of reporting an undefined function three frames deeper.</p>
+<b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
+<tr><td><code>loc</code></td><td>(1,:) char  full path of geo.map, for provenance records</td></tr>
+</table>
+<b>Example</b><pre>    loc = shLowLevel.requireGeoMap();   % errors if geoMap is absent
+
+  See also SHCOEFFICIENTS/MAP, SHCOEFFICIENTS/TOGRID, WRITEANIMATION.
+
+  Claude (Opus 5), 2026-08-23 (v3.32.0).</pre>
+</div>
 <div class="entry" id="shLowLevel.rescaleGMR">
 <h3><code>shLowLevel.rescaleGMR(C, S, GM1, R1, GM2, R2, sigmaC, sigmaS)</code></h3>
 <p class="h1line">Convert Stokes coefficients between (GM, R) reference values.</p>
@@ -1223,7 +1229,7 @@ code itself.</p>
 <p class="h1line">Spherical harmonic analysis: estimate Stokes coefficients</p>
 <p>from gridded or scattered data (the inverse of shLowLevel.shSynthesis).</p>
 <b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>grid</code></td><td>n x m</td><td>double</td><td>required</td></tr><tr><td><code>latVec</code></td><td>n x m</td><td>double</td><td>required</td></tr><tr><td><code>lonVec</code></td><td>n x m</td><td>double</td><td>required</td></tr><tr><td><code>nmax</code></td><td>1 x 1</td><td>double</td><td>required</td></tr></table>
-<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Method</code></td><td>1 x 1</td><td>string</td><td>&quot;auto&quot;</td></tr><tr><td><code>quantity</code></td><td>n x m</td><td>-</td><td>&#x27;geoid&#x27;</td></tr><tr><td><code>GM</code></td><td>1 x 1</td><td>double</td><td>3.986004415e14</td></tr><tr><td><code>R</code></td><td>1 x 1</td><td>double</td><td>6378136.3</td></tr><tr><td><code>kn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>hn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>rho_ave</code></td><td>1 x 1</td><td>double</td><td>5517</td></tr><tr><td><code>rho_water</code></td><td>1 x 1</td><td>double</td><td>1000</td></tr><tr><td><code>Weights</code></td><td>1 x 1</td><td>string</td><td>&quot;none&quot;</td></tr><tr><td><code>Kaula</code></td><td>1 x 1</td><td>double</td><td>0</td></tr><tr><td><code>ChunkSize</code></td><td>1 x 1</td><td>double</td><td>2000</td></tr><tr><td><code>LatType</code></td><td>1 x 1</td><td>string</td><td>&quot;geocentric&quot;</td></tr><tr><td><code>Flattening</code></td><td>1 x 1</td><td>double</td><td>1/298.257223563</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Method</code></td><td>1 x 1</td><td>string</td><td>&quot;auto&quot;</td></tr><tr><td><code>Quantity</code></td><td>n x m</td><td>-</td><td>&#x27;geoid&#x27;</td></tr><tr><td><code>GM</code></td><td>1 x 1</td><td>double</td><td>3.986004415e14</td></tr><tr><td><code>R</code></td><td>1 x 1</td><td>double</td><td>6378136.3</td></tr><tr><td><code>kn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>hn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>rho_ave</code></td><td>1 x 1</td><td>double</td><td>5517</td></tr><tr><td><code>rho_water</code></td><td>1 x 1</td><td>double</td><td>1000</td></tr><tr><td><code>Weights</code></td><td>1 x 1</td><td>string</td><td>&quot;none&quot;</td></tr><tr><td><code>Kaula</code></td><td>1 x 1</td><td>double</td><td>0</td></tr><tr><td><code>ChunkSize</code></td><td>1 x 1</td><td>double</td><td>2000</td></tr><tr><td><code>LatType</code></td><td>1 x 1</td><td>string</td><td>&quot;geocentric&quot;</td></tr><tr><td><code>Flattening</code></td><td>1 x 1</td><td>double</td><td>1/298.257223563</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
 <tr><td><code>C</code></td><td>(nmax+1 x nmax+1) double  estimated cosine coefficients</td></tr>
 <tr><td><code>S</code></td><td>(nmax+1 x nmax+1) double  estimated sine coefficients</td></tr>
@@ -1299,7 +1305,7 @@ code itself.</p>
 <p class="h1line">Order-domain spectral diagnostics (striping direction).</p>
 <p>SPEC = shLowLevel.shOrderRMS(C, S) sums coefficient power per ORDER m - the complementary view to shLowLevel.shDegreeRMS and the natural axis for GRACE striping (correlated errors live at high orders):</p>
 <b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>C</code></td><td>n x m</td><td>double</td><td>required</td></tr><tr><td><code>S</code></td><td>n x m</td><td>double</td><td>required</td></tr></table>
-<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>R</code></td><td>1 x 1</td><td>double</td><td>6378136.3</td></tr><tr><td><code>n0</code></td><td>1 x 1</td><td>double</td><td>0</td></tr><tr><td><code>sigmaC</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>sigmaS</code></td><td>n x m</td><td>double</td><td>[]</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>R</code></td><td>1 x 1</td><td>double</td><td>6378136.3</td></tr><tr><td><code>N0</code></td><td>1 x 1</td><td>double</td><td>0</td></tr><tr><td><code>SigmaC</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>SigmaS</code></td><td>n x m</td><td>double</td><td>[]</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
 <tr><td><code>spec</code></td><td>struct: order, ordVariance, ordRMS, ordAmplitude, cumVariance, cumRMS, cumAmplitude, (err*), R, domain = &#x27;order&#x27;  (consumed by plotSHSpectrum)</td></tr>
 </table>
@@ -1337,19 +1343,54 @@ code itself.</p>
 <p class="h1line">Elastic load deformation: up / north / east.</p>
 <p>[UP, NORTH, EAST] = shLowLevel.shSynthesisDeformation(C, S, R, LAT, LON, kn (&quot;&quot;)=..., hn (&quot;&quot;)=..., ln (&quot;&quot;)=...) synthesizes the three components of the elastic surface deformation caused by the load expressed in the (residual) Stokes coefficients C, S (Wahr et al. 1998; Kusche &amp; Schrama 2005 - the GRACE &lt;-&gt; GNSS loading comparison):</p>
 <b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>C</code></td><td>n x m</td><td>double</td><td>required</td></tr><tr><td><code>S</code></td><td>n x m</td><td>double</td><td>required</td></tr><tr><td><code>R</code></td><td>1 x 1</td><td>double</td><td>required</td></tr><tr><td><code>latDeg</code></td><td>1 x :</td><td>double</td><td>required</td></tr><tr><td><code>lonDeg</code></td><td>1 x :</td><td>double</td><td>required</td></tr></table>
-<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>kn</code></td><td>n x m</td><td>double</td><td>-</td></tr><tr><td><code>hn</code></td><td>n x m</td><td>double</td><td>-</td></tr><tr><td><code>ln</code></td><td>n x m</td><td>double</td><td>-</td></tr><tr><td><code>nmin</code></td><td>1 x 1</td><td>double</td><td>1</td></tr><tr><td><code>Mode</code></td><td>1 x 1</td><td>string</td><td>&quot;grid&quot;</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>kn</code></td><td>n x m</td><td>double</td><td>-</td></tr><tr><td><code>hn</code></td><td>n x m</td><td>double</td><td>-</td></tr><tr><td><code>ln</code></td><td>n x m</td><td>double</td><td>-</td></tr><tr><td><code>Nmin</code></td><td>1 x 1</td><td>double</td><td>1</td></tr><tr><td><code>Mode</code></td><td>1 x 1</td><td>string</td><td>&quot;grid&quot;</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
 <tr><td><code>up</code></td><td>(nlat x nlon | npts) double   vertical elastic deformation [m]</td></tr>
 <tr><td><code>north</code></td><td>same size   horizontal north component [m]</td></tr>
 <tr><td><code>east</code></td><td>same size   horizontal east component [m]</td></tr>
 </table>
 </div>
+<div class="entry" id="shLowLevel.shSynthesisGradient">
+<h3><code>shLowLevel.shSynthesisGradient(C, S, GM, R, latDeg, lonDeg, opts)</code></h3>
+<p class="h1line">North/east/up gradient of any synthesized quantity.</p>
+<p>[DQ, INFO] = shLowLevel.shSynthesisGradient(C, S, GM, R, LAT, LON, Quantity (&quot;geoid&quot;)=..., Units (&quot;perMeter&quot;)=..., Mode (&quot;grid&quot;)=...) returns the spatial gradient of the field that shLowLevel.shSynthesis would produce from the SAME coefficients and the SAME options, resolved in the local north-east-up frame:</p>
+<b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>C</code></td><td>n x m</td><td>double</td><td>required</td></tr><tr><td><code>S</code></td><td>n x m</td><td>double</td><td>required</td></tr><tr><td><code>GM</code></td><td>1 x 1</td><td>double</td><td>required</td></tr><tr><td><code>R</code></td><td>1 x 1</td><td>double</td><td>required</td></tr><tr><td><code>latDeg</code></td><td>1 x :</td><td>double</td><td>required</td></tr><tr><td><code>lonDeg</code></td><td>1 x :</td><td>double</td><td>required</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Quantity</code></td><td>1 x 1</td><td>string</td><td>&quot;geoid&quot;</td></tr><tr><td><code>kn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>hn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>Nmin</code></td><td>1 x 1</td><td>double</td><td>0</td></tr><tr><td><code>Nmax</code></td><td>1 x 1</td><td>double</td><td>NaN</td></tr><tr><td><code>Height</code></td><td>1 x 1</td><td>double</td><td>0</td></tr><tr><td><code>rho_ave</code></td><td>1 x 1</td><td>double</td><td>5517</td></tr><tr><td><code>rho_water</code></td><td>1 x 1</td><td>double</td><td>1000</td></tr><tr><td><code>Mode</code></td><td>1 x 1</td><td>string</td><td>&quot;grid&quot;</td></tr><tr><td><code>Units</code></td><td>1 x 1</td><td>string</td><td>&quot;perMeter&quot;</td></tr><tr><td><code>MaxMemGB</code></td><td>1 x 1</td><td>double</td><td>4</td></tr></table>
+<b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
+<tr><td><code>dq</code></td><td>(1,1) struct  fields north, east, up, each (nlat x nlon) double for Mode &quot;grid&quot; or (npts x 1) double for &quot;points&quot;. EAST is NaN where |lat| = 90 - the east direction does not exist at a pole, and the cos(phi) division there returns a finite, meaningless number if it is not caught. UP is [] for surface quantities (see above)</td></tr>
+<tr><td><code>info</code></td><td>(1,1) struct  quantity, units, r [m], nmin, nmax, hasUp (1,1) logical, lat (1 x nlat) double, latType (1,1) string, lon (1 x nlon) double - the latitudes and longitudes actually used. latType is always &quot;geocentric&quot; here: this function has no ellipsoid. shCoefficients.gradient overwrites both when it was handed geodetic input, so the convention travels with the numbers instead of being remembered by the caller</td></tr>
+</table>
+<b>Example</b><pre>    % a zonal degree-2 pattern: the east gradient must vanish exactly
+    C = zeros(3); S = zeros(3); C(3,1) = 1;              % C_20
+    lat = -80:10:80; lon = 0:20:340;
+    dq = shLowLevel.shSynthesisGradient(C, S, 3.986004415e14, ...
+            6378136.3, lat, lon, Quantity = &quot;none&quot;, Units = &quot;perRadian&quot;);
+    max(abs(dq.east(:)))            % 0
+    quiver(lon, lat, dq.east, dq.north)
+
+  References
+    Wahr, Molenaar &amp; Bryan (1998), JGR 103(B12) - the degree factors.
+    Holmes &amp; Featherstone (2002), J Geod 76 - the Legendre recursion
+    whose exact latitude derivative shLowLevel.legendreALFDeriv carries.
+
+  Python-validated before implementation (tools/dev/validate_gradient.py):
+  all three components against 5-point finite differences of an
+  independent scalar synthesis at 1e-12 (the difference floor), the
+  radial identities d(potential)/dr = -gravity_disturbance and
+  d(gravity_disturbance)/dr = -gravity_gradient_rr at 4e-16, and
+  single-coefficient closed forms at 2e-16.
+
+  See also SHSYNTHESIS, SHSYNTHESISDEFORMATION, SHSYNTHESISGRADIENTTENSOR,
+  KERNELFACTORS, LEGENDREALFDERIV.
+
+  Claude (Opus 5), 2026-08-22 (v3.30.0).</pre>
+</div>
 <div class="entry" id="shLowLevel.shSynthesisGradientTensor">
 <h3><code>shLowLevel.shSynthesisGradientTensor(C, S, GM, R, latDeg, lonDeg, opts)</code></h3>
 <p class="h1line">Full gravity gradient tensor in the local NEU frame.</p>
 <p>[COMPS, INFO] = shLowLevel.shSynthesisGradientTensor(C, S, GM, R, LAT, LON, Height (250e3)=250e3) synthesizes all six independent components of the disturbing gravity gradient tensor (GOCE-style diagnostics) in the local north-east-up frame at radius r = R + Height:</p>
 <b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>C</code></td><td>n x m</td><td>double</td><td>required</td></tr><tr><td><code>S</code></td><td>n x m</td><td>double</td><td>required</td></tr><tr><td><code>GM</code></td><td>1 x 1</td><td>double</td><td>required</td></tr><tr><td><code>R</code></td><td>1 x 1</td><td>double</td><td>required</td></tr><tr><td><code>latDeg</code></td><td>1 x :</td><td>double</td><td>required</td></tr><tr><td><code>lonDeg</code></td><td>1 x :</td><td>double</td><td>required</td></tr></table>
-<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Height</code></td><td>1 x 1</td><td>double</td><td>250e3</td></tr><tr><td><code>nmin</code></td><td>1 x 1</td><td>double</td><td>2</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Height</code></td><td>1 x 1</td><td>double</td><td>250e3</td></tr><tr><td><code>Nmin</code></td><td>1 x 1</td><td>double</td><td>2</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
 <tr><td><code>comps</code></td><td>struct of (nlat,nlon) double [1/s^2]: uu, nn, ee, un, ue, ne  (symmetric tensor; 1 Eotvos = 1e-9 1/s^2). Components involving east are NaN at |lat| = 90.</td></tr>
 <tr><td><code>info</code></td><td>struct: maxTraceResidual (max |trace|/max|G| over the grid, excluding poles) - the built-in Laplace self-check</td></tr>
@@ -1551,10 +1592,30 @@ code itself.</p>
 </div>
 <div class="entry" id="shLowLevel.writeAnimation">
 <h3><code>shLowLevel.writeAnimation(ts, filename, opts)</code></h3>
-<p class="h1line">Export a monthly series as an MP4 map animation.</p>
-<p>shLowLevel.writeAnimation(TS, &#x27;ewh.mp4&#x27;, quantity=&quot;ewh&quot;, kn ([])=kn) renders one shLowLevel.plotSHMap frame per epoch into an MPEG-4 via VideoWriter (base MATLAB), with a FIXED color scale over all epochs (robust 98th percentile across the whole stack - the single most common animation mistake is a per-frame scale).</p>
-<b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>ts</code></td><td>1 x 1</td><td>shSeries</td><td>required</td></tr><tr><td><code>filename</code></td><td>n x m</td><td>-</td><td>required</td></tr></table>
-<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>quantity</code></td><td>1 x 1</td><td>string</td><td>&quot;ewh&quot;</td></tr><tr><td><code>kn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>hn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>lat</code></td><td>1 x :</td><td>double</td><td>-89:2:89</td></tr><tr><td><code>lon</code></td><td>1 x :</td><td>double</td><td>0:2:358</td></tr><tr><td><code>FrameRate</code></td><td>1 x 1</td><td>double</td><td>4</td></tr><tr><td><code>Sidecar</code></td><td>1 x 1</td><td>logical</td><td>true</td></tr><tr><td><code>CLim</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>Coast</code></td><td>1 x 1</td><td>logical</td><td>true</td></tr><tr><td><code>Units</code></td><td>1 x 1</td><td>string</td><td>&quot;&quot;</td></tr><tr><td><code>Projection</code></td><td>1 x 1</td><td>string</td><td>&quot;plate&quot;</td></tr></table>
+<p class="h1line">Export a series as a map animation, drawn by geoMap.</p>
+<p>shLowLevel.writeAnimation(TS, &#x27;ewh.avi&#x27;, Quantity (&quot;ewh&quot;)=..., kn ([])=...) synthesizes every epoch of TS onto one grid, draws each frame with geo.map, and writes them to a video container with a provenance sidecar.</p>
+<b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>ts</code></td><td>1 x 1</td><td>shSeries</td><td>required</td></tr><tr><td><code>filename</code></td><td>1 x 1</td><td>string</td><td>required</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Quantity</code></td><td>1 x 1</td><td>string</td><td>&quot;ewh&quot;</td></tr><tr><td><code>kn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>hn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>lat</code></td><td>1 x :</td><td>double</td><td>-89:2:89</td></tr><tr><td><code>lon</code></td><td>1 x :</td><td>double</td><td>0:2:358</td></tr><tr><td><code>LatType</code></td><td>1 x 1</td><td>string</td><td>&quot;geodetic&quot;</td></tr><tr><td><code>FrameRate</code></td><td>1 x 1</td><td>double</td><td>4</td></tr><tr><td><code>Sidecar</code></td><td>1 x 1</td><td>logical</td><td>true</td></tr><tr><td><code>Size</code></td><td>1 x 2</td><td>double</td><td>[900 470]</td></tr><tr><td><code>CRS</code></td><td>1 x 1</td><td>string</td><td>&quot;equirectangular&quot;</td></tr><tr><td><code>Basemap</code></td><td>1 x 1</td><td>struct</td><td>struct()</td></tr><tr><td><code>GeoArgs</code></td><td>n x m</td><td>cell</td><td>{}</td></tr></table>
+<b>Example</b><pre>    shLowLevel.writeAnimation(ts, fullfile(tempdir, &#x27;ewh.avi&#x27;), ...
+        Quantity = &quot;ewh&quot;, kn = kn, FrameRate = 6);
+
+  See also SHSERIES/TOGRID, SHLOWLEVEL/WRITEFRAMES, REQUIREGEOMAP.
+
+  Claude (Fable 5), 2026-08-07 (v2.4); routed through geoMap
+  Claude (Opus 5), 2026-08-23 (v3.32.0).</pre>
+</div>
+<div class="entry" id="shLowLevel.writeFrames">
+<h3><code>shLowLevel.writeFrames(frames, filename, opts)</code></h3>
+<p class="h1line">Write ready-made RGB frames to a video container.</p>
+<p>shLowLevel.writeFrames(FRAMES, &#x27;out.avi&#x27;, FrameRate (4)=..., ...) writes an (H x W x 3 x T) uint8 stack to an MPEG-4 or Motion-JPEG AVI file and, by default, a provenance sidecar beside it.</p>
+<b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>frames</code></td><td>H x W x 3 x T</td><td>uint8</td><td>required</td></tr><tr><td><code>filename</code></td><td>1 x 1</td><td>string</td><td>required</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>FrameRate</code></td><td>1 x 1</td><td>double</td><td>4</td></tr><tr><td><code>Sidecar</code></td><td>1 x 1</td><td>logical</td><td>true</td></tr><tr><td><code>SidecarExtra</code></td><td>1 x 1</td><td>struct</td><td>struct()</td></tr></table>
+<b>Example</b><pre>    F = uint8(zeros(120, 240, 3, 5));
+    shLowLevel.writeFrames(F, fullfile(tempdir, &#x27;demo.avi&#x27;), FrameRate = 2);
+
+  See also SHLOWLEVEL/WRITEANIMATION, SHSERIES/TOGRID.
+
+  Claude (Opus 5), 2026-08-23 (v3.32.0).</pre>
 </div>
 <div class="entry" id="shLowLevel.writeGFC">
 <h3><code>shLowLevel.writeGFC(filename, C, S, GM, R, opts)</code></h3>
@@ -1636,6 +1697,7 @@ code itself.</p>
 <a href="#shCoefficients.fan">fan</a>
 <a href="#shCoefficients.fromVec">fromVec</a>
 <a href="#shCoefficients.gaussian">gaussian</a>
+<a href="#shCoefficients.gradient">gradient</a>
 <a href="#shCoefficients.map">map</a>
 <a href="#shCoefficients.minus">minus</a>
 <a href="#shCoefficients.mtimes">mtimes</a>
@@ -1647,6 +1709,7 @@ code itself.</p>
 <a href="#shCoefficients.subtractNormalField">subtractNormalField</a>
 <a href="#shCoefficients.synthesis">synthesis</a>
 <a href="#shCoefficients.times">times</a>
+<a href="#shCoefficients.toGrid">toGrid</a>
 <a href="#shCoefficients.toReference">toReference</a>
 <a href="#shCoefficients.triangle">triangle</a>
 <a href="#shCoefficients.truncate">truncate</a>
@@ -1669,7 +1732,7 @@ code itself.</p>
 <p class="h1line">Spherical harmonic analysis: gridded/scattered data -&gt;</p>
 <p>Stokes coefficients (the inverse of synthesis).</p>
 <b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>grid</code></td><td>n x m</td><td>double</td><td>required</td></tr><tr><td><code>latVec</code></td><td>n x m</td><td>double</td><td>required</td></tr><tr><td><code>lonVec</code></td><td>n x m</td><td>double</td><td>required</td></tr><tr><td><code>nmax</code></td><td>1 x 1</td><td>double</td><td>required</td></tr></table>
-<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>quantity</code></td><td>1 x 1</td><td>string</td><td>&quot;geoid&quot;</td></tr><tr><td><code>Method</code></td><td>1 x 1</td><td>string</td><td>&quot;auto&quot;</td></tr><tr><td><code>Weights</code></td><td>1 x 1</td><td>string</td><td>&quot;none&quot;</td></tr><tr><td><code>Kaula</code></td><td>1 x 1</td><td>double</td><td>0</td></tr><tr><td><code>kn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>hn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>rho_ave</code></td><td>1 x 1</td><td>double</td><td>5517</td></tr><tr><td><code>rho_water</code></td><td>1 x 1</td><td>double</td><td>1000</td></tr><tr><td><code>GM</code></td><td>1 x 1</td><td>double</td><td>3.986004415e14</td></tr><tr><td><code>R</code></td><td>1 x 1</td><td>double</td><td>6378136.3</td></tr><tr><td><code>Epoch</code></td><td>1 x 1</td><td>double</td><td>NaN</td></tr><tr><td><code>Name</code></td><td>1 x 1</td><td>string</td><td>&quot;analysis&quot;</td></tr><tr><td><code>LatType</code></td><td>1 x 1</td><td>string</td><td>&quot;geocentric&quot;</td></tr><tr><td><code>Flattening</code></td><td>1 x 1</td><td>double</td><td>1/298.257223563</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Quantity</code></td><td>1 x 1</td><td>string</td><td>&quot;geoid&quot;</td></tr><tr><td><code>Method</code></td><td>1 x 1</td><td>string</td><td>&quot;auto&quot;</td></tr><tr><td><code>Weights</code></td><td>1 x 1</td><td>string</td><td>&quot;none&quot;</td></tr><tr><td><code>Kaula</code></td><td>1 x 1</td><td>double</td><td>0</td></tr><tr><td><code>kn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>hn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>rho_ave</code></td><td>1 x 1</td><td>double</td><td>5517</td></tr><tr><td><code>rho_water</code></td><td>1 x 1</td><td>double</td><td>1000</td></tr><tr><td><code>GM</code></td><td>1 x 1</td><td>double</td><td>3.986004415e14</td></tr><tr><td><code>R</code></td><td>1 x 1</td><td>double</td><td>6378136.3</td></tr><tr><td><code>Epoch</code></td><td>1 x 1</td><td>double</td><td>NaN</td></tr><tr><td><code>Name</code></td><td>1 x 1</td><td>string</td><td>&quot;analysis&quot;</td></tr><tr><td><code>LatType</code></td><td>1 x 1</td><td>string</td><td>&quot;geocentric&quot;</td></tr><tr><td><code>Flattening</code></td><td>1 x 1</td><td>double</td><td>1/298.257223563</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
 <tr><td><code>obj</code></td><td>(1 x 1) shCoefficients   Stokes coefficients estimated from the grid (exact on ring grids; Kaula for scattered points)</td></tr>
 <tr><td><code>info</code></td><td>(1 x 1) struct   diagnostics, see shLowLevel.shAnalysisGrid</td></tr>
@@ -1707,7 +1770,7 @@ code itself.</p>
 <h3><code>shCoefficients.crossover(obj, opts)</code></h3>
 <p class="h1line">Signal-vs-formal-error crossover degree.</p>
 <b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td>required</td></tr></table>
-<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>n0</code></td><td>1 x 1</td><td>double</td><td>2</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>N0</code></td><td>1 x 1</td><td>double</td><td>2</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
 <tr><td><code>nInterp</code></td><td>(1,1) double  interpolated crossing degree</td></tr>
 </table>
@@ -1715,9 +1778,9 @@ code itself.</p>
 <div class="entry" id="shCoefficients.deformation">
 <h3><code>shCoefficients.deformation(obj, latDeg, lonDeg, opts)</code></h3>
 <p class="h1line">Elastic load deformation up/north/east [m].</p>
-<p>[UP, NORTH, EAST] = g.deformation(LAT, LON, kn=, hn=, ln=, Mode (&quot;grid&quot;)=&quot;grid&quot;|&quot;points&quot;, nmin (1)=1, LatType (&quot;geocentric&quot;)=&quot;geocentric&quot;) from the object&#x27;s (residual!) coefficients - remove a mean field first. Love numbers are always user-supplied; see shLowLevel.shSynthesisDeformation for formulas and validation.</p>
+<p>[UP, NORTH, EAST] = g.deformation(LAT, LON, kn=, hn=, ln=, Mode (&quot;grid&quot;)=&quot;grid&quot;|&quot;points&quot;, Nmin (1)=1, LatType (&quot;geocentric&quot;)=&quot;geocentric&quot;) from the object&#x27;s (residual!) coefficients - remove a mean field first. Love numbers are always user-supplied; see shLowLevel.shSynthesisDeformation for formulas and validation.</p>
 <b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td>required</td></tr><tr><td><code>latDeg</code></td><td>1 x :</td><td>double</td><td>required</td></tr><tr><td><code>lonDeg</code></td><td>1 x :</td><td>double</td><td>required</td></tr></table>
-<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>kn</code></td><td>n x m</td><td>double</td><td>-</td></tr><tr><td><code>hn</code></td><td>n x m</td><td>double</td><td>-</td></tr><tr><td><code>ln</code></td><td>n x m</td><td>double</td><td>-</td></tr><tr><td><code>nmin</code></td><td>1 x 1</td><td>double</td><td>1</td></tr><tr><td><code>Mode</code></td><td>1 x 1</td><td>string</td><td>&quot;grid&quot;</td></tr><tr><td><code>LatType</code></td><td>1 x 1</td><td>string</td><td>&quot;geocentric&quot;</td></tr><tr><td><code>Flattening</code></td><td>1 x 1</td><td>double</td><td>1/298.257223563</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>kn</code></td><td>n x m</td><td>double</td><td>-</td></tr><tr><td><code>hn</code></td><td>n x m</td><td>double</td><td>-</td></tr><tr><td><code>ln</code></td><td>n x m</td><td>double</td><td>-</td></tr><tr><td><code>Nmin</code></td><td>1 x 1</td><td>double</td><td>1</td></tr><tr><td><code>Mode</code></td><td>1 x 1</td><td>string</td><td>&quot;grid&quot;</td></tr><tr><td><code>LatType</code></td><td>1 x 1</td><td>string</td><td>&quot;geocentric&quot;</td></tr><tr><td><code>Flattening</code></td><td>1 x 1</td><td>double</td><td>1/298.257223563</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
 <tr><td><code>up</code></td><td>(nlat x nlon | npts) double   vertical deformation [m]</td></tr>
 <tr><td><code>north</code></td><td>same size   north component [m]</td></tr>
@@ -1728,7 +1791,7 @@ code itself.</p>
 <h3><code>shCoefficients.degreeRMS(obj, opts)</code></h3>
 <p class="h1line">Degree variance/RMS/amplitude spectrum (+ error spectrum).</p>
 <b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td>required</td></tr></table>
-<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>n0</code></td><td>1 x 1</td><td>double</td><td>0</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>N0</code></td><td>1 x 1</td><td>double</td><td>0</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
 <tr><td><code>spec</code></td><td>struct: n, amp/rms/var, err   degree spectrum incl. formal-error curve</td></tr>
 </table>
@@ -1736,9 +1799,9 @@ code itself.</p>
 <div class="entry" id="shCoefficients.destripe">
 <h3><code>shCoefficients.destripe(obj, opts)</code></h3>
 <p class="h1line">Swenson &amp; Wahr (2006) / P3M6 decorrelation.</p>
-<p>OUT = obj.destripe(minOrder=6, polyOrder=3, windowLength=[]) Formal errors are passed through UNCHANGED (the destriping operator is data-dependent; rigorous error propagation is not defined for it - use the tvANS filter on an shSeries for a filter with proper covariance semantics).</p>
+<p>OUT = obj.destripe(MinOrder=6, PolyOrder=3, WindowLength=[]) Formal errors are passed through UNCHANGED (the destriping operator is data-dependent; rigorous error propagation is not defined for it - use the tvANS filter on an shSeries for a filter with proper covariance semantics).</p>
 <b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td>required</td></tr></table>
-<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>minOrder</code></td><td>1 x 1</td><td>double</td><td>6</td></tr><tr><td><code>polyOrder</code></td><td>1 x 1</td><td>double</td><td>3</td></tr><tr><td><code>windowLength</code></td><td>n x m</td><td>double</td><td>[]</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>MinOrder</code></td><td>1 x 1</td><td>double</td><td>6</td></tr><tr><td><code>PolyOrder</code></td><td>1 x 1</td><td>double</td><td>3</td></tr><tr><td><code>WindowLength</code></td><td>n x m</td><td>double</td><td>[]</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
 <tr><td><code>out</code></td><td>(1 x 1) shCoefficients   Swenson-Wahr decorrelated</td></tr>
 </table>
@@ -1783,15 +1846,31 @@ code itself.</p>
 <tr><td><code>out</code></td><td>(1 x 1) shCoefficients   Gaussian-smoothed; sigmas scaled by Wn</td></tr>
 </table>
 </div>
+<div class="entry" id="shCoefficients.gradient">
+<h3><code>shCoefficients.gradient(obj, latDeg, lonDeg, opts)</code></h3>
+<p class="h1line">North/east/up gradient of a synthesized quantity.</p>
+<p>[DQ, INFO] = g.gradient(LAT, LON, Quantity (&quot;geoid&quot;)=..., Units (&quot;perMeter&quot;)=..., Mode (&quot;grid&quot;)=...) is the exact spatial derivative of what g.synthesis would return under the SAME options - the vector field to draw over a scalar map, or to advect tracers through. DQ.up is EMPTY for surface quantities (ewh, geoid, surface_density, bottom_pressure, deformation_up, none), which have no radial law; INFO.hasUp says so. See shLowLevel.shSynthesisGradient for the formulas, the validation, and why this is NOT g.deformation&#x27;s horizontal pair (those carry l&#x27;_n, these carry the quantity&#x27;s own kernel).</p>
+<b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td>required</td></tr><tr><td><code>latDeg</code></td><td>1 x :</td><td>double</td><td>required</td></tr><tr><td><code>lonDeg</code></td><td>1 x :</td><td>double</td><td>required</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Quantity</code></td><td>1 x 1</td><td>string</td><td>&quot;geoid&quot;</td></tr><tr><td><code>kn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>hn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>Nmin</code></td><td>1 x 1</td><td>double</td><td>0</td></tr><tr><td><code>Nmax</code></td><td>1 x 1</td><td>double</td><td>NaN</td></tr><tr><td><code>Height</code></td><td>1 x 1</td><td>double</td><td>0</td></tr><tr><td><code>rho_ave</code></td><td>1 x 1</td><td>double</td><td>5517</td></tr><tr><td><code>rho_water</code></td><td>1 x 1</td><td>double</td><td>1000</td></tr><tr><td><code>Mode</code></td><td>1 x 1</td><td>string</td><td>&quot;grid&quot;</td></tr><tr><td><code>Units</code></td><td>1 x 1</td><td>string</td><td>&quot;perMeter&quot;</td></tr><tr><td><code>MaxMemGB</code></td><td>1 x 1</td><td>double</td><td>4</td></tr><tr><td><code>LatType</code></td><td>1 x 1</td><td>string</td><td>&quot;geocentric&quot;</td></tr><tr><td><code>Flattening</code></td><td>1 x 1</td><td>double</td><td>1/298.257223563</td></tr></table>
+<b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
+<tr><td><code>dq</code></td><td>(1 x 1) struct   fields north, east, up: each (nlat x nlon) double, or (npts x 1) for Mode=&quot;points&quot;; up is [] for surface quantities</td></tr>
+<tr><td><code>info</code></td><td>(1 x 1) struct   quantity, units, r, nmin, nmax, hasUp, lat (as given), latType, lon</td></tr>
+</table>
+<b>Example</b><pre>    lat = -89:2:89; lon = 0:2:358;
+    [dq, info] = g.gradient(lat, lon, Quantity = &quot;ewh&quot;, kn = kn);
+    info.hasUp        % false - EWH is a surface quantity</pre>
+</div>
 <div class="entry" id="shCoefficients.map">
 <h3><code>shCoefficients.map(obj, latDeg, lonDeg, opts)</code></h3>
-<p class="h1line">Synthesize and plot in one call (shLowLevel.plotSHMap).</p>
-<p>H = g.map(-89:89, 0:359, quantity (&quot;geoid&quot;)=&quot;ewh&quot;, kn ([])=kn) - all synthesis options plus the plotSHMap display options.</p>
-<b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td>required</td></tr><tr><td><code>latDeg</code></td><td>1 x :</td><td>double</td><td>-89:2:89</td></tr><tr><td><code>lonDeg</code></td><td>1 x :</td><td>double</td><td>0:2:358</td></tr></table>
-<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>quantity</code></td><td>1 x 1</td><td>string</td><td>&quot;geoid&quot;</td></tr><tr><td><code>kn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>hn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>Height</code></td><td>1 x 1</td><td>double</td><td>0</td></tr><tr><td><code>nmin</code></td><td>1 x 1</td><td>double</td><td>0</td></tr><tr><td><code>Projection</code></td><td>1 x 1</td><td>string</td><td>&quot;plate&quot;</td></tr><tr><td><code>Coast</code></td><td>1 x 1</td><td>logical</td><td>true</td></tr><tr><td><code>CLim</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>Units</code></td><td>1 x 1</td><td>string</td><td>&quot;&quot;</td></tr><tr><td><code>Title</code></td><td>1 x 1</td><td>string</td><td>&quot;&quot;</td></tr><tr><td><code>ax</code></td><td>n x m</td><td>-</td><td>[]</td></tr></table>
+<p class="h1line">Synthesize and draw in one call, through geoMap.</p>
+<p>H = g.map(-89:89, 0:359, Quantity (&quot;ewh&quot;)=..., kn ([])=...) builds the handover struct with g.toGrid and hands it to geo.map. It draws NOTHING itself.</p>
+<b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td>required</td></tr><tr><td><code>latDeg</code></td><td>1 x :</td><td>double</td><td>required</td></tr><tr><td><code>lonDeg</code></td><td>1 x :</td><td>double</td><td>required</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Quantity</code></td><td>1 x 1</td><td>string</td><td>&quot;ewh&quot;</td></tr><tr><td><code>kn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>hn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>Nmin</code></td><td>1 x 1</td><td>double</td><td>0</td></tr><tr><td><code>Nmax</code></td><td>1 x 1</td><td>double</td><td>NaN</td></tr><tr><td><code>Height</code></td><td>1 x 1</td><td>double</td><td>0</td></tr><tr><td><code>rho_ave</code></td><td>1 x 1</td><td>double</td><td>5517</td></tr><tr><td><code>rho_water</code></td><td>1 x 1</td><td>double</td><td>1000</td></tr><tr><td><code>LatType</code></td><td>1 x 1</td><td>string</td><td>&quot;geodetic&quot;</td></tr><tr><td><code>Flattening</code></td><td>1 x 1</td><td>double</td><td>1/298.257223563</td></tr><tr><td><code>CRS</code></td><td>1 x 1</td><td>string</td><td>&quot;equirectangular&quot;</td></tr><tr><td><code>Basemap</code></td><td>1 x 1</td><td>struct</td><td>struct()</td></tr><tr><td><code>GeoArgs</code></td><td>n x m</td><td>cell</td><td>{}</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
-<tr><td><code>h</code></td><td>(1 x 1) graphics handle   synthesized map plot</td></tr>
+<tr><td><code>H</code></td><td>(1 x 1) struct   the handle struct geo.map returns</td></tr>
 </table>
+<b>Example</b><pre>    H = g.map(-89.5:89.5, 0.5:359.5, Quantity = &quot;ewh&quot;, kn = kn, ...
+            CRS = &quot;robinson&quot;);</pre>
 </div>
 <div class="entry" id="shCoefficients.minus">
 <h3><code>shCoefficients.minus(a, b)</code></h3>
@@ -1862,12 +1941,12 @@ code itself.</p>
 <div class="entry" id="shCoefficients.synthesis">
 <h3><code>shCoefficients.synthesis(obj, latVec, lonVec, opts)</code></h3>
 <p class="h1line">Spatial synthesis (geoid, gravity, potential, EWH).</p>
-<p>[GRID, LAT, LON] = obj.synthesis(LATVEC, LONVEC, quantity (&quot;geoid&quot;)=..., kn ([])=..., nmin (0)=..., nmax (NaN)=..., UseCache (true)=true). The Legendre functions are served from a verified process-wide cache (shLowLevel.legendreCached), so monthly time series on a fixed grid pay the recursion only once - no manual &#x27;P&#x27; passing. EWH requires explicitly supplied load Love numbers kn (never hardcoded).</p>
+<p>[GRID, LAT, LON] = obj.synthesis(LATVEC, LONVEC, Quantity (&quot;geoid&quot;)=..., kn ([])=..., Nmin (0)=..., Nmax (NaN)=..., UseCache (true)=true). The Legendre functions are served from a verified process-wide cache (shLowLevel.legendreCached), so monthly time series on a fixed grid pay the recursion only once - no manual &#x27;P&#x27; passing. EWH requires explicitly supplied load Love numbers kn (never hardcoded).</p>
 <b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td>required</td></tr><tr><td><code>latVec</code></td><td>1 x :</td><td>double</td><td>required</td></tr><tr><td><code>lonVec</code></td><td>1 x :</td><td>double</td><td>required</td></tr></table>
-<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>quantity</code></td><td>1 x 1</td><td>string</td><td>&quot;geoid&quot;</td></tr><tr><td><code>kn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>hn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>Height</code></td><td>1 x 1</td><td>double</td><td>0</td></tr><tr><td><code>nmin</code></td><td>1 x 1</td><td>double</td><td>0</td></tr><tr><td><code>nmax</code></td><td>1 x 1</td><td>double</td><td>NaN</td></tr><tr><td><code>rho_ave</code></td><td>1 x 1</td><td>double</td><td>5517</td></tr><tr><td><code>rho_water</code></td><td>1 x 1</td><td>double</td><td>1000</td></tr><tr><td><code>UseCache</code></td><td>1 x 1</td><td>logical</td><td>true</td></tr><tr><td><code>Method</code></td><td>1 x 1</td><td>string</td><td>&quot;auto&quot;</td></tr><tr><td><code>LatType</code></td><td>1 x 1</td><td>string</td><td>&quot;geocentric&quot;</td></tr><tr><td><code>Flattening</code></td><td>1 x 1</td><td>double</td><td>1/298.257223563</td></tr><tr><td><code>MaxMemGB</code></td><td>1 x 1</td><td>double</td><td>4</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Quantity</code></td><td>1 x 1</td><td>string</td><td>&quot;geoid&quot;</td></tr><tr><td><code>kn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>hn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>Height</code></td><td>1 x 1</td><td>double</td><td>0</td></tr><tr><td><code>Nmin</code></td><td>1 x 1</td><td>double</td><td>0</td></tr><tr><td><code>Nmax</code></td><td>1 x 1</td><td>double</td><td>NaN</td></tr><tr><td><code>rho_ave</code></td><td>1 x 1</td><td>double</td><td>5517</td></tr><tr><td><code>rho_water</code></td><td>1 x 1</td><td>double</td><td>1000</td></tr><tr><td><code>UseCache</code></td><td>1 x 1</td><td>logical</td><td>true</td></tr><tr><td><code>Method</code></td><td>1 x 1</td><td>string</td><td>&quot;auto&quot;</td></tr><tr><td><code>LatType</code></td><td>1 x 1</td><td>string</td><td>&quot;geocentric&quot;</td></tr><tr><td><code>Flattening</code></td><td>1 x 1</td><td>double</td><td>1/298.257223563</td></tr><tr><td><code>MaxMemGB</code></td><td>1 x 1</td><td>double</td><td>4</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
 <tr><td><code>grid</code></td><td>(nlat x nlon) double   synthesized field</td></tr>
-<tr><td><code>lat</code></td><td>(1 x nlat) double   geocentric latitudes</td></tr>
+<tr><td><code>lat</code></td><td>(1 x nlat) double   the latitudes AS GIVEN, in the convention named by LatType - not the internally converted ones (changed in v3.31.0)</td></tr>
 <tr><td><code>lon</code></td><td>(1 x nlon) double   longitudes</td></tr>
 </table>
 </div>
@@ -1878,6 +1957,19 @@ code itself.</p>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
 <tr><td><code>out</code></td><td>(1 x 1) shCoefficients   elementwise-scaled coefficients</td></tr>
 </table>
+</div>
+<div class="entry" id="shCoefficients.toGrid">
+<h3><code>shCoefficients.toGrid(obj, latDeg, lonDeg, opts)</code></h3>
+<p class="h1line">Synthesized field plus the metadata a map needs to draw it.</p>
+<p>B = g.toGrid(LAT, LON, Quantity (&quot;ewh&quot;)=..., kn ([])=..., LatType (&quot;geodetic&quot;)=...) synthesizes exactly as g.synthesis does and returns the values TOGETHER WITH what they are: units, latitude convention, product type, epoch, provenance, and whether the field is a full field or an anomaly.</p>
+<b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td>required</td></tr><tr><td><code>latDeg</code></td><td>1 x :</td><td>double</td><td>required</td></tr><tr><td><code>lonDeg</code></td><td>1 x :</td><td>double</td><td>required</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Quantity</code></td><td>1 x 1</td><td>string</td><td>&quot;ewh&quot;</td></tr><tr><td><code>kn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>hn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>Nmin</code></td><td>1 x 1</td><td>double</td><td>0</td></tr><tr><td><code>Nmax</code></td><td>1 x 1</td><td>double</td><td>NaN</td></tr><tr><td><code>Height</code></td><td>1 x 1</td><td>double</td><td>0</td></tr><tr><td><code>rho_ave</code></td><td>1 x 1</td><td>double</td><td>5517</td></tr><tr><td><code>rho_water</code></td><td>1 x 1</td><td>double</td><td>1000</td></tr><tr><td><code>LatType</code></td><td>1 x 1</td><td>string</td><td>&quot;geodetic&quot;</td></tr><tr><td><code>Flattening</code></td><td>1 x 1</td><td>double</td><td>1/298.257223563</td></tr><tr><td><code>Method</code></td><td>1 x 1</td><td>string</td><td>&quot;auto&quot;</td></tr><tr><td><code>MaxMemGB</code></td><td>1 x 1</td><td>double</td><td>4</td></tr></table>
+<b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
+<tr><td><code>b</code></td><td>(1 x 1) struct   Z (nlat x nlon) double values; lat (nlat x 1) double AS GIVEN; lon (1 x nlon) double; Units, LatType, Quantity, ProductType, Source, Name, FieldKind (1,1) string; Epoch, C00, Zmin, Zmax, Zmean (1,1) double; History (: x 1) string</td></tr>
+</table>
+<b>Example</b><pre>    b = g.toGrid(-89.5:89.5, 0.5:359.5, Quantity = &quot;ewh&quot;, kn = kn);
+    b.Units          % &quot;m&quot;
+    b.FieldKind      % &quot;anomaly&quot; for a residual field</pre>
 </div>
 <div class="entry" id="shCoefficients.toReference">
 <h3><code>shCoefficients.toReference(obj, opts)</code></h3>
@@ -1948,6 +2040,7 @@ code itself.</p>
 <a href="#shSeries.restore">restore</a>
 <a href="#shSeries.select">select</a>
 <a href="#shSeries.shSeries">shSeries</a>
+<a href="#shSeries.toGrid">toGrid</a>
 <a href="#shSeries.trendBreaks">trendBreaks</a>
 <a href="#shSeries.truncate">truncate</a>
 </p>
@@ -2023,7 +2116,7 @@ code itself.</p>
 <h3><code>shSeries.destripe(obj, opts)</code></h3>
 <p class="h1line">Swenson &amp; Wahr / P3M6, applied per epoch.</p>
 <b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td>required</td></tr></table>
-<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>minOrder</code></td><td>1 x 1</td><td>double</td><td>6</td></tr><tr><td><code>polyOrder</code></td><td>1 x 1</td><td>double</td><td>3</td></tr><tr><td><code>windowLength</code></td><td>n x m</td><td>double</td><td>[]</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>MinOrder</code></td><td>1 x 1</td><td>double</td><td>6</td></tr><tr><td><code>PolyOrder</code></td><td>1 x 1</td><td>double</td><td>3</td></tr><tr><td><code>WindowLength</code></td><td>n x m</td><td>double</td><td>[]</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
 <tr><td><code>out</code></td><td>(1 x 1) shSeries   destriped per month</td></tr>
 </table>
@@ -2084,13 +2177,18 @@ code itself.</p>
 </div>
 <div class="entry" id="shSeries.mean">
 <h3><code>shSeries.mean(obj, opts)</code></h3>
-<p class="h1line">Mean field of the series.</p>
-<p>G = ts.mean (Omitnan=true default) returns an shCoefficients; its sigmas, when present, are the standard error of the mean.</p>
+<p class="h1line">Mean field, over the whole series or a user-given window.</p>
+<p>G = ts.mean() averages every epoch and returns an shCoefficients whose sigmas are the standard error of the temporal scatter, divided by the number of VALID epochs per coefficient (before v3.29.0 it divided by nEpochs, which understated the sigmas of any series holding NaN months).</p>
 <b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td>required</td></tr></table>
-<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Omitnan</code></td><td>1 x 1</td><td>logical</td><td>true</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Range</code></td><td>n x m</td><td>-</td><td>[]</td></tr><tr><td><code>Estimator</code></td><td>1 x 1</td><td>string</td><td>&quot;arithmetic&quot;</td></tr><tr><td><code>Periods</code></td><td>1 x :</td><td>double</td><td>double.empty(1,0)</td></tr><tr><td><code>Omitnan</code></td><td>1 x 1</td><td>logical</td><td>true</td></tr><tr><td><code>MinEpochs</code></td><td>1 x 1</td><td>double</td><td>1</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
-<tr><td><code>g</code></td><td>(1 x 1) shCoefficients   temporal mean field (omits NaN months)</td></tr>
+<tr><td><code>g</code></td><td>(1 x 1) shCoefficients   mean field over the window, with sigmas (scatter-based for &quot;arithmetic&quot;, propagated through the fit for &quot;model&quot;)</td></tr>
+<tr><td><code>info</code></td><td>(1 x 1) struct   estimator, range, nUsed, nTotal, nDropped, span, coverage, maxGapYears, centroidOffset, epoch, attenuation (K+2 x 2 [period factor], &quot;model&quot; only)</td></tr>
 </table>
+<b>Example</b><pre>    gBase = ts.mean(Range = [2004 2010]);
+    [gGap, info] = ts.mean(Range = [2015 2021], Estimator = &quot;model&quot;);
+
+  See also select, climatology, at</pre>
 </div>
 <div class="entry" id="shSeries.minus">
 <h3><code>shSeries.minus(a, b)</code></h3>
@@ -2144,13 +2242,18 @@ code itself.</p>
 </table>
 </div>
 <div class="entry" id="shSeries.select">
-<h3><code>shSeries.select(obj, which)</code></h3>
+<h3><code>shSeries.select(obj, which, opts)</code></h3>
 <p class="h1line">Subset the series by index, mask, or time range.</p>
-<p>OUT = ts.select(WHICH) with WHICH one of logical (1,T)   keep masked epochs indices         keep listed epochs (in the given order) [tMin tMax]     keep epochs with tMin &lt;= t &lt;= tMax (two-element non-integer-valued row =&gt; range; use explicit logical/index forms otherwise)</p>
-<b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td>required</td></tr><tr><td><code>which</code></td><td>n x 1</td><td>-</td><td>required</td></tr></table>
+<p>OUT = ts.select(WHICH) with WHICH one of logical (1,T)   keep masked epochs indices         keep listed epochs (in the given order) [tMin tMax]     keep epochs with tMin &lt;= t &lt;= tMax</p>
+<b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td>required</td></tr><tr><td><code>which</code></td><td>n x 1</td><td>-</td><td>[]</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Range</code></td><td>n x m</td><td>-</td><td>[]</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
-<tr><td><code>out</code></td><td>(1 x 1) shSeries   months selected by logical/index mask</td></tr>
+<tr><td><code>out</code></td><td>(1 x 1) shSeries   the selected epochs, in the order given; the operation is appended to the history (immutable value-class pattern)</td></tr>
 </table>
+<b>Example</b><pre>    tsFO = ts.select(ts.epochs &gt; 2018.5);
+    tsB  = ts.select(Range = [2004 2010]);
+
+  See also mean, dropNaN</pre>
 </div>
 <div class="entry" id="shSeries.shSeries">
 <h3><code>shSeries.shSeries(in, opts)</code></h3>
@@ -2161,6 +2264,18 @@ code itself.</p>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
 <tr><td><code>obj</code></td><td>(1 x 1) shSeries   epoch-sorted monthly stack with sigmas and history</td></tr>
 </table>
+</div>
+<div class="entry" id="shSeries.toGrid">
+<h3><code>shSeries.toGrid(obj, latDeg, lonDeg, opts)</code></h3>
+<p class="h1line">Synthesize every epoch into one stack, with its metadata.</p>
+<p>B = ts.toGrid(LAT, LON, Quantity (&quot;ewh&quot;)=..., kn ([])=..., LatType (&quot;geodetic&quot;)=...) is shCoefficients.toGrid over a whole series: B.Z is (nlat x nlon x nEpochs) and B.Epoch carries the decimal years, so an animation can label its own frames from the data rather than from a filename.</p>
+<b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td>required</td></tr><tr><td><code>latDeg</code></td><td>1 x :</td><td>double</td><td>required</td></tr><tr><td><code>lonDeg</code></td><td>1 x :</td><td>double</td><td>required</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Quantity</code></td><td>1 x 1</td><td>string</td><td>&quot;ewh&quot;</td></tr><tr><td><code>kn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>hn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>Nmin</code></td><td>1 x 1</td><td>double</td><td>0</td></tr><tr><td><code>Nmax</code></td><td>1 x 1</td><td>double</td><td>NaN</td></tr><tr><td><code>Height</code></td><td>1 x 1</td><td>double</td><td>0</td></tr><tr><td><code>rho_ave</code></td><td>1 x 1</td><td>double</td><td>5517</td></tr><tr><td><code>rho_water</code></td><td>1 x 1</td><td>double</td><td>1000</td></tr><tr><td><code>LatType</code></td><td>1 x 1</td><td>string</td><td>&quot;geodetic&quot;</td></tr><tr><td><code>Flattening</code></td><td>1 x 1</td><td>double</td><td>1/298.257223563</td></tr><tr><td><code>MaxMemGB</code></td><td>1 x 1</td><td>double</td><td>4</td></tr></table>
+<b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
+<tr><td><code>b</code></td><td>(1 x 1) struct   as shCoefficients.toGrid, with Z (nlat x nlon x nEpochs) double, Epoch and C00 (nEpochs x 1) double, and FieldKind &quot;mixed&quot; if the epochs disagree</td></tr>
+</table>
+<b>Example</b><pre>    b = ts.toGrid(-89.5:89.5, 0.5:359.5, Quantity = &quot;ewh&quot;, kn = kn);
+    size(b.Z)        % [180 360 nEpochs]</pre>
 </div>
 <div class="entry" id="shSeries.trendBreaks">
 <h3><code>shSeries.trendBreaks(obj, opts)</code></h3>
@@ -2198,9 +2313,9 @@ code itself.</p>
 <div class="entry" id="shClimatology.amplitudeMap">
 <h3><code>shClimatology.amplitudeMap(obj, which, latVec, lonVec, opts)</code></h3>
 <p class="h1line">Pointwise seasonal amplitude (and phase) map.</p>
-<p>[A, LAT, LON, PHASE] = clim.amplitudeMap(WHICH, ... with WHICH &quot;annual&quot; | &quot;semiannual&quot; | k (index into clim.periods, v2.1), LATVEC, LONVEC, quantity (&quot;geoid&quot;)=..., kn ([])=...) synthesizes the cos and sin component fields and combines them pointwise: A     = sqrt(fc.^2 + fs.^2) PHASE = atan2(fs, fc)   [rad, relative to t0] (amplitude of a harmonic is NOT a linear functional of the coefficients, so it must be formed in the space domain).</p>
+<p>[A, LAT, LON, PHASE] = clim.amplitudeMap(WHICH, ... with WHICH &quot;annual&quot; | &quot;semiannual&quot; | k (index into clim.periods, v2.1), LATVEC, LONVEC, Quantity (&quot;geoid&quot;)=..., kn ([])=...) synthesizes the cos and sin component fields and combines them pointwise: A     = sqrt(fc.^2 + fs.^2) PHASE = atan2(fs, fc)   [rad, relative to t0] (amplitude of a harmonic is NOT a linear functional of the coefficients, so it must be formed in the space domain).</p>
 <b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td>required</td></tr><tr><td><code>which</code></td><td>1 x 1</td><td>-</td><td>required</td></tr><tr><td><code>latVec</code></td><td>1 x :</td><td>double</td><td>required</td></tr><tr><td><code>lonVec</code></td><td>1 x :</td><td>double</td><td>required</td></tr></table>
-<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>quantity</code></td><td>1 x 1</td><td>string</td><td>&quot;geoid&quot;</td></tr><tr><td><code>kn</code></td><td>n x m</td><td>double</td><td>[]</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Quantity</code></td><td>1 x 1</td><td>string</td><td>&quot;geoid&quot;</td></tr><tr><td><code>kn</code></td><td>n x m</td><td>double</td><td>[]</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
 <tr><td><code>A</code></td><td>(nlat x nlon) double   amplitude of the harmonic in the requested quantity</td></tr>
 <tr><td><code>lat</code></td><td>(1 x nlat) double   latitudes</td></tr>
@@ -2303,4 +2418,4 @@ code itself.</p>
 <tr><td><code>obj</code></td><td>(1 x 1) shClimatology   copy with the note appended to its history</td></tr>
 </table>
 </div>
-<hr><p style="font-size:11px;color:#888">Developed by Matthias Weigelt with the help of Claude (Fable 5), 18-Aug-2026 (v3.28.0). Generated by tools - do not edit.</p></body></html>
+<hr><p style="font-size:11px;color:#888">Developed by Matthias Weigelt with the help of Claude (Fable 5), 05-Sep-2026 (v3.33.0). Generated by tools - do not edit.</p></body></html>

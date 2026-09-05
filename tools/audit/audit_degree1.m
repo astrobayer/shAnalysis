@@ -53,7 +53,7 @@ for k = 1:T
     u = -sum(Lk(:).*AF(:)) / oceA;                     % eustatic closure
     sig = Lk + u*double(isOceanFine) + oceanExtra(k);  % total EWH [m]
     [Ck, Sk] = shLowLevel.shAnalysisGrid(sig, L.lat, L.lon, 90, ...
-        quantity="ewh", GM=GM, R=R, kn=kn);
+        Quantity="ewh", GM=GM, R=R, kn=kn);
     truth.C10(k) = Ck(2,1); truth.C11(k) = Ck(2,2); truth.S11(k) = Sk(2,2);
     for n = 2:90
         sc = sigDeg(n+1) / (kf90(n+1)*sqrt(2*n+1));

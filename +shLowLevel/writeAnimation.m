@@ -80,7 +80,7 @@ arguments
 end
 loc = shLowLevel.requireGeoMap();
 
-b = ts.toGrid(opts.lat, opts.lon, quantity = opts.Quantity, ...
+b = ts.toGrid(opts.lat, opts.lon, Quantity = opts.Quantity, ...
     kn = opts.kn, hn = opts.hn, LatType = opts.LatType);
 T = size(b.Z, 3);
 

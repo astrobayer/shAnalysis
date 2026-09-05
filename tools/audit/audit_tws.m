@@ -21,7 +21,7 @@ GM = 3.986004415e14; R = 6378136.3;
 
 S = load_or_build(aux, ser);
 ep = S.ep(:); T = numel(ep); nmax = size(S.Cs,1)-1;
-fprintf('corrected series: T=%d, %.3f..%.3f, nmax=%d (dropped: %d)\n', ...
+fprintf('corrected series: T=%d, %.3f..%.3f, Nmax=%d (dropped: %d)\n', ...
     T, ep(1), ep(end), nmax, S.nDropped);
 
 % filtered coefficient sets

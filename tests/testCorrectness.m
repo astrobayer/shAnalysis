@@ -403,7 +403,7 @@ C0(1:2, :) = 0; S0(1:2, :) = 0;                 % nothing below degree 2
 lat = linspace(-85, 85, 2*L+6); lon = (0:2*L+5) * 360/(2*L+6);
 g = shLowLevel.shSynthesis(C0, S0, GM, R, lat, lon, 'quantity', 'gravity_anomaly');
 [C, S, info] = shLowLevel.shAnalysisGrid(g, lat, lon, L, ...
-    quantity = 'gravity_anomaly', GM = GM, R = R);
+    Quantity = 'gravity_anomaly', GM = GM, R = R);
 verifyEqual(testCase, C, C0, 'AbsTol', 1e-16);
 verifyEqual(testCase, S, S0, 'AbsTol', 1e-16);
 % gravity_anomaly kernel (n-1): only n=1 carries no information
@@ -994,8 +994,8 @@ for seed = 1:6
     [xg, ~] = shLowLevel.gaussLegendre(nlat);            % ring latitudes (nodes)
     lat = asind(xg(:)');
     lon = (0:nlon-1) * 360 / nlon;
-    grid = g.synthesis(lat, lon, quantity = q, UseCache = false);
-    g2 = shCoefficients.analysis(grid, lat, lon, nmax, quantity = char(q));
+    grid = g.synthesis(lat, lon, Quantity = q, UseCache = false);
+    g2 = shCoefficients.analysis(grid, lat, lon, nmax, Quantity = char(q));
     verifyEqual(testCase, g2.C, g.C, 'AbsTol', 1e-10, ...
         sprintf('roundtrip C failed (seed %d, nmax %d, %s)', seed, nmax, q));
     verifyEqual(testCase, g2.S, g.S, 'AbsTol', 1e-10, ...
@@ -1061,10 +1061,10 @@ hn = -0.90 * n ./ (n + 2.0) - 0.1;
 ln = -0.05 * n ./ (n + 4.0) - 0.01;
 lat = [37.2, -61.8]; lon = [211.0, 12.5];
 [up, north, east] = shLowLevel.shSynthesisDeformation(C, S, R, lat, lon, ...
-    kn = kn, hn = hn, ln = ln, nmin = 1);
+    kn = kn, hn = hn, ln = ln, Nmin = 1);
 % vertical == kernel route through the standard synthesis
 fUp = shLowLevel.shSynthesisDeformation(C, S, R, lat, lon, ...
-    kn = kn, hn = hn, ln = ln, nmin = 1);
+    kn = kn, hn = hn, ln = ln, Nmin = 1);
 upK = shLowLevel.shSynthesis(C, S, 3.986004415e14, R, lat, lon, ...
     'quantity', 'deformation_up', 'kn', kn, 'hn', hn, 'nmin', 1);
 verifyEqual(testCase, fUp, upK, 'AbsTol', 1e-15);
@@ -1109,10 +1109,10 @@ kn = -0.30 * n ./ (n + 3.0);
 g = randomField(L);
 [xg, ~] = shLowLevel.gaussLegendre(L + 1);
 lat = asind(xg(:)'); lon = (0:2*L+1) * 360 / (2*L + 2);
-grid = g.synthesis(lat, lon, quantity = "surface_density", kn = kn, ...
+grid = g.synthesis(lat, lon, Quantity = "surface_density", kn = kn, ...
     UseCache = false);
 g2 = shCoefficients.analysis(grid, lat, lon, L, ...
-    quantity = 'surface_density', kn = kn);
+    Quantity = 'surface_density', kn = kn);
 verifyEqual(testCase, g2.C, g.C, 'AbsTol', 1e-10);
 verifyEqual(testCase, g2.S, g.S, 'AbsTol', 1e-10);
 end
@@ -1138,7 +1138,7 @@ C = tril(randn(n1)) * 1e-8; C(1, 1) = 0;
 S = tril(randn(n1), -1) * 1e-8; S(:, 1) = 0;
 lat = [41, -55.5]; lon = [100, 331];
 [G, info] = shLowLevel.shSynthesisGradientTensor(C, S, GM, R, lat, lon, ...
-    Height = 250e3, nmin = 2);
+    Height = 250e3, Nmin = 2);
 % Laplace: trace = 0 (Python: 7e-16)
 verifyLessThan(testCase, info.maxTraceResidual, 1e-12);
 % Guu == gravity_gradient_rr kernel route with Height
@@ -1323,7 +1323,7 @@ idx = shLowLevel.shIndex(3, Nmin = 2);
 A = randn(idx.P) * 1e-10;
 M = A * A' + 1e-22 * eye(idx.P);              % PD synthetic covariance
 lat = [-40, 10, 55]; lon = [30, 200];
-sig = shLowLevel.errorMap(M, idx, lat, lon, quantity = "geoid");
+sig = shLowLevel.errorMap(M, idx, lat, lon, Quantity = "geoid");
 % Monte-Carlo cross-check
 Nmc = 4000;
 Lch = chol((M + M')/2 + 1e-30*eye(idx.P), 'lower');
@@ -1392,9 +1392,9 @@ verifyEqual(testCase, g3.C, g1.C, 'RelTol', 1e-14);
 % physical invariance: potential at points agrees (Python: exact)
 lat = [12.5, -60]; lon = [33, 250];
 % physical invariance: potential at a COMMON radius r = R2 + 100 km
-V1r = g1.synthesis(lat, lon, quantity = "potential", ...
+V1r = g1.synthesis(lat, lon, Quantity = "potential", ...
     Height = R2 + 100e3 - R1, UseCache = false);
-V2r = g2.synthesis(lat, lon, quantity = "potential", ...
+V2r = g2.synthesis(lat, lon, Quantity = "potential", ...
     Height = 100e3, UseCache = false);
 verifyEqual(testCase, V1r, V2r, 'RelTol', 1e-12);
 end
@@ -1770,7 +1770,7 @@ L = 20; n1 = L + 1;
 C = tril(randn(n1)) * 1e-8; S = tril(randn(n1), -1) * 1e-8; S(:, 1) = 0;
 sC = abs(C) * 0.1; sS = abs(S) * 0.1;
 sd = shLowLevel.shDegreeRMS(C, S, 'R', 6378136.3, 'sigmaC', sC, 'sigmaS', sS);
-so = shLowLevel.shOrderRMS(C, S, sigmaC = sC, sigmaS = sS);
+so = shLowLevel.shOrderRMS(C, S, SigmaC = sC, SigmaS = sS);
 % degree/order marginals of the same total power
 verifyEqual(testCase, sum(so.ordVariance), sum(sd.degVariance), ...
     'RelTol', 1e-14);
@@ -1787,7 +1787,7 @@ verifyEqual(testCase, so.domain, 'order');
 verifyEqual(testCase, sd.domain, 'degree');
 % n0 zeroing consistent between domains
 sd2 = shLowLevel.shDegreeRMS(C, S, 'n0', 2);
-so2 = shLowLevel.shOrderRMS(C, S, n0 = 2);
+so2 = shLowLevel.shOrderRMS(C, S, N0 = 2);
 verifyEqual(testCase, sum(so2.ordVariance), sum(sd2.degVariance), 'RelTol', 1e-14);
 end
 
@@ -2194,7 +2194,7 @@ truth(~ocean) = 0.05 * sind(3 * LO(~ocean));
 oceanModel = zeros(size(LA));
 oceanModel(ocean) = 0.01 * cosd(2 * LA(ocean));
 truth = truth + oceanModel;
-gT = shCoefficients.analysis(truth, lat, lon, nmax, quantity = "ewh", ...
+gT = shCoefficients.analysis(truth, lat, lon, nmax, Quantity = "ewh", ...
     kn = kn);
 c10 = gT.C(2, 1); c11 = gT.C(2, 2); s11 = gT.S(2, 2);
 verifyGreaterThan(testCase, abs(c10) + abs(c11) + abs(s11), 0, ...
@@ -2504,9 +2504,9 @@ verifyTrue(testCase, mk600(iLa, iLo));
 nmax = 30; kn = zeros(nmax + 1, 1);
 GM = 3.986004415e14; R = 6378136.3;
 gLand = shCoefficients.analysis(double(land) * 1.0, lat, lon, nmax, ...
-    kn = kn, quantity = "ewh");
+    kn = kn, Quantity = "ewh");
 gOc = shCoefficients.analysis(double(ocean) * 0.10, lat, lon, nmax, ...
-    kn = kn, quantity = "ewh");
+    kn = kn, Quantity = "ewh");
 wf = shLowLevel.shGaussianWeights(nmax, 445); wf = wf(:);
 w = cosd(LA);
 mm = @(C, S) localMaskMean(shLowLevel.shSynthesis(C .* wf, S .* wf, ...
@@ -2526,14 +2526,14 @@ for it = 1:5
         'quantity', 'ewh', 'kn', kn, 'nmin', 0);
     EL(ocean) = 0;
     gLe = shCoefficients.analysis(EL, lat, lon, nmax, kn = kn, ...
-        quantity = "ewh");
+        Quantity = "ewh");
     Lc = gLe.C; Ls = gLe.S;
     EO = shLowLevel.shSynthesis(gOc.C + gLand.C - Lc, ...
         gOc.S + gLand.S - Ls, GM, R, lat, lon, ...
         'quantity', 'ewh', 'kn', kn, 'nmin', 0);
     EO(~ocean) = 0;
     gOe = shCoefficients.analysis(EO, lat, lon, nmax, kn = kn, ...
-        quantity = "ewh");
+        Quantity = "ewh");
     Oc = gOe.C; Os = gOe.S;
 end
 leakClean = mm(gOc.C + gLand.C - Lc, gOc.S + gLand.S - Ls) - ref;
@@ -3611,7 +3611,7 @@ h = 1e-4;                                   % rad; 5-point stencil below
 for q = ["none", "geoid", "potential", "gravity_anomaly", ...
          "gravity_disturbance", "ewh"]
     g = shLowLevel.shSynthesisGradient(C, S, GM, R, lat, lon, ...
-        quantity = q, kn = kn, Units = "perRadian");
+        Quantity = q, kn = kn, Units = "perRadian");
     scal = @(la, lo) shLowLevel.shSynthesis(C, S, GM, R, la, lo, ...
         'quantity', char(q), 'kn', kn);
     d5 = @(f, x) (f(x - 2*rad2deg(h)) - 8*f(x - rad2deg(h)) ...
@@ -3648,12 +3648,12 @@ GM = 3.986004415e14; R = 6378136.3;
 lat = -75:25:75; lon = 0:60:300;
 for hgt = [0, 250e3]
     g = shLowLevel.shSynthesisGradient(C, S, GM, R, lat, lon, ...
-        quantity = "potential", Height = hgt);
+        Quantity = "potential", Height = hgt);
     dg = shLowLevel.shSynthesis(C, S, GM, R, lat, lon, ...
         'quantity', 'gravity_disturbance', 'Height', hgt);
     verifyEqual(testCase, g.up, -dg, 'RelTol', 1e-12);
     g2 = shLowLevel.shSynthesisGradient(C, S, GM, R, lat, lon, ...
-        quantity = "gravity_disturbance", Height = hgt);
+        Quantity = "gravity_disturbance", Height = hgt);
     trr = shLowLevel.shSynthesis(C, S, GM, R, lat, lon, ...
         'quantity', 'gravity_gradient_rr', 'Height', hgt);
     verifyEqual(testCase, g2.up, -trr, 'RelTol', 1e-12);
@@ -3671,19 +3671,19 @@ mk = @(n, m, isC) deal(local_one(n, m, isC, true), local_one(n, m, isC, false));
 
 [C, S] = mk(1, 0, true);                       % C_10
 g = shLowLevel.shSynthesisGradient(C, S, GM, R, lat, lon, ...
-    quantity = "none", Units = "perRadian");
+    Quantity = "none", Units = "perRadian");
 verifyEqual(testCase, g.north, sqrt(3) * cos(LA), 'AbsTol', 1e-13);
 verifyEqual(testCase, g.east, zeros(size(LA)), 'AbsTol', 1e-14);
 
 [C, S] = mk(1, 1, true);                       % C_11
 g = shLowLevel.shSynthesisGradient(C, S, GM, R, lat, lon, ...
-    quantity = "none", Units = "perRadian");
+    Quantity = "none", Units = "perRadian");
 verifyEqual(testCase, g.north, -sqrt(3) * sin(LA) .* cos(LO), 'AbsTol', 1e-13);
 verifyEqual(testCase, g.east, -sqrt(3) * sin(LO), 'AbsTol', 1e-13);
 
 [C, S] = mk(1, 1, false);                      % S_11
 g = shLowLevel.shSynthesisGradient(C, S, GM, R, lat, lon, ...
-    quantity = "none", Units = "perRadian");
+    Quantity = "none", Units = "perRadian");
 verifyEqual(testCase, g.north, -sqrt(3) * sin(LA) .* sin(LO), 'AbsTol', 1e-13);
 verifyEqual(testCase, g.east, sqrt(3) * cos(LO), 'AbsTol', 1e-13);
 end
@@ -3724,10 +3724,10 @@ d = max(abs(lat - latGc));
 verifyEqual(testCase, d, 0.1924, 'AbsTol', 2e-3);
 
 % the gradient carries the convention rather than leaving it to be remembered
-[~, info] = g.gradient(lat, lon, quantity = "potential", LatType = "geodetic");
+[~, info] = g.gradient(lat, lon, Quantity = "potential", LatType = "geodetic");
 verifyEqual(testCase, info.lat, lat);
 verifyEqual(testCase, info.latType, "geodetic");
-[~, info2] = g.gradient(lat, lon, quantity = "potential");
+[~, info2] = g.gradient(lat, lon, Quantity = "potential");
 verifyEqual(testCase, info2.latType, "geocentric");
 end
 

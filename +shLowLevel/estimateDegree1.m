@@ -98,7 +98,7 @@ assert(~isempty(opts.kn), 'shLowLevel:estimateDegree1:noLoveNumbers', ...
 lat = opts.LatDeg(:).';
 lon = opts.LonDeg(:).';
 nmax = opts.Nmax;
-if ~isfinite(nmax), nmax = ts.nmax; end
+if ~isfinite(nmax), Nmax = ts.nmax; end
 [LO, LA] = meshgrid(lon, lat);
 if isa(ocean, 'function_handle')
     isOc = logical(ocean(LA, LO));
@@ -153,8 +153,8 @@ C10 = zeros(T, 1); C11 = zeros(T, 1); S11 = zeros(T, 1);
 cnd = zeros(T, 1); rms = zeros(T, 1);
 for k = 1:T
     g = ts.at(k);
-    obs = g.synthesis(lat, lon, quantity = "ewh", kn = opts.kn, ...
-        nmin = 2, nmax = nmax);
+    obs = g.synthesis(lat, lon, Quantity = "ewh", kn = opts.kn, ...
+        Nmin = 2, Nmax = nmax);
     if hasModel
         d = mdl(:, :, k) - obs;
     else

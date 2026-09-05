@@ -195,13 +195,13 @@ if opts.RemoveLandLeakage
                 GM, R, lat, lon, 'quantity','ewh', 'kn',kn1, 'nmin',0);
             EL(mk) = 0;
             gL = shCoefficients.analysis(EL, lat, lon, nmaxC, ...
-                kn = kn1, quantity = "ewh");
+                kn = kn1, Quantity = "ewh");
             Lc = gL.C; Ls = gL.S;
             EO = shLowLevel.shSynthesis(Cs(:,:,k) - Lc, Ss(:,:,k) - Ls, ...
                 GM, R, lat, lon, 'quantity','ewh', 'kn',kn1, 'nmin',0);
             EO(~mk) = 0;
             gO = shCoefficients.analysis(EO, lat, lon, nmaxC, ...
-                kn = kn1, quantity = "ewh");
+                kn = kn1, Quantity = "ewh");
             Oc = gO.C; Os = gO.S;
         end
         Cs(:,:,k) = Cs(:,:,k) - Lc;

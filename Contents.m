@@ -41,7 +41,7 @@
 %   ts  = ts.restore(shSeries.read("GAD-2_*.gfc"));   % add background
 %   dts = ts - ts.mean;                               % anomalies
 %   [clim, resid] = dts.climatology;                  % seasonal model
-%   tsA = dts.destripe(minOrder=6).gaussian(300);     % classic chain
+%   tsA = dts.destripe(MinOrder=6).gaussian(300);     % classic chain
 %   [tsF, op] = dts.filter("tvANS");                  % optimal chain
 %   avg = tsF.basinAverage(B, Deconvolve=true, Op=op);
 %

@@ -131,7 +131,7 @@ ck('geoMap is really gone', @() assertGone());
 ck('requireGeoMap raises geoMapRequired', ...
     @() expectError(@() shLowLevel.requireGeoMap(), 'shAnalysis:geoMapRequired'));
 ck('g.map raises geoMapRequired', ...
-    @() expectError(@() g.map(lat, lon, quantity = "geoid"), ...
+    @() expectError(@() g.map(lat, lon, Quantity = "geoid"), ...
         'shAnalysis:geoMapRequired'));
 ck('writeAnimation refuses BEFORE writing', ...
     @() checkRefusal(ts, opts.OutDir));
@@ -172,7 +172,7 @@ end
 function note = checkMap(g, kn)
 f = figure('Visible', 'off');
 c = onCleanup(@() close(f)); %#ok<NASGU>
-H = g.map(-88:4:88, 0:4:356, quantity = "ewh", kn = kn, ...
+H = g.map(-88:4:88, 0:4:356, Quantity = "ewh", kn = kn, ...
     GeoArgs = {'Parent', axes('Parent', f)});
 assert(isstruct(H), 'geo.map returned a %s, not a struct', class(H));
 for want = ["Axes", "CRS"]
@@ -188,7 +188,7 @@ sz = strings(3, 1);
 geom = zeros(3, 2);
 for r = 1:3
     tmp = fullfile(char(outDir), sprintf('shx_rep%d_%d.avi', r, randi(1e9)));
-    shLowLevel.writeAnimation(ts, tmp, quantity = "ewh", kn = kn, ...
+    shLowLevel.writeAnimation(ts, tmp, Quantity = "ewh", kn = kn, ...
         lat = -80:8:80, lon = 0:8:352, FrameRate = 2, Size = [640 340]);
     d = dir(tmp);
     assert(~isempty(d) && d.bytes > 1000, 'run %d wrote nothing usable', r);
@@ -210,7 +210,7 @@ end
 function note = checkAnim(ts, kn, outDir)
 tmp = fullfile(char(outDir), sprintf('shx_acc_%d.avi', randi(1e9)));
 c = onCleanup(@() cleanFile(tmp)); %#ok<NASGU>
-shLowLevel.writeAnimation(ts, tmp, quantity = "ewh", kn = kn, ...
+shLowLevel.writeAnimation(ts, tmp, Quantity = "ewh", kn = kn, ...
     lat = -80:8:80, lon = 0:8:352, FrameRate = 2, Size = [640 340]);
 d = dir(tmp);
 assert(~isempty(d) && d.bytes > 1000, 'no usable file written');
@@ -245,14 +245,14 @@ end
 
 function note = checkRefusal(ts, outDir)
 tmp = fullfile(char(outDir), sprintf('shx_never_%d.avi', randi(1e9)));
-expectError(@() shLowLevel.writeAnimation(ts, tmp, quantity = "geoid"), ...
+expectError(@() shLowLevel.writeAnimation(ts, tmp, Quantity = "geoid"), ...
     'shAnalysis:geoMapRequired');
 assert(~isfile(tmp), 'it wrote %s before refusing', tmp);
 note = "nothing written";
 end
 
 function note = checkBridge(g, kn, lat, lon)
-b = g.toGrid(lat, lon, quantity = "ewh", kn = kn);
+b = g.toGrid(lat, lon, Quantity = "ewh", kn = kn);
 assert(b.Units == "m", 'units %s', b.Units);
 assert(b.LatType == "geodetic");
 assert(isequal(size(b.Z), [numel(lat), numel(lon)]));

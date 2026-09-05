@@ -254,16 +254,16 @@ kn = synthLove(g.nmax);
 lat = -89:2:89; lon = 0:2:358;
 newfig(vis, 'D02 quantities');
 subplot(1, 2, 1);
-showMap(g.synthesis(lat, lon, quantity = "geoid"), lat, lon, ...
+showMap(g.synthesis(lat, lon, Quantity = "geoid"), lat, lon, ...
     "geoid", "m");
 subplot(1, 2, 2);
-showMap(gd.gaussian(350).synthesis(lat, lon, quantity = "ewh", kn = kn), ...
+showMap(gd.gaussian(350).synthesis(lat, lon, Quantity = "ewh", kn = kn), ...
     lat, lon, "mass change 2008-2025, Gaussian 350 (EWH; synthetic kn!)", ...
     "m EWH", CRS = "hammer");
 newfig(vis, 'D02 upward continuation');
 g = g.truncate(min(g.nmax, 45));
-ga0 = g.synthesis(lat, lon, quantity = "gravity_anomaly");
-ga4 = g.synthesis(lat, lon, quantity = "gravity_anomaly", Height = 400e3);
+ga0 = g.synthesis(lat, lon, Quantity = "gravity_anomaly");
+ga4 = g.synthesis(lat, lon, Quantity = "gravity_anomaly", Height = 400e3);
 subplot(1, 2, 1); showMap(ga0*1e5, lat, lon, "anomaly, surface", "mGal");
 subplot(1, 2, 2); showMap(ga4*1e5, lat, lon, "anomaly at 400 km", "mGal");
 fprintf('  attenuation at 400 km: rms ratio %.3f\n', sqrt(mean(ga4(:).^2))/sqrt(mean(ga0(:).^2)));
@@ -282,7 +282,7 @@ if isempty(g)
 end
 T = g.subtractNormalField();                  % WGS84, auto-rescaled
 newfig(vis, 'D03 disturbing geoid');
-showMap(T.synthesis(-89:89, 0:359, quantity = "geoid"), -89:89, 0:359, ...
+showMap(T.synthesis(-89:89, 0:359, Quantity = "geoid"), -89:89, 0:359, ...
     "geoid undulation (normal field subtracted)", "m");
 fprintf('  C20 before %.3e -> after %.3e\n', g.C(3, 1), T.C(3, 1));
 end
@@ -410,7 +410,7 @@ showMap(shLowLevel.shSynthesis(Cb, Sb, 1, 1, lat, lon), lat, lon, ...
 ts = demoSeries(L, 12, 18);
 Wn = shLowLevel.shGaussianWeights(L, 400);
 W = diag(Wn(idx.n + 1));
-k = shLowLevel.basinScaling(W, b, ts, idx = idx, tYears = ts.epochs');
+k = shLowLevel.basinScaling(W, b, ts, Idx = idx, TYears = ts.epochs');
 fprintf('  Gaussian-400 basin scaling factor k = %.3f\n', k);
 end
 
@@ -423,7 +423,7 @@ subplot(1, 2, 1);
 shLowLevel.plotCovariance(M, idx, ax = gca);
 subplot(1, 2, 2);
 lat = -85:5:85; lon = 0:5:355;
-sig = shLowLevel.errorMap(M, idx, lat, lon, quantity = "geoid");
+sig = shLowLevel.errorMap(M, idx, lat, lon, Quantity = "geoid");
 showMap(sig, lat, lon, "formal sigma (geoid)", "m", ...
     CLim = [0, shLowLevel.pctile(sig, 98)]);
 end
@@ -570,7 +570,7 @@ shLowLevel.writeGrid(ncf, G, lat, lon, Name = "geoid", Units = "m", ...
     Epochs = ts.epochs);
 fprintf('  wrote %s\n', ncf);
 mp4 = fullfile(outdir, 'shx_demo_anim.mp4');
-shLowLevel.writeAnimation(ts, mp4, quantity = "geoid", lat = -85:5:85, ...
+shLowLevel.writeAnimation(ts, mp4, Quantity = "geoid", lat = -85:5:85, ...
     lon = 0:5:355, FrameRate = 2, Units = "m");
 fprintf('  wrote %s\n', mp4);
 end
