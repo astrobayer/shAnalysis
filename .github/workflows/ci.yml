@@ -1,4 +1,4 @@
-# shAnalysis CI - GitHub Actions workflow template (v2.10.0)
+# shAnalysis CI - GitHub Actions workflow template (v2.11.0)
 #
 # INSTALL: copy this file to <repo-root>/.github/workflows/shanalysis-ci.yml
 # (workflow files only take effect at the repository root, so from within
@@ -63,6 +63,9 @@
 # v2.10.0 (2026-09-05): static gates moved to their own ubuntu-latest
 # job, restoring Linux coverage for the doc audits without any MATLAB
 # licence. New gate tools/fixture_tag_audit.py.
+#
+# v2.11.0 (2026-09-05): added tools/toolbox_dependency_audit.py to the
+# gates job - base MATLAB only, enforced by reading the source.
 
 # Developed by Matthias Weigelt with the help of Claude (Fable 5),
 # 2026-08-08 (v2.6.0); Claude (Sonnet 5), 2026-09-05 (v2.7.0).
@@ -120,6 +123,14 @@ jobs:
       # v2.9.0: publish a newer fixtures-* tag, forget to bump 'ref:'
       # below, and CI keeps passing against stale data. Needs the
       # checkout's persisted credentials for git ls-remote.
+      # Restores the guarantee that used to hold by construction: the
+      # old GitHub-hosted leg ran on base MATLAB, so an accidental
+      # add-on dependency failed at once. A8 carries Parallel Computing
+      # Toolbox, so that guard vanished with the matrix change. This
+      # gate reads the source instead of the environment.
+      - name: Base MATLAB only (no add-on toolboxes)
+        run: python3 tools/toolbox_dependency_audit.py
+
       - name: Fixture tag currency
         run: python3 tools/fixture_tag_audit.py
 
