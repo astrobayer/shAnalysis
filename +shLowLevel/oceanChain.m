@@ -35,7 +35,7 @@ function [out, rep] = oceanChain(folder, opts)
 %                        decision @(lat, lon) -> logical, MUST be false
 %                        over land (oceanRMS contract; the chains'
 %                        documented 5 Gt/yr latitude-band lesson)
-%     gravisFolder ("")  GravIS aux folder; "" = shipped data/gravis
+%     GravisFolder ("")  GravIS aux folder; "" = shipped data/gravis
 %     GIAFile ("GRAVIS-2B_COSTG_0200_GIA_ICE-6G_D_VM5a_0001.gz")
 %                        "" disables the GIA rate; the default
 %                        ocean-floor correction raises the barystatic
@@ -141,7 +141,7 @@ arguments
     folder (1,1) string
     opts.kn double = []
     opts.OceanMask = []
-    opts.gravisFolder (1,1) string = ""
+    opts.GravisFolder (1,1) string = ""
     opts.GIAFile (1,1) string = "GRAVIS-2B_COSTG_0200_GIA_ICE-6G_D_VM5a_0001.gz"
     opts.GIAEpoch (1,1) double = 2011
     opts.Filter (1,1) string = "gauss445"
@@ -163,7 +163,7 @@ R = 6378136.3; GM = 3.986004415e14; Re = 6371e3;
 % ---- corrected series (shared core)
 l2bArgs = {'GIAEpoch', opts.GIAEpoch, 'GIAFile', opts.GIAFile};
 if ~isempty(opts.SpanEnd), l2bArgs = [l2bArgs, {'SpanEnd', opts.SpanEnd}]; end
-[ts, repL] = shLowLevel.gravisL2B(folder, opts.gravisFolder, l2bArgs{:});
+[ts, repL] = shLowLevel.gravisL2B(folder, opts.GravisFolder, l2bArgs{:});
 ep = ts.epochs(:); T = numel(ep);
 steps = repL.steps;
 nGad = 0;
@@ -195,13 +195,13 @@ if opts.RemoveLandLeakage
                 GM, R, lat, lon, 'quantity','ewh', 'kn',kn1, 'nmin',0);
             EL(mk) = 0;
             gL = shCoefficients.analysis(EL, lat, lon, nmaxC, ...
-                kn = kn1, quantity = "ewh");
+                kn = kn1, Quantity = "ewh");
             Lc = gL.C; Ls = gL.S;
             EO = shLowLevel.shSynthesis(Cs(:,:,k) - Lc, Ss(:,:,k) - Ls, ...
                 GM, R, lat, lon, 'quantity','ewh', 'kn',kn1, 'nmin',0);
             EO(~mk) = 0;
             gO = shCoefficients.analysis(EO, lat, lon, nmaxC, ...
-                kn = kn1, quantity = "ewh");
+                kn = kn1, Quantity = "ewh");
             Oc = gO.C; Os = gO.S;
         end
         Cs(:,:,k) = Cs(:,:,k) - Lc;

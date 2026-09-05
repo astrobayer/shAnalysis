@@ -14,7 +14,7 @@ function h = plotCovariance(M, idx, opts)
 %     Type ("correlation")  "correlation" (normalized, [-1,1], divergent
 %                           scale) | "covariance" (log10|value|)
 %     BlockLines (true)     draw order/cs boundaries
-%     ax ([])
+%     Ax ([])
 %
 %   Claude (Fable 5), 2026-08-07 (v2.4).
 %   Outputs
@@ -27,9 +27,9 @@ arguments
     opts.Type (1,1) string ...
         {mustBeMember(opts.Type, ["correlation","covariance"])} = "correlation"
     opts.BlockLines (1,1) logical = true
-    opts.ax = []
+    opts.Ax = []
 end
-if isempty(opts.ax), ax = gca; else, ax = opts.ax; end
+if isempty(opts.Ax), ax = gca; else, ax = opts.Ax; end
 assert(isequal(size(M), [idx.P idx.P]), 'shLowLevel:plotCovariance:badSize', ...
     'M must be P x P for the supplied idx (P = %d).', idx.P);
 if opts.Type == "correlation"

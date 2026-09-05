@@ -36,7 +36,7 @@ th { background: #f5f7fa; }
 <tr><td>lam</td><td>(NKeep,1) double</td><td>concentrations, descending</td></tr>
 <tr><td>info</td><td>struct</td><td>shannon, areaFraction, lamAll</td></tr></table>
 <h2>Example</h2>
-<pre>idx = shLowLevel.shIndex(60, MinDegree=0);
+<pre>Idx= shLowLevel.shIndex(60, Nmin=0);
 [G, lam] = shLowLevel.slepianBasis(idx, @(la,lo) double(la&gt;60));
 a  = G' * shLowLevel.vecFromCS(g.C, g.S, idx);   % Slepian-domain coefficients
 xR = G * a;                               % regional reconstruction</pre>

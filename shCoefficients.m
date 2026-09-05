@@ -14,9 +14,9 @@ classdef shCoefficients
 %
 %   Typical chain
 %     d  = gB - gA;                              % monthly change
-%     d2 = d.destripe(minOrder=6).gaussian(300); % fluent filtering
-%     [grid, lat, lon] = d2.synthesis(-90:90, 0:359, quantity="ewh", kn=kn);
-%     spec = d.degreeRMS;  n0 = d.crossover;  d.spectrum;  d.triangle;
+%     d2 = d.destripe(MinOrder=6).gaussian(300); % fluent filtering
+%     [grid, lat, lon] = d2.synthesis(-90:90, 0:359, Quantity="ewh", kn=kn);
+%     spec = d.degreeRMS;  N0 = d.crossover;  d.spectrum;  d.triangle;
 %
 %   GAX handling: productType is parsed from the L2 filename (GSM/GAA/
 %   GAB/GAC/GAD); g + gad restores the background product, with epoch
@@ -27,7 +27,7 @@ classdef shCoefficients
 %     sigmaC, sigmaS same layout or []          formal errors
 %     GM             (1,1) double  [m^3/s^2]
 %     R              (1,1) double  [m]
-%     nmax           (1,1) double  (dependent, from size(C))
+%     Nmax           (1,1) double  (dependent, from size(C))
 %     epoch          (1,1) double  decimal years, NaN if unknown/mixed
 %     productType    (1,1) string  "GSM"|"GAA".."GAD"|"static"|"difference"|...
 %     tideSystem     (1,1) string  from the file header, "unknown" otherwise
@@ -136,7 +136,7 @@ methods
         obj.variableTerms = opts.VariableTerms;
         obj.history = opts.History;
         if isempty(obj.history)
-            obj.history = sprintf("created (nmax=%d)", obj.nmax);
+            obj.history = sprintf("created (Nmax=%d)", obj.nmax);
         end
     end
 
@@ -449,15 +449,15 @@ methods
     % ---------------------------------------------------------- filtering
     function out = destripe(obj, opts)
         %DESTRIPE Swenson & Wahr (2006) / P3M6 decorrelation.
-        %   OUT = obj.destripe(minOrder=6, polyOrder=3, windowLength=[])
+        %   OUT = obj.destripe(MinOrder=6, PolyOrder=3, WindowLength=[])
         %   Formal errors are passed through UNCHANGED (the destriping
         %   operator is data-dependent; rigorous error propagation is not
         %   defined for it - use the tvANS filter on an shSeries for a
         %   filter with proper covariance semantics).
         %   Options
-        %     minOrder (6)       lowest order the decorrelation touches
-        %     polyOrder (3)      order of the fitted/removed polynomial
-        %     windowLength ([])  sliding-window length; [] uses the
+        %     MinOrder (6)       lowest order the decorrelation touches
+        %     PolyOrder (3)      order of the fitted/removed polynomial
+        %     WindowLength ([])  sliding-window length; [] uses the
         %                        Swenson-Wahr degree-dependent width
         %
         %   Outputs
@@ -468,21 +468,21 @@ methods
         %              history (immutable value-class pattern)
         arguments
             obj
-            opts.minOrder (1,1) double = 6
-            opts.polyOrder (1,1) double = 3
-            opts.windowLength double = []
+            opts.MinOrder (1,1) double = 6
+            opts.PolyOrder (1,1) double = 3
+            opts.WindowLength double = []
         end
         out = obj;
         [out.C, out.S] = shLowLevel.shDestripe(obj.C, obj.S, ...
-            'minOrder', opts.minOrder, 'polyOrder', opts.polyOrder, ...
-            'windowLength', opts.windowLength);
-        if isempty(opts.windowLength)
-            out.history(end+1) = sprintf("destriped (minOrder=%d, polyOrder=%d)", ...
-                opts.minOrder, opts.polyOrder);
+            'minOrder', opts.MinOrder, 'polyOrder', opts.PolyOrder, ...
+            'windowLength', opts.WindowLength);
+        if isempty(opts.WindowLength)
+            out.history(end+1) = sprintf("destriped (MinOrder=%d, PolyOrder=%d)", ...
+                opts.MinOrder, opts.PolyOrder);
         else
             out.history(end+1) = sprintf(...
-                "destriped (minOrder=%d, polyOrder=%d, window=%d)", ...
-                opts.minOrder, opts.polyOrder, opts.windowLength);
+                "destriped (MinOrder=%d, PolyOrder=%d, window=%d)", ...
+                opts.MinOrder, opts.PolyOrder, opts.WindowLength);
         end
     end
 
@@ -519,12 +519,12 @@ methods
         %     spec       struct: n, amp/rms/var, err   degree spectrum incl. formal-error curve
         %
         %   Options
-        %     n0 (0)  first degree included in the spectrum
+        %     N0 (0)  first degree included in the spectrum
         arguments
             obj
-            opts.n0 (1,1) double = 0
+            opts.N0 (1,1) double = 0
         end
-        args = {'R', obj.R, 'n0', opts.n0};
+        args = {'R', obj.R, 'n0', opts.N0};
         if ~isempty(obj.sigmaC) && ~isempty(obj.sigmaS)
             args = [args, {'sigmaC', obj.sigmaC, 'sigmaS', obj.sigmaS}];
         end
@@ -538,16 +538,16 @@ methods
         %     nInterp  (1,1) double  interpolated crossing degree
         %
         %   Options
-        %     n0 (2)  first degree searched for the signal/error crossover
+        %     N0 (2)  first degree searched for the signal/error crossover
         arguments
             obj
-            opts.n0 (1,1) double = 2
+            opts.N0 (1,1) double = 2
         end
         if isempty(obj.sigmaC) || isempty(obj.sigmaS)
             error('shCoefficients:noSigmas', ...
                 'crossover requires formal errors (sigmaC/sigmaS).');
         end
-        [n0, nInterp] = shLowLevel.shSpectralCrossover(obj.degreeRMS(n0 = opts.n0));
+        [n0, nInterp] = shLowLevel.shSpectralCrossover(obj.degreeRMS(N0 = opts.N0));
     end
 
     function h = spectrum(obj, varargin)
@@ -574,8 +574,8 @@ methods
     % ------------------------------------------------------------ spatial
     function [grid, lat, lon] = synthesis(obj, latVec, lonVec, opts)
         %SYNTHESIS Spatial synthesis (geoid, gravity, potential, EWH).
-        %   [GRID, LAT, LON] = obj.synthesis(LATVEC, LONVEC, quantity ("geoid")=...,
-        %   kn ([])=..., nmin (0)=..., nmax (NaN)=..., UseCache (true)=true).
+        %   [GRID, LAT, LON] = obj.synthesis(LATVEC, LONVEC, Quantity ("geoid")=...,
+        %   kn ([])=..., Nmin (0)=..., Nmax (NaN)=..., UseCache (true)=true).
         %   The Legendre functions are served from a verified process-wide
         %   cache (shLowLevel.legendreCached), so monthly time series on a fixed
         %   grid pay the recursion only once - no manual 'P' passing.
@@ -610,12 +610,12 @@ methods
             obj
             latVec (1,:) double
             lonVec (1,:) double
-            opts.quantity (1,1) string = "geoid"
+            opts.Quantity (1,1) string = "geoid"
             opts.kn double = []
             opts.hn double = []
             opts.Height (1,1) double = 0
-            opts.nmin (1,1) double = 0
-            opts.nmax (1,1) double = NaN
+            opts.Nmin (1,1) double = 0
+            opts.Nmax (1,1) double = NaN
             opts.rho_ave (1,1) double = 5517
             opts.rho_water (1,1) double = 1000
             opts.UseCache (1,1) logical = true
@@ -632,9 +632,9 @@ methods
             latVec = shLowLevel.geodetic2geocentric(latVec, ...
                 Flattening = opts.Flattening);
         end
-        nmaxEff = opts.nmax;
+        nmaxEff = opts.Nmax;
         if isnan(nmaxEff), nmaxEff = obj.nmax; end
-        args = {'quantity', char(opts.quantity), 'nmin', opts.nmin, ...
+        args = {'quantity', char(opts.Quantity), 'nmin', opts.Nmin, ...
             'nmax', nmaxEff, 'rho_ave', opts.rho_ave, ...
             'rho_water', opts.rho_water, 'method', char(opts.Method), ...
             'MaxMemGB', opts.MaxMemGB, 'Height', opts.Height};
@@ -741,7 +741,7 @@ methods
 
     function H = map(obj, latDeg, lonDeg, opts)
         %MAP Synthesize and draw in one call, through geoMap.
-        %   H = g.map(-89:89, 0:359, quantity ("ewh")=..., kn ([])=...)
+        %   H = g.map(-89:89, 0:359, Quantity ("ewh")=..., kn ([])=...)
         %   builds the handover struct with g.toGrid and hands it to
         %   geo.map. It draws NOTHING itself.
         %
@@ -769,11 +769,11 @@ methods
         %     H          (1 x 1) struct   the handle struct geo.map returns
         %
         %   Options
-        %     quantity ("ewh")  any kernelFactors quantity
+        %     Quantity ("ewh")  any kernelFactors quantity
         %     kn ([])  load Love numbers k'_n (mass quantities; never hardcoded)
         %     hn ([])  load Love numbers h'_n (deformation_up only)
-        %     nmin (0)  degrees below nmin are zeroed
-        %     nmax (NaN)  truncation degree; NaN uses the object's nmax
+        %     Nmin (0)  degrees below nmin are zeroed
+        %     Nmax (NaN)  truncation degree; NaN uses the object's nmax
         %     Height (0)  evaluation height above R [m]
         %     rho_ave (5517)  mean Earth density [kg/m^3]
         %     rho_water (1000)  water density [kg/m^3]
@@ -787,17 +787,17 @@ methods
         %     GeoArgs ({})  name-value pairs forwarded to geo.map verbatim
         %
         %   Example
-        %     H = g.map(-89.5:89.5, 0.5:359.5, quantity = "ewh", kn = kn, ...
+        %     H = g.map(-89.5:89.5, 0.5:359.5, Quantity = "ewh", kn = kn, ...
         %             CRS = "robinson");
         arguments
             obj
             latDeg (1,:) double
             lonDeg (1,:) double
-            opts.quantity (1,1) string = "ewh"
+            opts.Quantity (1,1) string = "ewh"
             opts.kn double = []
             opts.hn double = []
-            opts.nmin (1,1) double = 0
-            opts.nmax (1,1) double = NaN
+            opts.Nmin (1,1) double = 0
+            opts.Nmax (1,1) double = NaN
             opts.Height (1,1) double = 0
             opts.rho_ave (1,1) double = 5517
             opts.rho_water (1,1) double = 1000
@@ -809,9 +809,9 @@ methods
             opts.GeoArgs cell = {}
         end
         shLowLevel.requireGeoMap();
-        b = obj.toGrid(latDeg, lonDeg, quantity = opts.quantity, ...
-            kn = opts.kn, hn = opts.hn, nmin = opts.nmin, ...
-            nmax = opts.nmax, Height = opts.Height, ...
+        b = obj.toGrid(latDeg, lonDeg, Quantity = opts.Quantity, ...
+            kn = opts.kn, hn = opts.hn, Nmin = opts.Nmin, ...
+            Nmax = opts.Nmax, Height = opts.Height, ...
             rho_ave = opts.rho_ave, rho_water = opts.rho_water, ...
             LatType = opts.LatType, Flattening = opts.Flattening);
         bm = opts.Basemap;
@@ -863,7 +863,7 @@ methods
     function [up, north, east] = deformation(obj, latDeg, lonDeg, opts)
         %DEFORMATION Elastic load deformation up/north/east [m].
         %   [UP, NORTH, EAST] = g.deformation(LAT, LON, kn=, hn=, ln=,
-        %       Mode ("grid")="grid"|"points", nmin (1)=1, LatType ("geocentric")="geocentric")
+        %       Mode ("grid")="grid"|"points", Nmin (1)=1, LatType ("geocentric")="geocentric")
         %   from the object's (residual!) coefficients - remove a mean
         %   field first. Love numbers are always user-supplied; see
         %   shLowLevel.shSynthesisDeformation for formulas and validation.
@@ -886,7 +886,7 @@ methods
             opts.kn double
             opts.hn double
             opts.ln double
-            opts.nmin (1,1) double = 1
+            opts.Nmin (1,1) double = 1
             opts.Mode (1,1) string ...
                 {mustBeMember(opts.Mode, ["grid","points"])} = "grid"
             opts.LatType (1,1) string ...
@@ -899,12 +899,12 @@ methods
         end
         [up, north, east] = shLowLevel.shSynthesisDeformation(obj.C, obj.S, ...
             obj.R, latDeg, lonDeg, kn = opts.kn, hn = opts.hn, ...
-            ln = opts.ln, nmin = opts.nmin, Mode = opts.Mode);
+            ln = opts.ln, Nmin = opts.Nmin, Mode = opts.Mode);
     end
 
     function [dq, info] = gradient(obj, latDeg, lonDeg, opts)
         %GRADIENT North/east/up gradient of a synthesized quantity.
-        %   [DQ, INFO] = g.gradient(LAT, LON, quantity ("geoid")=...,
+        %   [DQ, INFO] = g.gradient(LAT, LON, Quantity ("geoid")=...,
         %       Units ("perMeter")=..., Mode ("grid")=...) is the exact
         %   spatial derivative of what g.synthesis would return under the
         %   SAME options - the vector field to draw over a scalar map, or
@@ -926,11 +926,11 @@ methods
         %                hasUp, lat (as given), latType, lon
         %
         %   Options
-        %     quantity ("geoid")  any kernelFactors quantity
+        %     Quantity ("geoid")  any kernelFactors quantity
         %     kn ([])  load Love numbers k'_n (mass quantities; never hardcoded)
         %     hn ([])  load Love numbers h'_n (deformation_up only)
-        %     nmin (0)  degrees below nmin are zeroed
-        %     nmax (NaN)  truncation degree; NaN uses the object's nmax
+        %     Nmin (0)  degrees below nmin are zeroed
+        %     Nmax (NaN)  truncation degree; NaN uses the object's nmax
         %     Height (0)  evaluation height above R [m]; surface
         %         quantities reject it
         %     rho_ave (5517)  mean Earth density [kg/m^3]
@@ -949,17 +949,17 @@ methods
         %
         %   Example
         %     lat = -89:2:89; lon = 0:2:358;
-        %     [dq, info] = g.gradient(lat, lon, quantity = "ewh", kn = kn);
+        %     [dq, info] = g.gradient(lat, lon, Quantity = "ewh", kn = kn);
         %     info.hasUp        % false - EWH is a surface quantity
         arguments
             obj
             latDeg (1,:) double
             lonDeg (1,:) double
-            opts.quantity (1,1) string = "geoid"
+            opts.Quantity (1,1) string = "geoid"
             opts.kn double = []
             opts.hn double = []
-            opts.nmin (1,1) double = 0
-            opts.nmax (1,1) double = NaN
+            opts.Nmin (1,1) double = 0
+            opts.Nmax (1,1) double = NaN
             opts.Height (1,1) double = 0
             opts.rho_ave (1,1) double = 5517
             opts.rho_water (1,1) double = 1000
@@ -977,11 +977,11 @@ methods
             latDeg = shLowLevel.geodetic2geocentric(latDeg, ...
                 Flattening = opts.Flattening);
         end
-        nmaxEff = opts.nmax;
+        nmaxEff = opts.Nmax;
         if isnan(nmaxEff), nmaxEff = obj.nmax; end
         [dq, info] = shLowLevel.shSynthesisGradient(obj.C, obj.S, obj.GM, ...
-            obj.R, latDeg, lonDeg, quantity = opts.quantity, ...
-            kn = opts.kn, hn = opts.hn, nmin = opts.nmin, nmax = nmaxEff, ...
+            obj.R, latDeg, lonDeg, Quantity = opts.Quantity, ...
+            kn = opts.kn, hn = opts.hn, Nmin = opts.Nmin, Nmax = nmaxEff, ...
             Height = opts.Height, rho_ave = opts.rho_ave, ...
             rho_water = opts.rho_water, Mode = opts.Mode, ...
             Units = opts.Units, MaxMemGB = opts.MaxMemGB);
@@ -994,7 +994,7 @@ methods
 
     function b = toGrid(obj, latDeg, lonDeg, opts)
         %TOGRID Synthesized field plus the metadata a map needs to draw it.
-        %   B = g.toGrid(LAT, LON, quantity ("ewh")=..., kn ([])=...,
+        %   B = g.toGrid(LAT, LON, Quantity ("ewh")=..., kn ([])=...,
         %       LatType ("geodetic")=...) synthesizes exactly as
         %   g.synthesis does and returns the values TOGETHER WITH what
         %   they are: units, latitude convention, product type, epoch,
@@ -1040,12 +1040,12 @@ methods
         %                (: x 1) string
         %
         %   Options
-        %     quantity ("ewh")  any kernelFactors quantity; the default is
+        %     Quantity ("ewh")  any kernelFactors quantity; the default is
         %         the one a map of a GRACE field almost always wants
         %     kn ([])  load Love numbers k'_n (mass quantities; never hardcoded)
         %     hn ([])  load Love numbers h'_n (deformation_up only)
-        %     nmin (0)  degrees below nmin are zeroed
-        %     nmax (NaN)  truncation degree; NaN uses the object's nmax
+        %     Nmin (0)  degrees below nmin are zeroed
+        %     Nmax (NaN)  truncation degree; NaN uses the object's nmax
         %     Height (0)  evaluation height above R [m]
         %     rho_ave (5517)  mean Earth density [kg/m^3]
         %     rho_water (1000)  water density [kg/m^3]
@@ -1055,18 +1055,18 @@ methods
         %     MaxMemGB (4)  synthesis memory budget [GB]
         %
         %   Example
-        %     b = g.toGrid(-89.5:89.5, 0.5:359.5, quantity = "ewh", kn = kn);
+        %     b = g.toGrid(-89.5:89.5, 0.5:359.5, Quantity = "ewh", kn = kn);
         %     b.Units          % "m"
         %     b.FieldKind      % "anomaly" for a residual field
         arguments
             obj
             latDeg (1,:) double
             lonDeg (1,:) double
-            opts.quantity (1,1) string = "ewh"
+            opts.Quantity (1,1) string = "ewh"
             opts.kn double = []
             opts.hn double = []
-            opts.nmin (1,1) double = 0
-            opts.nmax (1,1) double = NaN
+            opts.Nmin (1,1) double = 0
+            opts.Nmax (1,1) double = NaN
             opts.Height (1,1) double = 0
             opts.rho_ave (1,1) double = 5517
             opts.rho_water (1,1) double = 1000
@@ -1077,20 +1077,20 @@ methods
                 {mustBeMember(opts.Method, ["auto","direct","fft"])} = "auto"
             opts.MaxMemGB (1,1) double {mustBePositive} = 4
         end
-        nmaxEff = opts.nmax;
+        nmaxEff = opts.Nmax;
         if isnan(nmaxEff), nmaxEff = obj.nmax; end
         [Z, lat, lon] = obj.synthesis(latDeg, lonDeg, ...
-            quantity = opts.quantity, kn = opts.kn, hn = opts.hn, ...
-            nmin = opts.nmin, nmax = nmaxEff, Height = opts.Height, ...
+            Quantity = opts.Quantity, kn = opts.kn, hn = opts.hn, ...
+            Nmin = opts.Nmin, Nmax = nmaxEff, Height = opts.Height, ...
             rho_ave = opts.rho_ave, rho_water = opts.rho_water, ...
             LatType = opts.LatType, Flattening = opts.Flattening, ...
             Method = opts.Method, MaxMemGB = opts.MaxMemGB);
-        [~, ~, units] = shLowLevel.kernelFactors(char(opts.quantity), ...
+        [~, ~, units] = shLowLevel.kernelFactors(char(opts.Quantity), ...
             nmaxEff, obj.GM, obj.R, kn = opts.kn, hn = opts.hn, ...
             rho_ave = opts.rho_ave, rho_water = opts.rho_water);
         b = shLowLevel.gridHandover(Z, lat, lon, units, opts.LatType, ...
-            opts.quantity, obj.productType, obj.name, obj.epoch, ...
-            obj.C(1, 1), obj.history, nmaxEff, opts.nmin);
+            opts.Quantity, obj.productType, obj.name, obj.epoch, ...
+            obj.C(1, 1), obj.history, nmaxEff, opts.Nmin);
     end
 
     function out = applyDDK(obj, W)
@@ -1114,7 +1114,7 @@ methods
         out = obj;
         [out.C, out.S] = shLowLevel.applyDDK(obj.C, obj.S, W);
         out.sigmaC = nan(size(obj.C)); out.sigmaS = nan(size(obj.S));
-        out.history(end+1) = sprintf("DDK filter applied (%s, nmax=%d)", ...
+        out.history(end+1) = sprintf("DDK filter applied (%s, Nmax=%d)", ...
             W.name, W.nmax);
     end
 
@@ -1261,7 +1261,7 @@ methods (Static)
             GM = m.GM, R = m.R, Epoch = ep, ProductType = pt, ...
             TideSystem = ts, Name = nm, Header = m.header, ...
             VariableTerms = m.variableTerms, ...
-            History = sprintf("read %s%s (nmax=%d)", base, ext, m.nmax));
+            History = sprintf("read %s%s (Nmax=%d)", base, ext, m.nmax));
     end
 
     function obj = fromVec(x, idx, like)
@@ -1294,7 +1294,7 @@ methods (Static)
         %   Stokes coefficients (the inverse of synthesis).
         %
         %   [OBJ, INFO] = shCoefficients.analysis(GRID, LAT, LON, NMAX,
-        %       quantity ("geoid")=..., Method ("auto")=..., Weights ("none")=..., Kaula (0)=..., ...)
+        %       Quantity ("geoid")=..., Method ("auto")=..., Weights ("none")=..., Kaula (0)=..., ...)
         %   estimates an shCoefficients object from a ring grid
         %   (GRID nlat x nlon, uniform full-circle LON: exact fast
         %   per-order solver) or from scattered points (equal-length
@@ -1306,7 +1306,7 @@ methods (Static)
         %   Inputs   grid (nlat,nlon) or (Np,1) double, lat/lon [deg]
         %     lonVec  (P,1) double  observation longitudes [deg]
         %     latVec  (P,1) double  observation latitudes [deg, geocentric]
-        %            nmax (1,1) double
+        %            Nmax (1,1) double
         %   Options
         %     Method ("auto")  "auto" | "rings" | "ls", see shAnalysisGrid
         %     Weights ("none") ("none" | "coslat") latitude weighting
@@ -1333,7 +1333,7 @@ methods (Static)
             latVec double
             lonVec double
             nmax (1,1) double
-            opts.quantity (1,1) string = "geoid"
+            opts.Quantity (1,1) string = "geoid"
             opts.Method (1,1) string = "auto"
             opts.Weights (1,1) string = "none"
             opts.Kaula (1,1) double = 0
@@ -1354,7 +1354,7 @@ methods (Static)
                 Flattening = opts.Flattening);
         end
         [C, S, info] = shLowLevel.shAnalysisGrid(grid, latVec, lonVec, nmax, ...
-            Method = opts.Method, quantity = char(opts.quantity), ...
+            Method = opts.Method, Quantity = char(opts.Quantity), ...
             GM = opts.GM, R = opts.R, kn = opts.kn, hn = opts.hn, ...
             rho_ave = opts.rho_ave, rho_water = opts.rho_water, ...
             Weights = opts.Weights, Kaula = opts.Kaula);

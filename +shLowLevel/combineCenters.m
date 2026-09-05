@@ -69,7 +69,7 @@ for c = 2:C
         'All series must share nmax (center 1: %d, center %d: %d).', ...
         nmax, c, tsCell{c}.nmax);
 end
-idx = shLowLevel.shIndex(nmax, MinDegree = 0);
+idx = shLowLevel.shIndex(nmax, Nmin = 0);
 n1 = nmax + 1;
 
 % ---- per-center noise shapes from own climatology residuals (static)

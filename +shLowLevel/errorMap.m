@@ -1,7 +1,7 @@
 function [sig, latDeg, lonDeg] = errorMap(M, idx, latDeg, lonDeg, opts)
 %ERRORMAP Analytic formal-error maps from a full coefficient covariance.
 %
-%   [SIG, LAT, LON] = shLowLevel.errorMap(M, IDX, LAT, LON, quantity ("geoid")="ewh",
+%   [SIG, LAT, LON] = shLowLevel.errorMap(M, IDX, LAT, LON, Quantity ("geoid")="ewh",
 %       kn ([])=kn) computes the pointwise 1-sigma of a synthesized field
 %   from a full P x P covariance (e.g. shLowLevel.readSINEX(...,
 %   Outputs
@@ -11,11 +11,11 @@ function [sig, latDeg, lonDeg] = errorMap(M, idx, latDeg, lonDeg, opts)
 %
 %   Inputs
 %     M       (P,P) double   covariance in IDX ordering (symmetric PSD)
-%     idx     struct         shLowLevel.shIndex (analysis-style MinDegree
+%     idx     struct         shLowLevel.shIndex (analysis-style Nmin
 %                            matching M)
 %     latDeg  (1,nlat), lonDeg (1,nlon) double [deg] geocentric
 %   Options
-%     quantity ("geoid"), kn, hn ([]), GM (3.986004415e14), R (6378136.3),
+%     Quantity ("geoid"), kn, hn ([]), GM (3.986004415e14), R (6378136.3),
 %     Height (0)  - as in shLowLevel.kernelFactors
 %   Outputs
 %     sig  (nlat,nlon) double  1-sigma of the field [unit of quantity]
@@ -30,7 +30,7 @@ arguments
     idx (1,1) struct
     latDeg (1,:) double
     lonDeg (1,:) double
-    opts.quantity (1,1) string = "geoid"
+    opts.Quantity (1,1) string = "geoid"
     opts.kn double = []
     opts.hn double = []
     opts.GM (1,1) double = 3.986004415e14
@@ -49,7 +49,7 @@ if flag ~= 0
     L = V .* sqrt(e)';
 end
 nmax = idx.Lmax;
-kernel = shLowLevel.kernelFactors(opts.quantity, nmax, opts.GM, opts.R, ...
+kernel = shLowLevel.kernelFactors(opts.Quantity, nmax, opts.GM, opts.R, ...
     kn = opts.kn, hn = opts.hn, Height = opts.Height);
 latRad = deg2rad(latDeg(:)');
 lonRad = deg2rad(lonDeg(:)');

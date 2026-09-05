@@ -2,7 +2,7 @@ function [dq, info] = shSynthesisGradient(C, S, GM, R, latDeg, lonDeg, opts)
 %SHSYNTHESISGRADIENT North/east/up gradient of any synthesized quantity.
 %
 %   [DQ, INFO] = shLowLevel.shSynthesisGradient(C, S, GM, R, LAT, LON,
-%       quantity ("geoid")=..., Units ("perMeter")=..., Mode ("grid")=...)
+%       Quantity ("geoid")=..., Units ("perMeter")=..., Mode ("grid")=...)
 %   returns the spatial gradient of the field that
 %   shLowLevel.shSynthesis would produce from the SAME coefficients and
 %   the SAME options, resolved in the local north-east-up frame:
@@ -57,18 +57,18 @@ function [dq, info] = shSynthesisGradient(C, S, GM, R, latDeg, lonDeg, opts)
 %     lonDeg  (1,nlon) double [deg] longitude
 %
 %   Options
-%     quantity ("geoid")  any quantity of shLowLevel.kernelFactors:
+%     Quantity ("geoid")  any quantity of shLowLevel.kernelFactors:
 %         "none", "geoid", "potential", "gravity_anomaly",
 %         "gravity_disturbance", "gravity_gradient_rr", "ewh",
 %         "surface_density", "bottom_pressure", "deformation_up"
 %     kn ([])       load Love numbers k'_n, degrees 0..nmax; REQUIRED by
 %                   the mass quantities, never hardcoded
 %     hn ([])       load Love numbers h'_n (deformation_up only)
-%     nmin (0)      degrees below nmin are zeroed. Degree 0 and 1 have no
+%     Nmin (0)      degrees below nmin are zeroed. Degree 0 and 1 have no
 %                   horizontal gradient beyond the degree-1 tilt, but
 %                   they DO contribute to G.up - so this is not a free
 %                   choice; keep it equal to the scalar map's
-%     nmax (NaN)    truncation degree; NaN uses all supplied degrees
+%     Nmax (NaN)    truncation degree; NaN uses all supplied degrees
 %     Height (0)    evaluation height above R [m]; r = R + Height enters
 %                   both the kernel attenuation and the metric factors.
 %                   Rejected for surface quantities, by kernelFactors
@@ -109,7 +109,7 @@ function [dq, info] = shSynthesisGradient(C, S, GM, R, latDeg, lonDeg, opts)
 %     C = zeros(3); S = zeros(3); C(3,1) = 1;              % C_20
 %     lat = -80:10:80; lon = 0:20:340;
 %     dq = shLowLevel.shSynthesisGradient(C, S, 3.986004415e14, ...
-%             6378136.3, lat, lon, quantity = "none", Units = "perRadian");
+%             6378136.3, lat, lon, Quantity = "none", Units = "perRadian");
 %     max(abs(dq.east(:)))            % 0
 %     quiver(lon, lat, dq.east, dq.north)
 %
@@ -137,11 +137,11 @@ arguments
     R (1,1) double {mustBePositive}
     latDeg (1,:) double {mustBeInRange(latDeg, -90, 90)}
     lonDeg (1,:) double
-    opts.quantity (1,1) string = "geoid"
+    opts.Quantity (1,1) string = "geoid"
     opts.kn double = []
     opts.hn double = []
-    opts.nmin (1,1) double {mustBeInteger, mustBeNonnegative} = 0
-    opts.nmax (1,1) double = NaN
+    opts.Nmin (1,1) double {mustBeInteger, mustBeNonnegative} = 0
+    opts.Nmax (1,1) double = NaN
     opts.Height (1,1) double {mustBeNonnegative} = 0
     opts.rho_ave (1,1) double = 5517
     opts.rho_water (1,1) double = 1000
@@ -153,7 +153,7 @@ end
 
 assert(isequal(size(C), size(S)) && size(C, 1) == size(C, 2), ...
     'shSynthesis:badInput', 'C and S must be equally sized square matrices.');
-nmax = opts.nmax;
+nmax = opts.Nmax;
 if isnan(nmax), nmax = size(C, 1) - 1; end
 assert(nmax <= size(C, 1) - 1, 'shSynthesis:badInput', ...
     'Requested nmax (%d) exceeds available coefficients (max %d).', ...
@@ -166,11 +166,11 @@ if pts
 end
 
 % --- degree factors and the radial law, from the ONE place that owns them
-[f, radialExp] = shLowLevel.kernelFactors(char(opts.quantity), nmax, GM, R, ...
+[f, radialExp] = shLowLevel.kernelFactors(char(opts.Quantity), nmax, GM, R, ...
     kn = opts.kn, hn = opts.hn, Height = opts.Height, ...
     rho_ave = opts.rho_ave, rho_water = opts.rho_water);
-if opts.nmin > 0
-    f(1:min(opts.nmin, N1)) = 0;
+if opts.Nmin > 0
+    f(1:min(opts.Nmin, N1)) = 0;
 end
 hasUp = ~isempty(radialExp);
 r = R + opts.Height;
@@ -253,7 +253,7 @@ for b0 = 1:nBand:nOut
 end
 
 dq = struct('north', gN, 'east', gE, 'up', gU);
-info = struct('quantity', opts.quantity, 'units', opts.Units, 'r', r, ...
-    'nmin', opts.nmin, 'nmax', nmax, 'hasUp', hasUp, ...
+info = struct('quantity', opts.Quantity, 'units', opts.Units, 'r', r, ...
+    'nmin', opts.Nmin, 'nmax', nmax, 'hasUp', hasUp, ...
     'lat', latDeg(:)', 'latType', "geocentric", 'lon', lonDeg(:)');
 end

@@ -18,7 +18,7 @@ classdef shSeries
 %     m    = ts.mean;                                    % mean field
 %     dts  = ts - m;                                     % anomalies
 %     [clim, resid] = dts.climatology(Robust=true);      % + shClimatology
-%     tsA  = dts.destripe(minOrder=6).gaussian(300);     % classic chain
+%     tsA  = dts.destripe(MinOrder=6).gaussian(300);     % classic chain
 %     [tsF, op] = dts.filter("tvANS", Constraints=ocean);% optimal chain
 %     avg  = tsF.basinAverage(B, Deconvolve=true, Op=op);
 %
@@ -27,7 +27,7 @@ classdef shSeries
 %     sigmaCs/Ss    same or []                    formal error stacks
 %     epochs        (T,1) double  decimal years
 %     GM, R         (1,1) double
-%     nmax, nEpochs (dependent)
+%     Nmax, nEpochs (dependent)
 %     productType   (1,1) string
 %     names         (T,1) string
 %     history       string column
@@ -143,7 +143,7 @@ methods
             obj.names = nmv(ord);
             obj.GM = arr(1).GM; obj.R = arr(1).R;
             obj.productType = arr(1).productType;
-            obj.history = sprintf("series from %d shCoefficients (nmax=%d)", T, nm);
+            obj.history = sprintf("series from %d shCoefficients (Nmax=%d)", T, nm);
         else
             % raw-stack form
             obj.Cs = in;
@@ -924,14 +924,14 @@ methods
         %     out        (1 x 1) shSeries   destriped per month
         %
         %   Options
-        %     minOrder (6)  lowest order to destripe; coefficients at
+        %     MinOrder (6)  lowest order to destripe; coefficients at
         %         m < minOrder pass through unchanged (below it the signal
         %         is real, not stripes)
-        %     polyOrder (3)  order of the polynomial fitted and removed
+        %     PolyOrder (3)  order of the polynomial fitted and removed
         %         per order/parity sequence
-        %     windowLength ([])  [] fits ONE polynomial over the whole
+        %     WindowLength ([])  [] fits ONE polynomial over the whole
         %         sequence; an odd integer >= polyOrder+2 uses a centered
-        %         moving window instead (windowLength=6 with polyOrder=3 is
+        %         moving window instead (WindowLength=6 with PolyOrder=3 is
         %         the common "P3M6" variant)
         %
         %   Outputs
@@ -939,19 +939,19 @@ methods
         %              history (immutable value-class pattern)
         arguments
             obj
-            opts.minOrder (1,1) double = 6
-            opts.polyOrder (1,1) double = 3
-            opts.windowLength double = []
+            opts.MinOrder (1,1) double = 6
+            opts.PolyOrder (1,1) double = 3
+            opts.WindowLength double = []
         end
         obj.assertClean('destripe');
         out = obj;
         for k = 1:obj.nEpochs
             [out.Cs(:,:,k), out.Ss(:,:,k)] = shLowLevel.shDestripe( ...
-                obj.Cs(:,:,k), obj.Ss(:,:,k), 'minOrder', opts.minOrder, ...
-                'polyOrder', opts.polyOrder, 'windowLength', opts.windowLength);
+                obj.Cs(:,:,k), obj.Ss(:,:,k), 'minOrder', opts.MinOrder, ...
+                'polyOrder', opts.PolyOrder, 'windowLength', opts.WindowLength);
         end
-        out.history(end+1) = sprintf("destriped all epochs (minOrder=%d, polyOrder=%d)", ...
-            opts.minOrder, opts.polyOrder);
+        out.history(end+1) = sprintf("destriped all epochs (MinOrder=%d, PolyOrder=%d)", ...
+            opts.MinOrder, opts.PolyOrder);
     end
 
     function out = gaussian(obj, radiusKm)
@@ -1120,7 +1120,7 @@ methods
         %FILTER Optimal time-variable filtering of the series.
         %   [TSF, OP, INFO] = ts.filter("tvANS", Constraints ([])=..., NoiseCov ([])=...,
         %   SignalMode ("isotropic")="isotropic"|"inhomogeneous", NIterSignal (3)=3,
-        %   Robust (false)=false, MinDegree (2)=2)
+        %   Robust (false)=false, Nmin (2)=2)
         %   runs the tvANS chain (see shLowLevel.tvANSFilter): deterministic-model
         %   separation, empirical or supplied noise covariance, monthly VCE
         %   scaling, data-driven signal covariance, per-month anisotropic
@@ -1131,7 +1131,7 @@ methods
         %   fast path (isotropic + empirical N + no constraints; identical
         %   results, tractable to Lmax ~ 120). The filtered series carries
         %   per-coefficient posterior 1-sigma stacks in OUT.sigmaCs/Ss
-        %   (from info.sigmaXfres; degrees below MinDegree are NaN).
+        %   (from info.sigmaXfres; degrees below Nmin are NaN).
         %   v3.1.1: the three noise-covariance tuning options of
         %   shLowLevel.tvANSFilter are forwarded, so the class method is the
         %   full single point of access: Shrinkage ([])=empirical noise-
@@ -1157,13 +1157,13 @@ methods
         %         iterations
         %     Robust (false)     (1 x 1) logical, Huber re-weighting of
         %         epoch residuals
-        %     MinDegree (2)      (1 x 1) lowest degree entering the filter
+        %     Nmin (2)      (1 x 1) lowest degree entering the filter
         %     Blocks ("auto")    ("auto" | "on" | "off") order-block usage in
         %         the normal matrix
         %     Shrinkage ([])     (1 x 1) shrink the empirical signal
         %         covariance toward its diagonal, 0..1; [] auto-selects
         %     VCEMinDegree ([])  (1 x 1) lowest degree in the VCE bands;
-        %         [] follows MinDegree
+        %         [] follows Nmin
         %     VCEBands ([])      (1 x B) variance-component band edges;
         %         [] uses the built-in banding
         %
@@ -1180,7 +1180,7 @@ methods
             opts.SignalMode (1,1) string = "isotropic"
             opts.NIterSignal (1,1) double = 3
             opts.Robust (1,1) logical = false
-            opts.MinDegree (1,1) double = 2
+            opts.Nmin (1,1) double = 2
             opts.Blocks (1,1) string ...
                 {mustBeMember(opts.Blocks, ["auto","on","off"])} = "auto"
             opts.Shrinkage double {mustBeScalarOrEmpty} = []
@@ -1192,7 +1192,7 @@ methods
             error('shSeries:noEpoch', ...
                 'filter requires finite epochs for every entry.');
         end
-        idx = shLowLevel.shIndex(obj.nmax, MinDegree = opts.MinDegree);
+        idx = shLowLevel.shIndex(obj.nmax, Nmin = opts.Nmin);
         X = zeros(idx.P, obj.nEpochs);
         for k = 1:obj.nEpochs
             X(:,k) = shLowLevel.vecFromCS(obj.Cs(:,:,k), obj.Ss(:,:,k), idx);
@@ -1223,7 +1223,7 @@ methods
         for k = 1:obj.nEpochs
             [cf, sf] = shLowLevel.csFromVec(Xf(:,k), idx);
             [sc, ss] = shLowLevel.csFromVec(info.sigmaXfres(:,k), idx);
-            % degrees below MinDegree pass through unfiltered
+            % degrees below Nmin pass through unfiltered
             out.Cs(:,:,k) = obj.Cs(:,:,k);
             out.Ss(:,:,k) = obj.Ss(:,:,k);
             nz = idx.minDegree + 1;
@@ -1277,7 +1277,7 @@ methods
             idx = shLowLevel.shIndex(obj.nmax);
             if size(B,1) ~= idx.P
                 error('shSeries:badBasis', ...
-                    'B must be P x K in shLowLevel.shIndex(nmax=%d) ordering (P=%d).', ...
+                    'B must be P x K in shLowLevel.shIndex(Nmax=%d) ordering (P=%d).', ...
                     obj.nmax, idx.P);
             end
             X = zeros(idx.P, obj.nEpochs);
@@ -1291,7 +1291,7 @@ methods
 
     function b = toGrid(obj, latDeg, lonDeg, opts)
         %TOGRID Synthesize every epoch into one stack, with its metadata.
-        %   B = ts.toGrid(LAT, LON, quantity ("ewh")=..., kn ([])=...,
+        %   B = ts.toGrid(LAT, LON, Quantity ("ewh")=..., kn ([])=...,
         %       LatType ("geodetic")=...) is shCoefficients.toGrid over a
         %   whole series: B.Z is (nlat x nlon x nEpochs) and B.Epoch
         %   carries the decimal years, so an animation can label its own
@@ -1317,11 +1317,11 @@ methods
         %                the epochs disagree
         %
         %   Options
-        %     quantity ("ewh")  any kernelFactors quantity
+        %     Quantity ("ewh")  any kernelFactors quantity
         %     kn ([])  load Love numbers k'_n (mass quantities; never hardcoded)
         %     hn ([])  load Love numbers h'_n (deformation_up only)
-        %     nmin (0)  degrees below nmin are zeroed
-        %     nmax (NaN)  truncation degree; NaN uses the series nmax
+        %     Nmin (0)  degrees below nmin are zeroed
+        %     Nmax (NaN)  truncation degree; NaN uses the series nmax
         %     Height (0)  evaluation height above R [m]
         %     rho_ave (5517)  mean Earth density [kg/m^3]
         %     rho_water (1000)  water density [kg/m^3]
@@ -1331,17 +1331,17 @@ methods
         %         error naming the size, not a silent swap-thrash
         %
         %   Example
-        %     b = ts.toGrid(-89.5:89.5, 0.5:359.5, quantity = "ewh", kn = kn);
+        %     b = ts.toGrid(-89.5:89.5, 0.5:359.5, Quantity = "ewh", kn = kn);
         %     size(b.Z)        % [180 360 nEpochs]
         arguments
             obj
             latDeg (1,:) double
             lonDeg (1,:) double
-            opts.quantity (1,1) string = "ewh"
+            opts.Quantity (1,1) string = "ewh"
             opts.kn double = []
             opts.hn double = []
-            opts.nmin (1,1) double = 0
-            opts.nmax (1,1) double = NaN
+            opts.Nmin (1,1) double = 0
+            opts.Nmax (1,1) double = NaN
             opts.Height (1,1) double = 0
             opts.rho_ave (1,1) double = 5517
             opts.rho_water (1,1) double = 1000
@@ -1358,7 +1358,7 @@ methods
             ['The stack would be %d x %d x %d = %.2f GB, over MaxMemGB ' ...
              '(%.2f). Coarsen the grid, select fewer epochs, or raise ' ...
              'the budget deliberately.'], nlat, nlon, T, needGB, opts.MaxMemGB);
-        nmaxEff = opts.nmax;
+        nmaxEff = opts.Nmax;
         if isnan(nmaxEff), nmaxEff = obj.nmax; end
         Z = zeros(nlat, nlon, T);
         c00 = zeros(T, 1);
@@ -1366,21 +1366,21 @@ methods
         for k = 1:T
             g = obj.at(k);
             [Zk, lat, lon] = g.synthesis(latDeg, lonDeg, ...
-                quantity = opts.quantity, kn = opts.kn, hn = opts.hn, ...
-                nmin = opts.nmin, nmax = nmaxEff, Height = opts.Height, ...
+                Quantity = opts.Quantity, kn = opts.kn, hn = opts.hn, ...
+                Nmin = opts.Nmin, Nmax = nmaxEff, Height = opts.Height, ...
                 rho_ave = opts.rho_ave, rho_water = opts.rho_water, ...
                 LatType = opts.LatType, Flattening = opts.Flattening);
             Z(:, :, k) = Zk;
             c00(k) = obj.Cs(1, 1, k);
         end
-        [~, ~, units] = shLowLevel.kernelFactors(char(opts.quantity), ...
+        [~, ~, units] = shLowLevel.kernelFactors(char(opts.Quantity), ...
             nmaxEff, obj.GM, obj.R, kn = opts.kn, hn = opts.hn, ...
             rho_ave = opts.rho_ave, rho_water = opts.rho_water);
         nm = "";
         if ~isempty(obj.names), nm = obj.names(1); end
         b = shLowLevel.gridHandover(Z, lat, lon, units, opts.LatType, ...
-            opts.quantity, obj.productType, nm, obj.epochs, c00, ...
-            obj.history, nmaxEff, opts.nmin);
+            opts.Quantity, obj.productType, nm, obj.epochs, c00, ...
+            obj.history, nmaxEff, opts.Nmin);
     end
 
     function disp(obj)

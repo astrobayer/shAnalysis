@@ -58,7 +58,7 @@ def read_shm(path):
         if t[0] == "GRCOF2" and len(t) >= 7:
             sC[(n, m_)] = float(t[5].replace("D", "E"))
             sS[(n, m_)] = float(t[6].replace("D", "E"))
-    return dict(kind=kind, GM=GM, R=R, nmax=nmax, C=C, S=S, sC=sC, sS=sS)
+    return dict(kind=kind, GM=GM, R=R, Nmax=nmax, C=C, S=S, sC=sC, sS=sS)
 
 
 def main(mean_path, gia_path):

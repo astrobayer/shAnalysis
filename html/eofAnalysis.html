@@ -25,7 +25,7 @@ th { background: #f5f7fa; }
 <h2>Syntax</h2>
 <pre>[~, resid] = ts.climatology();
 [modes, pcs, ve] = shLowLevel.eofAnalysis(resid, NModes=4);
-modes{1}.map(quantity="ewh", kn=kn)   % spatial pattern of mode 1
+modes{1}.map(Quantity="ewh", kn=kn)   % spatial pattern of mode 1
 plot(resid.epochs, pcs(:,1))          % its temporal amplitude</pre>
 <h2>Description</h2>
 <p>SVD of the time-centered coefficient stack. Mode k carries U<sub>k</sub>s<sub>k</sub>/&radic;(T&minus;1) as shCoefficients, PCS columns are unit variance, so field &times; pc reconstructs the mode exactly; VE are variance fractions. Tested: a synthetic two-mode field is recovered with &gt; 99.9% variance in two modes and pattern correlation &gt; 0.98.</p>

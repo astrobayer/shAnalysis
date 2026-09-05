@@ -1,6 +1,7 @@
 function audit_gravis(variant)
 %AUDIT_GRAVIS Reproduce the guide's GravIS Greenland chain (audit script).
 %   Claude (Fable 5) audit, 2026-08-12. Not part of the toolbox.
+%   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 if nargin < 1, variant = "all"; end
 R = 6378136.3; GM = 3.986004415e14; Re = 6371e3;      % Re: chapter's area radius
 aux = 'E:\DATAPOOL\GravityField\GravIS\';

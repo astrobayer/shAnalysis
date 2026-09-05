@@ -131,7 +131,7 @@ dts = ts - ts.mean;                     % anomalies about the mean field
 [clim, resid] = dts.climatology(Robust=true);   % shClimatology + residuals
 A = clim.amplitudeMap("annual", -89:89, 0:359, "ewh", kn);
 
-tsA = dts.destripe(minOrder=6).gaussian(300);   % classic chain
+tsA = dts.destripe(MinOrder=6).gaussian(300);   % classic chain
 [tsF, op] = dts.filter("tvANS", SignalMode="inhomogeneous");
 avg = tsF.basinAverage(B, Deconvolve=true, Op=op);   % unbiased basin series
 ```

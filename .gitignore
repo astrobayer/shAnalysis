@@ -1,4 +1,5 @@
 # generated at runtime
+tools/dev/api_data.py
 tests/perf_log.csv
 *.asv
 *.autosave

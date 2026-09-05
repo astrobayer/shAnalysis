@@ -24,9 +24,9 @@ th { background: #f5f7fa; }
 <p><code class="inline">shCoefficients.toGrid</code>, <code class="inline">shSeries.toGrid</code> and <code class="inline">shLowLevel.gridHandover</code> &mdash; a synthesized field together with what it is.</p>
 
 <h2>Syntax</h2>
-<pre>b = g.toGrid(lat, lon, quantity="ewh", kn=kn)          % one epoch
-b = ts.toGrid(lat, lon, quantity="ewh", kn=kn)         % a stack, for animation
-b = g.toGrid(lat, lon, quantity="geoid", LatType="geocentric")</pre>
+<pre>b = g.toGrid(lat, lon, Quantity="ewh", kn=kn)          % one epoch
+b = ts.toGrid(lat, lon, Quantity="ewh", kn=kn)         % a stack, for animation
+b = g.toGrid(lat, lon, Quantity="geoid", LatType="geocentric")</pre>
 
 <h2>Why it exists</h2>
 <p><code class="inline">g.synthesis</code> returns three numeric arrays, and that is the right interface: numbers cross a toolbox boundary without either side importing the other. But an array of metres is an array of metres. When the interface was measured end to end, three things did not survive the trip, and each was something a user had to retype and could get wrong with nothing noticing.</p>
@@ -65,7 +65,7 @@ b = g.toGrid(lat, lon, quantity="geoid", LatType="geocentric")</pre>
 <h2>Example</h2>
 <pre>ts = shSeries.fromFolder(folder);
 res = ts.minus(ts.mean());
-b = res.toGrid(-89.5:89.5, 0.5:359.5, quantity="ewh", kn=kn);
+b = res.toGrid(-89.5:89.5, 0.5:359.5, Quantity="ewh", kn=kn);
 b.FieldKind        % "anomaly"
 b.Units            % "m"</pre>
 <p>The struct's field names are chosen to feed a <code class="inline">geo.grid</code>-style constructor directly, so the handover is one line and no value is retyped.</p>

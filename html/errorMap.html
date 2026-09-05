@@ -24,7 +24,7 @@ th { background: #f5f7fa; }
 <p>Analytic formal-error maps from a full coefficient covariance.</p>
 <h2>Syntax</h2>
 <pre>out = shLowLevel.readSINEX('ITSG.snx', Output="covariance");
-sig = shLowLevel.errorMap(out.M, out.idx, -89:89, 0:359, quantity="ewh", kn=kn);</pre>
+sig = shLowLevel.errorMap(out.M, out.idx, -89:89, 0:359, Quantity="ewh", kn=kn);</pre>
 <h2>Description</h2>
 <p>Pointwise 1&sigma; of the synthesized field: &sigma;&sup2;(&phi;,&lambda;) = a&prime;Ma with the kernel- and Y-weighted row a. One Cholesky, then per-latitude assembly for all longitudes: exact, and the analytic cross-check of <a href="mcPropagate.html">mcPropagate</a> (tested against Monte-Carlo, 4000 samples, RelTol 0.12). PSD-singular covariances fall back to an eigenvalue square root. Cost O(nlat&middot;nlon&middot;P&sup2;): at n96 budget minutes for 1&deg; grids, or truncate the covariance.</p>
 <h2>See also</h2><p class="seealso"><a href="readSINEX.html">readSINEX</a> <a href="mcPropagate.html">mcPropagate</a></p>

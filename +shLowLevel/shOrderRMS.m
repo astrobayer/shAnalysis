@@ -13,14 +13,14 @@ function spec = shOrderRMS(C, S, opts)
 %   Conventions mirror shDegreeRMS exactly (RMS = sqrt of the summed
 %   power, amplitude = R * RMS; degree/order power partitions are two
 %   marginals of the same total: sum(ordVariance) == sum(degVariance),
-%   tested). Formal errors via sigmaC ([])/sigmaS ([]) give errVariance/errRMS/
+%   tested). Formal errors via SigmaC ([])/SigmaS ([]) give errVariance/errRMS/
 %   errAmplitude per order.
 %
 %   Inputs
 %     C, S        (n1,n1) double
 %   Options
-%     R (6378136.3) [m], n0 (0)  zero degrees below n0 first,
-%     sigmaC, sigmaS ([])        formal errors
+%     R (6378136.3) [m], N0 (0)  zero degrees below n0 first,
+%     SigmaC, SigmaS ([])        formal errors
 %   Outputs
 %     spec  struct: order, ordVariance, ordRMS, ordAmplitude,
 %           cumVariance, cumRMS, cumAmplitude, (err*), R,
@@ -32,13 +32,13 @@ arguments
     C double
     S double
     opts.R (1,1) double = 6378136.3
-    opts.n0 (1,1) double {mustBeInteger, mustBeNonnegative} = 0
-    opts.sigmaC double = []
-    opts.sigmaS double = []
+    opts.N0 (1,1) double {mustBeInteger, mustBeNonnegative} = 0
+    opts.SigmaC double = []
+    opts.SigmaS double = []
 end
 nmax = size(C, 1) - 1;
-if opts.n0 > 0
-    C(1:opts.n0, :) = 0; S(1:opts.n0, :) = 0;
+if opts.N0 > 0
+    C(1:opts.N0, :) = 0; S(1:opts.N0, :) = 0;
 end
 ordVariance = (sum(C.^2, 1) + sum(S.^2, 1))';
 spec.order = (0:nmax)';
@@ -50,11 +50,11 @@ spec.cumRMS = sqrt(spec.cumVariance);
 spec.cumAmplitude = opts.R .* spec.cumRMS;
 spec.R = opts.R;
 spec.domain = 'order';
-if ~isempty(opts.sigmaC) && ~isempty(opts.sigmaS)
-    sC = opts.sigmaC; sS = opts.sigmaS;
+if ~isempty(opts.SigmaC) && ~isempty(opts.SigmaS)
+    sC = opts.SigmaC; sS = opts.SigmaS;
     sC(isnan(sC)) = 0; sS(isnan(sS)) = 0;
-    if opts.n0 > 0
-        sC(1:opts.n0, :) = 0; sS(1:opts.n0, :) = 0;
+    if opts.N0 > 0
+        sC(1:opts.N0, :) = 0; sS(1:opts.N0, :) = 0;
     end
     ev = (sum(sC.^2, 1) + sum(sS.^2, 1))';
     spec.errVariance = ev;

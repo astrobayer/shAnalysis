@@ -1,7 +1,7 @@
 function writeAnimation(ts, filename, opts)
 %WRITEANIMATION Export a series as a map animation, drawn by geoMap.
 %
-%   shLowLevel.writeAnimation(TS, 'ewh.avi', quantity ("ewh")=...,
+%   shLowLevel.writeAnimation(TS, 'ewh.avi', Quantity ("ewh")=...,
 %       kn ([])=...) synthesizes every epoch of TS onto one grid, draws
 %   each frame with geo.map, and writes them to a video container with a
 %   provenance sidecar.
@@ -30,7 +30,7 @@ function writeAnimation(ts, filename, opts)
 %     filename  (1,1) string      .mp4 (Windows/macOS) or .avi (portable)
 %
 %   Options
-%     quantity ("ewh")  any kernelFactors quantity
+%     Quantity ("ewh")  any kernelFactors quantity
 %     kn ([])  load Love numbers k'_n (mass quantities; never hardcoded)
 %     hn ([])  load Love numbers h'_n (deformation_up only)
 %     lat (-89:2:89)  latitude grid [deg]
@@ -54,7 +54,7 @@ function writeAnimation(ts, filename, opts)
 %
 %   Example
 %     shLowLevel.writeAnimation(ts, fullfile(tempdir, 'ewh.avi'), ...
-%         quantity = "ewh", kn = kn, FrameRate = 6);
+%         Quantity = "ewh", kn = kn, FrameRate = 6);
 %
 %   See also SHSERIES/TOGRID, SHLOWLEVEL/WRITEFRAMES, REQUIREGEOMAP.
 %
@@ -64,7 +64,7 @@ function writeAnimation(ts, filename, opts)
 arguments
     ts (1,1) shSeries
     filename (1,1) string
-    opts.quantity (1,1) string = "ewh"
+    opts.Quantity (1,1) string = "ewh"
     opts.kn double = []
     opts.hn double = []
     opts.lat (1,:) double = -89:2:89
@@ -80,7 +80,7 @@ arguments
 end
 loc = shLowLevel.requireGeoMap();
 
-b = ts.toGrid(opts.lat, opts.lon, quantity = opts.quantity, ...
+b = ts.toGrid(opts.lat, opts.lon, Quantity = opts.Quantity, ...
     kn = opts.kn, hn = opts.hn, LatType = opts.LatType);
 T = size(b.Z, 3);
 
@@ -135,7 +135,7 @@ for k = 1:T
     % name=value must come last, so everything goes in one cell (see
     % shCoefficients.map for what mixing the two forms costs)
     args = [{'Parent', ax, 'Basemap', bm, 'Title', ...
-        sprintf('%s  %.3f', opts.quantity, b.Epoch(k))}, opts.GeoArgs];
+        sprintf('%s  %.3f', opts.Quantity, b.Epoch(k))}, opts.GeoArgs];
     geo.map(G, opts.CRS, args{:});
     settleFigure(fig);
     if isempty(pinned)
@@ -163,7 +163,7 @@ for k = 1:T
     frames(:, :, :, k) = F.cdata;
 end
 
-extra = struct('nEpochs', T, 'quantity', char(opts.quantity), ...
+extra = struct('nEpochs', T, 'quantity', char(opts.Quantity), ...
     'renderer', ['geoMap: ' loc], 'latType', char(b.LatType), ...
     'units', char(b.Units), 'clim', bm.CLim, ...
     'dataRange', [b.Zmin, b.Zmax]);

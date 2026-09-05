@@ -117,7 +117,7 @@ methods (Test)
     function benchClassicChain(tc)
         ts = tc.randomSeries(60, 24);
         while tc.keepMeasuring
-            out = ts.destripe(minOrder=6).gaussian(300); %#ok<NASGU>
+            out = ts.destripe(MinOrder=6).gaussian(300); %#ok<NASGU>
         end
     end
 

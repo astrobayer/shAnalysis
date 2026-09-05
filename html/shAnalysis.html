@@ -21,7 +21,7 @@ th { background: #f5f7fa; }
 <body><div class="content">
 <span class="tag">Toolbox</span>
 <h1>shAnalysis &mdash; overview</h1>
-<p class="ver">Version 3.32.3 &mdash; the toolbox version is defined in
+<p class="ver">Version 3.33.0 &mdash; the toolbox version is defined in
 <code class="inline">Contents.m</code> and reported by
 <code class="inline">shLowLevel.version</code> and MATLAB's
 <code class="inline">ver</code>.</p>
@@ -50,7 +50,7 @@ of <code class="inline">shReadGFC(...)</code>, or use the classes. Run
 ts  = ts.restore(shSeries.read("GAD-2_*.gfc", Truncate=60));
 dts = ts - ts.mean;
 [clim, resid] = dts.climatology(Robust=true);
-tsA = dts.destripe(minOrder=6).gaussian(300);        % classic
+tsA = dts.destripe(MinOrder=6).gaussian(300);        % classic
 [tsF, op] = dts.filter("tvANS");                     % optimal
 avg = tsF.basinAverage(B, Deconvolve=true, Op=op);</pre>
 

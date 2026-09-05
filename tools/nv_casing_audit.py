@@ -50,24 +50,27 @@ NV_DECL = re.compile(r"^\s*(?:options|opts|nv)\.([A-Za-z]\w*)", re.M)
 # Domain notation that is deliberately not PascalCase, with the reason.
 # Empty until the convention is settled: promoting a name here is a
 # decision and must read as one in the diff.
-SYMBOLS = {}
-
-# Names awaiting a decision. Snapshot of 2026-09-05, main @1dd8392.
-# Shrinks only. See the module docstring.
-LEGACY = {
-    # candidate domain notation - spherical harmonic degree
-    "nmax", "nmin", "n0",
-    # candidate domain notation - Love numbers
-    "hn", "kn", "ln",
-    # candidate domain notation - ellipsoid and density
-    "a", "f", "omega", "rho_ave", "rho_water",
-    # candidate domain notation - coordinates
-    "lat", "lon",
-    # plain inconsistencies: a PascalCase twin already exists elsewhere
-    "quantity", "gravisFolder", "idx", "sigmaC", "sigmaS",
-    # plain inconsistencies: no twin, simply lower camel
-    "ax", "minOrder", "polyOrder", "windowLength", "tYears",
+SYMBOLS = {
+    # Love numbers: Hn, Kn, Ln would be unreadable to the domain
+    "hn": "load Love number h'_n",
+    "kn": "load Love number k'_n",
+    "ln": "load Love number l'_n",
+    # ellipsoid and density symbols. GM and R are already uppercase
+    # because that is how the constants themselves are written
+    "a": "semi-major axis",
+    "f": "flattening",
+    "omega": "Earth rotation rate",
+    "rho_ave": "mean Earth density; the underscore belongs to the symbol",
+    "rho_water": "water density; the underscore belongs to the symbol",
+    # coordinates, universally lowercase in geodesy
+    "lat": "geocentric latitude",
+    "lon": "longitude",
 }
+
+# Emptied on 2026-09-05: every entry was renamed to UpperCamelCase or
+# promoted to SYMBOLS above. The mechanism stays for the next migration,
+# but the list must always return to empty.
+LEGACY = set()
 
 # Prefix pairs present on 2026-09-05. Frozen: harmless in themselves,
 # but a new one is a fresh way for a caller's abbreviation to break.

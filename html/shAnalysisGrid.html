@@ -28,7 +28,7 @@ data &mdash; the inverse of <a href="shSynthesis.html">shSynthesis</a>. User-fac
 
 <h2>Syntax</h2>
 <pre>[C, S, info] = shLowLevel.shAnalysisGrid(grid, latVec, lonVec, nmax)
-[C, S, info] = shLowLevel.shAnalysisGrid(..., Method="auto"|"rings"|"ls", quantity=..., ...
+[C, S, info] = shLowLevel.shAnalysisGrid(..., Method="auto"|"rings"|"ls", Quantity=..., ...
                                   Weights="none"|"coslat", Kaula=0, kn=..., GM=..., R=...)
 g = shCoefficients.analysis(grid, latVec, lonVec, nmax, ...)   % returns an shCoefficients</pre>
 
@@ -89,8 +89,8 @@ the sampling supports. S<sub>n0</sub> does not exist (sin&thinsp;0 = 0) and is a
 <h2>Example</h2>
 <pre>% round trip: synthesize a band-limited EWH field, recover the coefficients
 lat = linspace(-89, 89, 180);  lon = 0:2:358;
-grid = g.synthesis(lat, lon, quantity="ewh", kn=kn);
-gHat = shCoefficients.analysis(grid, lat, lon, 60, quantity="ewh", kn=kn, ...
+grid = g.synthesis(lat, lon, Quantity="ewh", kn=kn);
+gHat = shCoefficients.analysis(grid, lat, lon, 60, Quantity="ewh", kn=kn, ...
                                GM=g.GM, R=g.R);
 max(abs(gHat.C - g.C), [], 'all')          % ~1e-15 relative
 

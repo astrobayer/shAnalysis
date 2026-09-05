@@ -2,6 +2,7 @@ function audit_battery
 %AUDIT_BATTERY Unhappy-path battery (audit item 5) + gridScaling pipeline
 %   invariance. Each case classified LOUD (error w/ id) / WARN / SILENT.
 %   Claude (Fable 5), 2026-08-12.
+%   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 root = fileparts(mfilename('fullpath'));
 dd = fullfile(root, 'tests', 'test_data');
 tmp = tempname; mkdir(tmp); c = onCleanup(@() rmdir(tmp, 's'));
@@ -56,7 +57,7 @@ ts2 = shSeries(Cs2, Ss=Ss2, Epochs=[2008.29; 2008.37]);
 probe('B9 two-epoch climatology', @() ts2.climatology(), []);
 
 % B10 basinKernel: degenerate zero-area polygon
-idx = shLowLevel.shIndex(20, MinDegree=0);
+idx = shLowLevel.shIndex(20, Nmin=0);
 polyDeg = [10 10; 10 10; 10 10];
 probe('B10 basin zero-area polygon', @() shLowLevel.basinKernel(idx, polyDeg), @(b) chkZero(b));
 
@@ -81,7 +82,7 @@ probe('B15 oceanRMS eroded to none', @() shLowLevel.oceanRMS(obs, lat, lon, oc1)
 % B16 shAnalysisGrid: NaN in grid
 obsN2 = obs; obsN2(10,10) = NaN;
 probe('B16 analysis NaN grid', @() shLowLevel.shAnalysisGrid(obsN2, lat, lon, 20, ...
-    quantity="ewh", kn=kn), @(C) chkAllNaN(C));
+    Quantity="ewh", kn=kn), @(C) chkAllNaN(C));
 
 % B17 gridScaling pipeline invariance k(507*m) == k(m)
 model = zeros(numel(lat), numel(lon)); model(60:80, 30:70) = 1; model(65:75,40:60)=2.5;

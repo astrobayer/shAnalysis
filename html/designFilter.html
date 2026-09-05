@@ -48,7 +48,7 @@ anisotropic, order-dependent, strong on the near-sectorial coefficients where th
 <tr><td><code class="inline">Noise</code></td><td>[]</td><td>(P x P) full noise <b>covariance</b> in <a href="apiReference.html">shIndex</a> ordering; overrides the sigmas.</td></tr>
 <tr><td><code class="inline">Signal</code></td><td>[]</td><td>(P x P) full signal covariance, same ordering.</td></tr>
 <tr><td><code class="inline">Idx</code></td><td>[]</td><td>the <code class="inline">shIndex</code> struct &mdash; <b>required</b> whenever <code class="inline">Noise</code> or <code class="inline">Signal</code> is used.</td></tr>
-<tr><td><code class="inline">MinDegree</code></td><td>2</td><td>first filtered degree; below it W passes coefficients through unchanged.</td></tr>
+<tr><td><code class="inline">Nmin</code></td><td>2</td><td>first filtered degree; below it W passes coefficients through unchanged.</td></tr>
 <tr><td><code class="inline">Name</code></td><td>"designFilter"</td><td>stored in <code class="inline">W.name</code>, so filtered histories stay readable.</td></tr>
 </table>
 
@@ -66,7 +66,7 @@ gF = g.applyDDK(W);
 
 % from a released full covariance (SINEX)
 snx = shLowLevel.readSINEX("ITSG-Grace2018_n96_2008-04.snx");
-idx = shLowLevel.shIndex(96);
+Idx= shLowLevel.shIndex(96);
 W2  = shLowLevel.designFilter(g.sigmaC, g.sigmaS, Noise = snx.M, Idx = idx);</pre>
 
 <h2>Checking the result</h2>

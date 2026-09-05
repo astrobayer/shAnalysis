@@ -306,7 +306,7 @@ def check_scaling():
 
 def check_pinned():
     """Small, exactly reproducible values to pin in the MATLAB suite."""
-    print("\npinned reference values (nmax=%d, Gauss 500 km)" % NMAX)
+    print("\npinned reference values (Nmax=%d, Gauss 500 km)" % NMAX)
     truth = cap(0.0, 0.0, 10.0, 1.0)
     obs = smooth(truth)
     mask = (truth > 0).astype(float)

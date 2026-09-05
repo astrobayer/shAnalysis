@@ -27,7 +27,7 @@ function [comps, info] = shSynthesisGradientTensor(C, S, GM, R, latDeg, lonDeg, 
 %     latDeg  (1,nlat), lonDeg (1,nlon) double [deg], geocentric
 %   Options
 %     Height (250e3) [m]  evaluation altitude above R
-%     nmin (2)            zero degrees below nmin
+%     Nmin (2)            zero degrees below nmin
 %   Outputs
 %     comps  struct of (nlat,nlon) double [1/s^2]: uu, nn, ee, un, ue,
 %            ne  (symmetric tensor; 1 Eotvos = 1e-9 1/s^2). Components
@@ -45,13 +45,13 @@ arguments
     latDeg (1,:) double
     lonDeg (1,:) double
     opts.Height (1,1) double {mustBeNonnegative} = 250e3
-    opts.nmin (1,1) double {mustBeInteger, mustBeNonnegative} = 2
+    opts.Nmin (1,1) double {mustBeInteger, mustBeNonnegative} = 2
 end
 n1 = size(C, 1); nmax = n1 - 1;
 r = R + opts.Height;
 nn = (0:nmax)';
 att = (GM/R) * (R/r).^(nn + 1);
-att(1:min(opts.nmin, n1)) = 0;
+att(1:min(opts.Nmin, n1)) = 0;
 
 fT   = att;
 fTr  = -(nn + 1) / r .* att;

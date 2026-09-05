@@ -12,8 +12,11 @@ of Claude (Fable 5), 2026-08-07 (v2.5).
 import re
 import sys
 
-sys.path.insert(0, "/home/claude")
-exec(open("/home/claude/api_data.py").read())     # -> API
+import os as _os
+_HERE = _os.path.dirname(_os.path.abspath(__file__))
+sys.path.insert(0, _HERE)
+exec(open(_os.environ.get("SHX_API_DATA",
+                          _os.path.join(_HERE, "api_data.py"))).read())     # -> API
 
 INF = 999
 

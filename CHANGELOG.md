@@ -1,5 +1,66 @@
 # Changelog
 
+## [3.33.0] - 2026-09-05 - Name-Value casing, and one real rename
+
+### BREAKING: `MinDegree` and `MaxDegree` are gone
+
+`shLowLevel.shIndex`, `designFilter`, `synthesisPoints`, `vceRescale`
+and `shSeries.filter` took `MinDegree`; `readLoveNumbers` took
+`MaxDegree`. Three spellings existed side by side for one concept -
+`Nmax`/`nmax`, `nmin`, and `MaxDegree`/`MinDegree` - so they are merged
+onto `Nmax` and `Nmin`.
+
+This one IS a breaking change, and unlike the rest of this release it
+cannot be papered over: MATLAB's case-insensitive Name-Value matching
+rescues `nmax` -> `Nmax`, but `MinDegree` and `Nmin` are different
+names. Update calls:
+
+```matlab
+idx = shLowLevel.shIndex(96, MinDegree = 2);   % before
+idx = shLowLevel.shIndex(96, Nmin = 2);        % after
+kn  = shLowLevel.readLoveNumbers(f, MaxDegree = 96);   % before
+kn  = shLowLevel.readLoveNumbers(f, Nmax = 96);        % after
+```
+
+`VCEMinDegree` in `tvANSFilter` is unchanged - a different option, and
+already conformant.
+
+### Name-Value casing standardised (not breaking)
+
+Declarations follow the MATLAB Coding Standards rule for Name-Value
+arguments, UpperCamelCase: `quantity`, `gravisFolder`, `idx`,
+`sigmaC`, `sigmaS`, `ax`, `minOrder`, `polyOrder`, `windowLength`,
+`tYears`, `nmax`, `nmin`, `n0` become `Quantity`, `GravisFolder`,
+`Idx`, `SigmaC`, `SigmaS`, `Ax`, `MinOrder`, `PolyOrder`,
+`WindowLength`, `TYears`, `Nmax`, `Nmin`, `N0`.
+
+Existing code keeps working: Name-Value matching is case-insensitive,
+measured on R2026a rather than assumed.
+
+Domain notation stays lowercase and is now documented as a deliberate
+exception: `hn`, `kn`, `ln`, `a`, `f`, `omega`, `rho_ave`,
+`rho_water`, `lat`, `lon`. `GM` and `R` were already uppercase.
+
+Struct FIELD names are untouched. `info.nmax`, `info.quantity` and the
+`n0` returned by `shCoefficients.crossover` are outputs, not arguments.
+
+### New gate: `tools/nv_casing_audit.py`
+
+Two Name-Value names differing only by case compile and run with no
+warning, leaving one unreachable - and a casing sweep is exactly the
+operation that creates such a pair. The gate also rejects new
+non-conformant names and new prefix relations, which partial matching
+turns into `AmbiguousInputName` at call time.
+
+### Fixed: the documentation toolchain could not run outside one sandbox
+
+Nine scripts in `tools/dev` carried absolute paths from their authoring
+sessions. `make_apiref.py` wrote the regenerated API reference into a
+clone from an earlier session while `doc_sync_audit` reported the
+untouched page as stale. All paths now derive from `__file__`, with
+`SHX_ROOT`, `SHX_API_DATA`, `SHX_GUIDE_OUT`, `SHX_GUIDE_ASSETS` and
+`SHX_PORT` as overrides.
+
 ## [3.32.3] - 2026-08-23 - review of v3.29-v3.32.2, with fresh eyes
 
 A model change is a review opportunity: everything since v3.28.0 was

@@ -254,16 +254,16 @@ kn = synthLove(g.nmax);
 lat = -89:2:89; lon = 0:2:358;
 newfig(vis, 'D02 quantities');
 subplot(1, 2, 1);
-showMap(g.synthesis(lat, lon, quantity = "geoid"), lat, lon, ...
+showMap(g.synthesis(lat, lon, Quantity = "geoid"), lat, lon, ...
     "geoid", "m");
 subplot(1, 2, 2);
-showMap(gd.gaussian(350).synthesis(lat, lon, quantity = "ewh", kn = kn), ...
+showMap(gd.gaussian(350).synthesis(lat, lon, Quantity = "ewh", kn = kn), ...
     lat, lon, "mass change 2008-2025, Gaussian 350 (EWH; synthetic kn!)", ...
     "m EWH", CRS = "hammer");
 newfig(vis, 'D02 upward continuation');
 g = g.truncate(min(g.nmax, 45));
-ga0 = g.synthesis(lat, lon, quantity = "gravity_anomaly");
-ga4 = g.synthesis(lat, lon, quantity = "gravity_anomaly", Height = 400e3);
+ga0 = g.synthesis(lat, lon, Quantity = "gravity_anomaly");
+ga4 = g.synthesis(lat, lon, Quantity = "gravity_anomaly", Height = 400e3);
 subplot(1, 2, 1); showMap(ga0*1e5, lat, lon, "anomaly, surface", "mGal");
 subplot(1, 2, 2); showMap(ga4*1e5, lat, lon, "anomaly at 400 km", "mGal");
 fprintf('  attenuation at 400 km: rms ratio %.3f\n', sqrt(mean(ga4(:).^2))/sqrt(mean(ga0(:).^2)));
@@ -282,7 +282,7 @@ if isempty(g)
 end
 T = g.subtractNormalField();                  % WGS84, auto-rescaled
 newfig(vis, 'D03 disturbing geoid');
-showMap(T.synthesis(-89:89, 0:359, quantity = "geoid"), -89:89, 0:359, ...
+showMap(T.synthesis(-89:89, 0:359, Quantity = "geoid"), -89:89, 0:359, ...
     "geoid undulation (normal field subtracted)", "m");
 fprintf('  C20 before %.3e -> after %.3e\n', g.C(3, 1), T.C(3, 1));
 end
@@ -347,7 +347,7 @@ showMap(amp, lat, lon, "annual amplitude", "geoid m", ...
     CLim = [0, shLowLevel.pctile(amp, 98)]);
 % basin series: synthetic gets an artificial gap; real series carry
 % their own (2017-2018 mission gap, dropouts)
-idx = shLowLevel.shIndex(30, MinDegree = 0);
+idx = shLowLevel.shIndex(30, Nmin = 0);
 b = shLowLevel.basinKernel(idx, [-5 90; -5 130; 25 130; 25 90]);
 if synth
     keep = [1:30, 41:60];                      % artificial gap 31-40
@@ -398,7 +398,7 @@ fprintf('  ring roundtrip max error %.2e\n', max(abs(g2.C(:) - g.C(:))));
 end
 
 function d08(vis, ~)
-L = 24; idx = shLowLevel.shIndex(L, MinDegree = 0);
+L = 24; idx = shLowLevel.shIndex(L, Nmin = 0);
 [b, infoB] = shLowLevel.basinKernel(idx, [-5 90; -5 130; 25 130; 25 90], ...
     TaperKm = 200);
 newfig(vis, 'D08 basin kernel (tapered)');
@@ -410,20 +410,20 @@ showMap(shLowLevel.shSynthesis(Cb, Sb, 1, 1, lat, lon), lat, lon, ...
 ts = demoSeries(L, 12, 18);
 Wn = shLowLevel.shGaussianWeights(L, 400);
 W = diag(Wn(idx.n + 1));
-k = shLowLevel.basinScaling(W, b, ts, idx = idx, tYears = ts.epochs');
+k = shLowLevel.basinScaling(W, b, ts, Idx = idx, TYears = ts.epochs');
 fprintf('  Gaussian-400 basin scaling factor k = %.3f\n', k);
 end
 
 function d09(vis, ~)
 rng(19);
-idx = shLowLevel.shIndex(8, MinDegree = 2);
+idx = shLowLevel.shIndex(8, Nmin = 2);
 A = randn(idx.P) * 1e-10; M = A * A' + 1e-22 * eye(idx.P);
 newfig(vis, 'D09 covariance & error map');
 subplot(1, 2, 1);
 shLowLevel.plotCovariance(M, idx, ax = gca);
 subplot(1, 2, 2);
 lat = -85:5:85; lon = 0:5:355;
-sig = shLowLevel.errorMap(M, idx, lat, lon, quantity = "geoid");
+sig = shLowLevel.errorMap(M, idx, lat, lon, Quantity = "geoid");
 showMap(sig, lat, lon, "formal sigma (geoid)", "m", ...
     CLim = [0, shLowLevel.pctile(sig, 98)]);
 end
@@ -542,7 +542,7 @@ end
 
 function d15(vis, ~)
 L = 32; [kn, hn] = synthLove(L);
-idx = shLowLevel.shIndex(L, MinDegree = 0);
+idx = shLowLevel.shIndex(L, Nmin = 0);
 ocean = @(la, lo) ~(la > 55 & (lo < 60 | lo > 300));
 loadF = @(la, lo) -100 * double(la > 65 & lo < 40);
 [~, grid, info] = shLowLevel.seaLevelFingerprint(loadF, ocean, idx, ...
@@ -570,7 +570,7 @@ shLowLevel.writeGrid(ncf, G, lat, lon, Name = "geoid", Units = "m", ...
     Epochs = ts.epochs);
 fprintf('  wrote %s\n', ncf);
 mp4 = fullfile(outdir, 'shx_demo_anim.mp4');
-shLowLevel.writeAnimation(ts, mp4, quantity = "geoid", lat = -85:5:85, ...
+shLowLevel.writeAnimation(ts, mp4, Quantity = "geoid", lat = -85:5:85, ...
     lon = 0:5:355, FrameRate = 2, Units = "m");
 fprintf('  wrote %s\n', mp4);
 end

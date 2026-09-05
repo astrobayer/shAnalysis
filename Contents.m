@@ -1,5 +1,5 @@
 % shAnalysis - Spherical harmonic analysis toolbox
-% Version 3.32.3 (R2026a-compatible) 23-Aug-2026
+% Version 3.33.0 (R2026a-compatible) 05-Sep-2026
 %
 % The line above is what ver('shAnalysis') reports as the product name:
 % keep it a SHORT name, not a sentence and not a version string (pinned
@@ -41,7 +41,7 @@
 %   ts  = ts.restore(shSeries.read("GAD-2_*.gfc"));   % add background
 %   dts = ts - ts.mean;                               % anomalies
 %   [clim, resid] = dts.climatology;                  % seasonal model
-%   tsA = dts.destripe(minOrder=6).gaussian(300);     % classic chain
+%   tsA = dts.destripe(MinOrder=6).gaussian(300);     % classic chain
 %   [tsF, op] = dts.filter("tvANS");                  % optimal chain
 %   avg = tsF.basinAverage(B, Deconvolve=true, Op=op);
 %
@@ -224,6 +224,12 @@
 %     (fixture-tested parser) and .gfc download by name; temporal
 %     section returns series roots (superseded in v3.1.1 - the series are
 %     downloadable now, see below)
+%
+% New in v3.33.0 (Name-Value casing; MinDegree/MaxDegree -> Nmin/Nmax)
+%   BREAKING: shIndex/designFilter/synthesisPoints/vceRescale/
+%   shSeries.filter no longer take MinDegree, readLoveNumbers no
+%   longer takes MaxDegree - use Nmin and Nmax. All other option
+%   renames are case-only and therefore compatible.
 %
 % New in v3.32.3 (review of v3.29-v3.32: two documentation defects)
 %   - A fresh-eyes review of everything since v3.28.0 re-derived the

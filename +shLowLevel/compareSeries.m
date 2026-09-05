@@ -149,7 +149,7 @@ else
         for t = 1:T
             g = tk.at(t);
             G = g.synthesis(opts.LatDeg, opts.LonDeg, ...
-                quantity = opts.Quantity, kn = opts.kn);
+                Quantity = opts.Quantity, kn = opts.kn);
             y(t, k) = sum(w(:) .* G(:));
         end
     end

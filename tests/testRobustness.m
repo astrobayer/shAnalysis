@@ -78,7 +78,7 @@ end
 function testRankDeficientBasinsRidge(tc)
 ts = randomSeries(10, 24);
 [tsF, op] = ts.filter("tvANS");                 %#ok<ASGLU>
-idx = shLowLevel.shIndex(ts.nmax, MinDegree = 2);
+idx = shLowLevel.shIndex(ts.nmax, Nmin = 2);
 rng(13);
 b = randn(idx.P, 1);
 B = [b, b];                                     % exactly collinear pair
@@ -122,7 +122,7 @@ end
 % ------------------------------------------------------- degenerate opts
 function testDestripeMinOrderAboveNmax(tc)
 g = randomField(10, 2020);
-g2 = g.destripe(minOrder = 99);                 % nothing to filter
+g2 = g.destripe(MinOrder = 99);                 % nothing to filter
 verifyEqual(tc, g2.C, g.C, AbsTol = 0);
 verifyEqual(tc, g2.S, g.S, AbsTol = 0);
 end
@@ -753,7 +753,7 @@ for blocksMode = ["on", "off"]
 end
 % and the collinear-basin ridge path on top of such a series stays finite
 [~, op] = ts.filter("tvANS");
-idx = shLowLevel.shIndex(nmax, MinDegree = 2);
+idx = shLowLevel.shIndex(nmax, Nmin = 2);
 rng(32); b = randn(idx.P, 1);
 avg = ts.basinAverage([b, b] / norm(b)^2 * idx.P, Deconvolve = true, ...
     Op = op, Ridge = 1e-6);
@@ -837,14 +837,14 @@ LN = shLowLevel.readLoveNumbers(fullfile(tmp, "f4.txt"), Columns = "n h l k");
 verifyEqual(tc, LN.n, (0:2)');
 verifyEqual(tc, LN.kn(3), -0.303, 'AbsTol', 0);
 
-% sparse Farrell sampling + MaxDegree + pchip interpolation
+% sparse Farrell sampling + Nmax + pchip interpolation
 ns = [0 1 2 3 4 5 6 8 10 12 18 32 56 100];
 rows = compose("%d %.8f", ns', -0.30 * ns' ./ (ns' + 6.0));
 w("f5.txt", rows);
 verifyError(tc, @() shLowLevel.readLoveNumbers(fullfile(tmp, "f5.txt"), ...
-    MaxDegree = 96), 'shLowLevel:readLoveNumbers:degreeGap');
+    Nmax = 96), 'shLowLevel:readLoveNumbers:degreeGap');
 [LN, info] = shLowLevel.readLoveNumbers(fullfile(tmp, "f5.txt"), ...
-    MaxDegree = 96, Interp = "pchip");
+    Nmax = 96, Interp = "pchip");
 nn = (0:96)';
 verifyEqual(tc, LN.kn, -0.30 * nn ./ (nn + 6.0), 'AbsTol', 2e-3);
 verifyTrue(tc, any(info.interpolated) && ~info.interpolated(1));
@@ -1066,13 +1066,13 @@ end
 function testFingerprintContracts(testCase)
 L = 12; n = (0:L)';
 kn = -0.3 * n ./ (n + 3); hn = -0.9 * n ./ (n + 2) - 0.1;
-idxBad = shLowLevel.shIndex(L, MinDegree = 2);
+idxBad = shLowLevel.shIndex(L, Nmin = 2);
 ocean = @(la, lo) double(la < 50);
 loadF = @(la, lo) -10 * double(la > 60);
 verifyError(testCase, ...
     @() shLowLevel.seaLevelFingerprint(loadF, ocean, idxBad, kn = kn, hn = hn), ...
     'shLowLevel:seaLevelFingerprint:badIndex');
-idx = shLowLevel.shIndex(L, MinDegree = 0);
+idx = shLowLevel.shIndex(L, Nmin = 0);
 verifyError(testCase, ...
     @() shLowLevel.seaLevelFingerprint(struct('bad', 1), ocean, idx, ...
     kn = kn, hn = hn), 'shLowLevel:seaLevelFingerprint:badLoad');

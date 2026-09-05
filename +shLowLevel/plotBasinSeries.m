@@ -15,7 +15,7 @@ function h = plotBasinSeries(tYears, c, sigma, opts)
 %   Options
 %     Label ("basin average"), Units (""), GapThreshold (0.3) [yr],
 %     Trend (true)  fit + annotate trend +/- sigma (AR(1)-corrected),
-%     ax ([])
+%     Ax ([])
 %   Outputs
 %     h  (1,1) graphics handle  axes of the basin series plot
 %
@@ -29,9 +29,9 @@ arguments
     opts.Units (1,1) string = ""
     opts.GapThreshold (1,1) double = 0.3
     opts.Trend (1,1) logical = true
-    opts.ax = []
+    opts.Ax = []
 end
-if isempty(opts.ax), ax = gca; else, ax = opts.ax; end
+if isempty(opts.Ax), ax = gca; else, ax = opts.Ax; end
 [tYears, ord] = sort(tYears); c = c(ord);
 if ~isempty(sigma), sigma = sigma(ord); end
 hold(ax, 'on');

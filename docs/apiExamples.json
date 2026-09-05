@@ -16,7 +16,7 @@
  },
  {
   "name": "shClimatology.amplitudeMap",
-  "example": "[A, lat, lon] = clim.amplitudeMap(\"annual\", -89:89, 0:359, quantity = \"ewh\", kn = kn);",
+  "example": "[A, lat, lon] = clim.amplitudeMap(\"annual\", -89:89, 0:359, Quantity = \"ewh\", kn = kn);",
   "run": true
  },
  {
@@ -121,7 +121,7 @@
  },
  {
   "name": "shCoefficients.destripe",
-  "example": "g = g.destripe(minOrder = 6);",
+  "example": "g = g.destripe(MinOrder = 6);",
   "run": true
  },
  {
@@ -151,7 +151,7 @@
  },
  {
   "name": "shCoefficients.map",
-  "example": "g.map(-89:89, 0:359, quantity = \"ewh\", kn = kn, CRS = \"robinson\");   % needs geoMap on the path",
+  "example": "g.map(-89:89, 0:359, Quantity = \"ewh\", kn = kn, CRS = \"robinson\");   % needs geoMap on the path",
   "run": false
  },
  {
@@ -196,7 +196,7 @@
  },
  {
   "name": "shCoefficients.synthesis",
-  "example": "ewh = g.synthesis(-89:89, 0:359, quantity = \"ewh\", kn = kn);",
+  "example": "ewh = g.synthesis(-89:89, 0:359, Quantity = \"ewh\", kn = kn);",
   "run": true
  },
  {
@@ -316,7 +316,7 @@
  },
  {
   "name": "shLowLevel.errorMap",
-  "example": "sig = shLowLevel.errorMap(M, idx, -89:4:89, 0:4:356, quantity = \"ewh\", kn = kn);",
+  "example": "sig = shLowLevel.errorMap(M, idx, -89:4:89, 0:4:356, Quantity = \"ewh\", kn = kn);",
   "run": true
  },
  {
@@ -391,7 +391,7 @@
  },
  {
   "name": "shLowLevel.leakageCorrect",
-  "example": "ewh = g.synthesis(-89:89, 0:359, quantity = \"ewh\", kn = kn);\n[m, info] = shLowLevel.leakageCorrect(ewh, -89:89, 0:359, ...\n    Filter = \"gauss300\", Mask = basinMask, NoiseLevel = oceanRMS);",
+  "example": "ewh = g.synthesis(-89:89, 0:359, Quantity = \"ewh\", kn = kn);\n[m, info] = shLowLevel.leakageCorrect(ewh, -89:89, 0:359, ...\n    Filter = \"gauss300\", Mask = basinMask, NoiseLevel = oceanRMS);",
   "run": false
  },
  {
@@ -491,7 +491,7 @@
  },
  {
   "name": "shLowLevel.readLoveNumbers",
-  "example": "    LN = shLowLevel.readLoveNumbers(\"prem_load.txt\", Columns=\"n h l k\", ...\n             MaxDegree=96, Interp=\"pchip\", InFrame=\"CE\", OutFrame=\"CF\");\n    [up, no, ea] = g.deformation(latPts, lonPts, kn=LN.kn, hn=LN.hn, ...\n             ln=LN.ln, Mode=\"points\");",
+  "example": "    LN = shLowLevel.readLoveNumbers(\"prem_load.txt\", Columns=\"n h l k\", ...\n             Nmax=96, Interp=\"pchip\", InFrame=\"CE\", OutFrame=\"CF\");\n    [up, no, ea] = g.deformation(latPts, lonPts, kn=LN.kn, hn=LN.hn, ...\n             ln=LN.ln, Mode=\"points\");",
   "run": true
  },
  {
@@ -556,7 +556,7 @@
  },
  {
   "name": "shLowLevel.shDestripe",
-  "example": "[Cf, Sf] = shLowLevel.shDestripe(g.C, g.S, minOrder = 6);",
+  "example": "[Cf, Sf] = shLowLevel.shDestripe(g.C, g.S, MinOrder = 6);",
   "run": true
  },
  {
@@ -581,7 +581,7 @@
  },
  {
   "name": "shLowLevel.shIndex",
-  "example": "idx = shLowLevel.shIndex(60);                % MinDegree = 2 default",
+  "example": "idx = shLowLevel.shIndex(60);                % Nmin = 2 default",
   "run": true
  },
  {
@@ -671,7 +671,7 @@
  },
  {
   "name": "shLowLevel.writeAnimation",
-  "example": "shLowLevel.writeAnimation(ts, \"ewh.avi\", quantity = \"ewh\", kn = kn);   % needs geoMap on the path",
+  "example": "shLowLevel.writeAnimation(ts, \"ewh.avi\", Quantity = \"ewh\", kn = kn);   % needs geoMap on the path",
   "run": false
  },
  {
@@ -726,7 +726,7 @@
  },
  {
   "name": "shSeries.destripe",
-  "example": "ts = ts.destripe(minOrder = 6);",
+  "example": "ts = ts.destripe(MinOrder = 6);",
   "run": true
  },
  {

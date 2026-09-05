@@ -29,7 +29,7 @@ vectors that EWH synthesis and elastic deformation expect.</p>
 <h2>Syntax</h2>
 <pre>LN = shLowLevel.readLoveNumbers(file)
 [LN, info] = shLowLevel.readLoveNumbers(file, Columns="n h l k", ...
-        MaxDegree=96, Interp="pchip", InFrame="CE", OutFrame="CF")</pre>
+        Nmax=96, Interp="pchip", InFrame="CE", OutFrame="CF")</pre>
 
 <h2>Recognized layouts</h2>
 <table>
@@ -42,7 +42,7 @@ vectors that EWH synthesis and elastic deformation expect.</p>
 
 <h2>Sparse tables (Interp)</h2>
 <p>Farrell-style tables list only n = ..., 32, 56, 100, ... With
-<code class="inline">MaxDegree=</code> the coverage of 0..MaxDegree is verified;
+<code class="inline">Nmax=</code> the coverage of 0..Nmax is verified;
 gaps error unless <code class="inline">Interp="pchip"</code> fills them by
 shape-preserving interpolation in log(1+n). Python-validated: maximum absolute
 error 1.3e-4 (0.05% of the curve range) reconstructing a smooth k'<sub>n</sub>
@@ -70,7 +70,7 @@ GNSS loading series.</div>
 
 <h2>Example (G7 GNSS chain)</h2>
 <pre>LN = shLowLevel.readLoveNumbers("prem_load.txt", Columns="n h l k", ...
-         MaxDegree=96, Interp="pchip", InFrame="CE", OutFrame="CF");
+         Nmax=96, Interp="pchip", InFrame="CE", OutFrame="CF");
 [up, no, ea] = g.deformation(lat, lon, kn=LN.kn, hn=LN.hn, ...
          ln=LN.ln, Mode="points");</pre>
 
@@ -103,7 +103,7 @@ uses. <code class="inline">shLowLevel.fetchLoveNumbers</code> automates <em>obta
 set (the GROOPS / TU Graz load Love numbers); it does not choose one for you.</p>
 <pre>f  = shLowLevel.fetchLoveNumbers();            % -&gt; the data folder
 LN = shLowLevel.readLoveNumbers(f);            % kn, hn, ln by degree
-ewh = g.synthesis(-89:89, 0:359, quantity = "ewh", kn = LN.kn);</pre>
+ewh = g.synthesis(-89:89, 0:359, Quantity= "ewh", kn = LN.kn);</pre>
 <p>The usual fetcher options apply: <code class="inline">Dest</code>,
 <code class="inline">BaseURL</code> (also a local mirror), <code class="inline">Proxy</code>,
 <code class="inline">Timeout</code>, <code class="inline">Quiet</code>, and

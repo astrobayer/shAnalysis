@@ -31,7 +31,7 @@ odd-degree subsequences (correlated GRACE errors alias into that parity split) a
 polynomial fit in degree n from each. By default this is a single polynomial fit over the whole available
 degree range per order/parity (the original Swenson &amp; Wahr formulation); setting
 <code class="inline">'windowLength'</code> switches to a centered moving-window fit (the "P3M6"-style variant,
-polyOrder=3, windowLength=6 being a common choice from Duan et al. 2009).</p>
+PolyOrder=3, WindowLength=6 being a common choice from Duan et al. 2009).</p>
 
 <div class='note'>Cross-checked (validate_destripe.py): a synthetic pure quadratic-in-degree trend is absorbed to &lt;1e-13 residual by the order-2 polynomial fit, confirming the filter removes exactly the class of smooth-in-degree trend it targets.</div>
 <h2>Input Arguments</h2>

@@ -8,6 +8,7 @@ function audit_degree1
 %   = the n=1 analysis of the total field with the same operator the
 %   estimator inverts (convention cancels by construction).
 %   Audit script, Claude (Fable 5), 2026-08-12.
+%   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 rng(42);
 GM = 3.986004415e14; R = 6378136.3;
 kn = readmatrix('E:\DATAPOOL\GravityField\loveNumbers\loadLoveNumbers_Gegout97.txt', ...
@@ -52,7 +53,7 @@ for k = 1:T
     u = -sum(Lk(:).*AF(:)) / oceA;                     % eustatic closure
     sig = Lk + u*double(isOceanFine) + oceanExtra(k);  % total EWH [m]
     [Ck, Sk] = shLowLevel.shAnalysisGrid(sig, L.lat, L.lon, 90, ...
-        quantity="ewh", GM=GM, R=R, kn=kn);
+        Quantity="ewh", GM=GM, R=R, kn=kn);
     truth.C10(k) = Ck(2,1); truth.C11(k) = Ck(2,2); truth.S11(k) = Sk(2,2);
     for n = 2:90
         sc = sigDeg(n+1) / (kf90(n+1)*sqrt(2*n+1));

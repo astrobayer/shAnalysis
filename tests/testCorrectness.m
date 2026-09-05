@@ -215,7 +215,7 @@ function testEigTrickEquivalence(testCase)
 %   from the op struct tvANSFilter actually returns and requires it to
 %   reproduce the returned Xf: the identity is now pinned to the code.
 rng(10);
-idx = shLowLevel.shIndex(6, MinDegree = 2);
+idx = shLowLevel.shIndex(6, Nmin = 2);
 T = 24; t = 2020 + (0:T-1)'/12;
 X = 1e-9 * randn(idx.P, T) + 5e-9 * cos(2*pi*t') .* randn(idx.P, 1);
 [Xf, op] = shLowLevel.tvANSFilter(X, t, idx, Blocks = 'off', ...
@@ -403,7 +403,7 @@ C0(1:2, :) = 0; S0(1:2, :) = 0;                 % nothing below degree 2
 lat = linspace(-85, 85, 2*L+6); lon = (0:2*L+5) * 360/(2*L+6);
 g = shLowLevel.shSynthesis(C0, S0, GM, R, lat, lon, 'quantity', 'gravity_anomaly');
 [C, S, info] = shLowLevel.shAnalysisGrid(g, lat, lon, L, ...
-    quantity = 'gravity_anomaly', GM = GM, R = R);
+    Quantity = 'gravity_anomaly', GM = GM, R = R);
 verifyEqual(testCase, C, C0, 'AbsTol', 1e-16);
 verifyEqual(testCase, S, S0, 'AbsTol', 1e-16);
 % gravity_anomaly kernel (n-1): only n=1 carries no information
@@ -497,7 +497,7 @@ function testConstrainedFilterSigmaStack(testCase)
 % brute-force covariance diagonal built from the returned operator.
 rng(22);
 L = 6; T = 18;
-idx = shLowLevel.shIndex(L, MinDegree = 2); P = idx.P;
+idx = shLowLevel.shIndex(L, Nmin = 2); P = idx.P;
 Cs = zeros(L+1, L+1, T); Ss = Cs;
 mL = tril(true(L+1));
 for t = 1:T
@@ -552,7 +552,7 @@ function testBasinSigmaIncludesDeterministic(testCase)
 % identity sum(h_t) = #parameters.
 rng(23);
 L = 6; T = 20; K = 2;
-idx = shLowLevel.shIndex(L, MinDegree = 2); P = idx.P;
+idx = shLowLevel.shIndex(L, Nmin = 2); P = idx.P;
 Cs = zeros(L+1, L+1, T); Ss = Cs;
 mL = tril(true(L+1));
 tY = 2012 + (0:T-1)'/12;
@@ -597,7 +597,7 @@ function testBasinSigmaConstrainedExact(testCase)
 % the exact constrained operator. Verify against explicit matrices.
 rng(24);
 L = 5; T = 14; K = 2;
-idx = shLowLevel.shIndex(L, MinDegree = 2); P = idx.P;
+idx = shLowLevel.shIndex(L, Nmin = 2); P = idx.P;
 Cs = zeros(L+1, L+1, T); Ss = Cs;
 mL = tril(true(L+1));
 for t = 1:T
@@ -666,7 +666,7 @@ verifyLessThan(testCase, ratio, 1.6);
 end
 
 function testFilterSigmaStacks(testCase)
-% filtered series must carry finite posterior sigmas above MinDegree
+% filtered series must carry finite posterior sigmas above Nmin
 rng(21);
 Lmax = 6; T = 24;
 n1 = Lmax + 1;
@@ -679,7 +679,7 @@ ts = shSeries(Cs, Ss = Ss, Epochs = t);
 tf = ts.filter("tvANS");
 verifyTrue(testCase, all(isfinite(tf.sigmaCs(3:end, 1, 1)), 'all'));
 verifyTrue(testCase, all(tf.sigmaCs(3:end, 1, 1) > 0, 'all'));
-verifyTrue(testCase, all(isnan(tf.sigmaCs(1:2, 1, 1))));  % below MinDegree
+verifyTrue(testCase, all(isnan(tf.sigmaCs(1:2, 1, 1))));  % below Nmin
 end
 
 function testSelectAndDropNaN(testCase)
@@ -851,7 +851,7 @@ verifyEqual(testCase, g2, g1, 'AbsTol', 0);
 end
 
 function testBasinKernelAreaAndTaper(testCase)
-idx = shLowLevel.shIndex(20, MinDegree = 0);
+idx = shLowLevel.shIndex(20, Nmin = 0);
 cap = @(la, lo) double(la > 60);                 % polar cap, ~6.7% area
 [b, info] = shLowLevel.basinKernel(idx, cap);
 % indicator staircase: +4.5% at OverSample=2 / Lmax=20 (Python-computed);
@@ -869,7 +869,7 @@ verifyGreaterThan(testCase, infoG.areaFraction, info.areaFraction);
 end
 
 function testSlepianPolarCap(testCase)
-idx = shLowLevel.shIndex(12, MinDegree = 0);
+idx = shLowLevel.shIndex(12, Nmin = 0);
 cap = @(la, lo) double(la > 60);
 [G, lam, info] = shLowLevel.slepianBasis(idx, cap, NKeep = idx.P);
 verifyGreaterThanOrEqual(testCase, min(lam), 0);
@@ -891,7 +891,7 @@ end
 function testMCPropagateLinearFunctional(testCase)
 rng(7);
 g = randomFieldWithSigmas(10, 2020);
-idx = shLowLevel.shIndex(10, MinDegree = 0);
+idx = shLowLevel.shIndex(10, Nmin = 0);
 wv = randn(idx.P, 1);
 fun = @(gs) wv' * shLowLevel.vecFromCS(gs.C, gs.S, idx);
 out = shLowLevel.mcPropagate(fun, g, N = 4000, Seed = 11);
@@ -905,12 +905,12 @@ end
 
 function testMCPropagateFullCovariance(testCase)
 % the Cov path with the REAL SINEX fixture: 12 params = shIndex(3,
-% MinDegree=2); propagated sigma of a linear functional must equal
+% Nmin=2); propagated sigma of a linear functional must equal
 % sqrt(w' M w)
 f = fullfile(shxTestDataDir(), ...
     'ITSG-Grace2018_n96_2008-04_head12.snx');
 verifyTrue(testCase, isfile(f));
-idx = shLowLevel.shIndex(3, MinDegree = 2);
+idx = shLowLevel.shIndex(3, Nmin = 2);
 snx = shLowLevel.readSINEX(f, Output = "covariance", Index = idx);
 M = (snx.M + snx.M') / 2;
 g = shCoefficients(zeros(4), zeros(4));
@@ -923,7 +923,7 @@ end
 function testBandedVCEMatchesGlobalWhenUniform(testCase)
 % with one band spanning all orders, banded == global exactly
 rng(21);
-idx = shLowLevel.shIndex(10, MinDegree = 2);
+idx = shLowLevel.shIndex(10, Nmin = 2);
 T = 20; X = randn(idx.P, T);
 t = 2020 + (0:T-1)'/12;
 [Xf1, op1, i1] = shLowLevel.tvANSFilter(X, t, idx, Blocks = 'on'); %#ok<ASGLU>
@@ -939,7 +939,7 @@ function testBandedVCETracksOrderNoise(testCase)
 % NoiseCov must be a FIXED external model here: the default N is built
 % from the data residuals and absorbs the very contrast being tested.
 rng(22);
-idx = shLowLevel.shIndex(12, MinDegree = 2);
+idx = shLowLevel.shIndex(12, Nmin = 2);
 T = 30; t = 2020 + (0:T-1)'/12;
 scale = 1 + 2 * (idx.m >= 6);
 X = scale .* randn(idx.P, T);
@@ -994,8 +994,8 @@ for seed = 1:6
     [xg, ~] = shLowLevel.gaussLegendre(nlat);            % ring latitudes (nodes)
     lat = asind(xg(:)');
     lon = (0:nlon-1) * 360 / nlon;
-    grid = g.synthesis(lat, lon, quantity = q, UseCache = false);
-    g2 = shCoefficients.analysis(grid, lat, lon, nmax, quantity = char(q));
+    grid = g.synthesis(lat, lon, Quantity = q, UseCache = false);
+    g2 = shCoefficients.analysis(grid, lat, lon, nmax, Quantity = char(q));
     verifyEqual(testCase, g2.C, g.C, 'AbsTol', 1e-10, ...
         sprintf('roundtrip C failed (seed %d, nmax %d, %s)', seed, nmax, q));
     verifyEqual(testCase, g2.S, g.S, 'AbsTol', 1e-10, ...
@@ -1061,10 +1061,10 @@ hn = -0.90 * n ./ (n + 2.0) - 0.1;
 ln = -0.05 * n ./ (n + 4.0) - 0.01;
 lat = [37.2, -61.8]; lon = [211.0, 12.5];
 [up, north, east] = shLowLevel.shSynthesisDeformation(C, S, R, lat, lon, ...
-    kn = kn, hn = hn, ln = ln, nmin = 1);
+    kn = kn, hn = hn, ln = ln, Nmin = 1);
 % vertical == kernel route through the standard synthesis
 fUp = shLowLevel.shSynthesisDeformation(C, S, R, lat, lon, ...
-    kn = kn, hn = hn, ln = ln, nmin = 1);
+    kn = kn, hn = hn, ln = ln, Nmin = 1);
 upK = shLowLevel.shSynthesis(C, S, 3.986004415e14, R, lat, lon, ...
     'quantity', 'deformation_up', 'kn', kn, 'hn', hn, 'nmin', 1);
 verifyEqual(testCase, fUp, upK, 'AbsTol', 1e-15);
@@ -1109,10 +1109,10 @@ kn = -0.30 * n ./ (n + 3.0);
 g = randomField(L);
 [xg, ~] = shLowLevel.gaussLegendre(L + 1);
 lat = asind(xg(:)'); lon = (0:2*L+1) * 360 / (2*L + 2);
-grid = g.synthesis(lat, lon, quantity = "surface_density", kn = kn, ...
+grid = g.synthesis(lat, lon, Quantity = "surface_density", kn = kn, ...
     UseCache = false);
 g2 = shCoefficients.analysis(grid, lat, lon, L, ...
-    quantity = 'surface_density', kn = kn);
+    Quantity = 'surface_density', kn = kn);
 verifyEqual(testCase, g2.C, g.C, 'AbsTol', 1e-10);
 verifyEqual(testCase, g2.S, g.S, 'AbsTol', 1e-10);
 end
@@ -1138,7 +1138,7 @@ C = tril(randn(n1)) * 1e-8; C(1, 1) = 0;
 S = tril(randn(n1), -1) * 1e-8; S(:, 1) = 0;
 lat = [41, -55.5]; lon = [100, 331];
 [G, info] = shLowLevel.shSynthesisGradientTensor(C, S, GM, R, lat, lon, ...
-    Height = 250e3, nmin = 2);
+    Height = 250e3, Nmin = 2);
 % Laplace: trace = 0 (Python: 7e-16)
 verifyLessThan(testCase, info.maxTraceResidual, 1e-12);
 % Guu == gravity_gradient_rr kernel route with Height
@@ -1171,7 +1171,7 @@ end
 function testCombineCentersRecovery(testCase)
 rng(72);
 L = 8; n1 = L + 1; T = 14;
-idx = shLowLevel.shIndex(L, MinDegree = 0);
+idx = shLowLevel.shIndex(L, Nmin = 0);
 % truth: smooth series
 Ct = zeros(n1, n1, T); St = zeros(n1, n1, T);
 base = tril(randn(n1)) * 1e-9;
@@ -1234,7 +1234,7 @@ function testFingerprintConservation(testCase)
 L = 24; n = (0:L)';
 kn = -0.30 * n ./ (n + 3.0);
 hn = -0.90 * n ./ (n + 2.0) - 0.1;
-idx = shLowLevel.shIndex(L, MinDegree = 0);
+idx = shLowLevel.shIndex(L, Nmin = 0);
 ocean = @(la, lo) ~(la > 55 & (lo < 60 | lo > 300));
 loadF = @(la, lo) -100 * double(la > 65 & lo < 40);   % kg/m^2 ice loss
 [S, grid, info] = shLowLevel.seaLevelFingerprint(loadF, ocean, idx, ...
@@ -1319,11 +1319,11 @@ end
 
 function testErrorMapMatchesMC(testCase)
 rng(77);
-idx = shLowLevel.shIndex(3, MinDegree = 2);
+idx = shLowLevel.shIndex(3, Nmin = 2);
 A = randn(idx.P) * 1e-10;
 M = A * A' + 1e-22 * eye(idx.P);              % PD synthetic covariance
 lat = [-40, 10, 55]; lon = [30, 200];
-sig = shLowLevel.errorMap(M, idx, lat, lon, quantity = "geoid");
+sig = shLowLevel.errorMap(M, idx, lat, lon, Quantity = "geoid");
 % Monte-Carlo cross-check
 Nmc = 4000;
 Lch = chol((M + M')/2 + 1e-30*eye(idx.P), 'lower');
@@ -1392,9 +1392,9 @@ verifyEqual(testCase, g3.C, g1.C, 'RelTol', 1e-14);
 % physical invariance: potential at points agrees (Python: exact)
 lat = [12.5, -60]; lon = [33, 250];
 % physical invariance: potential at a COMMON radius r = R2 + 100 km
-V1r = g1.synthesis(lat, lon, quantity = "potential", ...
+V1r = g1.synthesis(lat, lon, Quantity = "potential", ...
     Height = R2 + 100e3 - R1, UseCache = false);
-V2r = g2.synthesis(lat, lon, quantity = "potential", ...
+V2r = g2.synthesis(lat, lon, Quantity = "potential", ...
     Height = 100e3, UseCache = false);
 verifyEqual(testCase, V1r, V2r, 'RelTol', 1e-12);
 end
@@ -1588,7 +1588,7 @@ end
 function testSynthesisPoints(testCase)
 % v3.0.0 pointwise synthesis: pinned against the Python reference
 % (explicit deterministic field), radial identity dg = -dT/dr, and
-% MinDegree behaviour
+% Nmin behaviour
 GM = 3.986004415e14; R = 6378136.3;
 C = zeros(5); S = zeros(5);
 C(3,1) = 1.5e-7; C(3,2) = -2.0e-8; C(3,3) = 3.0e-8;
@@ -1610,10 +1610,10 @@ Tm = shLowLevel.synthesisPoints(C, S, GM, R, la0, lo0, r0 - d);
 Tp = shLowLevel.synthesisPoints(C, S, GM, R, la0, lo0, r0 + d);
 an = shLowLevel.synthesisPoints(C, S, GM, R, la0, lo0, r0, Quantity = "disturbance");
 verifyEqual(testCase, -(Tp - Tm) / (2 * d), an, 'RelTol', 1e-8);
-% MinDegree = 0 includes the central term GM/r
-t0 = shLowLevel.synthesisPoints(0*C, 0*S, GM, R, 0, 0, R, MinDegree = 0);
+% Nmin = 0 includes the central term GM/r
+t0 = shLowLevel.synthesisPoints(0*C, 0*S, GM, R, 0, 0, R, Nmin = 0);
 verifyEqual(testCase, t0, 0);                 % zero field, all degrees
-tC = shLowLevel.synthesisPoints(C, S, GM, R, la, lo, r, MinDegree = 3);
+tC = shLowLevel.synthesisPoints(C, S, GM, R, la, lo, r, Nmin = 3);
 verifyNotEqual(testCase, tC(1), tp(1));
 verifyError(testCase, @() shLowLevel.synthesisPoints(C, S, GM, R, la, lo(1), r), ...
     'shLowLevel:synthesisPoints:sizeMismatch');
@@ -1770,7 +1770,7 @@ L = 20; n1 = L + 1;
 C = tril(randn(n1)) * 1e-8; S = tril(randn(n1), -1) * 1e-8; S(:, 1) = 0;
 sC = abs(C) * 0.1; sS = abs(S) * 0.1;
 sd = shLowLevel.shDegreeRMS(C, S, 'R', 6378136.3, 'sigmaC', sC, 'sigmaS', sS);
-so = shLowLevel.shOrderRMS(C, S, sigmaC = sC, sigmaS = sS);
+so = shLowLevel.shOrderRMS(C, S, SigmaC = sC, SigmaS = sS);
 % degree/order marginals of the same total power
 verifyEqual(testCase, sum(so.ordVariance), sum(sd.degVariance), ...
     'RelTol', 1e-14);
@@ -1787,7 +1787,7 @@ verifyEqual(testCase, so.domain, 'order');
 verifyEqual(testCase, sd.domain, 'degree');
 % n0 zeroing consistent between domains
 sd2 = shLowLevel.shDegreeRMS(C, S, 'n0', 2);
-so2 = shLowLevel.shOrderRMS(C, S, n0 = 2);
+so2 = shLowLevel.shOrderRMS(C, S, N0 = 2);
 verifyEqual(testCase, sum(so2.ordVariance), sum(sd2.degVariance), 'RelTol', 1e-14);
 end
 
@@ -2194,7 +2194,7 @@ truth(~ocean) = 0.05 * sind(3 * LO(~ocean));
 oceanModel = zeros(size(LA));
 oceanModel(ocean) = 0.01 * cosd(2 * LA(ocean));
 truth = truth + oceanModel;
-gT = shCoefficients.analysis(truth, lat, lon, nmax, quantity = "ewh", ...
+gT = shCoefficients.analysis(truth, lat, lon, nmax, Quantity = "ewh", ...
     kn = kn);
 c10 = gT.C(2, 1); c11 = gT.C(2, 2); s11 = gT.S(2, 2);
 verifyGreaterThan(testCase, abs(c10) + abs(c11) + abs(s11), 0, ...
@@ -2256,7 +2256,7 @@ function testSensitivityKernelTradeOff(testCase)
 %   Pinned against tools/dev/validate_senskernel.py: the two limits are
 %   exact, leakage rises and noise falls monotonically with Alpha, and
 %   at matched noise the tailored kernel leaks less than a Gaussian.
-idx = shLowLevel.shIndex(30, MinDegree = 0);
+idx = shLowLevel.shIndex(30, Nmin = 0);
 cap = @(la, lo) double(acosd(min(1, max(-1, sind(15) * sind(la) + ...
     cosd(15) * cosd(la) .* cosd(lo - 300)))) <= 10);
 
@@ -2349,7 +2349,7 @@ function testSensitivityKernelFullCovariancePath(testCase)
 %   IN FULL: a diagonal matrix must reproduce the vector path exactly,
 %   and off-diagonal correlations must change the propagated noise -
 %   pinning that the solve routes through the full covariance.
-idx = shLowLevel.shIndex(12, MinDegree = 0);
+idx = shLowLevel.shIndex(12, Nmin = 0);
 cap = @(la, lo) double(acosd(min(1, max(-1, sind(20)*sind(la) + ...
     cosd(20)*cosd(la).*cosd(lo - 40)))) <= 15);
 sig = 1 + (idx.n / 5).^2;
@@ -2393,7 +2393,7 @@ function testSlepianCapCrossValidation(testCase)
 %   reference (0.5-deg graticule, lpmv): 30-deg polar cap, Lmax 12 ->
 %   lambda_1 = 0.999981, Shannon = P * (1-cosd(30))/2 = 11.32. Two
 %   implementations, two quadratures, same physics.
-idx = shLowLevel.shIndex(12, MinDegree = 0);
+idx = shLowLevel.shIndex(12, Nmin = 0);
 % OverSample 8: the mask-quadrature area converges to the analytic cap
 % (at the default 2 the quantization error is 7.5% - measured, not
 % assumed)
@@ -2411,7 +2411,7 @@ function testSlepianProjectRoundtrip(testCase)
 %   field fully concentrated in the region survives projection onto the
 %   ~Shannon leading tapers nearly unchanged; the reconstruction repack
 %   is exact for K = P.
-idx = shLowLevel.shIndex(12, MinDegree = 0);
+idx = shLowLevel.shIndex(12, Nmin = 0);
 [G, ~, info] = shLowLevel.slepianBasis(idx, @(la, lo) double(la > 60));
 % concentrated test field: leading taper itself, repacked to (C, S)
 Cs = zeros(idx.Lmax+1, idx.Lmax+1); Ss = Cs;
@@ -2504,9 +2504,9 @@ verifyTrue(testCase, mk600(iLa, iLo));
 nmax = 30; kn = zeros(nmax + 1, 1);
 GM = 3.986004415e14; R = 6378136.3;
 gLand = shCoefficients.analysis(double(land) * 1.0, lat, lon, nmax, ...
-    kn = kn, quantity = "ewh");
+    kn = kn, Quantity = "ewh");
 gOc = shCoefficients.analysis(double(ocean) * 0.10, lat, lon, nmax, ...
-    kn = kn, quantity = "ewh");
+    kn = kn, Quantity = "ewh");
 wf = shLowLevel.shGaussianWeights(nmax, 445); wf = wf(:);
 w = cosd(LA);
 mm = @(C, S) localMaskMean(shLowLevel.shSynthesis(C .* wf, S .* wf, ...
@@ -2526,14 +2526,14 @@ for it = 1:5
         'quantity', 'ewh', 'kn', kn, 'nmin', 0);
     EL(ocean) = 0;
     gLe = shCoefficients.analysis(EL, lat, lon, nmax, kn = kn, ...
-        quantity = "ewh");
+        Quantity = "ewh");
     Lc = gLe.C; Ls = gLe.S;
     EO = shLowLevel.shSynthesis(gOc.C + gLand.C - Lc, ...
         gOc.S + gLand.S - Ls, GM, R, lat, lon, ...
         'quantity', 'ewh', 'kn', kn, 'nmin', 0);
     EO(~ocean) = 0;
     gOe = shCoefficients.analysis(EO, lat, lon, nmax, kn = kn, ...
-        quantity = "ewh");
+        Quantity = "ewh");
     Oc = gOe.C; Os = gOe.S;
 end
 leakClean = mm(gOc.C + gLand.C - Lc, gOc.S + gLand.S - Ls) - ref;
@@ -2606,7 +2606,7 @@ function testVdkApplyCore(testCase)
 %   closed form x/(1+alpha*c) (1e-10), and the (N+aM)^-1 N form equals
 %   the Wiener form S(S+aN^-1)^-1 with S = M^-1 (1e-9).
 rng(7, 'twister');
-idx = shLowLevel.shIndex(10, MinDegree = 2);
+idx = shLowLevel.shIndex(10, Nmin = 2);
 P = idx.P;
 A = randn(P, ceil(P/3));
 N = A*A' + P*eye(P);
@@ -2769,7 +2769,7 @@ function testNVCasingToleranceAndConvention(testCase)
 %   refactorings cannot silently break it. Canonical spelling stays
 %   Capitalized for arguments-block NV, lowercase for legacy
 %   inputParser names and quantity strings.
-idx = shLowLevel.shIndex(6, MinDegree = 0);
+idx = shLowLevel.shIndex(6, Nmin = 0);
 tri = [10 10; 10 20; 20 20];
 m1 = shLowLevel.evalMask(idx, tri, oversample = 1);   % lowercase
 m2 = shLowLevel.evalMask(idx, tri, OverSample = 1);   % canonical
@@ -2832,7 +2832,7 @@ function testEvalMaskRejectsGeojsonOrderedPolygon(testCase)
 %   convention built a SILENT phantom basin with plausible area (Amazonas)
 %   or an empty one (Lena). Vertices with |lat| > 90 now raise an
 %   identified error; a valid [lat lon] polygon still works.
-idx = shLowLevel.shIndex(8, MinDegree = 0);
+idx = shLowLevel.shIndex(8, Nmin = 0);
 % Lena-class swap: |lon| > 90 read as latitude is detectable...
 lenaGeojson = [103 55; 140 55; 140 70; 103 70; 103 55];     % [lon lat]
 verifyError(testCase, @() shLowLevel.evalMask(idx, lenaGeojson), ...
@@ -2852,7 +2852,7 @@ end
 function testBasinKernelWarnsOnZeroArea(testCase)
 %TESTBASINKERNELWARNSONZEROAREA Audit F-18: a degenerate region used to
 %   return a silent all-zero kernel that any average divides by.
-idx = shLowLevel.shIndex(10, MinDegree = 0);
+idx = shLowLevel.shIndex(10, Nmin = 0);
 verifyWarning(testCase, @() shLowLevel.basinKernel(idx, ...
     [10 10; 10 10; 10 10]), 'shLowLevel:basinKernel:zeroArea');
 end
@@ -3611,7 +3611,7 @@ h = 1e-4;                                   % rad; 5-point stencil below
 for q = ["none", "geoid", "potential", "gravity_anomaly", ...
          "gravity_disturbance", "ewh"]
     g = shLowLevel.shSynthesisGradient(C, S, GM, R, lat, lon, ...
-        quantity = q, kn = kn, Units = "perRadian");
+        Quantity = q, kn = kn, Units = "perRadian");
     scal = @(la, lo) shLowLevel.shSynthesis(C, S, GM, R, la, lo, ...
         'quantity', char(q), 'kn', kn);
     d5 = @(f, x) (f(x - 2*rad2deg(h)) - 8*f(x - rad2deg(h)) ...
@@ -3648,12 +3648,12 @@ GM = 3.986004415e14; R = 6378136.3;
 lat = -75:25:75; lon = 0:60:300;
 for hgt = [0, 250e3]
     g = shLowLevel.shSynthesisGradient(C, S, GM, R, lat, lon, ...
-        quantity = "potential", Height = hgt);
+        Quantity = "potential", Height = hgt);
     dg = shLowLevel.shSynthesis(C, S, GM, R, lat, lon, ...
         'quantity', 'gravity_disturbance', 'Height', hgt);
     verifyEqual(testCase, g.up, -dg, 'RelTol', 1e-12);
     g2 = shLowLevel.shSynthesisGradient(C, S, GM, R, lat, lon, ...
-        quantity = "gravity_disturbance", Height = hgt);
+        Quantity = "gravity_disturbance", Height = hgt);
     trr = shLowLevel.shSynthesis(C, S, GM, R, lat, lon, ...
         'quantity', 'gravity_gradient_rr', 'Height', hgt);
     verifyEqual(testCase, g2.up, -trr, 'RelTol', 1e-12);
@@ -3671,19 +3671,19 @@ mk = @(n, m, isC) deal(local_one(n, m, isC, true), local_one(n, m, isC, false));
 
 [C, S] = mk(1, 0, true);                       % C_10
 g = shLowLevel.shSynthesisGradient(C, S, GM, R, lat, lon, ...
-    quantity = "none", Units = "perRadian");
+    Quantity = "none", Units = "perRadian");
 verifyEqual(testCase, g.north, sqrt(3) * cos(LA), 'AbsTol', 1e-13);
 verifyEqual(testCase, g.east, zeros(size(LA)), 'AbsTol', 1e-14);
 
 [C, S] = mk(1, 1, true);                       % C_11
 g = shLowLevel.shSynthesisGradient(C, S, GM, R, lat, lon, ...
-    quantity = "none", Units = "perRadian");
+    Quantity = "none", Units = "perRadian");
 verifyEqual(testCase, g.north, -sqrt(3) * sin(LA) .* cos(LO), 'AbsTol', 1e-13);
 verifyEqual(testCase, g.east, -sqrt(3) * sin(LO), 'AbsTol', 1e-13);
 
 [C, S] = mk(1, 1, false);                      % S_11
 g = shLowLevel.shSynthesisGradient(C, S, GM, R, lat, lon, ...
-    quantity = "none", Units = "perRadian");
+    Quantity = "none", Units = "perRadian");
 verifyEqual(testCase, g.north, -sqrt(3) * sin(LA) .* sin(LO), 'AbsTol', 1e-13);
 verifyEqual(testCase, g.east, sqrt(3) * cos(LO), 'AbsTol', 1e-13);
 end
@@ -3724,10 +3724,10 @@ d = max(abs(lat - latGc));
 verifyEqual(testCase, d, 0.1924, 'AbsTol', 2e-3);
 
 % the gradient carries the convention rather than leaving it to be remembered
-[~, info] = g.gradient(lat, lon, quantity = "potential", LatType = "geodetic");
+[~, info] = g.gradient(lat, lon, Quantity = "potential", LatType = "geodetic");
 verifyEqual(testCase, info.lat, lat);
 verifyEqual(testCase, info.latType, "geodetic");
-[~, info2] = g.gradient(lat, lon, quantity = "potential");
+[~, info2] = g.gradient(lat, lon, Quantity = "potential");
 verifyEqual(testCase, info2.latType, "geocentric");
 end
 

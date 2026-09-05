@@ -33,7 +33,7 @@ function [out, rep] = obpChain(folder, opts)
 %     GADFolder ("")     (1 x 1) string  REQUIRED folder of GAD-2_*.gfc
 %                        (shLowLevel.fetchGAX) - OBP without GAD is
 %                        not OBP, so the empty default errors
-%     gravisFolder ("")  GravIS aux folder; "" = shipped data/gravis
+%     GravisFolder ("")  GravIS aux folder; "" = shipped data/gravis
 %     GIAFile ("GRAVIS-2B_COSTG_0200_GIA_ICE-6G_D_VM5a_0001.gz")
 %                        "" disables the GIA rate (see gravisL2B)
 %     GIAEpoch (2011)    (1 x 1) GIA reference epoch
@@ -75,7 +75,7 @@ arguments
     opts.kn double = []
     opts.OceanMask = []
     opts.GADFolder (1,1) string = ""
-    opts.gravisFolder (1,1) string = ""
+    opts.GravisFolder (1,1) string = ""
     opts.GIAFile (1,1) string = "GRAVIS-2B_COSTG_0200_GIA_ICE-6G_D_VM5a_0001.gz"
     opts.GIAEpoch (1,1) double = 2011
     opts.GridStep (1,1) double {mustBePositive} = 1
@@ -97,7 +97,7 @@ R = 6378136.3; GM = 3.986004415e14; Re = 6371e3;
 % ---- corrected series (shared core)
 l2bArgs = {'GIAEpoch', opts.GIAEpoch, 'GIAFile', opts.GIAFile};
 if ~isempty(opts.SpanEnd), l2bArgs = [l2bArgs, {'SpanEnd', opts.SpanEnd}]; end
-[ts, repL] = shLowLevel.gravisL2B(folder, opts.gravisFolder, l2bArgs{:});
+[ts, repL] = shLowLevel.gravisL2B(folder, opts.GravisFolder, l2bArgs{:});
 ep = ts.epochs(:); T = numel(ep);
 steps = repL.steps;
 Cs = ts.Cs; Ss = ts.Ss;

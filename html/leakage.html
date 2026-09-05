@@ -38,7 +38,7 @@ believe</em>.</p>
 <p>Find the mass field that, pushed through the <b>same</b> chain the data saw, reproduces the
 observation:</p>
 <pre>m<sub>k+1</sub> = m<sub>k</sub> + Gain &middot; (observed &minus; F(m<sub>k</sub>)),   F = analysis &rarr; filter &rarr; synthesis</pre>
-<pre>ewh = g.synthesis(-89:89, 0:359, quantity = "ewh", kn = kn);
+<pre>ewh = g.synthesis(-89:89, 0:359, Quantity= "ewh", kn = kn);
 [m, info] = shLowLevel.leakageCorrect(ewh, -89:89, 0:359, ...
     Filter = "gauss300", Mask = basinMask, Gain = 2);</pre>
 <p><code class="inline">Filter</code> must be the filter <em>actually applied to the data</em>

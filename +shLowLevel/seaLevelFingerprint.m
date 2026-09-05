@@ -24,7 +24,7 @@ function [S, grid, info] = seaLevelFingerprint(loadRegion, ocean, idx, opts)
 %                 opts.LoadValue (1)), or Ngrid x 1 values on the solver grid
 %     ocean       ocean region: handle | polygon | mask (shLowLevel.evalMask
 %                 forms). The load is restricted to land (1 - ocean).
-%     idx         shLowLevel.shIndex(Lmax, MinDegree = 0)  - MinDegree MUST be
+%     idx         shLowLevel.shIndex(Lmax, Nmin = 0)  - Nmin MUST be
 %                 0 (mass conservation lives in degree 0/1)
 %   Options
 %     kn, hn (REQUIRED)    load Love numbers k'_n, h'_n (user-supplied)
@@ -62,7 +62,7 @@ arguments
     opts.Tol (1,1) double = 1e-8
 end
 assert(idx.minDegree == 0, 'shLowLevel:seaLevelFingerprint:badIndex', ...
-    'idx must use MinDegree = 0 (mass conservation needs degrees 0-1).');
+    'idx must use Nmin = 0 (mass conservation needs degrees 0-1).');
 n1 = idx.Lmax + 1;
 for fld = ["kn", "hn"]
     assert(numel(opts.(fld)) >= n1, 'shSynthesis:missingLoveNumbers', ...
