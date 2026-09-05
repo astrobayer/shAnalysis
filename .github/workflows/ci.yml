@@ -1,4 +1,4 @@
-# shAnalysis CI - GitHub Actions workflow template (v2.7.0)
+# shAnalysis CI - GitHub Actions workflow template (v2.7.1)
 #
 # INSTALL: copy this file to <repo-root>/.github/workflows/shanalysis-ci.yml
 # (workflow files only take effect at the repository root, so from within
@@ -27,9 +27,20 @@
 # self-hosted (repo owner's runner). Set up MATLAB is now conditional
 # on matrix.os and skipped for self-hosted; a fast MATLAB-on-PATH probe
 # replaces it so a missing/misconfigured install fails clearly instead
-# of surfacing as a confusing test-suite error. NOTE: the three python3
-# steps below were NOT verified against the self-hosted runner's actual
-# execution account - see PR description.
+# of surfacing as a confusing test-suite error.
+#
+# v2.7.1 (2026-09-05): 'python3' -> 'python'. The Windows python.org
+# installer ships python.exe and py.exe but NO python3.exe, so the old
+# spelling cannot resolve on a self-hosted Windows runner; 'python'
+# resolves on both Windows and the GitHub-hosted Linux images.
+# Verified on the runner: C:\Program Files\Python313\python.exe sits
+# on the MACHINE PATH, which is what the runner service inherits.
+#
+# Step order changed in the same revision: the three static gates and
+# the MATLAB probe now run BEFORE the fixture checkout. None of them
+# reads a fixture, so putting the 11 MB checkout first only meant that
+# a fixture problem masked every other result - which is exactly what
+# happened on the first self-hosted run.
 #
 # Developed by Matthias Weigelt with the help of Claude (Fable 5),
 # 2026-08-08 (v2.6.0); Claude (Sonnet 5), 2026-09-05 (v2.7.0).
@@ -59,26 +70,14 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v6
 
-      # Fixtures live on the orphan branch 'testdata' (v3.26.1): main no
-      # longer needs to carry the 11 MB. The step is safe in BOTH worlds -
-      # while tests/test_data still exists on main, checkout cleans and
-      # replaces the folder; once it is removed from main, this step is
-      # the only source. Development machines use SHX_TESTDATA_FOLDER
-      # instead (tests/shxTestDataDir).
-      - name: Check out test fixtures (orphan branch 'testdata')
-        uses: actions/checkout@v6
-        with:
-          ref: testdata
-          path: tests/test_data
-
       - name: Documentation completeness audit
-        run: python3 tools/help_audit.py
+        run: python tools/help_audit.py
 
       - name: Documentation sync audit (help vs html vs guide)
-        run: python3 tools/doc_sync_audit.py
+        run: python tools/doc_sync_audit.py
 
       - name: No map renderer (geoMap is the single cartographic authority)
-        run: python3 tools/dev/no_map_renderer.py
+        run: python tools/dev/no_map_renderer.py
 
       - name: Set up MATLAB
         # Only for GitHub-hosted matrix legs. setup-matlab does not
@@ -103,6 +102,18 @@ jobs:
         with:
           command: >
             fprintf('MATLAB on self-hosted runner: %s\n', version);
+
+      # Fixtures live on the orphan branch 'testdata' (v3.26.1): main no
+      # longer needs to carry the 11 MB. The step is safe in BOTH worlds -
+      # while tests/test_data still exists on main, checkout cleans and
+      # replaces the folder; once it is removed from main, this step is
+      # the only source. Development machines use SHX_TESTDATA_FOLDER
+      # instead (tests/shxTestDataDir).
+      - name: Check out test fixtures (orphan branch 'testdata')
+        uses: actions/checkout@v6
+        with:
+          ref: testdata
+          path: tests/test_data
 
       - name: Run test suite
         uses: matlab-actions/run-command@v3
