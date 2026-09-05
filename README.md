@@ -1,10 +1,10 @@
 # shAnalysis
 
-![CI](https://github.com/matweigelt/shAnalysis/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/astrobayer/shAnalysis/actions/workflows/ci.yml/badge.svg)
 ![MATLAB](https://img.shields.io/badge/MATLAB-base%20only%2C%20R2026a%20tested-orange)
 ![Platforms](https://img.shields.io/badge/platforms-Windows%20%7C%20Linux-lightgrey)
-![Latest tag](https://img.shields.io/github/v/tag/matweigelt/shAnalysis?label=version)
-![License](https://img.shields.io/github/license/matweigelt/shAnalysis)
+![Latest tag](https://img.shields.io/github/v/tag/astrobayer/shAnalysis?label=version)
+![License](https://img.shields.io/github/license/astrobayer/shAnalysis)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21871298.svg)](https://doi.org/10.5281/zenodo.21871298)
 
 Class-based MATLAB toolbox for spherical harmonic (Stokes coefficient)
@@ -16,7 +16,7 @@ building block is callable directly from the `+shLowLevel` package.
 Requires MATLAB R2021a or newer (`arguments` name=value syntax) and
 **nothing beyond base MATLAB**: no toolboxes.
 
-**Maps are drawn by [geoMap](https://github.com/matweigelt/geomapper),
+**Maps are drawn by [geoMap](https://github.com/astrobayer/geoMap),
 not by this toolbox** (v3.32.0). shAnalysis renders no cartography of
 its own; `g.map` and `shLowLevel.writeAnimation` synthesize, hand the
 grid over, and let `geo.map` draw - a CI gate keeps it that way. The
