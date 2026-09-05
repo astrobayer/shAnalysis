@@ -13,10 +13,15 @@
 #                  secret MATLAB_BATCH_TOKEN; the env line below maps it
 #   self-hosted  - runs-on is [self-hosted]; MATLAB is expected to
 #                  already be installed and on PATH on the runner, so
-#                  Set up MATLAB is skipped (matlab-actions/setup-matlab
-#                  only supports self-hosted UNIX, not Windows - see its
-#                  README, "Required Software on Self-Hosted Runners");
-#                  no token needed
+#                  the Setup MATLAB step is skipped: that action only
+#                  supports self-hosted UNIX, not Windows (see its
+#                  README, "Required Software on Self-Hosted Runners").
+#                  No token needed.
+#                  NOTE: do not name the setup action's full id in this
+#                  header. testContract/testDocSyncAuditIsWired asserts
+#                  the gate appears before that id in the RAW FILE TEXT,
+#                  so a mention up here reads as the MATLAB step and
+#                  fails the ordering check.
 #
 # The suite is CI-safe by design: all fetch* tests are offline
 # (skip/mirror patterns), fixtures come from the orphan branch 'testdata'
