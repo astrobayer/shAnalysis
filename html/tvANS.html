@@ -68,7 +68,7 @@ reported; documented).</td></tr>
 
 <h2>Usage</h2>
 <pre>[tsF, op, info] = dts.filter("tvANS", ...
-        SignalMode="inhomogeneous", Robust=true, MinDegree=2);
+        SignalMode="inhomogeneous", Robust=true, Nmin=2);
 % info.vce   per-month VCE factors s_t
 % op         the stored linear operator: needed for deconvolution
 avg = tsF.basinAverage(B, Deconvolve=true, Op=op);   % removes attenuation

@@ -50,7 +50,7 @@ of <code class="inline">shReadGFC(...)</code>, or use the classes. Run
 ts  = ts.restore(shSeries.read("GAD-2_*.gfc", Truncate=60));
 dts = ts - ts.mean;
 [clim, resid] = dts.climatology(Robust=true);
-tsA = dts.destripe(minOrder=6).gaussian(300);        % classic
+tsA = dts.destripe(MinOrder=6).gaussian(300);        % classic
 [tsF, op] = dts.filter("tvANS");                     % optimal
 avg = tsF.basinAverage(B, Deconvolve=true, Op=op);</pre>
 

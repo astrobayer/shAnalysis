@@ -32,7 +32,7 @@ th { background: #f5f7fa; }
 <pre>up    = R &Sigma; h'n/(1+k'n) &Delta;C Ybar
 north = R &Sigma; l'n/(1+k'n) &part;Ybar/&part;&phi;
 east  = R &Sigma; l'n/(1+k'n) (1/cos&phi;) &part;Ybar/&part;&lambda;</pre>
-<p>The vertical is a pure degree factor (also available as <code class="inline">quantity="deformation_up"</code> in every synthesis entry point); the horizontals need the exact SH gradient. <code class="inline">shLowLevel.legendreALFDeriv</code> supplies dPbar/d&phi; via a frozen identity, calibrated per (n,m) against numerical differentiation and validated to the finite-difference floor (~1e-9); north/east match brute-force gradients to ~5e-10.</p>
+<p>The vertical is a pure degree factor (also available as <code class="inline">Quantity="deformation_up"</code> in every synthesis entry point); the horizontals need the exact SH gradient. <code class="inline">shLowLevel.legendreALFDeriv</code> supplies dPbar/d&phi; via a frozen identity, calibrated per (n,m) against numerical differentiation and validated to the finite-difference floor (~1e-9); north/east match brute-force gradients to ~5e-10.</p>
 <h2>Inputs / Outputs</h2>
 <table><tr><th>Name</th><th>Type / size</th><th>Description</th></tr>
 <tr><td>C, S</td><td>(n1,n1) double</td><td>RESIDUAL coefficients (mean removed) &mdash; deformation from the static field is not meaningful</td></tr>

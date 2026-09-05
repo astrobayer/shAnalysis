@@ -20,7 +20,7 @@ function val = synthesisPoints(C, S, GM, R, latDeg, lonDeg, r, opts)
 %     Quantity ("potential")  "potential" [m^2/s^2] | "disturbance" |
 %                             "anomaly" (both [m/s^2]; multiply by 1e5
 %                             for mGal)
-%     MinDegree (2)           first degree included (0 evaluates the
+%     Nmin (2)           first degree included (0 evaluates the
 %                             full field including the central term)
 %
 %   Outputs
@@ -44,7 +44,7 @@ arguments
     r (:,1) double {mustBePositive}
     opts.Quantity (1,1) string {mustBeMember(opts.Quantity, ...
         ["potential", "disturbance", "anomaly"])} = "potential"
-    opts.MinDegree (1,1) double {mustBeInteger, mustBeNonnegative} = 2
+    opts.Nmin (1,1) double {mustBeInteger, mustBeNonnegative} = 2
 end
 P = numel(latDeg);
 if numel(lonDeg) ~= P || numel(r) ~= P
@@ -55,7 +55,7 @@ if ~isequal(size(C), size(S))
     error('shLowLevel:synthesisPoints:sizeMismatch', 'C and S must match.');
 end
 nmax = size(C, 1) - 1;
-n0 = min(opts.MinDegree, nmax);
+n0 = min(opts.Nmin, nmax);
 val = zeros(P, 1);
 mvec = 0:nmax;
 for k = 1:P

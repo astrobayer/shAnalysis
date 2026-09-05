@@ -51,7 +51,7 @@ range. ICGEM 1.0 behavior is preserved; note one documented change: an 8-column
 
 <h2>Examples</h2>
 <h3>Reading a static model</h3><pre>m = shReadGFC('EGM2008.gfc');
-fprintf('GM=%.6e, R=%.3f, nmax=%d\n', m.GM, m.R, m.nmax);</pre><p>Standard static field, e.g. a mean gravity field or geoid model.</p><h3>Reading a GRACE-FO monthly solution and forming an anomaly</h3><pre>m1 = shReadGFC('GSM-2_202401.gfc');
+fprintf('GM=%.6e, R=%.3f, Nmax=%d\n', m.GM, m.R, m.nmax);</pre><p>Standard static field, e.g. a mean gravity field or geoid model.</p><h3>Reading a GRACE-FO monthly solution and forming an anomaly</h3><pre>m1 = shReadGFC('GSM-2_202401.gfc');
 m2 = shReadGFC('GSM-2_202402.gfc');
 dC = m2.C - m1.C;
 dS = m2.S - m1.S;</pre><p>Monthly gravity-change coefficients, the standard input to the spectral/spatial analysis chain (see the shAnalysis workflow overview).</p><h3>Reading a gzip-compressed file directly</h3><pre>m = shReadGFC('GSM-2_202401.gfc.gz');</pre><p>No manual decompression needed -- handled transparently.</p>

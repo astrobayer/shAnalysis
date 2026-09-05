@@ -18,14 +18,14 @@ function [C, S, info] = shAnalysisGrid(grid, latVec, lonVec, nmax, opts)
 %
 %   Name/value options:
 %     Method    "auto" (default) | "rings" | "ls"
-%     quantity  'geoid' (default) | 'potential' | 'gravity_anomaly' |
+%     Quantity  'geoid' (default) | 'potential' | 'gravity_anomaly' |
 %               'gravity_disturbance' | 'ewh'  - the grid's physical
-%               quantity; the degree-dependent kernel (shLowLevel.kernelFactors)
+%               Quantity; the degree-dependent kernel (shLowLevel.kernelFactors)
 %               is divided out so C,S are Stokes coefficients. Degrees
 %               with zero kernel (e.g. n=0,1 for gravity_anomaly) are
 %               unobservable and returned as 0 (listed in INFO).
 %     GM, R     defaults 3.986004415e14, 6378136.3 (only used via kernel)
-%     kn ([])        load Love numbers, required for quantity='ewh'
+%     kn ([])        load Love numbers, required for Quantity='ewh'
 %     rho_ave, rho_water   EWH densities (5517, 1000)
 %     Weights   "none" (default) | "coslat" - area weighting of rings/
 %               points (recommended for equiangular ring grids: rows are
@@ -77,7 +77,7 @@ arguments
     lonVec double
     nmax (1,1) double {mustBeInteger, mustBeNonnegative}
     opts.Method (1,1) string {mustBeMember(opts.Method, ["auto","rings","ls"])} = "auto"
-    opts.quantity {mustBeTextScalar} = 'geoid'
+    opts.Quantity {mustBeTextScalar} = 'geoid'
     opts.GM (1,1) double = 3.986004415e14
     opts.R (1,1) double = 6378136.3
     opts.kn double = []
@@ -99,7 +99,7 @@ end
 
 
 lat = latVec(:); lon = lonVec(:);
-kernel = shLowLevel.kernelFactors(opts.quantity, nmax, opts.GM, opts.R, ...
+kernel = shLowLevel.kernelFactors(opts.Quantity, nmax, opts.GM, opts.R, ...
     kn = opts.kn, hn = opts.hn, rho_ave = opts.rho_ave, ...
     rho_water = opts.rho_water);
 unobs = find(kernel == 0) - 1;                 % degrees carrying no signal

@@ -26,7 +26,7 @@ th { background: #f5f7fa; }
 <pre>[b, info] = shLowLevel.basinKernel(idx, region)
 [b, info] = shLowLevel.basinKernel(idx, region, BufferKm=300, TaperKm=350)</pre>
 <h2>Description</h2>
-<p>Builds the spherical-harmonic coefficient vector of the (band-limited) indicator function of a region by exact Gauss&ndash;Legendre quadrature, <code class="inline">b = Y' * (w .* mask)</code>, in the ordering of <code class="inline">idx = shLowLevel.shIndex(...)</code>. The result feeds <code class="inline">ts.basinAverage(b)</code> and <code class="inline">shLowLevel.basinDeconvolve</code>.</p>
+<p>Builds the spherical-harmonic coefficient vector of the (band-limited) indicator function of a region by exact Gauss&ndash;Legendre quadrature, <code class="inline">b = Y' * (w .* mask)</code>, in the ordering of <code class="inline">Idx= shLowLevel.shIndex(...)</code>. The result feeds <code class="inline">ts.basinAverage(b)</code> and <code class="inline">shLowLevel.basinDeconvolve</code>.</p>
 <h2>Inputs</h2>
 <table><tr><th>Name</th><th>Type / size</th><th>Description</th></tr>
 <tr><td>idx</td><td>struct</td><td>from <code class="inline">shLowLevel.shIndex</code></td></tr>

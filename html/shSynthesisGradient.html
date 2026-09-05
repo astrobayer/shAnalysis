@@ -25,10 +25,10 @@ th { background: #f5f7fa; }
 
 <h2>Syntax</h2>
 <pre>[dq, info] = shLowLevel.shSynthesisGradient(C, S, GM, R, lat, lon, ...
-    quantity="ewh", kn=kn)                          % grid, per metre
-dq = g.gradient(lat, lon, quantity="ewh", kn=kn, Units="perRadian")
-dq = g.gradient(latP, lonP, quantity="geoid", Mode="points")
-dq = g.gradient(lat, lon, quantity="potential", Height=250e3)</pre>
+    Quantity="ewh", kn=kn)                          % grid, per metre
+dq = g.gradient(lat, lon, Quantity="ewh", kn=kn, Units="perRadian")
+dq = g.gradient(latP, lonP, Quantity="geoid", Mode="points")
+dq = g.gradient(lat, lon, Quantity="potential", Height=250e3)</pre>
 
 <h2>Description</h2>
 <p>Returns the spatial gradient of the field <code class="inline">shLowLevel.shSynthesis</code> would produce from the SAME coefficients under the SAME options, resolved in the local north-east-up frame:</p>
@@ -38,7 +38,7 @@ dq.up    = &part;Q/&part;r                  = -(1/r) &Sigma; p&#8345; f&#8345; &
 <p>with (...) = C&#8345;&#8344; cos(m&lambda;) + S&#8345;&#8344; sin(m&lambda;), f&#8345; the degree factor from <code class="inline">shLowLevel.kernelFactors</code> and p&#8345; its radial exponent. The horizontal components use the exact dPbar/d&phi; of <code class="inline">shLowLevel.legendreALFDeriv</code> (frozen validated identity).</p>
 
 <h3>The contract, and why it is stated that way</h3>
-<p>The declared contract is <em>exact derivative of shSynthesis under identical options</em>. The defaults therefore match <code class="inline">shSynthesis</code> (<code class="inline">quantity="geoid"</code>, <code class="inline">nmin=0</code>), and the correctness test differentiates <code class="inline">shSynthesis</code> itself rather than a second model of it. A gradient that quietly used a different kernel, truncation or mean field than the scalar map it is drawn over would be arrows over the wrong picture, and no other test would notice.</p>
+<p>The declared contract is <em>exact derivative of shSynthesis under identical options</em>. The defaults therefore match <code class="inline">shSynthesis</code> (<code class="inline">Quantity="geoid"</code>, <code class="inline">Nmin=0</code>), and the correctness test differentiates <code class="inline">shSynthesis</code> itself rather than a second model of it. A gradient that quietly used a different kernel, truncation or mean field than the scalar map it is drawn over would be arrows over the wrong picture, and no other test would notice.</p>
 
 <h3>Which quantities have an up component</h3>
 <p>&part;Q/&part;r exists exactly for the quantities that carry an upward-continuation law &mdash; i.e. exactly those that accept <code class="inline">Height</code>:</p>

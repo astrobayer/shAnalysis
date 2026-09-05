@@ -30,7 +30,7 @@ function [up, north, east] = shSynthesisDeformation(C, S, R, latDeg, lonDeg, opt
 %     opts.kn (>=n1,1) double       load Love numbers k'_n  (REQUIRED)
 %     opts.hn (>=n1,1) double       load Love numbers h'_n  (REQUIRED)
 %     opts.ln (>=n1,1) double       load Love numbers l'_n  (REQUIRED)
-%     opts.nmin (1,1) double = 1    degrees below nmin are zeroed
+%     opts.Nmin (1,1) double = 1    degrees below nmin are zeroed
 %                                   (degree 0 carries no deformation;
 %                                   include degree 1 ONLY if your
 %                                   coefficients carry geocenter motion
@@ -63,7 +63,7 @@ arguments
     opts.kn double
     opts.hn double
     opts.ln double
-    opts.nmin (1,1) double {mustBeInteger, mustBeNonnegative} = 1
+    opts.Nmin (1,1) double {mustBeInteger, mustBeNonnegative} = 1
     opts.Mode (1,1) string {mustBeMember(opts.Mode, ["grid","points"])} = "grid"
 end
 n1 = size(C, 1);
@@ -85,8 +85,8 @@ end
 nn = (0:nmax)';
 fU = R * opts.hn(1:n1) ./ (1 + opts.kn(1:n1));
 fH = R * opts.ln(1:n1) ./ (1 + opts.kn(1:n1));
-fU(1:min(opts.nmin, n1)) = 0;
-fH(1:min(opts.nmin, n1)) = 0;
+fU(1:min(opts.Nmin, n1)) = 0;
+fH(1:min(opts.Nmin, n1)) = 0;
 fU = fU(:); fH = fH(:);
 
 KCu = fU .* C; KSu = fU .* S;

@@ -25,9 +25,9 @@ function [k, info] = basinScaling(op, b, tsModel, opts)
 %     tsModel  shSeries   model series matched by nearest epoch within
 %                         0.05 yr against opts.tYears ([]) / op.tYears
 %   Options
-%     idx                 required for matrix/handle operators
+%     Idx (struct())      required for matrix/handle operators
 %                         (shLowLevel.shIndex); structs carry their own
-%     tYears              required for matrix/handle operators
+%     TYears ([])         required for matrix/handle operators
 %     PerMonth (false)    also return monthly factors aTrue./aFilt
 %   Outputs
 %     k     (1,1) double  regression scaling factor
@@ -40,26 +40,26 @@ arguments
     op
     b (:,1) double
     tsModel (1,1) shSeries
-    opts.idx struct = struct()
-    opts.tYears (1,:) double = []
+    opts.Idx struct = struct()
+    opts.TYears (1,:) double = []
     opts.PerMonth (1,1) logical = false
 end
 if isstruct(op) && isfield(op, 'idx')
     idx = op.idx; tY = op.tYears;
     applyOp = @(x, t) shLowLevel.opApply(op, x, t);
 elseif isnumeric(op)
-    assert(isfield(opts.idx, 'P') && ~isempty(opts.tYears), ...
+    assert(isfield(opts.Idx, 'P') && ~isempty(opts.TYears), ...
         'shLowLevel:basinScaling:needIdx', ...
         'Matrix operators need idx= and tYears=.');
-    idx = opts.idx; tY = opts.tYears;
+    idx = opts.Idx; tY = opts.TYears;
     assert(isequal(size(op), [idx.P idx.P]), 'shLowLevel:basinScaling:badOp', ...
         'Matrix operator must be P x P.');
     applyOp = @(x, t) op * x;
 elseif isa(op, 'function_handle')
-    assert(isfield(opts.idx, 'P') && ~isempty(opts.tYears), ...
+    assert(isfield(opts.Idx, 'P') && ~isempty(opts.TYears), ...
         'shLowLevel:basinScaling:needIdx', ...
         'Handle operators need idx= and tYears=.');
-    idx = opts.idx; tY = opts.tYears;
+    idx = opts.Idx; tY = opts.TYears;
     applyOp = op;
 else
     error('shLowLevel:basinScaling:badOp', ...

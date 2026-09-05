@@ -10,7 +10,7 @@ function s = vceRescale(N, Xres, idx, opts)
 %   stationary filter ignores.
 %
 %   Options:
-%     MinDegree (round(2/3 * idx.Lmax))  lower bound of the
+%     Nmin (round(2/3 * idx.Lmax))  lower bound of the
 %             noise-dominated band
 %     Rows (true(0, 1))  extra logical row mask restricting the
 %         variance-component estimation to a subset of the
@@ -29,11 +29,11 @@ arguments
     N   % (P,P) double, or block struct from buildNoiseCov(Assemble='blocks')
     Xres double
     idx (1,1) struct
-    opts.MinDegree (1,1) double = round(2/3 * idx.Lmax)
+    opts.Nmin (1,1) double = round(2/3 * idx.Lmax)
     opts.Rows logical = true(0, 1)   % extra row mask (banded VCE, v2.2)
 end
 
-hi = idx.n >= opts.MinDegree;
+hi = idx.n >= opts.Nmin;
 if ~isempty(opts.Rows)
     hi = hi & opts.Rows(:);
 end

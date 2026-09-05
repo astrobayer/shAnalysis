@@ -875,7 +875,7 @@ story += [para("21. Time-variable decorrelation: the VDK/VADER filter "
                "falling Kaula law while GRACE errors rise with degree; "
                "(b) the resulting gain damps degrees where noise wins. "
                "VDK recomputes the gain every month from the measured N."),
-          *code("""idx = shLowLevel.shIndex(96, MinDegree = 2);
+          *code("""Idx= shLowLevel.shIndex(96, Nmin= 2);
 f = shLowLevel.fetchITSGSINEX("2018-06", Nmax = 96);   % ~460 MB, deliberate
 snx = shLowLevel.readSINEX(f(1), Index = idx);     % N + x in idx order
 [ab, ~] = shLowLevel.signalVarianceKaula(ts.Cs, ts.Ss, ts.epochs);
@@ -1108,7 +1108,7 @@ story += [para("Honest scope note: an 11&deg;-cap basin average of the "
     "chain; the daily output feeds hydroExtremeIndex directly "
     "(chapter 26)."]),
           para("The one-call form", "h3")]
-story += code("""idx  = shLowLevel.shIndex(40);
+story += code("""Idx= shLowLevel.shIndex(40);
 ts   = shSeries.fromFolder(folder, Truncate = 40);
 [tsK, rep] = shLowLevel.kalmanChain(ts, ModelSeries = ts, ...
     Structure = "orderblock", Shrink = 1e-2, QC = "reject");
@@ -1309,11 +1309,11 @@ tsF = ts.filter("tvANS", Blocks="auto");    % or .gaussian(300)
 % 5. EWH synthesis (Love numbers user-supplied!)
 kn  = readmatrix("loadLoveNumbers.txt");    % your set, degrees 0..nmax
 lat = -89.5:1:89.5; lon = 0.5:1:359.5;
-ewh = tsF.at(24).synthesis(lat, lon, quantity="ewh", kn=kn);  % [m]
+ewh = tsF.at(24).synthesis(lat, lon, Quantity="ewh", kn=kn);  % [m]
 
 % self-test: analysis roundtrip on a ring grid should be ~1e-14
 gChk = shCoefficients.analysis(ewh, lat, lon, tsF.nmax, ...
-          quantity='ewh', kn=kn);
+          Quantity='ewh', kn=kn);
 """)
 story += [para("Interpretation: values are equivalent water height "
                "anomalies relative to the removed mean, in meters. The "
@@ -1323,7 +1323,7 @@ story += [para("Interpretation: values are equivalent water height "
 
 story += [para("G2. Basin time series with uncertainties", "h2")]
 story += code("""
-idx = shLowLevel.shIndex(ts.nmax, MinDegree=2);
+Idx= shLowLevel.shIndex(ts.nmax, Nmin=2);
 % kernel from a polygon [lat lon], buffered + tapered (v2.2)
 amazon = readmatrix("amazon_polygon.txt");
 [b, info] = shLowLevel.basinKernel(idx, amazon, BufferKm=150, TaperKm=350);
@@ -1353,9 +1353,9 @@ clim = tsG.climatology(Periods=[161/365.25, 3.66, 7.48], ...
                        ARCorrect=true);
 tr   = clim.trend();                        % shCoefficients WITH sigmas
 kn   = readmatrix("loadLoveNumbers.txt");
-rate = tr.synthesis(lat, lon, quantity="ewh", kn=kn);         % [m/yr]
+rate = tr.synthesis(lat, lon, Quantity="ewh", kn=kn);         % [m/yr]
 mc   = shLowLevel.mcPropagate(@(g) g.synthesis(lat, lon, ...
-          quantity="ewh", kn=kn), tr, N=300, Seed=1);
+          Quantity="ewh", kn=kn), tr, N=300, Seed=1);
 sigma = mc.sigma;
 mask = abs(rate) > 2 * sigma;               % 2-sigma significance
 rate(~mask) = NaN; imagesc(lon, lat, rate);
@@ -1367,7 +1367,7 @@ story += [para("Compare against a second GIA model (Caron) and show the "
 
 story += [para("G4. Regional analysis with Slepian functions", "h2")]
 story += code("""
-idx = shLowLevel.shIndex(60, MinDegree=0);
+Idx= shLowLevel.shIndex(60, Nmin=0);
 region = @(la,lo) double(la>-90 & la<-60);      % Antarctica-ish belt
 [G, lam, infoS] = shLowLevel.slepianBasis(idx, region);
 fprintf("Shannon %.1f -> keeping %d tapers\\n", infoS.shannon, numel(lam));
@@ -1385,7 +1385,7 @@ story += [para("Estimating a (dimension &asymp; Shannon number) instead "
 
 story += [para("G5. Working with released covariances (SINEX)", "h2")]
 story += code("""
-idx = shLowLevel.shIndex(96, MinDegree=2);
+Idx= shLowLevel.shIndex(96, Nmin=2);
 % full read (monthly solutions to ~30 MB): covariance in idx order
 snx = shLowLevel.readSINEX("ITSG-..._n96_2008-04.snx.gz", ...
                     Output="covariance", Index=idx);
@@ -1408,7 +1408,7 @@ mas = shLowLevel.readMascon("GRCTellus.JPL...MSCNv03CRI.nc");
 kn = readmatrix("loadLoveNumbers.txt");
 k  = find(abs(mas.epoch - 2010.29) < 0.05, 1);     % match an epoch
 ewhSH = tsF.at(k).synthesis(mas.lat', mas.lon', ...
-          quantity="ewh", kn=kn, LatType="geodetic");  % [m]
+          Quantity="ewh", kn=kn, LatType="geodetic");  % [m]
 d = 100*ewhSH - mas.ewh(:,:,k);                    % mascon units: cm
 fprintf("RMS diff %.2f cm\\n", sqrt(mean(d(:).^2, 'omitnan')));
 """)
@@ -1428,7 +1428,7 @@ tsF = ts.filter("tvANS", Blocks="auto");
 % load Love numbers k', h', l' - ONE consistent model, user-supplied;
 % v2.5 reader: layouts, sparse pchip interpolation, CF-frame conversion
 LN = shLowLevel.readLoveNumbers("loadLoveNumbers_PREM.txt", ...
-    Columns="n k h l", MaxDegree=tsF.nmax, Interp="pchip", ...
+    Columns="n k h l", Nmax=tsF.nmax, Interp="pchip", ...
     InFrame="CE", OutFrame="CF");               % match TN-13 (CF)
 kn = LN.kn; hn = LN.hn; ln = LN.ln;
 
@@ -1533,7 +1533,7 @@ story += [para("Watch the weight series for regime changes "
 
 story += [para("G9. Sea-level fingerprint (v2.4)", "h2")]
 story += code("""
-idx = shLowLevel.shIndex(96, MinDegree=0);
+Idx= shLowLevel.shIndex(96, Nmin=0);
 LN = readmatrix("loadLoveNumbers.txt"); kn = LN(:,2); hn = LN(:,3);
 greenland = @(la,lo) -280 * inGreenland(la, lo);   % kg/m^2/yr, say
 oceanF = @(la,lo) oceanMaskFun(la, lo);            % 1 over ocean
@@ -1545,7 +1545,7 @@ shLowLevel.plotSHMap(info.S2D / info.eustatic, grid.latDeg, grid.lonDeg, ...
 story += [para("Plot S normalized by the eustatic mean: near-field "
                "values drop below zero, far-field plateaus around "
                "1.1&ndash;1.3 &mdash; if not, check the ocean mask and "
-               "that idx uses MinDegree = 0.")]
+               "that idx uses Nmin= 0.")]
 
 story += [para("G10. The standard chain in one call", "h2")]
 story += code("""
@@ -1612,7 +1612,7 @@ story += [para("The released DDK filters are built from a specific "
 story += [para("G12. Correcting leakage", "h2")]
 story += code("""
 % forward modelling: only the FILTER has to be known
-ewh = g.synthesis(-89:89, 0:359, quantity = "ewh", kn = kn);
+ewh = g.synthesis(-89:89, 0:359, Quantity= "ewh", kn = kn);
 [m, info] = shLowLevel.leakageCorrect(ewh, -89:89, 0:359, ...
     Filter = "gauss300", Mask = basinMask, Gain = 2);
 
@@ -1738,7 +1738,7 @@ ts = ts.removeAlias();                  % (5) the S2 161-day alias
 
 story += [para("V3. The basin average", "h2")]
 story += code("""
-idx  = shLowLevel.shIndex(ts.nmax, MinDegree = 0);
+Idx= shLowLevel.shIndex(ts.nmax, Nmin= 0);
 [b, info] = shLowLevel.basinKernel(idx, gisPolygon);   % NaN-separated rings
 area = info.areaFraction * 4*pi*6371^2;                % NOT b(1)
 kf   = shLowLevel.kernelFactors("ewh", ts.nmax, GM, R, kn = kn);
@@ -1775,7 +1775,7 @@ story += code("""
 r = 4 * 111.195;                         % 4 deg latitude ~ 445 km
 wG = shLowLevel.shGaussianWeights(nmax, r);
 obs = shCoefficients(Ct .* wG(:), St .* wG(:)).synthesis( ...
-        lat, lon, quantity = "ewh", kn = kn, nmin = 0);
+        lat, lon, Quantity= "ewh", kn = kn, Nmin= 0);
 m = shLowLevel.leakageCorrect(obs, lat, lon, Filter = "gauss445", ...
         Mask = unionMask, Gain = 2, MaxIter = 300);
 """)
@@ -2176,7 +2176,7 @@ story += [para("<b>VDK decorrelation - the reason the SINEX fetcher "
                "downloads skip present files, months skip existing "
                "output, the signal model is cached, and the paper's "
                "closed-form identity runs as a built-in self-test.")]
-story += code("""idx = shLowLevel.shIndex(96, MinDegree = 2);
+story += code("""Idx= shLowLevel.shIndex(96, Nmin= 2);
 snx = shLowLevel.readSINEX(f, Index = idx);        % N + x, idx order
 [ab, ~] = shLowLevel.signalVarianceKaula(ts.Cs, ts.Ss, ts.epochs);
 xf = shLowLevel.vdkApply(snx.x, snx.M, idx.n, ab(mo, :), Alpha = 1);""")
@@ -2293,7 +2293,7 @@ story += code("""f = shLowLevel.fetchGAX("E:/DATAPOOL/GravityField/GAX");
     GADFolder = "E:/DATAPOOL/GravityField/GAX/GAD", ...
     GAAFolder = "E:/DATAPOOL/GravityField/GAX/GAA");
 [rep.nGadRestored, rep.nGaaApplied]        % coverage, reported""")
-story += code("""idx = shLowLevel.shIndex(30, MinDegree = 0);
+story += code("""Idx= shLowLevel.shIndex(30, Nmin= 0);
 [G, lam, info] = shLowLevel.slepianBasis(idx, @(la, lo) double(la > 60));
 K = round(info.shannon);                   % ~N useful modes
 a = shLowLevel.slepianProject(ts.Cs, ts.Ss, G(:, 1:K), idx);
@@ -2507,7 +2507,7 @@ story += [PageBreak(), para("Part IV &mdash; API reference", "h1"),
                "defaults (default 'required' = mandatory positional input); "
                "name-value options are passed as Name=Value. Conventions "
                "throughout: coefficient triangles are addressed C(n+1, m+1); "
-               "vectors follow shLowLevel.shIndex ordering (MinDegree = 2 unless "
+               "vectors follow shLowLevel.shIndex ordering (Nmin= 2 unless "
                "stated); latitudes are geocentric degrees; radii in km; "
                "epochs in decimal years. Every entry closes with a "
                "real-data example from the canonical GRACE chain; all "

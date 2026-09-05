@@ -22,7 +22,7 @@ function [LN, info] = readLoveNumbers(filename, opts)
 %   Options
 %     Columns ("auto")   explicit column meaning, tokens from {n,k,h,l},
 %                        e.g. "n k h l" (overrides header detection)
-%     MaxDegree ([])     verify coverage of degrees 0..MaxDegree and
+%     Nmax ([])     verify coverage of degrees 0..MaxDegree and
 %                        truncate; with sparse tables combine with Interp ("none")
 %     Interp ("none")    "none" | "pchip": fill degree gaps by shape-
 %                        preserving pchip in log(1+n) - Farrell-style
@@ -57,7 +57,7 @@ function [LN, info] = readLoveNumbers(filename, opts)
 %
 %   Example (G7 GNSS chain)
 %     LN = shLowLevel.readLoveNumbers("prem_load.txt", Columns="n h l k", ...
-%              MaxDegree=96, Interp="pchip", InFrame="CE", OutFrame="CF");
+%              Nmax=96, Interp="pchip", InFrame="CE", OutFrame="CF");
 %     [up, no, ea] = g.deformation(latPts, lonPts, kn=LN.kn, hn=LN.hn, ...
 %              ln=LN.ln, Mode="points");
 %
@@ -66,7 +66,7 @@ function [LN, info] = readLoveNumbers(filename, opts)
 arguments
     filename {mustBeTextScalar}
     opts.Columns (1,1) string = "auto"
-    opts.MaxDegree double {mustBeScalarOrEmpty} = []
+    opts.Nmax double {mustBeScalarOrEmpty} = []
     opts.Interp (1,1) string {mustBeMember(opts.Interp, ...
         ["none", "pchip"])} = "none"
     opts.InFrame (1,1) string {mustBeMember(opts.InFrame, ...
@@ -134,8 +134,8 @@ if map.l > 0, ln = M(iu, map.l); end
 
 % ----------------------------------------------- coverage/interpolation
 interpolated = false(size(n));
-if ~isempty(opts.MaxDegree)
-    N = opts.MaxDegree;
+if ~isempty(opts.Nmax)
+    N = opts.Nmax;
     if n(1) > 0 || n(end) < N
         error('shLowLevel:readLoveNumbers:degreeGap', ...
             ['Table spans degrees %d..%d but 0..%d requested - ' ...

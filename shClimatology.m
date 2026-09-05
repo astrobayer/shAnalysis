@@ -19,7 +19,7 @@ classdef shClimatology
 %     tr  = clim.trend;                 % shCoefficients, per year
 %     b0  = clim.bias;                  % field at t0
 %     [A, lat, lon] = clim.amplitudeMap("annual", -90:90, 0:359, ...
-%                        quantity="ewh", kn=kn);   % pointwise amplitude
+%                        Quantity="ewh", kn=kn);   % pointwise amplitude
 %
 %   Component accessors return shCoefficients (so the whole toolbox -
 %   synthesis, spectra, filtering - applies to them directly).
@@ -245,7 +245,7 @@ methods
         %AMPLITUDEMAP Pointwise seasonal amplitude (and phase) map.
         %   [A, LAT, LON, PHASE] = clim.amplitudeMap(WHICH, ... with WHICH
         %   "annual" | "semiannual" | k (index into clim.periods, v2.1),
-        %   LATVEC, LONVEC, quantity ("geoid")=..., kn ([])=...) synthesizes the cos and
+        %   LATVEC, LONVEC, Quantity ("geoid")=..., kn ([])=...) synthesizes the cos and
         %   sin component fields and combines them pointwise:
         %       A     = sqrt(fc.^2 + fs.^2)
         %       PHASE = atan2(fs, fc)   [rad, relative to t0]
@@ -265,7 +265,7 @@ methods
             which (1,1)   % "annual" | "semiannual" | integer k (extra period)
             latVec (1,:) double
             lonVec (1,:) double
-            opts.quantity (1,1) string = "geoid"
+            opts.Quantity (1,1) string = "geoid"
             opts.kn double = []
         end
         if isnumeric(which)
@@ -278,7 +278,7 @@ methods
             error('shClimatology:badInput', ...
                 'which must be "annual", "semiannual" or an extra-period index.');
         end
-        args = {latVec, lonVec, 'quantity', opts.quantity};
+        args = {latVec, lonVec, 'quantity', opts.Quantity};
         if ~isempty(opts.kn), args = [args, {'kn', opts.kn}]; end
         [fc, lat, lon] = gc.synthesis(args{:});
         fs = gs.synthesis(args{:});

@@ -32,7 +32,7 @@ function [W, info] = designFilter(SigmaC, SigmaS, opts)
 %                      ordering (overrides Kaula/DegVar)
 %     Idx ([])         shLowLevel.shIndex struct, required with
 %                      Noise/Signal
-%     MinDegree (2)    first filtered degree; below it W passes through
+%     Nmin (2)    first filtered degree; below it W passes through
 %     Name ("designFilter")  stored in W.name
 %
 %   Outputs
@@ -59,7 +59,7 @@ arguments
     opts.Noise double = []
     opts.Signal double = []
     opts.Idx = []
-    opts.MinDegree (1,1) double {mustBeInteger, mustBeNonnegative} = 2
+    opts.Nmin (1,1) double {mustBeInteger, mustBeNonnegative} = 2
     opts.Name (1,1) string = "designFilter"
 end
 fullcov = ~isempty(opts.Noise) || ~isempty(opts.Signal);
@@ -72,7 +72,7 @@ if ~isequal(size(SigmaC), size(SigmaS))
         'SigmaC and SigmaS must share the same size.');
 end
 nmax = size(SigmaC, 1) - 1;
-n0 = max(opts.MinDegree, 0);
+n0 = max(opts.Nmin, 0);
 % per-degree signal variance
 if ~isempty(opts.DegVar)
     dv = opts.DegVar(:);

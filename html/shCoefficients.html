@@ -51,10 +51,10 @@ from the header, and product type (GSM/GAA&ndash;GAD) plus mid-span epoch from s
 <tr><th>Group</th><th>Methods</th></tr>
 <tr><td>Arithmetic</td><td><code class="inline">plus</code> / <code class="inline">minus</code> (<code class="inline">g + gad</code>, <code class="inline">g - gMean</code>) &mdash; checks nmax/GM/R (and epoch for +); sigmas propagate by RSS; GSM + GAX combines the product type. <code class="inline">mtimes</code> scales by a scalar (<code class="inline">0.5 * g</code>) and <code class="inline">times</code> by a per-coefficient triangle (<code class="inline">w .* g</code>); both scale the formal sigmas by |factor|. <code class="inline">uminus</code> negates the coefficients (<code class="inline">-g</code>) and leaves the sigmas alone &mdash; a sign flip does not change an uncertainty.</td></tr>
 <tr><td>Editing</td><td><code class="inline">truncate(nmax)</code>, <code class="inline">setCoefficient(n,m,C,S)</code>, <code class="inline">applyTN14(tn, ReplaceC30="auto")</code>, <code class="inline">addDegree1(tn13)</code> <span class="tag">v2.1</span> &mdash; TN-13 geocenter coefficients (C10, C11, S11 with sigmas), completing the GSM + TN-14 + TN-13 chain (see <a href="readTN13.html">readTN13</a>)</td></tr>
-<tr><td>Filtering</td><td><code class="inline">destripe(minOrder=6, polyOrder=3, windowLength=[])</code>, <code class="inline">gaussian(radiusKm)</code></td></tr>
+<tr><td>Filtering</td><td><code class="inline">destripe(MinOrder=6, PolyOrder=3, WindowLength=[])</code>, <code class="inline">gaussian(radiusKm)</code></td></tr>
 <tr><td>Spectral</td><td><code class="inline">degreeRMS</code>, <code class="inline">crossover</code>, <code class="inline">spectrum</code>, <code class="inline">triangle</code></td></tr>
-<tr><td>Spatial</td><td><code class="inline">synthesis(latVec, lonVec, quantity="geoid"|"gravity_anomaly"|"gravity_disturbance"|"potential"|"ewh", kn=..., nmin=..., nmax=..., Method="auto")</code> &mdash; Legendre functions served from a verified cache. <b>v2.1:</b> <code class="inline">Method="fft"</code>/<code class="inline">"auto"</code> uses FFT along uniform full-circle longitude grids (5&ndash;20&times; faster at 1&deg;) and the latitude parity trick; degree/order now stable to 2190 (scaled recursion).</td></tr>
-<tr><td>Analysis <span class="tag">v2.1</span></td><td><code class="inline">shCoefficients.analysis(grid, lat, lon, nmax, quantity=..., Method="auto"|"rings"|"ls", Weights=..., Kaula=...)</code> (static) &mdash; the inverse of synthesis: estimate Stokes coefficients from a ring grid (exact fast per-order solver) or scattered points (least squares, optional Kaula regularization). See <a href="shAnalysisGrid.html">shAnalysisGrid</a>.</td></tr>
+<tr><td>Spatial</td><td><code class="inline">synthesis(latVec, lonVec, Quantity="geoid"|"gravity_anomaly"|"gravity_disturbance"|"potential"|"ewh", kn=..., Nmin=..., Nmax=..., Method="auto")</code> &mdash; Legendre functions served from a verified cache. <b>v2.1:</b> <code class="inline">Method="fft"</code>/<code class="inline">"auto"</code> uses FFT along uniform full-circle longitude grids (5&ndash;20&times; faster at 1&deg;) and the latitude parity trick; degree/order now stable to 2190 (scaled recursion).</td></tr>
+<tr><td>Analysis <span class="tag">v2.1</span></td><td><code class="inline">shCoefficients.analysis(grid, lat, lon, nmax, Quantity=..., Method="auto"|"rings"|"ls", Weights=..., Kaula=...)</code> (static) &mdash; the inverse of synthesis: estimate Stokes coefficients from a ring grid (exact fast per-order solver) or scattered points (least squares, optional Kaula regularization). See <a href="shAnalysisGrid.html">shAnalysisGrid</a>.</td></tr>
 <tr><td>gfct</td><td><code class="inline">evalAt(epoch)</code></td></tr>
 <tr><td>I/O</td><td><code class="inline">write(filename)</code> (ICGEM writer, round-trip tested), <code class="inline">vec(idx)</code></td></tr>
 </table>
@@ -65,7 +65,7 @@ from the header, and product type (GSM/GAA&ndash;GAD) plus mid-span epoch from s
 gB = shCoefficients.read("GSM-2_202402.gfc").applyTN14("TN-14.txt");
 d  = gB - gA;
 [grid, lat, lon] = d.destripe.gaussian(300).synthesis(-89:89, 0:359, ...
-                       quantity="ewh", kn=kn);   % kn: user-supplied Love numbers
+                       Quantity="ewh", kn=kn);   % kn: user-supplied Love numbers
 imagesc(lon, lat, grid*100); set(gca,'YDir','normal'); colorbar   % cm EWH</pre>
 
 <div class="note">No load Love numbers or other physical tables are hardcoded anywhere in the
