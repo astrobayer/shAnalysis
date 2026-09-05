@@ -132,7 +132,7 @@ end
 n = V(:,1); m = V(:,2);
 nmaxFile = max(n);
 nmax = opts.Nmax;
-if ~isfinite(nmax), Nmax = nmaxFile; end
+if ~isfinite(nmax), nmax = nmaxFile; end
 keep = n <= nmax;
 n = n(keep); m = m(keep); V = V(keep, :);
 

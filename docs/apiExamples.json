@@ -491,7 +491,7 @@
  },
  {
   "name": "shLowLevel.readLoveNumbers",
-  "example": "    LN = shLowLevel.readLoveNumbers(\"prem_load.txt\", Columns=\"n h l k\", ...\n             MaxDegree=96, Interp=\"pchip\", InFrame=\"CE\", OutFrame=\"CF\");\n    [up, no, ea] = g.deformation(latPts, lonPts, kn=LN.kn, hn=LN.hn, ...\n             ln=LN.ln, Mode=\"points\");",
+  "example": "    LN = shLowLevel.readLoveNumbers(\"prem_load.txt\", Columns=\"n h l k\", ...\n             Nmax=96, Interp=\"pchip\", InFrame=\"CE\", OutFrame=\"CF\");\n    [up, no, ea] = g.deformation(latPts, lonPts, kn=LN.kn, hn=LN.hn, ...\n             ln=LN.ln, Mode=\"points\");",
   "run": true
  },
  {
@@ -581,7 +581,7 @@
  },
  {
   "name": "shLowLevel.shIndex",
-  "example": "idx = shLowLevel.shIndex(60);                % MinDegree = 2 default",
+  "example": "idx = shLowLevel.shIndex(60);                % Nmin = 2 default",
   "run": true
  },
  {

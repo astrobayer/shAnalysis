@@ -98,7 +98,7 @@ assert(~isempty(opts.kn), 'shLowLevel:estimateDegree1:noLoveNumbers', ...
 lat = opts.LatDeg(:).';
 lon = opts.LonDeg(:).';
 nmax = opts.Nmax;
-if ~isfinite(nmax), Nmax = ts.nmax; end
+if ~isfinite(nmax), nmax = ts.nmax; end
 [LO, LA] = meshgrid(lon, lat);
 if isa(ocean, 'function_handle')
     isOc = logical(ocean(LA, LO));
