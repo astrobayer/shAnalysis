@@ -138,7 +138,7 @@ function [mCorr, info] = leakageCorrect(grid, latDeg, lonDeg, opts)
 %   monotone residual, divergence bound).
 %
 %   Example
-%     ewh = g.synthesis(-89:89, 0:359, quantity = "ewh", kn = kn);
+%     ewh = g.synthesis(-89:89, 0:359, Quantity = "ewh", kn = kn);
 %     [m, info] = shLowLevel.leakageCorrect(ewh, -89:89, 0:359, ...
 %         Filter = "gauss300", Mask = basinMask);
 %     fprintf("%d iterations, residual %.2e\n", info.iterations, info.residual);
