@@ -1054,17 +1054,31 @@ assumeTrue(testCase, isfile(wf), 'no workflow file in this checkout');
 txt = string(fileread(wf));
 verifyTrue(testCase, contains(txt, "tools/doc_sync_audit.py"), ...
     'doc_sync_audit.py is not run by the CI workflow');
-% it must run BEFORE MATLAB: a python gate that only fires after a
-% 2-minute toolbox install wastes the fast feedback it exists for
+% it must run BEFORE MATLAB: a python gate that only fires after the
+% toolbox is up wastes the fast feedback it exists for.
 % Match the STEP, not the bare action id. A header comment naming the
 % action put that id at byte 913 while the gate sat at 3399, so this
 % check read the prose as the MATLAB step and failed a workflow whose
 % step order was correct throughout (2026-09-05). The 'uses: ' prefix
 % cannot occur in a comment, so only the real step matches.
+%
+% THE ANCHOR MOVED (2026-09-06). It used to be setup-matlab, which has
+% been removed: its condition was false for every leg the matrix
+% produces, so it had been skipped on every run, and it could not have
+% worked anyway on a private repository. Anchoring on a step that no
+% longer exists made this check fail with 'must run before the MATLAB
+% setup step' on a workflow whose order was correct - the same false
+% report as 2026-09-05, from the opposite cause.
+%
+% The anchor is now the FIRST step that touches MATLAB at all, whichever
+% it is: the shared probe action or any matlab-actions step. Taking the
+% minimum means a reordering cannot slip the gate behind MATLAB by
+% introducing a new first step.
 iGate = strfind(txt, "tools/doc_sync_audit.py");
-iML = strfind(txt, "uses: matlab-actions/setup-matlab");
-verifyTrue(testCase, ~isempty(iML) && iGate(1) < iML(1), ...
-    'doc_sync_audit.py must run before the MATLAB setup step');
+iML = [strfind(txt, "uses: matlab-actions/"), ...
+       strfind(txt, "uses: astrobayer/ci-actions/matlab-probe")];
+verifyTrue(testCase, ~isempty(iML) && iGate(1) < min(iML), ...
+    'doc_sync_audit.py must run before the first MATLAB step');
 end
 
 % ------------------------------------------------------------- safeMove
