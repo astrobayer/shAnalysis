@@ -173,16 +173,20 @@ jobs:
           release: R2026a
           cache: true
 
-      - name: Verify MATLAB on PATH (self-hosted)
-        # Fails fast with an unambiguous message if the self-hosted
-        # runner's MATLAB installation is missing/not on PATH, instead
-        # of that surfacing as a cryptic failure in "Run test suite".
+      # The probe and the reasoning behind it live in
+      # astrobayer/ci-actions. Six repositories carried this step
+      # byte-for-byte identically, and a copied step is what let one
+      # editing mistake cost three repositories a checkout each.
+      #
+      # PINNED TO AN IMMUTABLE TAG, not @v1 and not @main: a moving tag
+      # would let a commit in ci-actions change this repository's CI with
+      # nothing in its diff to explain it.
+      #
+      # timeout-minutes sits here and not in the action: GitHub's
+      # composite-action schema rejects the key on a step.
+      - uses: astrobayer/ci-actions/matlab-probe@v1.0.0
         if: ${{ matrix.os == 'self-hosted' }}
         timeout-minutes: 2
-        uses: matlab-actions/run-command@v3
-        with:
-          command: >
-            fprintf('MATLAB on self-hosted runner: %s\n', version);
 
       # Fixtures live outside main (v3.26.1) so main need not carry the
       # 11 MB. They are pinned to a dated TAG, not a branch: a tag makes
