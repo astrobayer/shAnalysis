@@ -160,19 +160,6 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v6
 
-      - name: Set up MATLAB
-        # Only for GitHub-hosted matrix legs. setup-matlab does not
-        # support self-hosted Windows runners (self-hosted UNIX only);
-        # on self-hosted, MATLAB must already be installed and on PATH.
-        if: ${{ matrix.os != 'self-hosted' }}
-        # this is the step that hangs; cap it tightly so a retry costs
-        # eight minutes rather than the whole job budget
-        timeout-minutes: 8
-        uses: matlab-actions/setup-matlab@v3
-        with:
-          release: R2026a
-          cache: true
-
       # The probe and the reasoning behind it live in
       # astrobayer/ci-actions. Six repositories carried this step
       # byte-for-byte identically, and a copied step is what let one
@@ -184,8 +171,12 @@ jobs:
       #
       # timeout-minutes sits here and not in the action: GitHub's
       # composite-action schema rejects the key on a step.
+      # The guard `if: matrix.os != 'self-hosted'` is gone with the step it
+      # protected. The matrix STAYS, single entry and all: the job name
+      # `runAllTests (${{ matrix.os }})` is the required status context
+      # `runAllTests (self-hosted)`, so collapsing the matrix would rename
+      # the check and block the branch until the ruleset is edited.
       - uses: astrobayer/ci-actions/matlab-probe@v1.0.0
-        if: ${{ matrix.os == 'self-hosted' }}
         timeout-minutes: 2
 
       # Fixtures live outside main (v3.26.1) so main need not carry the
