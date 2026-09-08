@@ -12,6 +12,7 @@ Developed by Matthias Weigelt with the help of Claude (Fable 5),
 import glob
 import os
 import re
+import sys
 
 import os as _os
 _HERE = _os.path.dirname(_os.path.abspath(__file__))
@@ -425,12 +426,30 @@ CONVENTION_DESCS = {
 
 
 def parse_function_file(path):
-    raw = open(path).read().split("\n")
+    with open(path, encoding="utf-8") as _fh:
+        raw = _fh.read().split("\n")
     lines = raw
     m = None
+    i = last = 0
     for i, L in enumerate(lines):
+        if not re.match(r"\s*function\b", L):
+            continue
+        # a signature may be continued with "..." (gridHandover). Join it
+        # before matching, and remember where it ENDS - the help block
+        # starts after the last continuation line, not after the first.
+        sig, last = L, i
+        while (sig.split("%")[0].rstrip().endswith("...")
+               and last + 1 < len(lines)):
+            last += 1
+            # MATLAB skips comment lines inside a continuation, and so must
+            # this: joining one in let a "(base MATLAB only)" in the help
+            # text supply the closing paren and parse to nonsense.
+            if lines[last].lstrip().startswith("%"):
+                continue
+            sig = (sig.split("%")[0].rstrip()[:-3].rstrip()
+                   + " " + lines[last].strip())
         m = re.match(r"\s*function\s+(?:(\[[^\]]*\]|\w+)\s*=\s*)?(\w+)\s*"
-                     r"\(([^)]*)\)", L)
+                     r"\(([^)]*)\)", sig)
         if m:
             break
     if not m:
@@ -439,7 +458,7 @@ def parse_function_file(path):
     outs = [o.strip() for o in outs.split(",") if o.strip()]
     name = m.group(2)
     ins = [a.strip() for a in m.group(3).split(",") if a.strip()]
-    hb, j = leading_help(lines, i + 1)
+    hb, j = leading_help(lines, last + 1)
     h1, desc, outdocs, example, iodocs, errdocs, seealso = parse_help(hb)
     args = []
     jl = _join_continuations(lines[j:j + 200])
@@ -533,14 +552,29 @@ def main():
     entries = {"classes": [], "shLowLevel": [], "root": []}
     for f in ["shCoefficients.m", "shSeries.m", "shClimatology.m"]:
         entries["classes"].append(parse_classdef(os.path.join(ROOT, f)))
+    silent = []
     for f in sorted(glob.glob(os.path.join(ROOT, "+shLowLevel", "*.m"))):
         e = parse_function_file(f)
         if e:
             entries["shLowLevel"].append(e)
+        else:
+            silent.append(os.path.relpath(f, ROOT))
     for f in ["setup_shAnalysis.m", "runAllTests.m", "demo_shAnalysis.m"]:
         e = parse_function_file(os.path.join(ROOT, f))
         if e:
             entries["root"].append(e)
+        else:
+            silent.append(f)
+    # A17: a public file that parses to nothing used to vanish silently -
+    # gridHandover's continued signature did, and with it its reference
+    # page, while refpages_audit's COVER check compared pages against this
+    # same blind artifact and saw nothing wrong. Refuse to write instead.
+    if silent:
+        print("api_extract: %d public file(s) produced NO entity - the "
+              "signature did not parse:" % len(silent), file=sys.stderr)
+        for f in silent:
+            print("  - " + f, file=sys.stderr)
+        return 1
     # coverage report
     miss_ex, miss_desc = [], []
     for e in entries["shLowLevel"] + entries["root"]:
@@ -590,4 +624,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main() or 0)

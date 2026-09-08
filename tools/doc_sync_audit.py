@@ -30,6 +30,10 @@ Checks, in order of how badly they bite:
             documented default matches the arguments block.
   COVERAGE  every public entity is mentioned in at least one narrative
             source, not only in the generated reference.
+  SURFACE   the entity set matches the FILESYSTEM, not another parser's
+            opinion of it: one entity per +shLowLevel/*.m, named after
+            its file, and api_data.py agrees. Four parsers of this fact
+            exist in the repo and two were blind the same way (A17).
 
 Stdlib only; run from the repository root. Nonzero exit on any finding.
 
@@ -114,15 +118,30 @@ def parse_one(lines, i0):
     """Parse the function starting at/after i0."""
     fre = re.compile(r"^\s*function\s+(?:(\[[^\]]*\]|\w+)\s*=\s*)?"
                      r"(\w+)\s*\(([^)]*)\)")
-    i = i0
-    while i < len(lines) and not fre.match(lines[i]):
+    i, m, last = i0, None, i0
+    while i < len(lines):
+        if re.match(r"^\s*function\b", lines[i]):
+            # A17: a signature may be continued with "..." (gridHandover).
+            # Matching the raw line alone dropped the whole file, and this
+            # audit's COVERAGE check then never asked for it. MATLAB skips
+            # comment lines inside a continuation, so skip them here too.
+            sig, last = lines[i], i
+            while (sig.split("%")[0].rstrip().endswith("...")
+                   and last + 1 < len(lines)):
+                last += 1
+                if lines[last].lstrip().startswith("%"):
+                    continue
+                sig = (sig.split("%")[0].rstrip()[:-3].rstrip()
+                       + " " + lines[last].strip())
+            m = fre.match(sig)
+            if m:
+                break
         i += 1
-    if i >= len(lines):
+    if m is None:
         return None
-    m = fre.match(lines[i])
     outs = re.findall(r"\w+", m.group(1)) if m.group(1) else []
     ins = [a.strip() for a in m.group(3).split(",") if a.strip()]
-    j = i + 1
+    j = last + 1
     help_lines = []
     while j < len(lines) and lines[j].lstrip().startswith("%"):
         help_lines.append(lines[j].lstrip().lstrip("%").rstrip("\n"))
@@ -589,6 +608,35 @@ def main():
         if not re.search(r"\b" + re.escape(short) + r"\b", blob):
             probs.append("%s is documented ONLY in the generated API "
                          "reference - no narrative page or guide section" % k)
+
+    # --- SURFACE: ground truth is the filesystem. MATLAB requires a file
+    # to define the function it is named after, so every +shLowLevel/X.m
+    # owes exactly one entity "shLowLevel.X". Comparing two parsers to
+    # each other would not have caught A17 - api_extract and this audit
+    # were blind in the SAME way, agreed with each other, and both
+    # dropped gridHandover along with its reference page.
+    for f in sorted(os.listdir(PKG)):
+        if not f.endswith(".m"):
+            continue
+        want = "shLowLevel." + f[:-2]
+        if want not in ent:
+            probs.append("%s: the file exists but this audit parsed no "
+                         "entity from it (continued signature?)" % want)
+    try:
+        sys.path.insert(0, os.path.join(ROOT, "tools", "dev"))
+        from api_data import API as _API
+        seen = {"shLowLevel." + e["name"] for e in _API["shLowLevel"]}
+        seen |= {e["name"] for e in _API["root"]}
+        seen |= {c["name"] + "." + m["name"]
+                 for c in _API["classes"] for m in c["methods"]}
+        for k in sorted(set(ent) - seen):
+            probs.append("%s: missing from api_data.py - regenerate with "
+                         "tools/dev/api_extract.py" % k)
+        for k in sorted(seen - set(ent)):
+            probs.append("%s: in api_data.py but not parsed here - the "
+                         "two readers of the public surface disagree" % k)
+    except ImportError:
+        probs.append("tools/dev/api_data.py is missing - regenerate it")
 
     # --- DEMOS: the Examples tab is derived from the registry inside
     # demo_shAnalysis.m, so a case cannot exist in one and not the other.

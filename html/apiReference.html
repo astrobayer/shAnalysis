@@ -50,6 +50,7 @@ code itself.</p>
 <a href="#shLowLevel.gravisL2B">gravisL2B</a>
 <a href="#shLowLevel.gravisRegionChain">gravisRegionChain</a>
 <a href="#shLowLevel.greenlandChain">greenlandChain</a>
+<a href="#shLowLevel.gridHandover">gridHandover</a>
 <a href="#shLowLevel.gridScaling">gridScaling</a>
 <a href="#shLowLevel.httpFetch">httpFetch</a>
 <a href="#shLowLevel.httpRetryDelay">httpRetryDelay</a>
@@ -647,6 +648,22 @@ code itself.</p>
         NumHeaderLines=2);
     [gt, rep] = shLowLevel.greenlandChain(&quot;E:/series/COSTG&quot;, ...
         &quot;E:/GravIS&quot;, kn = kn, OceanMask = @(la,lo) abs(la) &lt; 60);</pre>
+</div>
+<div class="entry" id="shLowLevel.gridHandover">
+<h3><code>shLowLevel.gridHandover(Z, lat, lon, units, latType, quantity, productType, name, epoch, c00, history, nmax, nmin)</code></h3>
+<p class="h1line">Assemble the metadata that travels with a synthesized grid.</p>
+<p>B = shLowLevel.gridHandover(Z, LAT, LON, UNITS, LATTYPE, QUANTITY, PRODUCTTYPE, NAME, EPOCH, C00, HISTORY, NMAX, NMIN) packs a synthesized field together with what it is, for handover to a cartographic toolbox. Called by shCoefficients.toGrid and shSeries.toGrid; it exists so the two bridges cannot describe the same field differently, which is the failure they were built to prevent in the first place.</p>
+<b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Z</code></td><td>n x m</td><td>double</td><td>required</td></tr><tr><td><code>lat</code></td><td>1 x :</td><td>double</td><td>required</td></tr><tr><td><code>lon</code></td><td>1 x :</td><td>double</td><td>required</td></tr><tr><td><code>units</code></td><td>1 x 1</td><td>string</td><td>required</td></tr><tr><td><code>latType</code></td><td>1 x 1</td><td>string</td><td>required</td></tr><tr><td><code>quantity</code></td><td>1 x 1</td><td>string</td><td>required</td></tr><tr><td><code>productType</code></td><td>1 x 1</td><td>string</td><td>required</td></tr><tr><td><code>name</code></td><td>1 x 1</td><td>string</td><td>required</td></tr><tr><td><code>epoch</code></td><td>: x 1</td><td>double</td><td>required</td></tr><tr><td><code>c00</code></td><td>: x 1</td><td>double</td><td>required</td></tr><tr><td><code>history</code></td><td>n x 1</td><td>string</td><td>required</td></tr><tr><td><code>nmax</code></td><td>1 x 1</td><td>double</td><td>required</td></tr><tr><td><code>nmin</code></td><td>1 x 1</td><td>double</td><td>required</td></tr></table>
+<b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
+<tr><td><code>b</code></td><td>(1,1) struct  Z, lat (nlat x 1) double, lon (1 x nlon) double, Units, LatType, Quantity, ProductType, Name, Source, FieldKind (1,1) string, Epoch (: x 1) double, C00 (: x 1) double, Zmin, Zmax, Zmean (1,1) double, Nmax, Nmin (1,1) double, History (: x 1) string</td></tr>
+</table>
+<b>Example</b><pre>    b = shLowLevel.gridHandover(Z, lat, lon, &quot;m&quot;, &quot;geodetic&quot;, &quot;ewh&quot;, ...
+            &quot;GSM&quot;, &quot;ITSG-Grace2018&quot;, 2008.29, 0, string.empty(0,1), 60, 0);
+    b.FieldKind        % &quot;anomaly&quot;
+
+  See also SHCOEFFICIENTS/TOGRID, SHSERIES/TOGRID, KERNELFACTORS.
+
+  Claude (Opus 5), 2026-08-23 (v3.31.0).</pre>
 </div>
 <div class="entry" id="shLowLevel.gridScaling">
 <h3><code>shLowLevel.gridScaling(model, latDeg, lonDeg, opts)</code></h3>
