@@ -533,16 +533,16 @@ Original scope below.
 | audit 2026-09-08 | ☑ read | — | — | — |
 | WP0 (v3.33.1) | ☑ 9 gates + 4 self-test suites, 0 findings | ☑ CI self-hosted (A8), green — 268 runs | ☑ PR #95 | ◐ pending |
 | v3.34.0 (A7, A8, A12, A13, A16, WP6.1+2) | ☑ 12 gate steps + 6 self-test suites, 0 findings | ☑ **CI self-hosted (A8), green — 269 runs, 265 passed, 4 filtered** | ☑ PR #95 | ◐ pending |
-| v3.34.1 (A10, A17, A18, A19-partial) | ☑ 13 gates + 8 self-test suites + mlint, 0 findings | ◑ **A8 ran 301 — the prediction matched EXACTLY** (296 passed, 1 failed, 4 filtered). The one failure was a new test of mine, `testCompareDelegatesToCompareSolutions`: `compareSeries` needs >= 12 common epochs and it gave 8. Fixed; re-run pending. | ◐ pending | ◐ pending |
+| v3.34.1 (A10, A17, A18, A19-partial) | ☑ 13 gates + 8 self-test suites + mlint, 0 findings | ☑ **CI self-hosted (A8) at `7c8cb4c`, green — 301 runs, 297 passed, 0 failed, 4 filtered**; the `count_tests.py` prediction matched EXACTLY, and all 32 new tests pass. First run (`0ab29b5`) also executed 301 but had 1 failure — `testCompareDelegatesToCompareSolutions` gave `compareSeries` 8 epochs where it needs >= 12 common ones. | ☑ PR #95 | ◐ pending |
 
-**Tier A debt: DISCHARGED for both releases.** The local MATLAB bridge is
-gone, but the self-hosted runner A8 is not: `runAllTests (self-hosted)`
-went green on PR #95 at `fcaddd2` (268 runs) and again at `5acf14c`
-(**269 runs, 265 passed, 4 filtered** for absent optional real-data
-fixtures — `testGravisChainsRealData`, `testUserSuppliedSINEXFiles`,
-`testMasconReaderOnARealFile`, `testPublishedTrendOnARealSeries`).
-Per class: Contract 61, Correctness 136, Performance 12, Robustness 53,
-Science 7.
+**Tier A debt: DISCHARGED for all three releases.** The local MATLAB
+bridge is gone, but the self-hosted runner A8 is not: `runAllTests
+(self-hosted)` went green on PR #95 at `fcaddd2` (268 runs), `5acf14c`
+(**269 runs, 265 passed, 4 filtered**) and `7c8cb4c` (**301 runs, 297
+passed, 4 filtered**). The four filtered are the absent optional
+real-data fixtures throughout — `testGravisChainsRealData`,
+`testUserSuppliedSINEXFiles`, `testMasconReaderOnARealFile`,
+`testPublishedTrendOnARealSeries`.
 
 So Tier A is reachable **through CI** even when it is not reachable from
 a sandbox — do not record a session as Tier-B-only without saying which
@@ -552,10 +552,12 @@ confirmation that the counter is right about a real run and not only
 about the source.
 
 ### 6.3 What the next session could be wrong for not reading
-- The toolbox is at **3.34.0**, package is `+shLowLevel`. Memory summaries
-  that say 3.32.2, 3.33.x or `shx.*` are stale. §1 is the authority; this
-  bullet was itself stale for two commits, which is the same defect the
-  release fixes.
+- **§1 is the only place in this file that states the version.** This
+  bullet used to repeat it and went stale three times running (3.33.1 when
+  the tree was 3.34.0, then 3.34.0 when it was 3.34.1) — a duplicated fact
+  rots, which is the very rule (R1) the releases below enforce elsewhere.
+  Read the version from §1's table or from `Contents.m` line 2. The package
+  is `+shLowLevel`; any memory saying `shx.*` is stale.
 - The guide PDF is current (rebuilt at each bump) and its stamp is gated.
   Building it needs `pip install reportlab matplotlib` — not present by
   default in a fresh sandbox.
@@ -668,6 +670,6 @@ pip install reportlab matplotlib && \
 *shAnalysis v3.33.0 audited | 2026-09-08 18:30 UTC | Claude Fable 5.1 |
 WP0 (v3.33.1), A7/A8/A12/A13/A14/A16 + WP6.1-2 (v3.34.0), and
 A10/A17/A18 (v3.34.1) | 2026-09-08 | Claude Opus 5 |
-v3.33.1 and v3.34.0 green on A8 via CI (269 runs); v3.34.1 predicts
-300 methods / 301 runs and is NOT yet run |
+all three releases green on A8 via CI — v3.34.1 at `7c8cb4c`,
+301 runs, 297 passed, 4 filtered |
 Developed by Matthias Weigelt with the help of Claude.*
