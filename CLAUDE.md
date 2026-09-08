@@ -497,16 +497,24 @@ Original scope below.
 | WP | Static gates | Tier A (MATLAB) | CI | Merged |
 |---|---|---|---|---|
 | audit 2026-09-08 | ☑ read | — | — | — |
-| WP0 (v3.33.1) | ☑ 9 gates + 4 self-test suites, 0 findings | ☑ **CI self-hosted (A8), green** | ☑ PR #95 | ◐ pending |
-| A12+A16+WP6.1 (v3.34.0) | ☑ 10 gates + 6 self-test suites (81 tests), 0 findings | ◐ pending on the next CI run | ◐ pending | ◐ pending |
+| WP0 (v3.33.1) | ☑ 9 gates + 4 self-test suites, 0 findings | ☑ CI self-hosted (A8), green — 268 runs | ☑ PR #95 | ◐ pending |
+| v3.34.0 (A7, A8, A12, A13, A16, WP6.1+2) | ☑ 12 gate steps + 6 self-test suites, 0 findings | ☑ **CI self-hosted (A8), green — 269 runs, 265 passed, 4 filtered** | ☑ PR #95 | ◐ pending |
 
-**WP0 debt: DISCHARGED.** The local MATLAB bridge is gone, but the
-self-hosted runner A8 is not: `runAllTests (self-hosted)` on PR #95 went
-green (268 runs, 3 filtered for absent optional fixtures, 2026-09-08
-20:25 UTC). So Tier A is reachable **through CI** even when it is not
-reachable from a sandbox — do not record a session as Tier-B-only without
-saying which of the two is meant. The run also refuted the predicted
-count; see A16.
+**Tier A debt: DISCHARGED for both releases.** The local MATLAB bridge is
+gone, but the self-hosted runner A8 is not: `runAllTests (self-hosted)`
+went green on PR #95 at `fcaddd2` (268 runs) and again at `5acf14c`
+(**269 runs, 265 passed, 4 filtered** for absent optional real-data
+fixtures — `testGravisChainsRealData`, `testUserSuppliedSINEXFiles`,
+`testMasconReaderOnARealFile`, `testPublishedTrendOnARealSeries`).
+Per class: Contract 61, Correctness 136, Performance 12, Robustness 53,
+Science 7.
+
+So Tier A is reachable **through CI** even when it is not reachable from
+a sandbox — do not record a session as Tier-B-only without saying which
+of the two is meant. The 268 run refuted the predicted count (A16); the
+269 run **matched `count_tests.py` exactly**, which is the first
+confirmation that the counter is right about a real run and not only
+about the source.
 
 ### 6.3 What the next session could be wrong for not reading
 - The toolbox is at **3.33.1**, package is `+shLowLevel`. Memory summaries
@@ -520,8 +528,16 @@ count; see A16.
   inspects before trusting its silence (A12 is what is still unmeasured).
 - `doc_sync_audit.py` requires the top CHANGELOG heading to equal
   `Contents.m` and rejects `Unreleased` headings: bump the version in the
-  same commit, then regenerate `apiReference.html` and the guide PDF, both
-  of which carry the stamp.
+  same commit, then regenerate `apiReference.html`, `html/ref/` and the
+  guide PDF, all of which carry the stamp.
+- **Do not push while a CI run is in flight.** The self-hosted runner has
+  a persistent temp folder, and a superseding push CANCELS the running
+  MATLAB process, which then executes no `onCleanup`. That is how a
+  half-written `plain.gfc` survived into the next run and failed
+  `testProvenanceSidecarsDoNotBreakTheRoundTrip` with a bogus
+  `shSeries:sizeMismatch` (2026-09-08). Tests now use `tempname` so a
+  leftover cannot be found again, but a cancelled run still wastes an A8
+  slot and can leave litter. Batch the pushes.
 - Do not re-propose what §1.1 lists. The first audit draft did, without
   repository access; that draft is superseded by this file.
 - Tier B sessions cannot measure B1–B3 or set WP2 budgets. Say so; do not

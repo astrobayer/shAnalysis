@@ -226,6 +226,12 @@ leftover can be found and no two runs can collide. The test was never
 skipped, widened or given a tolerance - it isolates itself now, which is
 what it should always have done.
 
+To be exact about what this change did and did not do: the leftover had
+already cleared itself by the next run, which was green **before** this
+fix existed. It is hardening against recurrence, not the cure for a red
+build. The failure was intermittent in practice but not a flake - the
+mechanism is deterministic given its precondition.
+
 ### Fixed - two gates that were not looking where they claimed
 
 - `attribution_sweep.py` globbed `html/*.html`, so it kept reporting 50
