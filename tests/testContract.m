@@ -1024,7 +1024,12 @@ d = dir(fullfile(hdir, '*.html'));
 files = string({d.name}');
 verifyEmpty(testCase, setdiff(files, targets), ...
     'help pages missing from helptoc.xml');
-verifyEmpty(testCase, setdiff(targets, files), ...
+% A target may name a page in a subfolder: html/ref/ holds one generated
+% page per entity (WP6) and is represented in the TOC by its index, so
+% resolve every target against html/ instead of matching bare names. The
+% generated pages themselves are gated by tools/dev/refpages_audit.py.
+exists = arrayfun(@(t) isfile(fullfile(hdir, t)), targets);
+verifyEmpty(testCase, targets(~exists), ...
     'helptoc.xml points at files that do not exist');
 % the removed compat/ folder must not be advertised anywhere as current
 lp = string(fileread(fullfile(hdir, 'shAnalysis.html')));

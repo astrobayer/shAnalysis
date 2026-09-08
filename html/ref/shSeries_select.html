@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shSeries.select &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shSeries.select</nav>
+<h1>shSeries.select</h1>
+<p class="h1line">Subset the series by index, mask, or time range.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>out = shSeries.select(obj, which)</code><code>out = shSeries.select(obj, which, Range=[])</code></div>
+<h2>Description</h2>
+<p>OUT = ts.select(WHICH) with WHICH one of logical (1,T)   keep masked epochs indices         keep listed epochs (in the given order) [tMin tMax]     keep epochs with tMin &lt;= t &lt;= tMax</p>
+<h2>Examples</h2>
+<details class="example"><summary>From the help block</summary><div><pre><code>    tsFO = ts.select(ts.epochs &gt; 2018.5);
+    tsB  = ts.select(Range = [2004 2010]);
+
+  See also mean, dropNaN</code></pre></div></details><details class="example"><summary>Runnable (docs/apiExamples.json)</summary><div><pre><code>ts = ts.select(ts.epochs &gt; 2018.5);    % GRACE-FO era only</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td><code>required</code></td><td class="desc">the object the method is called on</td></tr><tr><td><code>which</code></td><td>n x 1</td><td>-</td><td><code>[]</code></td><td class="desc">logical | double  mask, index list, or [tMin tMax]; omit it when passing Range</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>Range</code></td><td>n x m</td><td>-</td><td><code>[]</code></td><td class="desc">(1 x 2) double decimal years, or a 1 x 2 datetime; mutually exclusive with WHICH</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>out</code></td><td class="desc">(1 x 1) <a href="shSeries.html"><code>shSeries</code></a>   the selected epochs, in the order given; the operation is appended to the history (immutable value-class pattern)</td></tr></table>
+<h2>Error Identifiers</h2>
+<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<p class="none">No other entity is named in this help block.</p>
+<p class="prov">shAnalysis v3.34.0 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

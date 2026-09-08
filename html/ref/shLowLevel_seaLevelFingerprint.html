@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shLowLevel.seaLevelFingerprint &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shLowLevel.seaLevelFingerprint</nav>
+<h1>shLowLevel.seaLevelFingerprint</h1>
+<p class="h1line">Elastic sea-level fingerprint (sea-level equation).</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>[S, grid, info] = shLowLevel.seaLevelFingerprint(loadRegion, ocean, idx)</code><code>[S, grid, info] = shLowLevel.seaLevelFingerprint(loadRegion, ocean, idx, kn=..., hn=..., LoadValue=1, ...)</code></div>
+<h2>Description</h2>
+<p>[S, GRID, INFO] = shLowLevel.seaLevelFingerprint(LOADREGION, OCEAN, IDX, kn (&quot;&quot;)=kn, hn (&quot;&quot;)=hn) solves the elastic sea-level equation for a land load: the ocean does NOT rise uniformly - it follows the perturbed geoid minus the deformed crust under global mass conservation (Farrell &amp; Clark 1976, elastic limit):</p>
+<h2>Examples</h2>
+<details class="example"><summary>Runnable (docs/apiExamples.json)</summary><div><pre><code>S = shLowLevel.seaLevelFingerprint(gLoad, oceanMask, idx, kn = LN.kn, hn = LN.hn);</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>loadRegion</code></td><td>n x m</td><td>-</td><td><code>required</code></td><td class="desc">handle f(latDeg,lonDeg) -&gt; surface density CHANGE [kg/m^2] (negative = mass loss), polygon (Kx2 with opts.LoadValue (1)), or Ngrid x 1 values on the solver grid</td></tr><tr><td><code>ocean</code></td><td>n x m</td><td>-</td><td><code>required</code></td><td class="desc">ocean region: handle | polygon | mask (<a href="shLowLevel_evalMask.html"><code>shLowLevel.evalMask</code></a> forms). The load is restricted to land (1 - ocean).</td></tr><tr><td><code>idx</code></td><td>1 x 1</td><td>struct</td><td><code>required</code></td><td class="desc"><a href="shLowLevel_shIndex.html"><code>shLowLevel.shIndex</code></a>(Lmax, Nmin = 0)  - Nmin MUST be 0 (mass conservation lives in degree 0/1) kn, hn (REQUIRED)    load Love numbers k&#x27;_n, h&#x27;_n (user-supplied)</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>kn</code></td><td>n x m</td><td>double</td><td><code>-</code></td><td class="desc">load Love numbers, (degree, kn) table or column vector - always user-supplied, no reference frame is assumed</td></tr><tr><td><code>hn</code></td><td>n x m</td><td>double</td><td><code>-</code></td><td class="desc">load Love numbers h_n, same layout as kn</td></tr><tr><td><code>LoadValue</code></td><td>1 x 1</td><td>double</td><td><code>1</code></td><td class="desc">kg/m^2 for polygon loads</td></tr><tr><td><code>rho_water</code></td><td>1 x 1</td><td>double</td><td><code>1000</code></td><td class="desc">, rho_ave (5517), R (6378136.3)</td></tr><tr><td><code>rho_ave</code></td><td>1 x 1</td><td>double</td><td><code>5517</code></td><td class="desc">mean Earth density [kg/m^3] (default 5517, overridable)</td></tr><tr><td><code>R</code></td><td>1 x 1</td><td>double</td><td><code>6378136.3</code></td><td class="desc">reference radius [m] (default 6378136.3, overridable)</td></tr><tr><td><code>OverSample</code></td><td>1 x 1</td><td>double</td><td><code>2</code></td><td class="desc">quadrature refinement (mask fidelity)</td></tr><tr><td><code>MaxIter</code></td><td>1 x 1</td><td>double</td><td><code>50</code></td><td class="desc">maximum sea-level-equation iterations</td></tr><tr><td><code>Tol</code></td><td>1 x 1</td><td>double</td><td><code>1e-8</code></td><td class="desc">convergence threshold on max|dS|, RELATIVE to |eustatic| (the absolute bound is Tol * |eustatic|)</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>S</code></td><td class="desc">(Ngrid,1) double  relative sea-level change over the ocean [m per unit load], 0 on land</td></tr><tr><td><code>grid</code></td><td class="desc">struct            latDeg/lonDeg rings of the solver grid</td></tr><tr><td><code>info</code></td><td class="desc">struct: iterations, dS, converged (dS below the tolerance), massResidual [kg/m^2 sphere mean], eustatic [m], kappa, areaFractionOcean, S2D (nlat x nlon)</td></tr></table>
+<h2>Error Identifiers</h2>
+<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<p class="none">No other entity is named in this help block.</p>
+<p class="prov">shAnalysis v3.34.0 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

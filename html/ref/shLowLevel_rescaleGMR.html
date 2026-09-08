@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shLowLevel.rescaleGMR &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shLowLevel.rescaleGMR</nav>
+<h1>shLowLevel.rescaleGMR</h1>
+<p class="h1line">Convert Stokes coefficients between (GM, R) reference values.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>[C2, S2, sig] = shLowLevel.rescaleGMR(C, S, GM1, R1, GM2, R2, sigmaC, sigmaS)</code></div>
+<h2>Description</h2>
+<p>[C2, S2] = shLowLevel.rescaleGMR(C, S, GM1, R1, GM2, R2) re-expresses coefficients given w.r.t. (GM1, R1) in the reference (GM2, R2):</p>
+<h2>Examples</h2>
+<details class="example"><summary>Runnable (docs/apiExamples.json)</summary><div><pre><code>[C2, S2] = shLowLevel.rescaleGMR(g.C, g.S, g.GM, g.R, GMref, Rref);</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>C</code></td><td>n x m</td><td>double</td><td><code>required</code></td><td class="desc">cosine Stokes coefficients, C(n+1, m+1) indexing</td></tr><tr><td><code>S</code></td><td>n x m</td><td>double</td><td><code>required</code></td><td class="desc">sine Stokes coefficients, S(n+1, m+1) indexing</td></tr><tr><td><code>GM1</code></td><td>1 x 1</td><td>double</td><td><code>required</code></td><td class="desc">GM the coefficients are currently scaled to [m^3/s^2]</td></tr><tr><td><code>R1</code></td><td>1 x 1</td><td>double</td><td><code>required</code></td><td class="desc">R the coefficients are currently scaled to [m]</td></tr><tr><td><code>GM2</code></td><td>1 x 1</td><td>double</td><td><code>required</code></td><td class="desc">target GM [m^3/s^2]</td></tr><tr><td><code>R2</code></td><td>1 x 1</td><td>double</td><td><code>required</code></td><td class="desc">target R [m]</td></tr><tr><td><code>sigmaC</code></td><td>n x m</td><td>double</td><td><code>[]</code></td><td class="desc">1-sigma uncertainties of C, same indexing</td></tr><tr><td><code>sigmaS</code></td><td>n x m</td><td>double</td><td><code>[]</code></td><td class="desc">1-sigma uncertainties of S, same indexing</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<p class="none">None.</p>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>C2, S2</code></td><td class="desc">(n1,n1) double  coefficients w.r.t. (GM2, R2)</td></tr><tr><td><code>sig</code></td><td class="desc">(1,1) struct  fields C and S, each (n1,n1) double or [] when the corresponding sigma was not supplied</td></tr></table>
+<h2>Error Identifiers</h2>
+<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<p class="none">No other entity is named in this help block.</p>
+<p class="prov">shAnalysis v3.34.0 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

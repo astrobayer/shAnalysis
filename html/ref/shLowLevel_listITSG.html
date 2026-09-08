@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shLowLevel.listITSG &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shLowLevel.listITSG</nav>
+<h1>shLowLevel.listITSG</h1>
+<p class="h1line">Catalogue of ITSG gravity field series on the TU Graz server.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>[T, info] = shLowLevel.listITSG()</code><code>[T, info] = shLowLevel.listITSG(BaseURL=&quot;https://ftp.tugraz.at/pub/ITSG/GRACE&quot;, Timeout=30)</code></div>
+<h2>Description</h2>
+<p>T = shLowLevel.listITSG() enumerates the available ITSG releases and product folders (releases ITSG-Grace2014/2016/2018 and the continuously extended ITSG-Grace_operational; products monthly at n60/n96/n120 and daily Kalman solutions) by parsing the server directory indices - so mixing files from different releases, the trap of guessing folder names, becomes impossible. The catalogue row number is the selection handle for <a href="shLowLevel_fetchITSG.html"><code>shLowLevel.fetchITSG</code></a>(Catalog=...). Behaviour mirrors <a href="shLowLevel_listICGEM.html"><code>shLowLevel.listICGEM</code></a>.</p>
+<h2>Examples</h2>
+<details class="example"><summary>From the help block</summary><div><pre><code>    T = shLowLevel.listITSG();
+    disp(T)     % pick rows, then fetch via Catalog= in fetchITSG</code></pre></div></details>
+<h2>Input Arguments</h2>
+<p class="none">None.</p>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>BaseURL</code></td><td>1 x 1</td><td>string</td><td><code>&quot;https://ftp.tugraz.at/pub/ITSG/GRACE&quot;</code></td><td class="desc">(&quot;https://ftp.tugraz.at/pub/ITSG/GRACE&quot;)  server base, or a LOCAL MIRROR FOLDER (offline/testing: directory tree is walked instead of scraped)</td></tr><tr><td><code>Timeout</code></td><td>1 x 1</td><td>double</td><td><code>30</code></td><td class="desc">per-request timeout [s]</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>T</code></td><td class="desc">(K x 5) table  columns: idx     (1,1) double  selection number for fetchITSG release (1,1) string  e.g. &quot;ITSG-Grace2018&quot; product (1,1) string  &quot;monthly&quot; | &quot;daily&quot; | &quot;static&quot; nmax    (1,1) double  60/96/120 (NaN for daily/static) url     (1,1) string  folder URL or mirror path</td></tr><tr><td><code>info</code></td><td class="desc">(1,1) struct  fields: source (string), nReleases (double)</td></tr></table>
+<h2>Error Identifiers</h2>
+<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<ul class="seealso"><li><a href="shLowLevel_fetchITSG.html"><code>shLowLevel.fetchITSG</code></a></li><li><a href="shLowLevel_listICGEM.html"><code>shLowLevel.listICGEM</code></a></li></ul>
+<p class="prov">shAnalysis v3.34.0 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

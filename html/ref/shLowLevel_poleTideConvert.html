@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shLowLevel.poleTideConvert &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shLowLevel.poleTideConvert</nav>
+<h1>shLowLevel.poleTideConvert</h1>
+<p class="h1line">Convert C21/S21 between mean-pole (pole tide) conventions.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>varargout = shLowLevel.poleTideConvert(varargin)</code></div>
+<h2>Description</h2>
+<p>G2 = shLowLevel.poleTideConvert(G, From=&quot;IERS2010&quot;, To=&quot;IERS2018&quot;) adjusts the C21/S21 coefficients of an <a href="shCoefficients.html"><code>shCoefficients</code></a> object (epoch taken from G) from one mean-pole convention to another. Processing centers remove the (solid + ocean) pole tide using a MEAN POLE MODEL, and the IERS 2010 conventional model (cubic until 2010.0, linear after) differs from the 2018 secular-pole update (linear, adopted for GRACE/GRACE-FO RL06) by up to ~1e-10 in C21/S21 with a strong TREND component - silently mixing conventions between solutions biases C21/S21 trend studies at the mm-EWH level. This function makes the conversion explicit.</p>
+<h2>Examples</h2>
+<details class="example"><summary>From the help block</summary><div><pre><code>    g18 = shLowLevel.poleTideConvert(g, From = &quot;IERS2010&quot;, To = &quot;IERS2018&quot;);
+    dC21 = g18.C(3, 2) - g.C(3, 2)     % ~1e-10 level, trend-like in t</code></pre></div></details>
+<h2>Input Arguments</h2>
+<p class="none">None.</p>
+<h2>Name-Value Arguments</h2>
+<p class="none">None.</p>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>G2</code></td><td class="desc">(1,1) <a href="shCoefficients.html"><code>shCoefficients</code></a>  converted object (object input; history appended)</td></tr><tr><td><code>C2, S2</code></td><td class="desc">(nmax+1 x nmax+1) double  converted triangles (raw input)</td></tr></table>
+<h2>Error Identifiers</h2>
+<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<ul class="seealso"><li><a href="shCoefficients.html"><code>shCoefficients</code></a></li></ul>
+<p class="prov">shAnalysis v3.34.0 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

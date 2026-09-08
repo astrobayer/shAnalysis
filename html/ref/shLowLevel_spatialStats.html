@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shLowLevel.spatialStats &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shLowLevel.spatialStats</nav>
+<h1>shLowLevel.spatialStats</h1>
+<p class="h1line">Area-weighted spatial comparison of two grids.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>stats = shLowLevel.spatialStats(A, B, latDeg, lonDeg)</code><code>stats = shLowLevel.spatialStats(A, B, latDeg, lonDeg, Mask=[], Weights=[])</code></div>
+<h2>Description</h2>
+<p>STATS = shLowLevel.spatialStats(A, B, LATDEG, LONDEG) compares two nlat x nlon grids with proper cos(latitude) area weighting - unweighted RMS on a lat/lon grid over-counts the poles and is simply wrong. Returns bias, RMSD, the CENTERED pattern statistics (centered RMSD, weighted correlation, standard deviations) that feed a Taylor diagram, and verifies the Taylor identity crmsd^2 = stdA^2 + stdB^2 - 2 stdA stdB corr internally.</p>
+<h2>Examples</h2>
+<details class="example"><summary>From the help block</summary><div><pre><code>    A1 = g.synthesis(lat, lon); A2 = gF.synthesis(lat, lon);
+    st = shLowLevel.spatialStats(A1, A2, lat, lon);
+    fprintf(&quot;rmsd %.3g, corr %.3f\n&quot;, st.rmsd, st.corr)</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>A</code></td><td>n x m</td><td>double</td><td><code>required</code></td><td class="desc">semi-major axis of the normal ellipsoid [m]</td></tr><tr><td><code>B</code></td><td>n x m</td><td>double</td><td><code>required</code></td><td class="desc">basin-kernel coefficient vector from basinKernel</td></tr><tr><td><code>latDeg</code></td><td>1 x :</td><td>double</td><td><code>required</code></td><td class="desc">geocentric latitudes [deg]</td></tr><tr><td><code>lonDeg</code></td><td>1 x :</td><td>double</td><td><code>required</code></td><td class="desc">longitudes [deg], lon in [0, 360)</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>Mask</code></td><td>n x m</td><td>-</td><td><code>[]</code></td><td class="desc">nlat x nlon logical: restrict to a region (e.g. land/ocean); default all points</td></tr><tr><td><code>Weights</code></td><td>n x m</td><td>double</td><td><code>[]</code></td><td class="desc">custom nlat x nlon weights (e.g. quadrature); default cos(latDeg) rings, normalized over the mask</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>stats</code></td><td class="desc">(1,1) struct  fields: .bias    (1,1) double  weighted mean of A - B .rmsd    (1,1) double  weighted RMS of A - B .crmsd   (1,1) double  centered (bias-free) RMSD .corr    (1,1) double  weighted pattern correlation .stdA    (1,1) double  weighted std of A .stdB    (1,1) double  weighted std of B .ratio   (1,1) double  stdB / stdA .nUsed   (1,1) double  number of grid points used</td></tr></table>
+<h2>Error Identifiers</h2>
+<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<p class="none">No other entity is named in this help block.</p>
+<p class="prov">shAnalysis v3.34.0 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

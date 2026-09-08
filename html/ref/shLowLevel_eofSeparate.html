@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shLowLevel.eofSeparate &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shLowLevel.eofSeparate</nav>
+<h1>shLowLevel.eofSeparate</h1>
+<p class="h1line">Separate coherent modes from noise in a residual stack.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>[circ, noiseR, info] = shLowLevel.eofSeparate(R, w)</code><code>[circ, noiseR, info] = shLowLevel.eofSeparate(R, w, NKeep=[], MaxModes=10)</code></div>
+<h2>Description</h2>
+<p>[CIRC, NOISER, INFO] = shLowLevel.eofSeparate(R, W) splits a time-centred residual stack into a coherent low-mode part (for ocean applications: residual circulation - interannual dynamics left after the trend + seasonal fit) and a noise remainder, using an area-weighted EOF decomposition with the North et al. (1982) rule: leading modes are kept while their eigenvalue is separated from the next one by more than its sampling uncertainty lambda * sqrt(2/T), extended by the North multiplet rule: effectively degenerate leading modes (mutual gaps inside the sampling uncertainty) are kept or dropped as a GROUP judged by the group&#x27;s lower edge - a leading degenerate pair is physics (two circulation patterns of similar variance), not noise.</p>
+<h2>Examples</h2>
+<details class="example"><summary>From the help block</summary><div><pre><code>    % after [out, rep] = oceanChain(...): rebuild the pixel residuals
+    % R (Q x T), weights wA, then
+    [circ, nz, inf1] = shLowLevel.eofSeparate(R, wA);
+    inf1.nKeep              % modes the North rule accepts
+    inf1.rmsNoise           % the de-circulated noise level</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>R</code></td><td>: x :</td><td>double</td><td><code>required</code></td><td class="desc">double  residual stack, one row per (masked) pixel -</td></tr><tr><td><code>w</code></td><td>: x 1</td><td>double</td><td><code>required</code></td><td class="desc">double  positive area weights of the pixels</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>NKeep</code></td><td>1 x 1</td><td>double</td><td><code>[]</code></td><td class="desc">(1 x 1) fixed number of modes; [] applies the North rule</td></tr><tr><td><code>MaxModes</code></td><td>1 x 1</td><td>double</td><td><code>10</code></td><td class="desc">(1 x 1) hard cap on kept modes</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>circ</code></td><td class="desc">(Q x T) double  coherent (circulation) part noiseR (Q x T) double  time-centred residual minus CIRC</td></tr><tr><td><code>info</code></td><td class="desc">(1 x 1) struct  lam (variance per mode), nKeep, bulkEdge (the Marchenko-Pastur bulk edge the retained modes must exceed), northSeparated (logical, per leading mode), varExplained (fraction, kept modes), rmsNoise (area-weighted RMS of NOISER)</td></tr></table>
+<h2>Error Identifiers</h2>
+<table><tr><th>Identifier</th><th>Raised when</th></tr><tr><td><code>shLowLevel:eofSeparate:badSize</code></td><td class="desc">R and w are inconsistent</td></tr></table>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<p class="none">No other entity is named in this help block.</p>
+<p class="prov">shAnalysis v3.34.0 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

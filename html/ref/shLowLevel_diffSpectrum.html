@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shLowLevel.diffSpectrum &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shLowLevel.diffSpectrum</nav>
+<h1>shLowLevel.diffSpectrum</h1>
+<p class="h1line">Spectral comparison of two coefficient sets.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>spec = shLowLevel.diffSpectrum(C1, S1, C2, S2)</code></div>
+<h2>Description</h2>
+<p>SPEC = shLowLevel.diffSpectrum(C1, S1, C2, S2) compares two solutions in the spectral domain: the difference degree amplitude localizes the disagreement in wavelength, the degree correlation separates &quot;same pattern, different amplitude&quot; from genuine disagreement, and the crossover of the difference against the signal spectrum gives the effective resolution of agreement as a single scalar. Inputs must share the same size; truncate beforehand for mixed degrees (the <a href="shLowLevel_compareSolutions.html"><code>shLowLevel.compareSolutions</code></a> wrapper does this automatically).</p>
+<h2>Examples</h2>
+<details class="example"><summary>From the help block</summary><div><pre><code>    gF = g.gaussian(350);
+    spec = shLowLevel.diffSpectrum(g.C, g.S, gF.C, gF.S);
+    semilogy(spec.n, [spec.amp1, spec.diffAmp]); grid on</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>C1</code></td><td>n x m</td><td>double</td><td><code>required</code></td><td class="desc">cosine Stokes coefficients, C(n+1, m+1) indexing</td></tr><tr><td><code>S1</code></td><td>n x m</td><td>double</td><td><code>required</code></td><td class="desc">sine Stokes coefficients, S(n+1, m+1) indexing</td></tr><tr><td><code>C2</code></td><td>n x m</td><td>double</td><td><code>required</code></td><td class="desc">second cosine set, same indexing as C</td></tr><tr><td><code>S2</code></td><td>n x m</td><td>double</td><td><code>required</code></td><td class="desc">second sine set, same indexing as S</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<p class="none">None.</p>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>spec</code></td><td class="desc">(1,1) struct  fields: .n         (nmax+1 x 1) double  degree axis 0..nmax .diffAmp   (nmax+1 x 1) double  degree amplitude of (1)-(2) .amp1      (nmax+1 x 1) double  signal degree amplitude of (1) .amp2      (nmax+1 x 1) double  signal degree amplitude of (2) .degCorr   (nmax+1 x 1) double  per-degree correlation (NaN where a degree is all-zero) .ncross    (1,1) double  first degree where diffAmp exceeds amp1 (NaN if never; agreement to nmax)</td></tr></table>
+<h2>Error Identifiers</h2>
+<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<ul class="seealso"><li><a href="shLowLevel_compareSolutions.html"><code>shLowLevel.compareSolutions</code></a></li></ul>
+<p class="prov">shAnalysis v3.34.0 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

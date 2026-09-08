@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shSeries.basinAverage &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shSeries.basinAverage</nav>
+<h1>shSeries.basinAverage</h1>
+<p class="h1line">Basin averages, naive or exactly deconvolved.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>[avg, out] = shSeries.basinAverage(obj, B)</code><code>[avg, out] = shSeries.basinAverage(obj, B, Deconvolve=false, Op=struct(), Ridge=0)</code></div>
+<h2>Description</h2>
+<p>AVG = ts.basinAverage(B) - naive averages B&#x27;*x ./ diag(B&#x27;*B), K x T, with B (P x K) basin kernels in <a href="shLowLevel_shIndex.html"><code>shLowLevel.shIndex</code></a> ordering (build from a grid mask via <a href="shLowLevel_synthesisMatrix.html"><code>shLowLevel.synthesisMatrix</code></a>: b = Y&#x27; * (w .* mask)). [AVG, OUT] = ts.basinAverage(B, Deconvolve (false)=true, Op (struct())=op) removes filter attenuation and inter-basin leakage exactly using the stored operator from ts.filter (see <a href="shLowLevel_basinDeconvolve.html"><code>shLowLevel.basinDeconvolve</code></a>). OUT.sigma (K x T) is the 1-sigma noise uncertainty of AVG propagated through the deconvolution (v2.1).</p>
+<h2>Examples</h2>
+<details class="example"><summary>Runnable (docs/apiExamples.json)</summary><div><pre><code>[avg, out] = tsF.basinAverage(B, Deconvolve = true, Op = op);</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td><code>required</code></td><td class="desc">the object the method is called on</td></tr><tr><td><code>B</code></td><td>n x m</td><td>double</td><td><code>required</code></td><td class="desc">basin-kernel coefficient vector from basinKernel</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>Deconvolve</code></td><td>1 x 1</td><td>logical</td><td><code>false</code></td><td class="desc">apply <a href="shLowLevel_basinDeconvolve.html"><code>shLowLevel.basinDeconvolve</code></a> to the basin series (undo kernel attenuation)</td></tr><tr><td><code>Op</code></td><td>n x m</td><td>struct</td><td><code>struct()</code></td><td class="desc">linear operator/kernel the map is derived from</td></tr><tr><td><code>Ridge</code></td><td>1 x 1</td><td>double</td><td><code>0</code></td><td class="desc">Tikhonov ridge added to the deconvolution normal matrix; raise it when the kernel matrix is ill-conditioned (out.condA reports the condition number)</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>avg</code></td><td class="desc">(K x T) double   basin averages (deconvolved when Deconvolve=true)</td></tr><tr><td><code>out</code></td><td class="desc">struct: sigma (K x T), c, attn, condA (deconvolution path)</td></tr></table>
+<h2>Error Identifiers</h2>
+<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<ul class="seealso"><li><a href="shLowLevel_shIndex.html"><code>shLowLevel.shIndex</code></a></li><li><a href="shLowLevel_synthesisMatrix.html"><code>shLowLevel.synthesisMatrix</code></a></li><li><a href="shLowLevel_basinDeconvolve.html"><code>shLowLevel.basinDeconvolve</code></a></li></ul>
+<p class="prov">shAnalysis v3.34.0 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

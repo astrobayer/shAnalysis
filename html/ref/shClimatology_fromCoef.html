@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shClimatology.fromCoef &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shClimatology.fromCoef</nav>
+<h1>shClimatology.fromCoef</h1>
+<p class="h1line">Build from shLowLevel.fitDeterministicModel output (internal).</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>obj = shClimatology.fromCoef(coef, t0, series)</code><code>obj = shClimatology.fromCoef(coef, t0, series, Periods=double.empty(1,0), CoefSigma=[])</code></div>
+<h2>Description</h2>
+<p>OBJ = shClimatology.fromCoef(COEF, T0, SERIES, Periods (double.empty(1,0))=[], CoefSigma=[]) with COEF (6+2K) x (2*Nc) over the flattened [C(:); S(:)] stack of SERIES; rows 7:end are the cos/sin pairs of the K extra Periods [yr].</p>
+<h2>Examples</h2>
+<details class="example"><summary>Runnable (docs/apiExamples.json)</summary><div><pre><code>clim = shClimatology.fromCoef(coef, t0, ts);</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>coef</code></td><td>P x K</td><td>double</td><td><code>required</code></td><td class="desc">fitted component coefficients in shIndex ordering</td></tr><tr><td><code>t0</code></td><td>1 x 1</td><td>double</td><td><code>required</code></td><td class="desc">reference epoch of the fit [decimal years]</td></tr><tr><td><code>series</code></td><td>1 x 1</td><td>shSeries</td><td><code>required</code></td><td class="desc"><a href="shSeries.html"><code>shSeries</code></a> the fit came from (history carrier)</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>Periods</code></td><td>1 x :</td><td>double</td><td><code>double.empty(1,0)</code></td><td class="desc">(1 x K2) extra harmonic periods [yr]</td></tr><tr><td><code>CoefSigma</code></td><td>n x m</td><td>double</td><td><code>[]</code></td><td class="desc">(P x K) 1-sigma uncertainties of coef</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>obj</code></td><td class="desc">(1 x 1) <a href="shClimatology.html"><code>shClimatology</code></a>   rebuilt from a coefficient table with the series&#x27; layout</td></tr></table>
+<h2>Error Identifiers</h2>
+<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<p class="none">No other entity is named in this help block.</p>
+<p class="prov">shAnalysis v3.34.0 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

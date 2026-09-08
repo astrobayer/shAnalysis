@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shLowLevel.buildNoiseCov &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shLowLevel.buildNoiseCov</nav>
+<h1>shLowLevel.buildNoiseCov</h1>
+<p class="h1line">Monthly-solution noise covariance (shape matrix).</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>[N, info] = shLowLevel.buildNoiseCov(Xres, idx)</code><code>[N, info] = shLowLevel.buildNoiseCov(Xres, idx, Mode=&#x27;empirical&#x27;, FullCov=[], Shrinkage=0.1, ...)</code></div>
+<h2>Description</h2>
+<p>[N, info] = shLowLevel.buildNoiseCov(Xres, idx) estimates the noise covariance from the residual coefficient series Xres (P x T, residuals about the deterministic model). Two modes:</p>
+<h2>Examples</h2>
+<details class="example"><summary>Runnable (docs/apiExamples.json)</summary><div><pre><code>N = shLowLevel.buildNoiseCov(Xres, idx);          % empirical order/parity blocks</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>Xres</code></td><td>P x T</td><td>double</td><td><code>required</code></td><td class="desc">double  residual coefficient vectors (shIndex ordering)</td></tr><tr><td><code>idx</code></td><td>1 x 1</td><td>struct</td><td><code>required</code></td><td class="desc">struct    <a href="shLowLevel_shIndex.html"><code>shLowLevel.shIndex</code></a> matching Xres</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>Mode</code></td><td>n x m</td><td>-</td><td><code>&#x27;empirical&#x27;</code></td><td class="desc">&#x27;empirical&#x27; | &#x27;full&#x27;  estimate from Xres, or wrap the user-supplied dense covariance in FullCov</td></tr><tr><td><code>FullCov</code></td><td>n x m</td><td>double</td><td><code>[]</code></td><td class="desc">(P x P) double  dense covariance for Mode=&#x27;full&#x27;</td></tr><tr><td><code>Shrinkage</code></td><td>1 x 1</td><td>double</td><td><code>0.1</code></td><td class="desc">(1 x 1) double  gamma in C &lt;- (1-gamma)*C + gamma*diag(diag(C)); Mode=&#x27;empirical&#x27; only</td></tr><tr><td><code>Assemble</code></td><td>n x m</td><td>-</td><td><code>&#x27;full&#x27;</code></td><td class="desc">&#x27;full&#x27; | &#x27;blocks&#x27;  container layout of N</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>N</code></td><td class="desc">(P x P) double for Assemble=&#x27;full&#x27;; for Assemble=&#x27;blocks&#x27; a (1,1) struct with fields layout (&#x27;blocks&#x27;), blocks (cell of row index vectors), mats (cell of the dense blocks), diagN (P x 1 double) and P (1,1 double)</td></tr><tr><td><code>info</code></td><td class="desc">(1,1) struct  which fields are present depends on the path: mode  (char)  &#x27;empirical&#x27; | &#x27;full&#x27; | &#x27;full-blocks&#x27; nBlocks (1,1) double  number of (order, C/S, parity) blocks; absent for mode &#x27;full&#x27; T     (1,1) double  epochs used; mode &#x27;empirical&#x27; only shrinkage (1,1) double  the gamma applied; &#x27;empirical&#x27; only</td></tr></table>
+<h2>Error Identifiers</h2>
+<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<p class="none">No other entity is named in this help block.</p>
+<p class="prov">shAnalysis v3.34.0 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

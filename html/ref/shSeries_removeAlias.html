@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shSeries.removeAlias &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shSeries.removeAlias</nav>
+<h1>shSeries.removeAlias</h1>
+<p class="h1line">Remove a tidal alias harmonic from every epoch.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>out = shSeries.removeAlias(obj)</code><code>out = shSeries.removeAlias(obj, Period=161/365.25, PhaseOffset=100, SplitEpoch=2018.0, ...)</code></div>
+<h2>Description</h2>
+<p>TS2 = ts.removeAlias() fits, per coefficient, a harmonic at the S2 tidal alias period (161 days) TOGETHER WITH bias, trend, annual and semi-annual, and subtracts only that harmonic. This is the correction GravIS applies to its Level-2B products (https://gravis.gfz.de/corrections): errors in the ocean-tide background model alias into the monthly fields at this period, and leaving them in puts a spurious ~161-day signal into every derived series.</p>
+<h2>Examples</h2>
+<details class="example"><summary>From the help block</summary><div><pre><code>    ts = ts.removeAlias();                   % S2, 100 deg offset
+    ts = ts.removeAlias(SplitEpoch = 2018.4);
+
+  See also shSeries.climatology, shLowLevel.standardChain.</code></pre></div></details><details class="example"><summary>Runnable (docs/apiExamples.json)</summary><div><pre><code>ts = ts.removeAlias();                 % S2 161-day alias, 100 deg offset
+ts = ts.removeAlias(SplitEpoch = 2018.4);</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td><code>required</code></td><td class="desc">the object the method is called on</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>Period</code></td><td>1 x 1</td><td>double</td><td><code>161/365.25</code></td><td class="desc">alias period [years]. The default is the S2 alias; the K2 and K1 aliases (3.66 and 7.48 years) are longer than most records and are better handled as climatology Periods</td></tr><tr><td><code>PhaseOffset</code></td><td>1 x 1</td><td>double</td><td><code>100</code></td><td class="desc">phase offset [degrees] applied to epochs at or after SplitEpoch</td></tr><tr><td><code>SplitEpoch</code></td><td>1 x 1</td><td>double</td><td><code>2018.0</code></td><td class="desc">mission boundary [decimal year]; the GRACE-FO record starts mid-2018</td></tr><tr><td><code>T0</code></td><td>1 x 1</td><td>double</td><td><code>NaN</code></td><td class="desc">reference epoch of the fit (NaN: the mean epoch)</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>out</code></td><td class="desc">(1,1) <a href="shSeries.html"><code>shSeries</code></a>  copy with the alias harmonic removed from every epoch; the operation is appended to the history</td></tr></table>
+<h2>Error Identifiers</h2>
+<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<ul class="seealso"><li><a href="shSeries_climatology.html"><code>shSeries.climatology</code></a></li></ul>
+<p class="prov">shAnalysis v3.34.0 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

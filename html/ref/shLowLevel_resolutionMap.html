@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shLowLevel.resolutionMap &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shLowLevel.resolutionMap</nav>
+<h1>shLowLevel.resolutionMap</h1>
+<p class="h1line">Filter-kernel half-widths: per-point, per-azimuth resolution.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>res = shLowLevel.resolutionMap(op, t, latDeg, lonDeg)</code><code>res = shLowLevel.resolutionMap(op, t, latDeg, lonDeg, NAz=8, PsiMax=20, NPsi=120)</code></div>
+<h2>Description</h2>
+<p>RES = shLowLevel.resolutionMap(OP, T, LATDEG, LONDEG) evaluates, for each query point, the effective smoothing kernel of month T: xf(P) = y_P&#x27; * W_t * x   =&gt;   kernel coefficients k = W_t&#x27; * y_P and finds the great-circle distance psi_1/2 at which the kernel drops to half its peak, along NAz (8) azimuths. Replaces the single &quot;equivalent Gaussian radius&quot; with a spatially and azimuthally resolved resolution product (N-S vs E-W half-width ratio = striping fingerprint). All transect evaluations per query point run through ONE vectorized <a href="shLowLevel_ylm.html"><code>shLowLevel.ylm</code></a> call.</p>
+<h2>Examples</h2>
+<details class="example"><summary>Runnable (docs/apiExamples.json)</summary><div><pre><code>res = shLowLevel.resolutionMap(op, 1, -60:30:60, 0:60:300);   % epoch 1</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>op</code></td><td>1 x 1</td><td>struct</td><td><code>required</code></td><td class="desc">struct     from <a href="shLowLevel_tvANSFilter.html"><code>shLowLevel.tvANSFilter</code></a></td></tr><tr><td><code>t</code></td><td>1 x 1</td><td>double</td><td><code>required</code></td><td class="desc">month index</td></tr><tr><td><code>latDeg</code></td><td>: x 1</td><td>double</td><td><code>required</code></td><td class="desc">query latitudes  [deg]</td></tr><tr><td><code>lonDeg</code></td><td>: x 1</td><td>double</td><td><code>required</code></td><td class="desc">query longitudes [deg]</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>NAz</code></td><td>1 x 1</td><td>double</td><td><code>8</code></td><td class="desc">azimuth count, default 8</td></tr><tr><td><code>PsiMax</code></td><td>1 x 1</td><td>double</td><td><code>20</code></td><td class="desc">radial search range [deg], default 20</td></tr><tr><td><code>NPsi</code></td><td>1 x 1</td><td>double</td><td><code>120</code></td><td class="desc">radial samples, default 120</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>res</code></td><td class="desc">(1,1) struct  one row per query point (nPts rows), fields psiHalfDeg  (nPts x NAz) double  half-width per azimuth [deg] azDeg       (1 x NAz) double     azimuths evaluated [deg] kmMean, kmMin, kmMax (nPts x 1) double  half-width across the azimuths [km] anisotropy  (nPts x 1) double    kmMax ./ kmMin, the striping fingerprint (1 = isotropic kernel)</td></tr></table>
+<h2>Error Identifiers</h2>
+<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<ul class="seealso"><li><a href="shLowLevel_ylm.html"><code>shLowLevel.ylm</code></a></li></ul>
+<p class="prov">shAnalysis v3.34.0 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

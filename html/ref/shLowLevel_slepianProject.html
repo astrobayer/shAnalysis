@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shLowLevel.slepianProject &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shLowLevel.slepianProject</nav>
+<h1>shLowLevel.slepianProject</h1>
+<p class="h1line">Project coefficient sets onto a Slepian basis (and back).</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>[a, rec] = shLowLevel.slepianProject(Cs, Ss, G, idx)</code></div>
+<h2>Description</h2>
+<p>[A, REC] = shLowLevel.slepianProject(CS, SS, G, IDX) projects one or many coefficient sets onto the Slepian tapers G from <a href="shLowLevel_slepianBasis.html"><code>shLowLevel.slepianBasis</code></a>: A = G&#x27; * X where X stacks the (C, S) coefficients in IDX ordering. This is the missing application half of the concentration problem (roadmap item 8): a regional time series analysis estimates only the ~Shannon leading Slepian coefficients instead of all P spherical-harmonic ones - the well-posed alternative to Kaula-regularized regional least squares. REC returns the reconstruction G*A repacked to (C, S) arrays for direct synthesis.</p>
+<h2>Examples</h2>
+<details class="example"><summary>From the help block</summary><div><pre><code>    idx = shLowLevel.shIndex(30, Nmin = 0);
+    [G, lam, info] = shLowLevel.slepianBasis(idx, @(la, lo) la &gt; 60);
+    K = round(info.shannon);
+    a = shLowLevel.slepianProject(ts.Cs, ts.Ss, G(:, 1:K), idx);
+    plot(ts.epochs, a&#x27;)          % regional modes vs time</code></pre></div></details><details class="example"><summary>Runnable (docs/apiExamples.json)</summary><div><pre><code>a = shLowLevel.slepianProject(ts.Cs, ts.Ss, G(:, 1:K), idx);
+plot(ts.epochs, a)                      % regional Slepian modes</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>Cs</code></td><td>n+1 x n+1 x T</td><td>double</td><td><code>required</code></td><td class="desc">cosine coefficients (T = 1 for a single set)</td></tr><tr><td><code>Ss</code></td><td>n+1 x n+1 x T</td><td>double</td><td><code>required</code></td><td class="desc">sine coefficients</td></tr><tr><td><code>G</code></td><td>: x :</td><td>double</td><td><code>required</code></td><td class="desc">Slepian taper matrix from slepianBasis (any K)</td></tr><tr><td><code>idx</code></td><td>1 x 1</td><td>struct</td><td><code>required</code></td><td class="desc">struct  the SAME <a href="shLowLevel_shIndex.html"><code>shLowLevel.shIndex</code></a> the basis was built with (P must match size(G, 1))</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<p class="none">None.</p>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>a</code></td><td class="desc">(K x T) Slepian-domain coefficient time series</td></tr><tr><td><code>rec</code></td><td class="desc">(1 x 1) struct with fields Cs (n+1 x n+1 x T) reconstructed cosine coefficients Ss (n+1 x n+1 x T) reconstructed sine coefficients</td></tr></table>
+<h2>Error Identifiers</h2>
+<table><tr><th>Identifier</th><th>Raised when</th></tr><tr><td><code>shLowLevel:slepianProject:sizeMismatch</code></td><td class="desc">G rows do not match idx.P or the coefficient arrays are smaller than idx.Lmax</td></tr></table>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<ul class="seealso"><li><a href="shLowLevel_slepianBasis.html"><code>shLowLevel.slepianBasis</code></a></li></ul>
+<p class="prov">shAnalysis v3.34.0 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

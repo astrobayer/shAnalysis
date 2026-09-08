@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shCoefficients.fromVec &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shCoefficients.fromVec</nav>
+<h1>shCoefficients.fromVec</h1>
+<p class="h1line">Unpack a shLowLevel.shIndex-ordered vector into an shCoefficients.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>obj = shCoefficients.fromVec(x, idx, like)</code></div>
+<h2>Description</h2>
+<p>G = shCoefficients.fromVec(X, IDX, LIKE) copies GM/R and other metadata from the template LIKE (an <a href="shCoefficients.html"><code>shCoefficients</code></a>).</p>
+<h2>Examples</h2>
+<details class="example"><summary>Runnable (docs/apiExamples.json)</summary><div><pre><code>g2 = shCoefficients.fromVec(x, idx, g10);   % sizes/GM/R from template</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>x</code></td><td>: x 1</td><td>double</td><td><code>required</code></td><td class="desc">coefficient stack, (P x T) in index ordering</td></tr><tr><td><code>idx</code></td><td>1 x 1</td><td>struct</td><td><code>required</code></td><td class="desc">index struct from <a href="shLowLevel_shIndex.html"><code>shLowLevel.shIndex</code></a> (fields n, m, cs, P, Lmax, minDegree, pos)</td></tr><tr><td><code>like</code></td><td>1 x 1</td><td>shCoefficients</td><td><code>required</code></td><td class="desc">template <a href="shCoefficients.html"><code>shCoefficients</code></a> supplying GM, R and metadata</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<p class="none">None.</p>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>obj</code></td><td class="desc">(1 x 1) <a href="shCoefficients.html"><code>shCoefficients</code></a>   rebuilt from x with sizes/GM/R/epoch of the template</td></tr></table>
+<h2>Error Identifiers</h2>
+<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<ul class="seealso"><li><a href="shCoefficients.html"><code>shCoefficients</code></a></li></ul>
+<p class="prov">shAnalysis v3.34.0 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

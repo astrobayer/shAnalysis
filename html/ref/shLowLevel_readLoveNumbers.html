@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shLowLevel.readLoveNumbers &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shLowLevel.readLoveNumbers</nav>
+<h1>shLowLevel.readLoveNumbers</h1>
+<p class="h1line">Read load Love numbers from a user-supplied table file.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>[LN, info] = shLowLevel.readLoveNumbers(filename)</code><code>[LN, info] = shLowLevel.readLoveNumbers(filename, Columns=&quot;auto&quot;, Nmax=[], Interp=&quot;none&quot;, ...)</code></div>
+<h2>Description</h2>
+<p>LN = shLowLevel.readLoveNumbers(FILE) parses a plain-text load-Love-number table (comment lines starting with %, #, ! or // are skipped; an optional header line naming the columns is recognized). The toolbox never hardcodes Love numbers - this reader turns YOUR loading-model table (PREM, Gutenberg-Bullen, ak135, ...) into the kn/hn/ln vectors the synthesis and deformation routines expect.</p>
+<h2>Examples</h2>
+<details class="example"><summary>From the help block</summary><div><pre><code>    LN = shLowLevel.readLoveNumbers(&quot;prem_load.txt&quot;, Columns=&quot;n h l k&quot;, ...
+             Nmax=96, Interp=&quot;pchip&quot;, InFrame=&quot;CE&quot;, OutFrame=&quot;CF&quot;);
+    [up, no, ea] = g.deformation(latPts, lonPts, kn=LN.kn, hn=LN.hn, ...
+             ln=LN.ln, Mode=&quot;points&quot;);</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>filename</code></td><td>n x m</td><td>-</td><td><code>required</code></td><td class="desc">char/string  path of the file to read/write (gzipped .gz accepted where documented)</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>Columns</code></td><td>1 x 1</td><td>string</td><td><code>&quot;auto&quot;</code></td><td class="desc">explicit column meaning, tokens from {n,k,h,l}, e.g. &quot;n k h l&quot; (overrides header detection)</td></tr><tr><td><code>Nmax</code></td><td>1 x 1</td><td>double</td><td><code>[]</code></td><td class="desc">verify coverage of degrees 0..Nmax and truncate; with sparse tables combine with Interp (&quot;none&quot;)</td></tr><tr><td><code>Interp</code></td><td>1 x 1</td><td>string</td><td><code>&quot;none&quot;</code></td><td class="desc">&quot;none&quot; | &quot;pchip&quot;: fill degree gaps by shape- preserving pchip in log(1+n) - Farrell-style sparse tables (n = ...,32,56,100,...) become dense. Python-validated: max abs error 1.3e-4 (0.05% of curve range) reconstructing a smooth kn&#x27; curve from 15 Farrell-spaced samples. Interpolation stays inside the table span; extrapolation errors out.</td></tr><tr><td><code>InFrame</code></td><td>1 x 1</td><td>string</td><td><code>&quot;&quot;</code></td><td class="desc">degree-1 reference frame of the FILE, and</td></tr><tr><td><code>OutFrame</code></td><td>1 x 1</td><td>string</td><td><code>&quot;&quot;</code></td><td class="desc">requested output frame: &quot;CE&quot; | &quot;CF&quot; | &quot;CM&quot;. Both or neither. Only degree 1 changes (Blewitt 2003 isomorphic frames): all of h1,l1,k1 shift by the same constant d: CE-&gt;CF  d = (h1+2*l1)/3 CE-&gt;CM  d = 1 + k1 CF-&gt;CM  d = 1 + k1          (k1 in CF values) CM-&gt;CF  d = (h1+2*l1)/3     (in CM values) Conversions TO &quot;CE&quot; from CF/CM are not recoverable from the table alone and error. Validated against the published PREM values: CE (-0.290, 0.113, 0.021) -&gt; CF (-0.269, 0.134) and the exact identity k1(CM) = -1; the CF-&gt;CM-&gt;CF roundtrip is exact.</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>LN</code></td><td class="desc">struct: n     (D x 1) degrees, ascending kn    (D x 1) potential load Love numbers k&#x27;_n hn    (D x 1) vertical    (NaN if absent from file) ln    (D x 1) horizontal  (NaN if absent from file)</td></tr><tr><td><code>info</code></td><td class="desc">struct: source, columns, frame, interpolated (logical mask)</td></tr></table>
+<h2>Error Identifiers</h2>
+<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<p class="none">No other entity is named in this help block.</p>
+<p class="prov">shAnalysis v3.34.0 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

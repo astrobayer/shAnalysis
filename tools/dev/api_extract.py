@@ -136,6 +136,35 @@ def parse_help(block):
             ex.append(s.rstrip())
             idx += 1
         example = "\n".join(x for x in ex).strip("\n")
+    # Error identifiers and See also: present in only 14 and 13 files, but
+    # the reference pages want both sections and neither can be derived.
+    errors = []
+    for k, L in enumerate(lines):
+        if re.match(r"^\s*Error identifiers\s*:?\s*$", L):
+            for L2 in lines[k + 1:]:
+                if not L2.strip() or re.match(
+                        r"^\s*(Inputs?|Options?|Outputs?|Examples?|References|"
+                        r"Developed by)\b", L2):
+                    break
+                m2 = re.match(r"^\s+([\w.:]+:[\w.:]+)\s*(.*)$", L2)
+                if m2:
+                    errors.append([m2.group(1), m2.group(2).strip()])
+                elif errors:
+                    errors[-1][1] = (errors[-1][1] + " " + L2.strip()).strip()
+            break
+    seealso = []
+    for k, L in enumerate(lines):
+        if re.match(r"^\s*See also\b", L, re.I):
+            txt = L.split(":", 1)[-1] if ":" in L else re.sub(
+                r"^\s*See also\b", "", L, flags=re.I)
+            for L2 in lines[k + 1:]:
+                if not L2.strip() or re.match(r"^\s*(Developed by)\b", L2):
+                    break
+                txt += " " + L2.strip()
+            seealso = [x for x in re.findall(r"[\w.]+", txt)
+                       if not x.isdigit()]
+            break
+
     # Inputs/Options sections: "name (size/type) description", continuation
     # lines indented deeper. Collected for merging into arguments-block args.
     iodocs = {}
@@ -163,7 +192,7 @@ def parse_help(block):
                         last = list(iodocs)[-1]
                         iodocs[last][1] += " " + t.strip()
                     idx += 1
-    return h1, " ".join(desc), outputs, example, iodocs
+    return h1, " ".join(desc), outputs, example, iodocs, errors, seealso
 
 
 def leading_help(lines, i):
@@ -411,7 +440,7 @@ def parse_function_file(path):
     name = m.group(2)
     ins = [a.strip() for a in m.group(3).split(",") if a.strip()]
     hb, j = leading_help(lines, i + 1)
-    h1, desc, outdocs, example, iodocs = parse_help(hb)
+    h1, desc, outdocs, example, iodocs, errdocs, seealso = parse_help(hb)
     args = []
     jl = _join_continuations(lines[j:j + 200])
     for k, L in enumerate(jl):
@@ -423,6 +452,7 @@ def parse_function_file(path):
     args = merge_iodocs(args, iodocs)
     return dict(kind="function", name=name, inputs=ins, outputs=outs,
                 h1=h1, desc=desc, outdocs=outdocs, example=example,
+                errdocs=errdocs, seealso=seealso,
                 args=args)
 
 
@@ -432,7 +462,7 @@ def parse_classdef(path):
     cname = re.search(r"^classdef\s+(\w+)", src, re.M).group(1)
     ci = [i for i, L in enumerate(lines) if L.startswith("classdef")][0]
     hb, _ = leading_help(lines, ci + 1)
-    ch1, cdesc, _, _, _ = parse_help(hb)
+    ch1, cdesc, _, _, _, _, _ = parse_help(hb)
     props = []
     for pm in re.finditer(r"^properties\s*(\([^)]*\))?\s*$(.*?)^end\s*$",
                           src, re.M | re.S):
@@ -479,7 +509,7 @@ def parse_classdef(path):
                 ins = [a.strip() for a in fm.group(3).split(",")
                        if a.strip()]
                 hb, j = leading_help(lines, i + 1)
-                h1, desc, outdocs, example, iodocs = parse_help(hb)
+                h1, desc, outdocs, example, iodocs, errdocs, seealso = parse_help(hb)
                 jl = _join_continuations(lines[j:j + 120])
                 margs = []
                 for k, L2 in enumerate(jl):
@@ -492,7 +522,8 @@ def parse_classdef(path):
                 methods.append(dict(
                     kind="method", cls=cname, name=mname, static=static,
                     inputs=ins, outputs=outs, h1=h1, desc=desc,
-                    outdocs=outdocs, example=example, args=margs))
+                    outdocs=outdocs, example=example, args=margs,
+                    errdocs=errdocs, seealso=seealso))
             i += 1
     return dict(name=cname, h1=ch1, desc=cdesc, props=props,
                 methods=methods)

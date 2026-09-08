@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shSeries.mean &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shSeries.mean</nav>
+<h1>shSeries.mean</h1>
+<p class="h1line">Mean field, over the whole series or a user-given window.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>[g, info] = shSeries.mean(obj)</code><code>[g, info] = shSeries.mean(obj, Range=[], Estimator=&quot;arithmetic&quot;, Periods=double.empty(1,0), ...)</code></div>
+<h2>Description</h2>
+<p>G = ts.mean() averages every epoch and returns an <a href="shCoefficients.html"><code>shCoefficients</code></a> whose sigmas are the standard error of the temporal scatter, divided by the number of VALID epochs per coefficient (before v3.29.0 it divided by nEpochs, which understated the sigmas of any series holding NaN months).</p>
+<h2>Examples</h2>
+<details class="example"><summary>From the help block</summary><div><pre><code>    gBase = ts.mean(Range = [2004 2010]);
+    [gGap, info] = ts.mean(Range = [2015 2021], Estimator = &quot;model&quot;);
+
+  See also select, climatology, at</code></pre></div></details><details class="example"><summary>Runnable (docs/apiExamples.json)</summary><div><pre><code>gM = ts.mean;                          % NaN-month tolerant</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td><code>required</code></td><td class="desc">the object the method is called on</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>Range</code></td><td>n x m</td><td>-</td><td><code>[]</code></td><td class="desc">(1 x 2) double decimal years [t1 t2], or a 1 x 2 datetime; [] uses the full series</td></tr><tr><td><code>Estimator</code></td><td>1 x 1</td><td>string</td><td><code>&quot;arithmetic&quot;</code></td><td class="desc">(1 x 1) string, &quot;arithmetic&quot; (equal weights) or &quot;model&quot; (fit and integrate, see above)</td></tr><tr><td><code>Periods</code></td><td>1 x :</td><td>double</td><td><code>double.empty(1,0)</code></td><td class="desc">)  (1 x K) double extra harmonic periods [yr] for Estimator = &quot;model&quot;, beyond the built-in annual and semi-annual - e.g. 161/365.25 for the S2 alias</td></tr><tr><td><code>Omitnan</code></td><td>1 x 1</td><td>logical</td><td><code>true</code></td><td class="desc">(1 x 1) logical, ignore NaN coefficients (&quot;arithmetic&quot;) or drop NaN epochs (&quot;model&quot;); false makes a NaN month poison the result / raise <a href="shSeries.html"><code>shSeries</code></a>:nanInSeries</td></tr><tr><td><code>MinEpochs</code></td><td>1 x 1</td><td>double</td><td><code>1</code></td><td class="desc">(1 x 1) double, minimum number of epochs inside the window; below it the call errors</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>g</code></td><td class="desc">(1 x 1) <a href="shCoefficients.html"><code>shCoefficients</code></a>   mean field over the window, with sigmas (scatter-based for &quot;arithmetic&quot;, propagated through the fit for &quot;model&quot;)</td></tr><tr><td><code>info</code></td><td class="desc">(1 x 1) struct   estimator, range, nUsed, nTotal, nDropped, span, coverage, maxGapYears, centroidOffset, epoch, attenuation (K+2 x 2 [period factor], &quot;model&quot; only)</td></tr></table>
+<h2>Error Identifiers</h2>
+<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<ul class="seealso"><li><a href="shCoefficients.html"><code>shCoefficients</code></a></li></ul>
+<p class="prov">shAnalysis v3.34.0 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

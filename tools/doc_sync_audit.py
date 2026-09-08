@@ -475,12 +475,18 @@ def main():
                              "the page is stale" % (k, a["name"]))
 
     # --- TOC
-    toc = open(os.path.join(HTML, "helptoc.xml"), encoding="utf-8").read()
+    # A target may name a page in a subfolder: html/ref/ holds one
+    # generated page per entity (WP6) and appears in the TOC as its index,
+    # so resolve targets against html/ rather than matching bare names.
+    # The generated pages are gated by tools/dev/refpages_audit.py.
+    with open(os.path.join(HTML, "helptoc.xml"), encoding="utf-8") as fh:
+        toc = fh.read()
     targets = set(re.findall(r'target="([^"]+)"', toc))
     for f in set(pages) - targets:
         probs.append("helptoc.xml: %s is unreachable from the Help browser" % f)
-    for f in targets - set(pages):
-        probs.append("helptoc.xml: target %s does not exist" % f)
+    for f in sorted(targets):
+        if not os.path.isfile(os.path.join(HTML, f)):
+            probs.append("helptoc.xml: target %s does not exist" % f)
 
     # --- VERSION
     cm = open(os.path.join(ROOT, "Contents.m"), encoding="utf-8").read()

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shLowLevel.shOrderRMS &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shLowLevel.shOrderRMS</nav>
+<h1>shLowLevel.shOrderRMS</h1>
+<p class="h1line">Order-domain spectral diagnostics (striping direction).</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>spec = shLowLevel.shOrderRMS(C, S)</code><code>spec = shLowLevel.shOrderRMS(C, S, R=6378136.3, N0=0, SigmaC=[], ...)</code></div>
+<h2>Description</h2>
+<p>SPEC = shLowLevel.shOrderRMS(C, S) sums coefficient power per ORDER m - the complementary view to <a href="shLowLevel_shDegreeRMS.html"><code>shLowLevel.shDegreeRMS</code></a> and the natural axis for GRACE striping (correlated errors live at high orders):</p>
+<h2>Examples</h2>
+<details class="example"><summary>Runnable (docs/apiExamples.json)</summary><div><pre><code>spec = shLowLevel.shOrderRMS(g.C, g.S);           % stripes live at high orders</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>C</code></td><td>n x m</td><td>double</td><td><code>required</code></td><td class="desc">cosine Stokes coefficients, C(n+1, m+1) indexing</td></tr><tr><td><code>S</code></td><td>n x m</td><td>double</td><td><code>required</code></td><td class="desc">sine Stokes coefficients, S(n+1, m+1) indexing</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>R</code></td><td>1 x 1</td><td>double</td><td><code>6378136.3</code></td><td class="desc">[m], N0 (0)  zero degrees below n0 first, SigmaC, SigmaS ([])        formal errors</td></tr><tr><td><code>N0</code></td><td>1 x 1</td><td>double</td><td><code>0</code></td><td class="desc">spherical harmonic degree</td></tr><tr><td><code>SigmaC</code></td><td>n x m</td><td>double</td><td><code>[]</code></td><td class="desc">1-sigma uncertainties of C, same indexing</td></tr><tr><td><code>SigmaS</code></td><td>n x m</td><td>double</td><td><code>[]</code></td><td class="desc">1-sigma uncertainties of S, same indexing</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>spec</code></td><td class="desc">struct: order, ordVariance, ordRMS, ordAmplitude, cumVariance, cumRMS, cumAmplitude, R, domain = &#x27;order&#x27;  (consumed by plotSHSpectrum); with sigmas also errVariance, errRMS and errAmplitude</td></tr></table>
+<h2>Error Identifiers</h2>
+<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<ul class="seealso"><li><a href="shLowLevel_shDegreeRMS.html"><code>shLowLevel.shDegreeRMS</code></a></li></ul>
+<p class="prov">shAnalysis v3.34.0 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

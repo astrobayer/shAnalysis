@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shLowLevel.gravisL2B &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shLowLevel.gravisL2B</nav>
+<h1>shLowLevel.gravisL2B</h1>
+<p class="h1line">Build a GravIS-Level-2B-equivalent series from monthly fields.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>[ts, rep] = shLowLevel.gravisL2B(folder, gravisFolder)</code><code>[ts, rep] = shLowLevel.gravisL2B(folder, gravisFolder, LowDegreeFile=&quot;GRAVIS-2B_COSTG_0200_GRACE+SLR_LOW_DEGREES_0001.dat&quot;, GeocenterFile=&quot;GRAVIS-2B_COSTG_0200_GEOCENTER_0001.dat&quot;, MeanFile=&quot;GRAVIS-2B_COSTG_0200_MEAN_2002095-2020091_NFIL_0001.gz&quot;, ...)</code></div>
+<h2>Description</h2>
+<p>[TS, REP] = shLowLevel.gravisL2B(FOLDER, GRAVISFOLDER) reproduces the GravIS Level-2B correction chain (Dahle &amp; Murboeck 2025) on a folder of monthly .gfc solutions, exactly as validated against the GravIS Greenland, Antarctica and TWS Level-3 products (guide chapters V1-V8): 1. read all monthly solutions (<a href="shSeries_fromFolder.html"><code>shSeries.fromFolder</code></a>) 2. replace C20, C30, C21, S21 from the GravIS GRACE+SLR low-degree table, matched on the BEGIN epoch parsed from the GSM-2_YYYYDDD-YYYYDDD filenames 3. insert degree 1 (C10, C11, S11) from the GravIS geocenter table 4. subtract the GravIS NFIL mean field (anomalies w.r.t. 2002-04..2020-03 by default) 5. optionally subtract a GIA rate field as (t - GIAEpoch) * GIA Epochs the correction tables do not reach are DROPPED and recorded (the tables always trail the solutions); OnMissing=&quot;error&quot; restores a hard stop. This is the shared core of greenlandChain, antarcticaChain and twsChain.</p>
+<h2>Examples</h2>
+<details class="example"><summary>From the help block</summary><div><pre><code>    [ts, rep] = shLowLevel.gravisL2B(&quot;E:/series/COSTG&quot;, ...   % shipped aux data
+        GIAFile = &quot;GRAVIS-2B_COSTG_0200_GIA_ICE-6G_D_VM5a_0001.gz&quot;);</code></pre></div></details><details class="example"><summary>Runnable (docs/apiExamples.json)</summary><div><pre><code>[ts, rep] = shLowLevel.gravisL2B(&quot;E:/series/COSTG&quot;);   % shipped aux data
+disp(rep.steps)</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>folder</code></td><td>1 x 1</td><td>string</td><td><code>required</code></td><td class="desc">string  folder of monthly GSM-2_*.gfc(.gz)</td></tr><tr><td><code>gravisFolder</code></td><td>1 x 1</td><td>string</td><td><code>&quot;&quot;</code></td><td class="desc">string  folder holding the GravIS aux files. &quot;&quot; (default) uses the frozen copies shipped in data/gravis (see <a href="shLowLevel_gravisDataFolder.html"><code>shLowLevel.gravisDataFolder</code></a>). The tables trail the solutions: for epochs after the freeze fetch fresh files from https://isdc-data. gfz.de/grace/GravIS/COST-G/Level-2B/aux_data/</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>LowDegreeFile</code></td><td>1 x 1</td><td>string</td><td><code>&quot;GRAVIS-2B_COSTG_0200_GRACE+SLR_LOW_DEGREES_0001.dat&quot;</code></td><td class="desc">(&quot;GRAVIS-2B_COSTG_0200_GRACE+SLR_LOW_DEGREES_0001.dat&quot;)</td></tr><tr><td><code>GeocenterFile</code></td><td>1 x 1</td><td>string</td><td><code>&quot;GRAVIS-2B_COSTG_0200_GEOCENTER_0001.dat&quot;</code></td><td class="desc">(&quot;GRAVIS-2B_COSTG_0200_GEOCENTER_0001.dat&quot;)</td></tr><tr><td><code>MeanFile</code></td><td>1 x 1</td><td>string</td><td><code>&quot;GRAVIS-2B_COSTG_0200_MEAN_2002095-2020091_NFIL_0001.gz&quot;</code></td><td class="desc">(&quot;GRAVIS-2B_COSTG_0200_MEAN_2002095-2020091_NFIL_0001.gz&quot;)</td></tr><tr><td><code>GIAFile</code></td><td>1 x 1</td><td>string</td><td><code>&quot;&quot;</code></td><td class="desc">SHM rate file; &quot;&quot; skips step 5. The GravIS product is GRAVIS-2B_COSTG_0200_GIA_ICE-6G_D_VM5a_0001.gz</td></tr><tr><td><code>GIAEpoch</code></td><td>1 x 1</td><td>double</td><td><code>2011</code></td><td class="desc">reference epoch of the GIA rate (GravIS centres ICE-6G_D on 2011)</td></tr><tr><td><code>Nmax</code></td><td>1 x 1</td><td>double</td><td><code>90</code></td><td class="desc">truncation degree</td></tr><tr><td><code>Pattern</code></td><td>1 x 1</td><td>string</td><td><code>&quot;GSM-2_*.gfc*&quot;</code></td><td class="desc">file pattern</td></tr><tr><td><code>Tolerance</code></td><td>1 x 1</td><td>double</td><td><code>2e-3</code></td><td class="desc">max |begin difference| [yr] for a table match</td></tr><tr><td><code>OnMissing</code></td><td>1 x 1</td><td>string</td><td><code>&quot;drop&quot;</code></td><td class="desc">&quot;drop&quot; | &quot;error&quot; for uncovered epochs</td></tr><tr><td><code>SpanEnd</code></td><td>1 x 1</td><td>double</td><td><code>Inf</code></td><td class="desc">keep epochs &lt;= SpanEnd only (decimal years); the published ice trends pin 2023.099 (guide V3)</td></tr><tr><td><code>Quiet</code></td><td>1 x 1</td><td>logical</td><td><code>false</code></td><td class="desc">suppress progress output</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>ts</code></td><td class="desc">(1,1) <a href="shSeries.html"><code>shSeries</code></a>  corrected anomaly series (nmax = Nmax)</td></tr><tr><td><code>rep</code></td><td class="desc">(1,1) struct    steps (1,K string), epochs (T,1), nDropped, begins (T,1), files, nmax, version, created</td></tr></table>
+<h2>Error Identifiers</h2>
+<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<ul class="seealso"><li><a href="shSeries_fromFolder.html"><code>shSeries.fromFolder</code></a></li></ul>
+<p class="prov">shAnalysis v3.34.0 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

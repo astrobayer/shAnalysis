@@ -1,0 +1,143 @@
+/* shAnalysis reference-page stylesheet.
+   One authority for the look of every generated page; before v3.35.0 each
+   of the 50 hand-written pages carried its own inline <style> block.
+   Modelled on the MathWorks documentation layout: system font stack,
+   14 px body, #0076a8 links, a grey Syntax panel, bordered argument
+   tables. Developed by Matthias Weigelt with the help of Claude. */
+
+:root {
+  --ink: #1c1c1c;
+  --muted: #5a5a5a;
+  --link: #0076a8;
+  --rule: #d8d8d8;
+  --panel: #f4f4f4;
+  --accent: #e6f2f7;
+}
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  color: var(--ink);
+  background: #fff;
+  font: 14px/1.55 "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.page {
+  max-width: 62rem;
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem 3rem;
+}
+
+a { color: var(--link); text-decoration: none; }
+a:hover, a:focus { text-decoration: underline; }
+
+nav.crumb {
+  font-size: 0.85rem;
+  color: var(--muted);
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--rule);
+  margin-bottom: 1.25rem;
+}
+nav.crumb a { color: var(--muted); }
+
+h1 {
+  font-size: 1.75rem;
+  font-weight: 600;
+  margin: 0 0 0.25rem;
+  word-break: break-word;
+}
+p.h1line {
+  font-size: 1.05rem;
+  color: var(--muted);
+  margin: 0 0 1.5rem;
+}
+
+h2 {
+  font-size: 1.15rem;
+  font-weight: 600;
+  margin: 2rem 0 0.6rem;
+  padding-bottom: 0.25rem;
+  border-bottom: 1px solid var(--rule);
+}
+h3 { font-size: 1rem; font-weight: 600; margin: 1.25rem 0 0.4rem; }
+
+code, pre, kbd {
+  font-family: "Cascadia Mono", Consolas, "SF Mono", Menlo, monospace;
+  font-size: 0.92em;
+}
+
+div.syntax {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  padding: 0.6rem 0.85rem;
+  margin: 0.5rem 0;
+  overflow-x: auto;
+}
+div.syntax code { display: block; white-space: pre; padding: 0.15rem 0; }
+
+pre {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  padding: 0.7rem 0.85rem;
+  overflow-x: auto;
+  margin: 0.5rem 0;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0.5rem 0 1rem;
+  display: block;
+  overflow-x: auto;
+}
+th, td {
+  border: 1px solid var(--rule);
+  padding: 0.4rem 0.6rem;
+  text-align: left;
+  vertical-align: top;
+}
+th { background: var(--panel); font-weight: 600; white-space: nowrap; }
+td code { white-space: nowrap; }
+td.desc { min-width: 18rem; }
+
+details.example {
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  margin: 0.5rem 0;
+  background: #fff;
+}
+details.example > summary {
+  cursor: pointer;
+  padding: 0.5rem 0.75rem;
+  background: var(--accent);
+  font-weight: 600;
+  list-style: none;
+}
+details.example > summary::-webkit-details-marker { display: none; }
+details.example > summary::before { content: "\25B8\00a0"; }
+details.example[open] > summary::before { content: "\25BE\00a0"; }
+details.example > div { padding: 0 0.75rem 0.5rem; }
+
+p.none { color: var(--muted); font-style: italic; }
+
+ul.seealso { list-style: none; padding: 0; margin: 0.5rem 0; }
+ul.seealso li { display: inline-block; margin: 0 1rem 0.35rem 0; }
+
+p.prov {
+  margin-top: 2.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--rule);
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+ul.index { columns: 3 14rem; list-style: none; padding: 0; }
+ul.index li { break-inside: avoid; margin-bottom: 0.2rem; }
+
+@media (max-width: 600px) {
+  .page { padding: 1rem 0.85rem 2rem; }
+  h1 { font-size: 1.4rem; }
+}

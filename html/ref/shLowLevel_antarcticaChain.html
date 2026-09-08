@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shLowLevel.antarcticaChain &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shLowLevel.antarcticaChain</nav>
+<h1>shLowLevel.antarcticaChain</h1>
+<p class="h1line">The validated GravIS Antarctica ice-trend chain.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>[gt, rep] = shLowLevel.antarcticaChain(folder, gravisFolder)</code><code>[gt, rep] = shLowLevel.antarcticaChain(folder, gravisFolder, kn=[], BasinFile=&quot;basins_AIS.json&quot;, NeighbourBoxes=[], ...)</code></div>
+<h2>Description</h2>
+<p>[GT, REP] = shLowLevel.antarcticaChain(FOLDER, GRAVISFOLDER, kn=KN) runs the same chain as greenlandChain with the 25 GravIS AIS drainage-basin polygons as the mask (guide chapter V7). With the tested defaults and COST-G RL02.1 this returns -125.7 Gt/yr against the AWI joint-inversion -146.9 - read V7 before interpreting the 14%: it is the documented distance between map-based estimators and the Sasgen forward-modelling class (the official TU Dresden kernel grid shows the same per-basin damping, correlation 0.905), and the GIA correction (+52.2 Gt/yr over the AIS) is not optional here. REP.basins reports the per-basin masses over the 25 polygons.</p>
+<h2>Examples</h2>
+<details class="example"><summary>From the help block</summary><div><pre><code>    [gt, rep] = shLowLevel.antarcticaChain(&quot;E:/series/COSTG&quot;, ...
+        &quot;E:/GravIS&quot;, kn = kn, OceanMask = @(la,lo) abs(la) &lt; 60);
+    rep.basins</code></pre></div></details><details class="example"><summary>Runnable (docs/apiExamples.json)</summary><div><pre><code>[gt, rep] = shLowLevel.antarcticaChain(&quot;E:/series/COSTG&quot;, kn = kn, OceanMask = oc);
+disp(rep.basins)                                       % 25 GravIS basins [Gt/yr]</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>folder</code></td><td>1 x 1</td><td>string</td><td><code>required</code></td><td class="desc">string  monthly GSM-2_*.gfc folder</td></tr><tr><td><code>gravisFolder</code></td><td>1 x 1</td><td>string</td><td><code>&quot;&quot;</code></td><td class="desc">string  GravIS aux folder; &quot;&quot; (default) uses the shipped data/gravis copies (see gravisL2B)</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>kn</code></td><td>n x m</td><td>double</td><td><code>[]</code></td><td class="desc">load Love numbers (degree,kn) - REQUIRED, the empty default errors: no frame is assumed</td></tr><tr><td><code>BasinFile</code></td><td>1 x 1</td><td>string</td><td><code>&quot;basins_AIS.json&quot;</code></td><td class="desc">GravIS AIS GeoJSON (https://gravis.gfz.de/basins/AIS; [lon lat] rings, converted and dateline-recentred internally)</td></tr><tr><td><code>NeighbourBoxes</code></td><td>n x m</td><td>double</td><td><code>[]</code></td><td class="desc">Antarctica has no land neighbours</td></tr><tr><td><code>GIAFile</code></td><td>1 x 1</td><td>string</td><td><code>&quot;GRAVIS-2B_COSTG_0200_GIA_ICE-6G_D_VM5a_0001.gz&quot;</code></td><td class="desc">(&quot;GRAVIS-2B_COSTG_0200_GIA_ICE-6G_D_VM5a_0001.gz&quot;)</td></tr><tr><td><code>Filter</code></td><td>1 x 1</td><td>string</td><td><code>&quot;gauss445&quot;</code></td><td class="desc">as in greenlandChain</td></tr><tr><td><code>SpanEnd</code></td><td>1 x 1</td><td>double</td><td><code>2023.099</code></td><td class="desc">keep epochs &lt;= SpanEnd [decimal yr]</td></tr><tr><td><code>GridStep</code></td><td>1 x 1</td><td>double</td><td><code>1</code></td><td class="desc">synthesis graticule step [deg]</td></tr><tr><td><code>NoiseLevel</code></td><td>1 x 1</td><td>double</td><td><code>NaN</code></td><td class="desc">sigma_trend policy, see greenlandChain</td></tr><tr><td><code>OceanMask</code></td><td>n x m</td><td>-</td><td><code>[]</code></td><td class="desc">REQUIRED unless NoiseLevel is numeric; must be false over land (see greenlandChain)</td></tr><tr><td><code>MaxIter</code></td><td>1 x 1</td><td>double</td><td><code>400</code></td><td class="desc">, TrendGrid ([])</td></tr><tr><td><code>TrendGrid</code></td><td>n x m</td><td>-</td><td><code>[]</code></td><td class="desc">overlay the fitted trend line</td></tr><tr><td><code>GM</code></td><td>1 x 1</td><td>double</td><td><code>3.986004415e14</code></td><td class="desc">, R (6378136.3)</td></tr><tr><td><code>R</code></td><td>1 x 1</td><td>double</td><td><code>6378136.3</code></td><td class="desc">reference radius [m] (default 6378136.3, overridable)</td></tr><tr><td><code>Quiet</code></td><td>1 x 1</td><td>logical</td><td><code>false</code></td><td class="desc">suppress progress output</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>gt</code></td><td class="desc">(1,1) double  total AIS trend over the basin union [Gt/yr]</td></tr><tr><td><code>rep</code></td><td class="desc">(1,1) struct  as greenlandChain, plus basins (table: name, gt) integrated per GravIS polygon</td></tr></table>
+<h2>Error Identifiers</h2>
+<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<p class="none">No other entity is named in this help block.</p>
+<p class="prov">shAnalysis v3.34.0 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

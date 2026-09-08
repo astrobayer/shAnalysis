@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shLowLevel.compareSeries &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shLowLevel.compareSeries</nav>
+<h1>shLowLevel.compareSeries</h1>
+<p class="h1line">Temporal + component comparison of N solution series.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>[rep, h] = shLowLevel.compareSeries(tsList)</code><code>[rep, h] = shLowLevel.compareSeries(tsList, Names=strings(1, 0), MatchTolerance=0.02, Basin=[], ...)</code></div>
+<h2>Description</h2>
+<p>REP = shLowLevel.compareSeries({TS1, TS2, ...}) compares N &gt;= 2 <a href="shSeries.html"><code>shSeries</code></a> against the FIRST (the reference) on a COMMON BASIS: epochs are matched to the reference within MatchTolerance (0.02) (unmatched epochs are dropped and reported - never interpolated across gaps), all series are truncated to the smallest nmax, and GM/R are unified. Per solution k &gt;= 2 the standard temporal metric set is computed on a scalar comparison series y_k(t) - a basin average when Basin ([])= is given (recommended for hydrology; below the filter resolution, pointwise differences are leakage artefacts), otherwise the area-weighted mean of the synthesized quantity over Mask ([]): - Nash-Sutcliffe efficiency (skill; punishes bias and amplitude) - correlation with AR(1)-corrected significance (<a href="shLowLevel_effectiveCorr.html"><code>shLowLevel.effectiveCorr</code></a>) - trend difference +- combined sigma and significance z (Kendall AR(1)-corrected fits per series) - annual amplitude ratio and phase lag [days] - chi^2/dof of coefficient differences vs combined formal sigmas (error realism; NaN when sigmas are absent) Component fields: each solution&#x27;s climatology trend minus the reference trend as <a href="shCoefficients.html"><code>shCoefficients</code></a> (sigmas RSS&#x27;d), with its degree spectrum. With N &gt;= 3, the generalized three-cornered hat assigns an individual noise level to every solution - the question pairwise metrics cannot answer. [REP, H] = shLowLevel.compareSeries(..., Plot (false) = true) adds a 4-panel figure: comparison series, Taylor diagram vs the reference, trend-difference spectra, and |y_k - y_ref| over time.</p>
+<h2>Examples</h2>
+<details class="example"><summary>From the help block</summary><div><pre><code>    rep = shLowLevel.compareSeries({tsCSR, tsGFZ, tsJPL}, ...
+        Names = [&quot;CSR&quot;, &quot;GFZ&quot;, &quot;JPL&quot;]);
+    fprintf(&quot;TCH noise: %s\n&quot;, sprintf(&quot;%.3g &quot;, rep.tch.sigma))</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>tsList</code></td><td>1 x :</td><td>cell</td><td><code>required</code></td><td class="desc">cell of <a href="shSeries.html"><code>shSeries</code></a>  the series to compare; the FIRST is the reference</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>Names</code></td><td>1 x 1</td><td>string</td><td><code>strings(1, 0)</code></td><td class="desc">) ([])            string array, one per series</td></tr><tr><td><code>MatchTolerance</code></td><td>1 x 1</td><td>double</td><td><code>0.02</code></td><td class="desc">epoch matching tolerance [yr]</td></tr><tr><td><code>Basin</code></td><td>n x 1</td><td>double</td><td><code>[]</code></td><td class="desc">, Idx ([])  P x 1 basin vector + <a href="shLowLevel_shIndex.html"><code>shLowLevel.shIndex</code></a> struct: y = Basin&#x27; * coefficient vector per epoch</td></tr><tr><td><code>Idx</code></td><td>n x m</td><td>-</td><td><code>[]</code></td><td class="desc">index struct from <a href="shLowLevel_shIndex.html"><code>shLowLevel.shIndex</code></a> (fields n, m, cs, P, Lmax, minDegree, pos)</td></tr><tr><td><code>LatDeg</code></td><td>1 x :</td><td>double</td><td><code>-88:4:88</code></td><td class="desc">, LonDeg (0:6:354), Quantity (&quot;geoid&quot;), kn ([]),</td></tr><tr><td><code>LonDeg</code></td><td>1 x :</td><td>double</td><td><code>0:6:354</code></td><td class="desc">longitudes [deg], lon in [0, 360)</td></tr><tr><td><code>Quantity</code></td><td>1 x 1</td><td>string</td><td><code>&quot;geoid&quot;</code></td><td class="desc">functional of the field, see <a href="shLowLevel_kernelFactors.html"><code>shLowLevel.kernelFactors</code></a></td></tr><tr><td><code>kn</code></td><td>n x m</td><td>double</td><td><code>[]</code></td><td class="desc">load Love numbers, (degree, kn) table or column vector - always user-supplied, no reference frame is assumed</td></tr><tr><td><code>Mask</code></td><td>n x m</td><td>-</td><td><code>[]</code></td><td class="desc">synthesis path when Basin is not given</td></tr><tr><td><code>Plot</code></td><td>1 x 1</td><td>logical</td><td><code>false</code></td><td class="desc">produce the diagnostic figure</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>rep</code></td><td class="desc">(1,1) struct  fields: .names      (1,N) string .epochs     (T,1) double  common epochs used .nDropped   (1,N) double  reference epochs unmatched per series .y          (T,N) double  comparison series (col 1 = reference) .nse        (1,N) double  NSE vs reference (NaN for col 1) .corr       (1,N) struct-array-free: Pearson r per series .pcorr      (1,N) double  AR(1)-corrected two-sided p .neff       (1,N) double  effective sample sizes .trendDiff  (1,N) double  trend - reference trend [units/yr] .trendSigma (1,N) double  combined 1-sigma of trendDiff .trendZ     (1,N) double  significance z of trendDiff .ampRatio   (1,N) double  annual amplitude / reference .phaseLagDays (1,N) double annual phase lag vs reference .chi2dof    (1,N) double  error realism vs reference .trendDiffFields (1,N) cell <a href="shCoefficients.html"><code>shCoefficients</code></a> (empty for col 1) .tch        (1,1) struct  <a href="shLowLevel_threeCorneredHat.html"><code>shLowLevel.threeCorneredHat</code></a> output (N &gt;= 3) .nmax       (1,1) double  common maximum degree</td></tr><tr><td><code>h</code></td><td class="desc">(1,1) graphics handle  figure handle (Plot = true only)</td></tr></table>
+<h2>Error Identifiers</h2>
+<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<ul class="seealso"><li><a href="shSeries.html"><code>shSeries</code></a></li><li><a href="shLowLevel_effectiveCorr.html"><code>shLowLevel.effectiveCorr</code></a></li><li><a href="shCoefficients.html"><code>shCoefficients</code></a></li></ul>
+<p class="prov">shAnalysis v3.34.0 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shLowLevel.chi2Quantile &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shLowLevel.chi2Quantile</nav>
+<h1>shLowLevel.chi2Quantile</h1>
+<p class="h1line">Chi-square quantile without toolboxes (Wilson-Hilferty).</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>x = shLowLevel.chi2Quantile(p, k)</code></div>
+<h2>Description</h2>
+<p>X = shLowLevel.chi2Quantile(P, K) approximates the chi-square quantile chi2inv(P, K) using the Wilson-Hilferty cube transform x = k * (1 - 2/(9k) + z * sqrt(2/(9k)))^3, z = sqrt(2) * erfinv(2p - 1) in base MATLAB (erfinv is core; chi2inv is Statistics Toolbox - same reason <a href="shLowLevel_pctile.html"><code>shLowLevel.pctile</code></a> exists instead of prctile).</p>
+<h2>Examples</h2>
+<details class="example"><summary>From the help block</summary><div><pre><code>    thr = shLowLevel.chi2Quantile(1 - 1e-3, 1677);   % QC threshold
+
+  Reference: Wilson &amp; Hilferty (1931), PNAS 17.</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>p</code></td><td>any size</td><td>double</td><td><code>required</code></td><td class="desc">double  probability level(s) in (0, 1)</td></tr><tr><td><code>k</code></td><td>1 x 1</td><td>double</td><td><code>required</code></td><td class="desc">double     degrees of freedom, k &gt;= 1</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<p class="none">None.</p>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>x</code></td><td class="desc">(size of p) double  approximate chi-square quantile(s)</td></tr></table>
+<h2>Error Identifiers</h2>
+<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<ul class="seealso"><li><a href="shLowLevel_pctile.html"><code>shLowLevel.pctile</code></a></li></ul>
+<p class="prov">shAnalysis v3.34.0 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

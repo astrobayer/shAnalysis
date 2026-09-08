@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shLowLevel.makeTutorials &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shLowLevel.makeTutorials</nav>
+<h1>shLowLevel.makeTutorials</h1>
+<p class="h1line">Generate Live Script tutorials from the demo registry.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>out = shLowLevel.makeTutorials()</code><code>out = shLowLevel.makeTutorials(Dest=&quot;&quot;, Cases=&quot;all&quot;, Convert=true, ...)</code></div>
+<h2>Description</h2>
+<p>FILES = shLowLevel.makeTutorials() writes one tutorial per demo case into tutorials/ as a plain .m script with Live Editor section markers, and converts each to .mlx when the converter is available.</p>
+<h2>Examples</h2>
+<details class="example"><summary>From the help block</summary><div><pre><code>    shLowLevel.makeTutorials(Cases = [&quot;D01&quot; &quot;D05&quot;]);
+    edit(fullfile(&quot;tutorials&quot;, &quot;T_D01_read_and_spectra.m&quot;))
+
+  See also demo_shAnalysis, shLowLevel.version.</code></pre></div></details><details class="example"><summary>Runnable (docs/apiExamples.json)</summary><div><pre><code>shLowLevel.makeTutorials(Cases = [&quot;D01&quot; &quot;D05&quot;]);
+edit(fullfile(&quot;tutorials&quot;, &quot;T_D01_read_spectral_diagnostics.m&quot;))</code></pre></div></details>
+<h2>Input Arguments</h2>
+<p class="none">None.</p>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>Dest</code></td><td>1 x 1</td><td>string</td><td><code>&quot;&quot;</code></td><td class="desc">(fullfile(<a href="shLowLevel_version.html"><code>shLowLevel.version</code></a>().Root, &quot;tutorials&quot;))  output folder; created if absent</td></tr><tr><td><code>Cases</code></td><td>1 x :</td><td>string</td><td><code>&quot;all&quot;</code></td><td class="desc">which demo cases to write (&quot;all&quot;, &quot;core&quot;, or an array of ids such as [&quot;D01&quot; &quot;D05&quot;])</td></tr><tr><td><code>Convert</code></td><td>1 x 1</td><td>logical</td><td><code>true</code></td><td class="desc">also write .mlx. The converter is an internal MATLAB API and is not present in every release, so a failure is reported and the .m files are kept: those are the useful artefact either way, and they are the ones worth putting under version control</td></tr><tr><td><code>Quiet</code></td><td>1 x 1</td><td>logical</td><td><code>false</code></td><td class="desc">suppress progress output</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>out</code></td><td class="desc">(1,1) struct  fields: files (1,N string, the .m files written), mlx (1,M string, the .mlx files written - empty when Convert is false or unavailable), dest (1,1 string), converted (1,1 logical)</td></tr></table>
+<h2>Error Identifiers</h2>
+<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<ul class="seealso"><li><a href="demo_shAnalysis.html"><code>demo_shAnalysis</code></a></li></ul>
+<p class="prov">shAnalysis v3.34.0 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

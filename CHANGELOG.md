@@ -1,6 +1,6 @@
 # Changelog
 
-## [3.34.0] - 2026-09-08 - The fields a struct output actually has
+## [3.34.0] - 2026-09-08 - Struct fields, a correct test count, and reference pages
 
 Second half of the documentation-rot work, and the check that closes the
 class of defect v3.33.1 fixed by hand. No numerical behaviour changes.
@@ -80,11 +80,62 @@ caught, and each is the kind of thing a gate is supposed to prevent:
   names, so `struct('created', string(datetime('now', 'Format', ...)))`
   looked like three fields - 4 invented findings.
 
+### Added - WP6 stage 1: a reference page per entity
+
+`doc` integration was a monolith: 196 entities had a dedicated page only
+inside the 304 KB `apiReference.html`, the 50 hand-written pages used five
+heading vocabularies, and each inlined its own `<style>` (A7, A8).
+
+- **`tools/dev/make_refpages.py`** emits `html/ref/<entity>.html` for all
+  198 public entities plus an index - 199 pages - in the MathWorks order:
+  Syntax, Description, Examples, Input Arguments, Name-Value Arguments,
+  Output Arguments, Error Identifiers, Version History, See Also. Every
+  page carries every section; a section with nothing to say says so,
+  because a missing section and an empty one are different claims. Nothing
+  on a page is hand-written: all of it derives from `api_data.py`, which is
+  parsed out of the help blocks, so a page cannot drift from its source.
+- **`html/shAnalysis.css`**, one stylesheet for the look: system font
+  stack, 14 px body, `#0076a8` links, a grey Syntax panel, bordered
+  argument tables, collapsible examples in plain HTML `<details>` (no JS).
+- **`api_extract.py`** now also captures `Error identifiers` (14 files) and
+  `See also` (15), neither of which is derivable. `See Also` is completed
+  from the entities a help block actually names - measured, not asserted.
+- **`tools/dev/refpages_audit.py`**, the gate: pages match what the
+  generator would write now, every entity has a page and no page outlives
+  its entity, every section present and in order, no heading outside the
+  skeleton, no inline `<style>`, every relative link resolves. Seven
+  fault injections in `tools/tests/test_refpages.py`.
+- `helptoc.xml` reaches the new index, so the pages are visible in the
+  Help browser.
+
+Two of WP6's own premises did not survive measurement, and are recorded
+rather than papered over:
+
+- **Per-entity Version History from the changelog** was to be included
+  "only if the match rate is > 80 %". A loose name match reaches 81 % but
+  matches `filter` against releases that never mention it; a match
+  anchored on the qualified name reaches 74 %. Below the bar either way,
+  so every page links `CHANGELOG.md` and says why it does not claim a
+  per-entity history.
+- **"Functions by the existing tag categories"**: there are no tag
+  categories in the data. Deriving them from `helptoc.xml` mapped 163 of
+  198 entities and put 75 in one catch-all. The index groups by what IS
+  derivable - classes, class methods, package functions, root functions,
+  plus an A-Z list - and topic categories wait for an editorial decision.
+
+### Fixed - two gates that were not looking where they claimed
+
+- `attribution_sweep.py` globbed `html/*.html`, so it kept reporting 50
+  pages while 199 more existed one directory down. Now recursive: 249.
+- `doc_sync_audit.py` and `testHelpBrowserTocIsComplete` both compared
+  `helptoc.xml` targets against bare filenames, so any target in a
+  subfolder read as a dead link. Both resolve targets against `html/` now.
+
 ### Added
 
-- `tools/tests/test_help_audit.py` grows to 17 tests, `test_count_tests.py`
-  is new with 7. Every rule fault-injected and paired with a clean-tree
-  assertion.
+- `tools/tests/test_help_audit.py` grows to 17 tests; `test_count_tests.py`
+  (7) and `test_refpages.py` (14) are new. Every rule fault-injected and
+  paired with a clean-tree assertion. Five self-test suites, 81 tests.
 
 ## [3.33.1] - 2026-09-08 - Documentation rot, and the gates that missed it
 

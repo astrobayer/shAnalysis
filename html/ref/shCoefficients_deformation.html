@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shCoefficients.deformation &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shCoefficients.deformation</nav>
+<h1>shCoefficients.deformation</h1>
+<p class="h1line">Elastic load deformation up/north/east [m].</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>[up, north, east] = shCoefficients.deformation(obj, latDeg, lonDeg)</code><code>[up, north, east] = shCoefficients.deformation(obj, latDeg, lonDeg, kn=..., hn=..., ln=..., ...)</code></div>
+<h2>Description</h2>
+<p>[UP, NORTH, EAST] = g.deformation(LAT, LON, kn=, hn=, ln=, Mode (&quot;grid&quot;)=&quot;grid&quot;|&quot;points&quot;, Nmin (1)=1, LatType (&quot;geocentric&quot;)=&quot;geocentric&quot;) from the object&#x27;s (residual!) coefficients - remove a mean field first. Love numbers are always user-supplied; see <a href="shLowLevel_shSynthesisDeformation.html"><code>shLowLevel.shSynthesisDeformation</code></a> for formulas and validation.</p>
+<h2>Examples</h2>
+<details class="example"><summary>Runnable (docs/apiExamples.json)</summary><div><pre><code>[up, no, ea] = g.deformation(latPts, lonPts, kn = LN.kn, hn = LN.hn, ...
+    ln = LN.ln, Mode = &quot;points&quot;);</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td><code>required</code></td><td class="desc">the object the method is called on</td></tr><tr><td><code>latDeg</code></td><td>1 x :</td><td>double</td><td><code>required</code></td><td class="desc">double  latitudes [deg, geocentric]</td></tr><tr><td><code>lonDeg</code></td><td>1 x :</td><td>double</td><td><code>required</code></td><td class="desc">double  longitudes [deg]</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>kn</code></td><td>n x m</td><td>double</td><td><code>-</code></td><td class="desc">load Love numbers, (degree, kn) table or column vector - always user-supplied, no reference frame is assumed</td></tr><tr><td><code>hn</code></td><td>n x m</td><td>double</td><td><code>-</code></td><td class="desc">load Love numbers h_n, same layout as kn</td></tr><tr><td><code>ln</code></td><td>n x m</td><td>double</td><td><code>-</code></td><td class="desc">load Love numbers l_n (horizontal), same layout as kn</td></tr><tr><td><code>Nmin</code></td><td>1 x 1</td><td>double</td><td><code>1</code></td><td class="desc">minimum spherical harmonic degree</td></tr><tr><td><code>Mode</code></td><td>1 x 1</td><td>string</td><td><code>&quot;grid&quot;</code></td><td class="desc">operating mode of the routine (see the function help)</td></tr><tr><td><code>LatType</code></td><td>1 x 1</td><td>string</td><td><code>&quot;geocentric&quot;</code></td><td class="desc">&#x27;geocentric&#x27; (native) or &#x27;geodetic&#x27; (converted via Flattening)</td></tr><tr><td><code>Flattening</code></td><td>1 x 1</td><td>double</td><td><code>1/298.257223563</code></td><td class="desc">ellipsoid flattening for the geodetic/geocentric conversion of the station latitudes</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>up</code></td><td class="desc">(nlat x nlon | npts) double   vertical deformation [m]</td></tr><tr><td><code>north</code></td><td class="desc">same size   north component [m]</td></tr><tr><td><code>east</code></td><td class="desc">same size   east component [m]</td></tr></table>
+<h2>Error Identifiers</h2>
+<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<ul class="seealso"><li><a href="shLowLevel_shSynthesisDeformation.html"><code>shLowLevel.shSynthesisDeformation</code></a></li></ul>
+<p class="prov">shAnalysis v3.34.0 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

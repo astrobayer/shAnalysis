@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shLowLevel.vdkApply &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shLowLevel.vdkApply</nav>
+<h1>shLowLevel.vdkApply</h1>
+<p class="h1line">Apply the VDK/VADER decorrelation filter to one solution.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>[xf, info] = shLowLevel.vdkApply(x, N, degOfPar, sigM)</code><code>[xf, info] = shLowLevel.vdkApply(x, N, degOfPar, sigM, Alpha=1)</code></div>
+<h2>Description</h2>
+<p>XF = shLowLevel.vdkApply(X, N, DEGOFPAR, SIGM) computes</p>
+<h2>Examples</h2>
+<details class="example"><summary>From the help block</summary><div><pre><code>    idx = shLowLevel.shIndex(96, Nmin = 2);
+    snx = shLowLevel.readSINEX(f, Index = idx);
+    xf = shLowLevel.vdkApply(snx.x, snx.M, idx.n, ab(mo, :), Alpha = 1);</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>x</code></td><td>: x 1</td><td>double</td><td><code>required</code></td><td class="desc">double  coefficient vector, same ordering as N</td></tr><tr><td><code>N</code></td><td>: x :</td><td>double</td><td><code>required</code></td><td class="desc">double  normal-equation matrix (symmetric positive definite)</td></tr><tr><td><code>degOfPar</code></td><td>: x 1</td><td>double</td><td><code>required</code></td><td class="desc">double  spherical-harmonic degree of every parameter (idx.n from <a href="shLowLevel_shIndex.html"><code>shLowLevel.shIndex</code></a>)</td></tr><tr><td><code>sigM</code></td><td>n x m</td><td>double</td><td><code>required</code></td><td class="desc">double  signal sigma per parameter, OR [a, b] evaluating sigma = a * l^b per parameter (one row of signalVarianceKaula&#x27;s AB)</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>Alpha</code></td><td>1 x 1</td><td>double</td><td><code>1</code></td><td class="desc">(1 x 1) filter strength; larger = smoother (paper Table 1 maps alpha to mean Gaussian radii for the ITSG-Grace2014 case - the mapping is series-specific)</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>xf</code></td><td class="desc">(P x 1) double  filtered coefficient vector info (1 x 1) struct  alpha, P, cholOK (true when (N + alpha M) factorized cleanly)</td></tr></table>
+<h2>Error Identifiers</h2>
+<table><tr><th>Identifier</th><th>Raised when</th></tr><tr><td><code>shLowLevel:vdkApply:badSize</code></td><td class="desc">x, N, degOfPar inconsistent</td></tr><tr><td><code>shLowLevel:vdkApply:notSPD</code></td><td class="desc">(N + alpha M) not positive definite</td></tr></table>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<p class="none">No other entity is named in this help block.</p>
+<p class="prov">shAnalysis v3.34.0 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

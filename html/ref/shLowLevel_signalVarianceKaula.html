@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shLowLevel.signalVarianceKaula &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shLowLevel.signalVarianceKaula</nav>
+<h1>shLowLevel.signalVarianceKaula</h1>
+<p class="h1line">Cyclostationary Kaula signal variance (VDK input).</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>[ab, info] = shLowLevel.signalVarianceKaula(Cs, Ss, epochs)</code><code>[ab, info] = shLowLevel.signalVarianceKaula(Cs, Ss, epochs, LRange=[10, 60])</code></div>
+<h2>Description</h2>
+<p>[AB, INFO] = shLowLevel.signalVarianceKaula(CS, SS, EPOCHS) estimates the degree-dependent signal-variance approximation sigma_M(l) = a * l^b (Horvath et al. 2018, Eq. 2) per CALENDAR month from a coefficient series - the cyclostationary signal model of the VDK/VADER decorrelation filter. Feed a PRE-FILTERED series (e.g. DDK4, as in the paper): the estimator reads signal, so the input must not be stripe-dominated.</p>
+<h2>Examples</h2>
+<details class="example"><summary>From the help block</summary><div><pre><code>    [ab, ~] = shLowLevel.signalVarianceKaula(ts.Cs, ts.Ss, ts.epochs);
+    sigM = ab(4, 1) * (2:96)&#x27;.^ab(4, 2);   % April signal model</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>Cs</code></td><td>: x : x :</td><td>double</td><td><code>required</code></td><td class="desc">stacked cosine coefficients, C(n+1, m+1, T)</td></tr><tr><td><code>Ss</code></td><td>: x : x :</td><td>double</td><td><code>required</code></td><td class="desc">stacked sine coefficients, S(n+1, m+1, T)</td></tr><tr><td><code>epochs</code></td><td>: x 1</td><td>double</td><td><code>required</code></td><td class="desc">decimal years (calendar month via the fraction)</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>LRange</code></td><td>1 x 2</td><td>double</td><td><code>[10, 60]</code></td><td class="desc">(1 x 2) degree range of the log-log fit; the lower bound excludes the low degrees where real signal is not Kaula-like and the chi-square dof are small</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>ab</code></td><td class="desc">(12 x 2) double  [a, b] per calendar month (Jan..Dec); evaluate as sigmaM = ab(mo, 1) * l.^ab(mo, 2) info (1 x 1) struct  nPerMonth (12 x 1 epochs used), LRange, abAll (T x 2 per-epoch fits, for inspection)</td></tr></table>
+<h2>Error Identifiers</h2>
+<table><tr><th>Identifier</th><th>Raised when</th></tr><tr><td><code>shLowLevel:signalVarianceKaula:badRange</code></td><td class="desc">LRange exceeds the stack</td></tr></table>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<p class="none">No other entity is named in this help block.</p>
+<p class="prov">shAnalysis v3.34.0 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

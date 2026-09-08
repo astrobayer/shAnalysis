@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shLowLevel.safeMove &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shLowLevel.safeMove</nav>
+<h1>shLowLevel.safeMove</h1>
+<p class="h1line">Move a file into place, retrying while a scanner still holds it.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>n = shLowLevel.safeMove(src, dst)</code><code>n = shLowLevel.safeMove(src, dst, Retries=5, Pause=0.25)</code></div>
+<h2>Description</h2>
+<p>SAFEMOVE(SRC, DST) renames SRC to DST, overwriting DST, and retries with exponential backoff while the move fails. Every shLowLevel.fetch* function downloads to &quot;&lt;target&gt;.part&quot;, verifies the fresh file by parsing it, and only then swaps it into place - this function is that swap.</p>
+<h2>Examples</h2>
+<details class="example"><summary>From the help block</summary><div><pre><code>    % download, verify, then swap - the fetcher pattern
+    tmpf = &quot;ITSG-Grace2018_n60_2008-04.gfc.part&quot;;
+    shLowLevel.shReadGFC(tmpf);              % verify BEFORE the swap
+    shLowLevel.safeMove(tmpf, &quot;ITSG-Grace2018_n60_2008-04.gfc&quot;);
+
+  See also movefile, shLowLevel.fetchICGEM, shLowLevel.fetchITSG.</code></pre></div></details><details class="example"><summary>Runnable (docs/apiExamples.json)</summary><div><pre><code>shLowLevel.shReadGFC(tmpf);                 % verify BEFORE the swap
+shLowLevel.safeMove(tmpf, &quot;ITSG-Grace2018_n60_2008-04.gfc&quot;);</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>src</code></td><td>1 x 1</td><td>string</td><td><code>required</code></td><td class="desc">string   existing file to move (e.g. &quot;x.gfc.part&quot;)</td></tr><tr><td><code>dst</code></td><td>1 x 1</td><td>string</td><td><code>required</code></td><td class="desc">string   destination path; overwritten if present</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>Retries</code></td><td>1 x 1</td><td>double</td><td><code>5</code></td><td class="desc">number of RETRIES after the first attempt; 0 gives a single attempt and the behaviour of a plain movefile</td></tr><tr><td><code>Pause</code></td><td>1 x 1</td><td>double</td><td><code>0.25</code></td><td class="desc">seconds before the first retry. Each further wait doubles, capped at 4 s, so the default schedule is 0.25/0.5/1/2/4 s - about 7.75 s of patience in total, which covers the scanner windows observed in practice</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>n</code></td><td class="desc">(1,1) double   number of attempts used (1 = the move succeeded immediately, which is the normal case)</td></tr></table>
+<h2>Error Identifiers</h2>
+<table><tr><th>Identifier</th><th>Raised when</th></tr><tr><td><code>shLowLevel:safeMove:noSource</code></td><td class="desc">SRC does not exist</td></tr><tr><td><code>shLowLevel:safeMove:noDestFolder</code></td><td class="desc">the folder of DST does not exist - a caller bug, reported immediately instead of spending the retry budget on an impossible move</td></tr><tr><td><code>shLowLevel:safeMove:locked</code></td><td class="desc">still not movable after all retries; the message carries the OS diagnostic and names the usual cause, so the report is actionable</td></tr></table>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<ul class="seealso"><li><a href="shLowLevel_fetchICGEM.html"><code>shLowLevel.fetchICGEM</code></a></li></ul>
+<p class="prov">shAnalysis v3.34.0 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

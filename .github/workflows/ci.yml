@@ -164,6 +164,13 @@ jobs:
       - name: Declared test count
         run: python3 tools/dev/count_tests.py
 
+      # The generated reference pages are DERIVED from the help blocks.
+      # A page that drifted from its source is the failure this toolbox
+      # already shipped once: a correct version stamp on help text
+      # twenty-one revisions old.
+      - name: Reference pages match the help blocks
+        run: python3 tools/dev/refpages_audit.py
+
   test:
     name: runAllTests (${{ matrix.os }})
     strategy:

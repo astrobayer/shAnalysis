@@ -28,8 +28,8 @@ says whether it was *read* or *inferred*.
 | Public surface | 3 classes / 71 methods, 122 `+shLowLevel` functions (+4 private), 3 root functions | `tools/dev/api_extract.py` run in sandbox |
 | Tests | 5 classes, **267 methods / 268 runs**: Correctness 135, Contract 61, Robustness 53, Science 7, Performance 11 methods (12 runs, `nmaxP` x2). 3 filter out without the optional real-data fixtures. | `python3 tools/dev/count_tests.py`, reconciled against the self-hosted run of PR #95 |
 | Python oracles | 16 `tools/dev/validate_*.py` + `tools/audit/*` | listing |
-| Docs | 50 `html/*.html`, `helptoc.xml`, `info.xml`, guide PDF (rebuilt at v3.33.1), generated `html/apiReference.html`. `docs/` holds the PDF and `apiExamples.json` only - no HTML page lives outside `html/` (gated). | listing |
-| CI | `gates` job on ubuntu (help_audit, doc_sync_audit, no_map_renderer, toolbox_dependency_audit, nv_casing_audit, fixture_tag_audit, **gate self-tests** `tools/tests/`) + `runAllTests (self-hosted)` on A8/R2026a; fixtures from tag `fixtures-2026-08` | `.github/workflows/ci.yml` |
+| Docs | 50 hand-written `html/*.html` + **199 generated `html/ref/*.html`** (one per entity + index, `make_refpages.py`), one shared `html/shAnalysis.css`, `helptoc.xml`, `info.xml`, guide PDF, generated `html/apiReference.html`. `docs/` holds the PDF and `apiExamples.json` only - no HTML page lives outside `html/` (gated). | listing |
+| CI | `gates` job on ubuntu (help_audit, doc_sync_audit, no_map_renderer, toolbox_dependency_audit, nv_casing_audit, fixture_tag_audit, gate self-tests `tools/tests/`, `count_tests`, `refpages_audit`) + `runAllTests (self-hosted)` on A8/R2026a; fixtures from tag `fixtures-2026-08` | `.github/workflows/ci.yml` |
 | Namespace | `+shLowLevel` (renamed from `+shx` in v3.0.0). Any memory saying `shx.*` is stale. | README §History |
 
 ### 1.1 Already implemented — do NOT propose again
@@ -115,7 +115,10 @@ CF-1.8 export, provenance sidecars, geoMap bridge (`toGrid`, `gridHandover`).
    `python tools/dev/no_map_renderer.py`, `python tools/toolbox_dependency_audit.py`,
    `python tools/nv_casing_audit.py`, `python tools/fixture_tag_audit.py`,
    `python tools/dev/mlint_lite.py <changed files>`, `python tools/dev/check_api.py`,
-   `python tools/dev/api_audit.py`, `python tools/dev/attribution_sweep.py`.
+   `python tools/dev/api_audit.py`, `python tools/dev/attribution_sweep.py`,
+   `python tools/dev/refpages_audit.py`; then every `tools/tests/test_*.py`.
+   Regenerate before auditing when help blocks changed:
+   `api_extract.py` -> `make_apiref.py` -> `make_refpages.py` -> `make_guide.py`.
 5. Predict the test count before running (`runAllTests`) with
    `python3 tools/dev/count_tests.py`; a missed prediction is a finding.
    Do NOT count with `grep -c '^function test'` - it counts the
@@ -156,8 +159,8 @@ do not see; **L** = polish.
 | A4 | M | **CLOSED v3.33.1** — and much wider than stated — 13 files in `+shLowLevel` (Outputs, Options AND Inputs) and 52 class methods, 65 help blocks in all. Repaired against the source, not against either block: `readTN14`, `parseGraceFilename`, `resolutionMap`, `shAnalysisGrid`, `basinDeconvolve`, `buildSignalCov`, `vceRescale`, `mcPropagate` all documented fields, shapes or formulas the code does not produce. `help_audit.py` v3.0.2 rejects duplicate and below-the-footer sections; `fix_help.py` (the writer that injected them) refuses to add a second one. Original finding: Seven help blocks contain **two** `Outputs` sections (`errorMap`, `mcPropagate`, `parseGraceFilename`, `readTN14`, `resolutionMap`, `shSynthesis`, `shSynthesisDeformation`). `help_audit.py` checks presence, not uniqueness, so this passed. | sandbox scan of help blocks |
 | A5 | M | **CLOSED v3.33.1** — `docs/apiReference.html` deleted — nothing wrote it or read it. `doc_sync_audit.py` now fails on any HTML page outside `html/`, fault-injected. Original finding: `docs/apiReference.html` is a byte-identical copy of `html/apiReference.html`. Two locations, one authority rule violated; nothing compares them. | `cmp` |
 | A6 | L | **CLOSED v3.33.1** — README points at `ci.yml` instead of naming a tag it would have to keep in step (`fixture_tag_audit.py` already gates the tag itself). Original finding: README line 108 still says CI "pulls the orphan branch 'testdata'"; CI has pinned the tag `fixtures-2026-08` since v3.26.1/ci v2.9.0. | `README.md`, `ci.yml` |
-| A7 | M | `doc` integration is incomplete: no `helpsearch-v*` database (search in the Help browser returns nothing for shAnalysis), no `demos.xml` (no Examples tab), `info.xml` present. | `ls html/` |
-| A8 | M | The 50 hand-written `html/` pages use five different heading vocabularies for the same thing ("See also"/"See Also", "Outputs"/"Output Arguments", "Example"/"Examples", "Inputs / Outputs", "Options") and each page inlines its own `<style>` block (no shared stylesheet). 196 API entities have a dedicated page only inside the 304 KB monolith. | heading histogram over `html/*.html` |
+| A7 | M | **PARTIALLY CLOSED v3.34.0** — the Help browser now reaches a page per entity via `html/ref/index.html` in `helptoc.xml`. Still open: no `helpsearch-v*` database (browser search finds nothing) and no `demos.xml` (no Examples tab) — both are WP6 stage 2. Original finding: `doc` integration is incomplete: no `helpsearch-v*` database, no `demos.xml`, `info.xml` present. | `ls html/` |
+| A8 | M | **PARTIALLY CLOSED v3.34.0** — 199 generated pages under `html/ref/` share one stylesheet and one heading skeleton, gated by `refpages_audit.py`; the 196 entities that existed only inside the 304 KB monolith now each have a page. Still open: the 50 hand-written narrative pages keep their five vocabularies and their inline `<style>` — converting them is WP6 stage 2. Original finding: The 50 hand-written `html/` pages use five different heading vocabularies for the same thing ("See also"/"See Also", "Outputs"/"Output Arguments", "Example"/"Examples", "Inputs / Outputs", "Options") and each page inlines its own `<style>` block (no shared stylesheet). 196 API entities have a dedicated page only inside the 304 KB monolith. | heading histogram over `html/*.html` |
 | A9 | M | `testPerformance` asserts exactly one ratio (cache warm/cold) and one absolute bound (`dt < 5 s`); everything else is logged, not gated. There is no speed budget for `legendreALF`, `shSynthesis`, `shAnalysisGrid`, `applyDDK`, `leakageCorrect` or the Kalman step, so a 1.3× regression ships unnoticed. | `tests/testPerformance.m` |
 | A10 | L | 14 package functions are never named in `tests/` : `antarcticaChain`, `buildSignalCov`, `gravisDataFolder`, `gridHandover`, `icgemDate2Year`, `opApply`, `pctile`, `plotBasinSeries`, `plotCovariance`, `resolutionMap`, `shDestripe`, `shGaussianFilter`, `shSpectralCrossover`, `vceRescale`. Some are certainly exercised indirectly (`ts.destripe` → `shDestripe`); the point is that coverage by name is not measured. | name scan |
 | A15 | M | A3 is **wider than the audit's 12**: `kernelFactors` (`shSynthesis:missingLoveNumbers`, `:badQuantity`, `:heightInvalid`), `shSynthesisGradient` (`shSynthesis:badInput`) and `seaLevelFingerprint` (`shSynthesis:missingLoveNumbers`) also raise identifiers they do not own. Unlike `shSynthesisDeformation`'s, these ARE documented and pinned by `testContract`/`testCorrectness`, so renaming them is a MAJOR change. Belongs in WP1's identifier sweep, not in a patch. | `grep -rn "shSynthesis:" --include=*.m` |
@@ -349,7 +352,23 @@ are hygiene and can run in one release train (3.34.0 or 4.0.0, see WP1).
 | 5e `[ ]` | `shLowLevel.readGrid(ncfile, Var=…)` (netCDF → grid + metadata, inverse of `writeGrid`) so GLDAS/WGHM enter `shCoefficients.analysis` | `writeGrid` roundtrip; one GLDAS file | S |
 Version: MINOR per approved row.
 
-### WP6 — Documentation to the MathWorks layout   `[ ] approved`
+### WP6 — Documentation to the MathWorks layout   `[~] STAGE 1 DONE in v3.34.0`
+
+**Stage 1 (done)**: `make_refpages.py` + `html/shAnalysis.css` + the
+`refpages_audit.py` gate + `helptoc.xml` entry — 199 pages, one skeleton,
+one stylesheet. Items (1), (2) partly, (3) partly, (4) partly.
+**Stage 1 measurements that changed the plan**: item (6), per-entity
+Version History, FAILS its own >80% bar (74% strict / 81% loose-and-wrong)
+and is dropped; item (3)'s "existing tag categories" do not exist in the
+data (helptoc-derived mapping: 163/198, 75 in one catch-all), so topic
+categories need an editorial decision from Matthias.
+**Stage 2 (open)**: convert the 50 narrative pages to the shared stylesheet
+and heading vocabulary; `demos.xml`; `setup_shAnalysis(BuildSearch=true)`
+building `helpsearch-v4` locally; retire the hand-written duplicates that
+a generated page now supersedes.
+
+Original scope below.
+
 - **Goal**: A7, A8; `doc`, `help`, `lookfor` and the Help-browser search all
   work; every public entity has a reference page with the MathWorks skeleton.
 - **Scope**: (1) `tools/dev/make_refpages.py`: from `api_data.py` emit
@@ -453,6 +472,17 @@ Version: MINOR per approved row.
   this session, so §3.3's one-WP-one-branch rule cannot be followed literally;
   the train is **3.34.0** (MINOR — WP6 adds `setup_shAnalysis(BuildSearch=)`
   and the generated reference pages).
+- 2026-09-08 — WP6's per-entity **Version History is dropped**, by its own
+  pre-registered rule. The bar was a changelog name-match rate > 80%: a loose
+  match reaches 81% but matches `filter` against releases that never mention
+  it, an anchored match reaches 74%. Every reference page links `CHANGELOG.md`
+  and says why it claims no per-entity history.
+- 2026-09-08 — WP6's **topic categories are deferred**, not silently dropped.
+  The WP assumed "the existing tag categories"; there are none in the data,
+  and deriving them from `helptoc.xml` maps 163/198 entities with 75 in one
+  catch-all. The reference index groups by what is derivable (class, class
+  methods, package, root, A-Z). Assigning topics is an editorial call for
+  Matthias, not a derivation.
 - 2026-09-08 — The section vocabulary of help blocks is now closed and gated:
   `Inputs`, `Outputs`, `Options`, `Example`, `Error identifiers`,
   `References`. Near-miss spellings are rejected by name. Prose sub-headings
@@ -463,7 +493,7 @@ Version: MINOR per approved row.
 |---|---|---|---|---|
 | audit 2026-09-08 | ☑ read | — | — | — |
 | WP0 (v3.33.1) | ☑ 9 gates + 4 self-test suites, 0 findings | ☑ **CI self-hosted (A8), green** | ☑ PR #95 | ◐ pending |
-| A12+A16 (v3.34.0) | ☑ 9 gates + 5 self-test suites, 0 findings | ◐ pending on the next CI run | ◐ pending | ◐ pending |
+| A12+A16+WP6.1 (v3.34.0) | ☑ 10 gates + 6 self-test suites (81 tests), 0 findings | ◐ pending on the next CI run | ◐ pending | ◐ pending |
 
 **WP0 debt: DISCHARGED.** The local MATLAB bridge is gone, but the
 self-hosted runner A8 is not: `runAllTests (self-hosted)` on PR #95 went
@@ -497,13 +527,16 @@ count; see A16.
 WP0, A12 (mostly), A14 and A16 are done and on PR #95. In progress on the
 same branch, in this order:
 
-1. **WP6** — documentation to the MathWorks layout. Entirely Tier B except
-   `builddocsearchdb`, which is one MATLAB call made by
-   `setup_shAnalysis(BuildSearch=true)` on the user's machine, not by the
-   build. Absorbs the A12 prose backlog: the per-entity argument table
-   needs the same field list the gate wants, so converting a row serves
-   both.
-2. **A13** — `resolutionMap`'s hardcoded `R = 6371`.
+1. **WP6 stage 2** — convert the 50 narrative pages to `html/shAnalysis.css`
+   and the one heading vocabulary (closes A8), `demos.xml` for the Examples
+   tab, `setup_shAnalysis(BuildSearch=true)` to build `helpsearch-v4`
+   locally (closes A7), retire the hand-written pages a generated page now
+   supersedes. Entirely Tier B except the one `builddocsearchdb` call,
+   which runs on the user's machine and not in the build.
+2. **A12's remaining 77 prose rows** — converting one to the field-list form
+   moves it into the gate's verified count and gives the reference page a
+   real argument table. The two jobs are the same edit.
+3. **A13** — `resolutionMap`'s hardcoded `R = 6371`.
 
 The one thing that needs Matthias:
 

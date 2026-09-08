@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shLowLevel.parseGraceFilename &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shLowLevel.parseGraceFilename</nav>
+<h1>shLowLevel.parseGraceFilename</h1>
+<p class="h1line">Product type and mid-epoch from a GRACE L2 filename.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>meta = shLowLevel.parseGraceFilename(filename)</code></div>
+<h2>Description</h2>
+<p>META = shLowLevel.parseGraceFilename(FILENAME) parses the standard GRACE / GRACE-FO Level-2 naming convention PPP-2_YYYYDDD-YYYYDDD_*.gfc[.gz] e.g. GSM-2_2024032-2024060_GRFO_UTCSR_BA01_0600.gfc, where PPP is one of GSM, GAA, GAB, GAC, GAD and YYYYDDD are year + day-of-year of the coverage span. Best-effort: fields are NaN/&quot;unknown&quot; when the pattern does not match (static models, renamed files); callers can always override via explicit options.</p>
+<h2>Examples</h2>
+<details class="example"><summary>Runnable (docs/apiExamples.json)</summary><div><pre><code>meta = shLowLevel.parseGraceFilename(&quot;GSM-2_2008095-2008120_...gz&quot;);</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>filename</code></td><td>n x m</td><td>-</td><td><code>required</code></td><td class="desc">char/string   path or bare filename</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<p class="none">None.</p>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>meta</code></td><td class="desc">(1,1) struct  fields productType (1,1) string  &quot;GSM&quot;|&quot;GAA&quot;|&quot;GAB&quot;|&quot;GAC&quot;|&quot;GAD&quot;, or &quot;unknown&quot; when no prefix matches epochStart, epochStop (1,1) double  coverage span [decimal years], NaN when no date pattern matches epoch       (1,1) double  span mid-point [decimal years], NaN with the span</td></tr></table>
+<h2>Error Identifiers</h2>
+<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<p class="none">No other entity is named in this help block.</p>
+<p class="prov">shAnalysis v3.34.0 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

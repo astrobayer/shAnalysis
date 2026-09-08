@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shLowLevel.gridScaling &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shLowLevel.gridScaling</nav>
+<h1>shLowLevel.gridScaling</h1>
+<p class="h1line">Per-pixel leakage/attenuation scaling factors from a model.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>[k, info] = shLowLevel.gridScaling(model, latDeg, lonDeg)</code><code>[k, info] = shLowLevel.gridScaling(model, latDeg, lonDeg, Filter=&quot;gauss300&quot;, Nmax=NaN, MinSignal=1e-3, ...)</code></div>
+<h2>Description</h2>
+<p>[K, INFO] = shLowLevel.gridScaling(MODEL, LATDEG, LONDEG, Filter = ...) computes the classic gridded scaling factors: push a MODEL field series through the SAME processing chain the data saw and regress, per pixel, the true value on the filtered one,</p>
+<h2>Examples</h2>
+<details class="example"><summary>From the help block</summary><div><pre><code>    k = shLowLevel.gridScaling(modelEWH, -89:89, 0:359, ...
+            Filter = &quot;gauss300&quot;);
+    corrected = k .* filteredEWH;      % NaN outside the model&#x27;s reach
+
+  See also shLowLevel.leakageCorrect, shLowLevel.basinScaling.</code></pre></div></details><details class="example"><summary>Runnable (docs/apiExamples.json)</summary><div><pre><code>k = shLowLevel.gridScaling(modelEWH, -89:89, 0:359, Filter = &quot;gauss300&quot;);
+corrected = k .* filteredEWH;      % NaN where the model is blind</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>model</code></td><td>nLat x nLon x T</td><td>double</td><td><code>required</code></td><td class="desc">double  UNFILTERED model fields, one slice per epoch, in the same quantity as the data</td></tr><tr><td><code>latDeg</code></td><td>n x m</td><td>double</td><td><code>required</code></td><td class="desc">double  geocentric latitudes [deg]</td></tr><tr><td><code>lonDeg</code></td><td>n x m</td><td>double</td><td><code>required</code></td><td class="desc">double  longitudes [deg]</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>Filter</code></td><td>n x m</td><td>-</td><td><code>&quot;gauss300&quot;</code></td><td class="desc">the chain the DATA saw: &quot;none&quot; | &quot;gauss&lt;radiusKm&gt;&quot; | &quot;DDKn&quot; | a W struct from <a href="shLowLevel_readDDK.html"><code>shLowLevel.readDDK</code></a> / <a href="shLowLevel_designFilter.html"><code>shLowLevel.designFilter</code></a></td></tr><tr><td><code>Nmax</code></td><td>1 x 1</td><td>double</td><td><code>NaN</code></td><td class="desc">expansion degree (NaN: floor((nLat - 1) / 2))</td></tr><tr><td><code>MinSignal</code></td><td>1 x 1</td><td>double</td><td><code>1e-3</code></td><td class="desc">threshold as a fraction of the strongest pixel&#x27;s summed POWER (so 1e-3 is about 3% in amplitude). Pixels below it in filtered power get k = NaN; the same threshold on the MODEL&#x27;s own power selects the pixels INFO summarises</td></tr><tr><td><code>Clip</code></td><td>n x m</td><td>double</td><td><code>[]</code></td><td class="desc">(1 x 2) double  clamp k to [lo hi] ([]: no clamping). Factors far from 1 usually mean the model does not describe that pixel, not that the signal is huge</td></tr><tr><td><code>GM</code></td><td>1 x 1</td><td>double</td><td><code>3.986004415e14</code></td><td class="desc">reference constants used to convert the grid to coefficients and back. They CANCEL in the chain, so the result does not depend on them; they exist so an unusual pair can be matched to the data</td></tr><tr><td><code>R</code></td><td>1 x 1</td><td>double</td><td><code>6378136.3</code></td><td class="desc">reference radius [m], see GM</td></tr><tr><td><code>Quiet</code></td><td>1 x 1</td><td>logical</td><td><code>false</code></td><td class="desc">suppress the coverage summary</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>k</code></td><td class="desc">(nLat x nLon) double  scaling factors; NaN where the model carries too little signal to define one</td></tr><tr><td><code>info</code></td><td class="desc">(1,1) struct  fields: covered (1,1 double, fraction of the grid with a finite k), kMedian / kMin / kMax (1,1 double, over the pixels the MODEL gives mass to - not over all finite pixels, where pure-leakage k = 0 would dominate), onSignal (1,1 double, how many those are), clipped (1,1 double, number of clamped pixels), nmax (1,1 double), filter (1,1 string), epochs (1,1 double)</td></tr></table>
+<h2>Error Identifiers</h2>
+<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<ul class="seealso"><li><a href="shLowLevel_leakageCorrect.html"><code>shLowLevel.leakageCorrect</code></a></li></ul>
+<p class="prov">shAnalysis v3.34.0 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shLowLevel.basinDeconvolve &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shLowLevel.basinDeconvolve</nav>
+<h1>shLowLevel.basinDeconvolve</h1>
+<p class="h1line">Unbiased basin averages by exact operator deconvolution.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>[avgHat, out] = shLowLevel.basinDeconvolve(B, op)</code><code>[avgHat, out] = shLowLevel.basinDeconvolve(B, op, Ridge=0)</code></div>
+<h2>Description</h2>
+<p>[avgHat, out] = shLowLevel.basinDeconvolve(B, op) removes filter attenuation and inter-basin leakage from basin averages, exploiting that W_t is a KNOWN linear operator (no hydrology-model scale factors).</p>
+<h2>Examples</h2>
+<details class="example"><summary>Runnable (docs/apiExamples.json)</summary><div><pre><code>[avg, out] = shLowLevel.basinDeconvolve(B, op);   % op from ts.filter(&quot;tvANS&quot;)
+errorbar(op.tYears, avg(1,:), out.sigma(1,:))</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>B</code></td><td>n x m</td><td>double</td><td><code>required</code></td><td class="desc">basin-kernel coefficient vector from basinKernel</td></tr><tr><td><code>op</code></td><td>1 x 1</td><td>struct</td><td><code>required</code></td><td class="desc">linear operator/kernel the map is derived from</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>Ridge</code></td><td>1 x 1</td><td>double</td><td><code>0</code></td><td class="desc">Tikhonov parameter for ill-conditioned basin sets, RELATIVE to the spectral norm of A (v2.1): c = (A&#x27;A + lam^2 I) \ (A&#x27; v)  with  lam = Ridge*||A||_2. An absolute ridge is silently absorbed by floating-point addition whenever ||A&#x27;A|| &gt;&gt; ridge^2, leaving the system exactly singular; the relative form is scale-invariant. 0 disables. The posterior covariance uses the same regularized inverse.</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>avgHat</code></td><td class="desc">(K x T) double  deconvolved basin averages, ((B&#x27;B)*c + B&#x27;model) ./ diag(B&#x27;B)</td></tr><tr><td><code>out</code></td><td class="desc">(1,1) struct  fields c         (K x T) double  span coefficients sigma     (K x T) double  1-sigma of avgHat, deterministic term included (v2.5) avgNaive  (K x T) double  naive averages of the filtered field (attenuated and leaky) for comparison attn      (K x T) double  diag(A_t) ./ diag(B&#x27;B) attenuation factors condA     (T x 1) double  cond(A_t) per month</td></tr></table>
+<h2>Error Identifiers</h2>
+<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<p class="none">No other entity is named in this help block.</p>
+<p class="prov">shAnalysis v3.34.0 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

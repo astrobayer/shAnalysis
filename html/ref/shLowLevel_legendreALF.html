@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shLowLevel.legendreALF &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shLowLevel.legendreALF</nav>
+<h1>shLowLevel.legendreALF</h1>
+<p class="h1line">Fully normalized (4-pi) associated Legendre functions Pbar_nm.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>P = shLowLevel.legendreALF(nmax, lat)</code></div>
+<h2>Description</h2>
+<p>P = LEGENDREALF(NMAX, LAT) computes fully normalized associated Legendre functions up to degree/order NMAX for each latitude in LAT (radians, geocentric, scalar or vector), using the scaled forward column recursion of Holmes &amp; Featherstone (2002): the u^m factor of each column is carried separately with a 1e-280 scale factor, which keeps the recursion overflow/underflow-free up to at least degree 2190 (EGM2008/XGM2019e) at all latitudes including near the poles. For nmax &lt;= a few hundred the results agree with the plain unscaled recursion to machine precision (cross-validated in Python: max difference 8.4e-15 at nmax=120; addition-theorem sum rule sum_m Pbar_nm^2 = 2n+1 satisfied to 3e-11 relative at n=2190, lat=89.99 deg).</p>
+<h2>Examples</h2>
+<details class="example"><summary>Runnable (docs/apiExamples.json)</summary><div><pre><code>P = shLowLevel.legendreALF(96, deg2rad(-89:89));   % stable to n=2190</code></pre></div></details>
+<h2>Input Arguments</h2>
+<p class="none">None.</p>
+<h2>Name-Value Arguments</h2>
+<p class="none">None.</p>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>P</code></td><td class="desc">(NMAX+1)x(NMAX+1)xnumel(LAT) double P(n+1,m+1,k) = Pbar_{n,m}(sin(lat(k))), upper triangle 0</td></tr></table>
+<h2>Error Identifiers</h2>
+<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<p class="none">No other entity is named in this help block.</p>
+<p class="prov">shAnalysis v3.34.0 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>
