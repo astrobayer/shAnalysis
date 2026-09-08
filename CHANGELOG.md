@@ -20,13 +20,46 @@ fixed them by reading; nothing stopped the next one. Now:
   parsing, so it runs on prose rows too - and it found **55** fields the
   code returns and `help` never named.
 
-`help_audit.py` now reports its own reach rather than implying full
-coverage: *"struct outputs: 17 field lists verified against the source, 2
-delegated, 77 still prose"*. The 77 are A12's remaining backlog; a
-mechanical prose-to-list rewrite was written, inspected and **discarded**
-because it produced confident nonsense (`'full-blocks'` split at a field
-name, a nested struct array's subfields hoisted to the top level). They
-convert by hand, and the number in the gate line goes down.
+`help_audit.py` reports its own reach rather than implying full
+coverage, and that reach is now total: **96 documented struct outputs -
+79 with a field list verified against the source, 17 naming the function
+that builds them, 0 prose.** A mechanical prose-to-list rewrite was
+written, inspected and **discarded** because it produced confident
+nonsense (`'full-blocks'` split at a field name, a nested struct array's
+subfields hoisted to the top level), so all 79 were converted by hand
+against the source, with the gate verifying every name as it went.
+
+That conversion found **three more** help blocks naming fields that do
+not exist, on top of the eight v3.33.1 fixed by reading - eleven in all:
+
+| Function | Documented | Reality |
+|---|---|---|
+| `shReadGFC` | `model.tide` | the tide system is `model.header.tide_system`, which is where `shCoefficients.read` gets it |
+| `readSINEX` | `snx.header` | no such field |
+| `gravisL2B` | `rep.files` | no such field |
+
+**Five defects in the checker itself**, each caught by reading its output
+against the source before trusting it, each now with a regression test:
+
+- MATLAB's `'` is transpose after a value, so
+  `struct('areaFraction', w' * mask, ...)` desynchronised the scan and
+  hid three of `basinKernel`'s four fields. Converting that row first
+  would have made a **correct** help block look wrong.
+- `struct()` alternates name and value: the `"zeroField"` in
+  `struct(..., 'stoppedBy', "zeroField", ...)` is a VALUE, and counting
+  it invented a field `leakageCorrect` does not have.
+- the field-row grammar demanded two spaces before the type, so
+  `epochStart, epochStop (T x 1 double)` broke the parse.
+- the list marker was case-sensitive, so a preamble ending `Fields` was
+  not seen.
+- a classdef's local functions were excluded from a method's source,
+  hiding the struct `shSeries.mean` builds in `meanWindowInfo`.
+
+The delegation marker was tightened as well: a bare "from" or "see"
+appears in ordinary prose ("removed from the file", "from the ocean-fit
+residual") and had silently excused five rows that were in fact
+documented here and verifiable. It now requires an explicit reference to
+the function that builds the struct.
 
 ### Fixed - 55 struct fields the code returns and the help did not name
 
