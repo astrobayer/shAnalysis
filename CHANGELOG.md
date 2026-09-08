@@ -150,6 +150,22 @@ the audit's A7 missed it, so no second option was added; its help now
 says the index covers `html/ref/` too and explains why the binary index
 is not committed.
 
+### Fixed - A13: the kilometre conversion was a hidden constant
+
+`resolutionMap` turned its half-widths from degrees into kilometres with
+a hardcoded `R = 6371`, against the toolbox's own rule that physical
+constants are defaults, not literals. It is now the `RadiusKm` option -
+default unchanged, so no number moves - documented as the MEAN Earth
+radius, which is the right choice for a great-circle distance and is
+deliberately not the coefficients' reference radius (6378.1363 km).
+
+`testResolutionMapRadiusIsAChoice` pins both halves metamorphically, so
+no tolerance is involved: the angular half-widths do not depend on the
+radius, every kilometre figure scales exactly with it, and `anisotropy`
+- a ratio of two of them - is invariant. It also asserts the struct's
+field names, and it takes `resolutionMap` off A10's list of functions
+never named in a test. Declared test count 268 methods / 269 runs.
+
 ### Fixed - two gates that were not looking where they claimed
 
 - `attribution_sweep.py` globbed `html/*.html`, so it kept reporting 50

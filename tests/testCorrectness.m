@@ -1049,6 +1049,39 @@ end
 verifyTrue(testCase, all(isfinite(Dp(:))));
 end
 
+function testResolutionMapRadiusIsAChoice(testCase)
+%TESTRESOLUTIONMAPRADIUSISACHOICE The km conversion is not a hidden constant.
+%   resolutionMap turned degrees into kilometres with a hardcoded 6371
+%   (CLAUDE.md A13). It is now the RadiusKm option, default unchanged, so
+%   this pins BOTH halves: the default still gives the old numbers, and
+%   scaling the radius scales the half-widths exactly. Metamorphic, so no
+%   tolerance is needed beyond the arithmetic of the product itself.
+rng(31);
+idx = shLowLevel.shIndex(4);
+X = randn(idx.P, 12) * 1e-10;
+t = 2002 + (0:11)' / 12;
+[~, op] = shLowLevel.tvANSFilter(X, t, idx, Blocks = 'off', ...
+    NoiseCov = eye(idx.P));
+lat = [0; 45];
+lon = [0; 90];
+r1 = shLowLevel.resolutionMap(op, 1, lat, lon, NAz = 4, NPsi = 40);
+r2 = shLowLevel.resolutionMap(op, 1, lat, lon, NAz = 4, NPsi = 40, ...
+    RadiusKm = 2 * 6371);
+% the angular half-widths do not depend on the radius at all
+verifyEqual(testCase, r2.psiHalfDeg, r1.psiHalfDeg);
+verifyEqual(testCase, r2.azDeg, r1.azDeg);
+% and every kilometre figure scales exactly with it
+verifyEqual(testCase, r2.kmMean, 2 * r1.kmMean, 'AbsTol', 0);
+verifyEqual(testCase, r2.kmMin, 2 * r1.kmMin, 'AbsTol', 0);
+verifyEqual(testCase, r2.kmMax, 2 * r1.kmMax, 'AbsTol', 0);
+% anisotropy is a ratio of two km figures, so it is radius-invariant
+verifyEqual(testCase, r2.anisotropy, r1.anisotropy);
+% the documented struct fields are the ones the reader gets
+verifyEqual(testCase, sort(string(fieldnames(r1)))', ...
+    sort(["psiHalfDeg", "azDeg", "kmMean", "kmMin", "kmMax", ...
+          "anisotropy"]));
+end
+
 function testDeformationSynthesis(testCase)
 % north/east against numerical gradients of the tangential-kernel scalar
 rng(61);

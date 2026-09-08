@@ -82,15 +82,15 @@ class TestRepository(unittest.TestCase):
         total = sum(ct.count_file(os.path.join(tests, f))["runs"]
                     for f in os.listdir(tests)
                     if f.startswith("test") and f.endswith(".m"))
-        # the number the self-hosted runner executed for v3.34.0; bump it
-        # in the same commit as any test added or removed
-        self.assertEqual(total, 268)
+        # the number the self-hosted runner is expected to execute; bump
+        # it in the same commit as any test added or removed
+        self.assertEqual(total, 269)
 
     def test_mismatch_is_a_finding(self):
         self.assertEqual(ct.main(["--executed", "1"]), 1)
 
     def test_match_is_not(self):
-        self.assertEqual(ct.main(["--executed", "268"]), 0)
+        self.assertEqual(ct.main(["--executed", "269"]), 0)
 
 
 if __name__ == "__main__":

@@ -19,6 +19,14 @@ function res = resolutionMap(op, t, latDeg, lonDeg, opts)
 %     opts.NAz    (1,1)   azimuth count, default 8
 %     opts.PsiMax (1,1)   radial search range [deg], default 20
 %     opts.NPsi   (1,1)   radial samples, default 120
+%     opts.RadiusKm (6371) (1,1)  sphere radius used to turn the
+%                 half-width from degrees into kilometres [km]. The
+%                 default is the MEAN Earth radius, which is the right
+%                 choice for a great-circle distance and is deliberately
+%                 NOT the reference radius R of the coefficients
+%                 (6378.1363 km); pass that instead if you want the
+%                 half-widths on the reference sphere. Overridable so the
+%                 constant is a choice, not a hidden assumption.
 %   Outputs
 %     res  (1,1) struct  one row per query point (nPts rows), fields
 %          psiHalfDeg  (nPts x NAz) double  half-width per azimuth [deg]
@@ -39,10 +47,11 @@ arguments
     opts.NAz (1,1) double = 8
     opts.PsiMax (1,1) double = 20
     opts.NPsi (1,1) double = 120
+    opts.RadiusKm (1,1) double {mustBePositive} = 6371
 end
 
 idx = op.idx;
-R   = 6371;
+R   = opts.RadiusKm;
 az  = (0:opts.NAz-1) * (360/opts.NAz);
 psi = linspace(0, opts.PsiMax, opts.NPsi);
 nP  = numel(latDeg);
