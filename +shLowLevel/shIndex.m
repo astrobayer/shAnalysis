@@ -12,7 +12,15 @@ function idx = shIndex(Lmax, opts)
 %     Lmax            maximum spherical-harmonic degree of the index
 %
 %   Outputs
-%     idx        struct: n/m/cs (P x 1), P (1 x 1), nmax, Nmin - the canonical vector ordering of the toolbox
+%     idx  (1,1) struct  the canonical vector ordering of the toolbox, fields
+%          n, m, cs   (P x 1) double  degree, order and 0=cosine/1=sine
+%                     of every element, in vector order
+%          P          (1,1) double    number of elements
+%          Lmax       (1,1) double    maximum degree (the LMAX argument)
+%          minDegree  (1,1) double    first degree included (the Nmin
+%                     option; the FIELD keeps the older spelling)
+%          pos        (Lmax+1 x Lmax+1 x 2) double  reverse map, the
+%                     vector position of (n, m, cs) or 0 when absent
 %
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 

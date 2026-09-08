@@ -33,7 +33,9 @@ function [comps, info] = shSynthesisGradientTensor(C, S, GM, R, latDeg, lonDeg, 
 %            ne  (symmetric tensor; 1 Eotvos = 1e-9 1/s^2). Components
 %            involving east are NaN at |lat| = 90.
 %     info   struct: maxTraceResidual (max |trace|/max|G| over the grid,
-%            excluding poles) - the built-in Laplace self-check
+%            excluding poles) - the built-in Laplace self-check - plus
+%            r (1,1 double, the evaluation radius [m]) and the altitude
+%            it was formed from, echoed back as the field .Height
 %
 %   Claude (Fable 5), 2026-08-07 (v2.4).
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).

@@ -470,11 +470,8 @@ methods
         %   Python-validated: 5.1% null rejection at the 5% level;
         %   F = 23 for a 0.02/yr break in 0.05-sigma noise (T = 120).
         %
-        %   Returns a struct (NOT an shClimatology - the climatology
-        %   schema stays fixed): trend1C/S (pre-break rate), hingeC/S
-        %   (n1 x n1 x K rate CHANGES per break; post-break rate =
-        %   trend1 + cumsum of hinges), sigmas, F (n1 x n1 x K),
-        %   pValue, breaks, t0.
+        %   Returns a plain struct, not an shClimatology - the
+        %   climatology schema stays fixed. See Outputs for the fields.
         %   Options
         %     Breaks (required) (1 x B) trend break epochs [decimal years]
         %     Periods ([])      (1 x K) extra harmonic periods [yr]
@@ -482,7 +479,27 @@ methods
         %     ARCorrect (false) (1 x 1) AR(1) correction of the sigmas
         %
         %   Outputs
-        %     out        struct: trends per segment (shCoefficients), F/p per break, segment epochs
+        %     out  (1,1) struct  NOT an shCoefficients - the coefficient
+        %          matrices are plain (n1 x n1) doubles - fields
+        %          breaks              (1 x B) double  the break epochs, as
+        %                              given [decimal years]
+        %          t0                  (1,1) double  reference epoch used
+        %          trend1C, trend1S    (n1 x n1) double  pre-break rate
+        %                              [units/yr], cosine and sine
+        %          sigmaTrend1C, sigmaTrend1S  (n1 x n1) double  their
+        %                              1-sigma
+        %          hingeC, hingeS      (n1 x n1 x B) double  rate CHANGE at
+        %                              each break; the post-break rate is
+        %                              trend1 + cumsum over the hinges
+        %          sigmaHingeC, sigmaHingeS  (n1 x n1 x B) double  1-sigma
+        %                              of the rate changes
+        %          trendNoBreakC       (n1 x n1) double  rate of the
+        %                              no-break model, the F-test's null
+        %          sigmaTrendNoBreakC  (n1 x n1) double  its 1-sigma
+        %          F, pValue           (n1 x n1) double  F statistic and
+        %                              p-value per cosine coefficient
+        %          FS, pValueS         (n1 x n1) double  the same for the
+        %                              sine coefficients
         %
         arguments
             obj

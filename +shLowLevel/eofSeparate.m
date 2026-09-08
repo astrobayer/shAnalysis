@@ -37,7 +37,8 @@ function [circ, noiseR, info] = eofSeparate(R, w, opts)
 %     circ   (Q x T) double  coherent (circulation) part
 %     noiseR (Q x T) double  time-centred residual minus CIRC
 %     info   (1 x 1) struct  lam (variance per mode), nKeep,
-%            northSeparated (logical, per leading mode),
+%            bulkEdge (the Marchenko-Pastur bulk edge the retained modes
+%            must exceed), northSeparated (logical, per leading mode),
 %            varExplained (fraction, kept modes), rmsNoise
 %            (area-weighted RMS of NOISER)
 %

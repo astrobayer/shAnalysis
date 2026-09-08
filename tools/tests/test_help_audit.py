@@ -114,6 +114,98 @@ class TestSpelling(unittest.TestCase):
             self.assertEqual(ha.structure(bad, "foo"), [], head)
 
 
+STRUCT_SRC = """function [out, info] = foo(a)
+out = struct('alpha', 1, 'beta', 2);
+out.gamma = 3;
+info.mode = 'x';
+end
+"""
+
+STRUCT_HELP = """\
+FOO One line.
+
+   Inputs
+     a    (1,1) double  the thing
+   Outputs
+     out   (1,1) struct  fields
+           alpha  (1,1) double  first
+           beta   (1,1) double  second
+           gamma  (1,1) double  third
+     info  (1,1) struct  fields
+           mode   (1,:) char  which path ran
+   Example
+     out = foo(1);
+
+   Developed by Matthias Weigelt with the help of Claude (Opus 5).
+"""
+
+
+class TestStructFields(unittest.TestCase):
+    """A12: help_audit checked output VARIABLES, never the FIELDS a struct
+    output promises, so readTN14 documented tn.t (no such field) and
+    shAnalysisGrid documented info.condest for condEst."""
+
+    def outs(self):
+        return {"out", "info"}
+
+    def test_healthy_struct_docs_are_silent(self):
+        self.assertEqual(
+            ha.struct_fields(STRUCT_HELP, STRUCT_SRC, "foo", self.outs()), [])
+
+    def test_documented_field_the_code_never_assigns_fires(self):
+        bad = STRUCT_HELP.replace("gamma  (1,1) double  third",
+                                  "delta  (1,1) double  third")
+        p = ha.struct_fields(bad, STRUCT_SRC, "foo", self.outs())
+        self.assertTrue(any("out.delta" in x and "never assigns" in x
+                            for x in p), p)
+
+    def test_case_difference_is_a_different_field(self):
+        # MATLAB field names are case-sensitive: info.condest for condEst
+        # gave the user an error, not a value
+        bad = STRUCT_HELP.replace("alpha  (1,1)", "Alpha  (1,1)")
+        p = ha.struct_fields(bad, STRUCT_SRC, "foo", self.outs())
+        self.assertTrue(any("out.Alpha" in x for x in p), p)
+
+    def test_assigned_field_missing_from_the_section_fires(self):
+        bad = STRUCT_HELP.replace(
+            "           gamma  (1,1) double  third\n", "")
+        p = ha.struct_fields(bad, STRUCT_SRC, "foo", self.outs())
+        self.assertTrue(any("assigns 'out.gamma'" in x and
+                            "never mentions it" in x for x in p), p)
+
+    def test_nested_call_literals_are_not_fields(self):
+        # struct('created', string(datetime('now','Format','...'))) is ONE
+        # field, not three
+        src = ("function out = f()\n"
+               "out = struct('created', string(datetime('now', "
+               "'Format', 'yyyy-MM-dd'))));\nend\n")
+        self.assertEqual(ha.fields_assigned_to(src, "out"), {"created"})
+
+    def test_sibling_method_variables_do_not_leak(self):
+        # a class file holds many methods; 'info' in another one is not this
+        # one's (that leak invented 57 findings)
+        self.assertNotIn("mode", ha.fields_assigned_to(STRUCT_SRC, "out"))
+
+    def test_delegated_struct_needs_no_field_list(self):
+        h = STRUCT_HELP.replace(
+            "     info  (1,1) struct  fields\n"
+            "           mode   (1,:) char  which path ran\n",
+            "     info  (1,1) struct  as returned by shLowLevel.other\n")
+        stats = {"listed": 0, "prose": 0, "delegated": 0}
+        ha.struct_fields(h, STRUCT_SRC, "foo", self.outs(), stats)
+        self.assertEqual(stats["delegated"], 1)
+
+    def test_prose_rows_are_counted_not_silently_passed(self):
+        h = STRUCT_HELP.replace(
+            "     info  (1,1) struct  fields\n"
+            "           mode   (1,:) char  which path ran\n",
+            "     info  (1,1) struct  mode and other things in prose\n")
+        stats = {"listed": 0, "prose": 0, "delegated": 0}
+        ha.struct_fields(h, STRUCT_SRC, "foo", self.outs(), stats)
+        self.assertEqual(stats["prose"], 1)
+        self.assertEqual(stats["listed"], 1)
+
+
 class TestIntegration(unittest.TestCase):
     def test_repository_help_blocks_are_structurally_clean(self):
         """the healthy tree stays silent - the other half of the injection"""

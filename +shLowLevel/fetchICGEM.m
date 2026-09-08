@@ -53,7 +53,9 @@ function [file, info] = fetchICGEM(model, opts)
 %   Outputs
 %     file  string   local path(s): one per model, or every file of the
 %              series in temporal mode (bulk selections are concatenated)
-%     info  struct: url, skipped (true if already present) and mode
+%     info  struct: url, skipped (true if already present), updated
+%              (the files that were replaced by a newer copy), failed
+%              (true when the download did not complete) and mode
 %              (1,1) string reporting the path that actually ran -
 %              "model" (single static model) | "archive" (whole-series
 %              ZIP in one request) | "files" (per-file fallback) |

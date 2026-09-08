@@ -23,8 +23,9 @@ function spec = shOrderRMS(C, S, opts)
 %     SigmaC, SigmaS ([])        formal errors
 %   Outputs
 %     spec  struct: order, ordVariance, ordRMS, ordAmplitude,
-%           cumVariance, cumRMS, cumAmplitude, (err*), R,
-%           domain = 'order'  (consumed by plotSHSpectrum)
+%           cumVariance, cumRMS, cumAmplitude, R,
+%           domain = 'order'  (consumed by plotSHSpectrum); with sigmas
+%           also errVariance, errRMS and errAmplitude
 %
 %   Claude (Fable 5), 2026-08-07 (v2.4.1).
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).

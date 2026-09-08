@@ -1,5 +1,91 @@
 # Changelog
 
+## [3.34.0] - 2026-09-08 - The fields a struct output actually has
+
+Second half of the documentation-rot work, and the check that closes the
+class of defect v3.33.1 fixed by hand. No numerical behaviour changes.
+
+### Added - `help_audit.py` now checks struct output FIELDS, both ways
+
+v3.33.1 fixed eight help blocks that named struct fields the code does not
+produce (`tn.t`, `info.condest` for `condEst`, `out.q16/q50/q84`, ...). It
+fixed them by reading; nothing stopped the next one. Now:
+
+- **documented => assigned.** Every field a help block lists must be
+  assigned somewhere in that function. Runs where the help gives a field
+  LIST (the house form: the struct row ends with `fields`, one field per
+  deeper-indented line - the spelling already dominant in the tree).
+- **assigned => documented.** Every field the function writes on a
+  documented struct output must appear in its Outputs section. Needs no
+  parsing, so it runs on prose rows too - and it found **55** fields the
+  code returns and `help` never named.
+
+`help_audit.py` now reports its own reach rather than implying full
+coverage: *"struct outputs: 17 field lists verified against the source, 2
+delegated, 77 still prose"*. The 77 are A12's remaining backlog; a
+mechanical prose-to-list rewrite was written, inspected and **discarded**
+because it produced confident nonsense (`'full-blocks'` split at a field
+name, a nested struct array's subfields hoisted to the top level). They
+convert by hand, and the number in the gate line goes down.
+
+### Fixed - 55 struct fields the code returns and the help did not name
+
+Found by the new direction. Among them:
+
+- `shIndex`: the help named `nmax` and `Nmin`. The FIELDS are `Lmax` and
+  `minDegree` - the help had copied the option spellings - and `pos`, the
+  reverse map, was undocumented. `shIndex` is the toolbox's canonical
+  vector ordering, so this one was in everybody's way.
+- `trendBreaks`: 15 of its 17 fields were described only in the prose
+  paragraph, and the Outputs section called them `shCoefficients` when
+  they are plain `(n1 x n1)` doubles.
+- `tvANSFilter`: `op.layout`, `op.blocks`, `op.sBlocks`, `op.detLeverage`,
+  `op.detResVar`, `info.vce`, `info.sigmaNote` - including which of the
+  two operator layouts is filled, which a caller must know.
+- `httpFetch.transport` was documented as if always present; it exists
+  only on the websave-fallback path. The correction says so.
+- `shReadGFC.variableTerms` (documented as two words, "variable terms"),
+  `header`, `modelname`; `shOrderRMS`'s `err*` glob spelled out;
+  `eofAnalysis`, `eofSeparate`, `fetchDDK`, `fetchGAX`, `fetchICGEM`,
+  `fetchITSG`, `fetchITSGBackground`, `basinScaling`, `oceanChain`,
+  `kalmanFilter`, `seaLevelFingerprint`,
+  `shSynthesisGradientTensor`.
+
+### Added - `tools/dev/count_tests.py`, and a corrected test count
+
+The predicted test count was **wrong**, on a green run. `grep -c '^function
+test' tests/*.m` counts the script-based harness entry point (`function
+tests = testCorrectness`) as a test, and misses every `bench*` method and
+every parameterised expansion. It said 261, and this release predicted 262;
+the runner ran **268**.
+
+`count_tests.py` reports methods and runs per class, expands
+`TestParameter` blocks, and with `--executed N` exits non-zero on a
+mismatch. It reproduces the self-hosted run exactly. CI prints it beside
+the run. The corrected figures: Correctness 135, Contract 61, Robustness
+53, Science 7, Performance 11 methods / 12 runs - **267 methods, 268 runs**,
+of which 3 filter out when the optional real-data fixtures are absent.
+
+### Fixed - three defects in the new checker, found by reviewing its own output
+
+Recorded because each produced confident, wrong findings before it was
+caught, and each is the kind of thing a gate is supposed to prevent:
+
+- an `id(src)`-keyed cache returned another file's field set (CPython
+  reuses ids after garbage collection) - 6 invented findings;
+- a class method was given the WHOLE class file as its source, so a
+  variable named `op` or `info` in a sibling method counted - 57 invented
+  findings;
+- quoted literals inside a call NESTED in `struct(...)` were read as field
+  names, so `struct('created', string(datetime('now', 'Format', ...)))`
+  looked like three fields - 4 invented findings.
+
+### Added
+
+- `tools/tests/test_help_audit.py` grows to 17 tests, `test_count_tests.py`
+  is new with 7. Every rule fault-injected and paired with a clean-tree
+  assertion.
+
 ## [3.33.1] - 2026-09-08 - Documentation rot, and the gates that missed it
 
 Hygiene release: no numerical behaviour changes. Every finding below was

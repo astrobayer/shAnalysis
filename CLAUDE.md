@@ -23,10 +23,10 @@ says whether it was *read* or *inferred*.
 
 | Fact | Value | Evidence |
 |---|---|---|
-| Version | **3.33.1**, 08-Sep-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
+| Version | **3.34.0**, 08-Sep-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
 | Branches | `main` only; `claude/getframe-recapture` and `claude/readshm` are gone (merged/deleted) | `GET /branches` |
 | Public surface | 3 classes / 71 methods, 122 `+shLowLevel` functions (+4 private), 3 root functions | `tools/dev/api_extract.py` run in sandbox |
-| Tests | 5 classes, 262 test methods: Correctness 136, Contract 62, Robustness 54, Science 8, Performance 2 | `grep -cE '^\s*function test' tests/*.m` |
+| Tests | 5 classes, **267 methods / 268 runs**: Correctness 135, Contract 61, Robustness 53, Science 7, Performance 11 methods (12 runs, `nmaxP` x2). 3 filter out without the optional real-data fixtures. | `python3 tools/dev/count_tests.py`, reconciled against the self-hosted run of PR #95 |
 | Python oracles | 16 `tools/dev/validate_*.py` + `tools/audit/*` | listing |
 | Docs | 50 `html/*.html`, `helptoc.xml`, `info.xml`, guide PDF (rebuilt at v3.33.1), generated `html/apiReference.html`. `docs/` holds the PDF and `apiExamples.json` only - no HTML page lives outside `html/` (gated). | listing |
 | CI | `gates` job on ubuntu (help_audit, doc_sync_audit, no_map_renderer, toolbox_dependency_audit, nv_casing_audit, fixture_tag_audit, **gate self-tests** `tools/tests/`) + `runAllTests (self-hosted)` on A8/R2026a; fixtures from tag `fixtures-2026-08` | `.github/workflows/ci.yml` |
@@ -116,8 +116,11 @@ CF-1.8 export, provenance sidecars, geoMap bridge (`toGrid`, `gridHandover`).
    `python tools/nv_casing_audit.py`, `python tools/fixture_tag_audit.py`,
    `python tools/dev/mlint_lite.py <changed files>`, `python tools/dev/check_api.py`,
    `python tools/dev/api_audit.py`, `python tools/dev/attribution_sweep.py`.
-5. Predict the test count before running (`runAllTests`); a missed prediction
-   is a finding.
+5. Predict the test count before running (`runAllTests`) with
+   `python3 tools/dev/count_tests.py`; a missed prediction is a finding.
+   Do NOT count with `grep -c '^function test'` - it counts the
+   script-based entry point and misses `bench*` and parameterised
+   methods; it said 261 where the runner ran 268 (A16).
 6. Never widen a tolerance to pass. Every tolerance carries a comment naming
    the term it bounds and the oracle it was measured against.
 7. Push with `HEAD:refs/heads/<branch>`, read the SHA back with `git ls-remote`.
@@ -160,7 +163,8 @@ do not see; **L** = polish.
 | A15 | M | A3 is **wider than the audit's 12**: `kernelFactors` (`shSynthesis:missingLoveNumbers`, `:badQuantity`, `:heightInvalid`), `shSynthesisGradient` (`shSynthesis:badInput`) and `seaLevelFingerprint` (`shSynthesis:missingLoveNumbers`) also raise identifiers they do not own. Unlike `shSynthesisDeformation`'s, these ARE documented and pinned by `testContract`/`testCorrectness`, so renaming them is a MAJOR change. Belongs in WP1's identifier sweep, not in a patch. | `grep -rn "shSynthesis:" --include=*.m` |
 | A14 | M | **CLOSED v3.33.1** — the three gate self-tests in `tools/tests/` (committed in v3.32/v3.33) were **never run by CI**, and `test_legacy_name_tolerated` had been broken since the v3.33.0 sweep drained `LEGACY` to empty — an untested instrument, silently. CI now runs `tools/tests/`; the stale test asserts the mechanism with a temporary entry instead of pinning a member name. | `.github/workflows/ci.yml` before/after |
 | A13 | L | `resolutionMap` hardcodes `R = 6371` (mean Earth radius, km) to turn the half-width from degrees into kilometres — a hardcoded physical constant, against §2. Diagnostic-only, so no result is wrong, but the number should come from the caller or from the field's own `R`. | `+shLowLevel/resolutionMap.m` line 45 |
-| A12 | M | Help blocks name **struct output fields the code does not assign**, and the gates cannot see it: `help_audit.py` checks that every *output variable* appears in the Outputs section, never that the *fields* it promises exist. Eight such lies were found by hand while closing A4 (`tn.t`, `meta.center/product/release`, `info.condest/nObs/kaula`, `out.q16/q50/q84`, `info.mode/iterations` in `buildSignalCov`, ...). A mechanical two-way check needs a grammar for the field list first; a prototype over `+shLowLevel` flags 17 lines, most of them prose words. Proposed as a WP6 row (the per-entity page template needs that grammar anyway). | prototype scan, 2026-09-08 |
+| A16 | M | **CLOSED v3.34.0** — the **test count in this file was wrong** and so was the v3.33.1 prediction. `grep -c '^function test'` counts the script-based harness entry point as a test and misses every `bench*` method and every parameterised expansion: it said 261, the prediction said 262, the self-hosted runner ran **268**. `tools/dev/count_tests.py` now reports methods and runs per class, expands `TestParameter`, and exits non-zero on `--executed` mismatch; CI prints it. | PR #95 `runAllTests (self-hosted)` log vs `count_tests.py` |
+| A12 | M | **MOSTLY CLOSED v3.34.0** — `help_audit.py` now checks struct output fields in BOTH directions: documented ⇒ assigned (where the help gives a field list) and assigned ⇒ documented (everywhere, no parsing needed). The second direction found **55** fields the code returns and the help never named, `shIndex`'s `Lmax`/`minDegree`/`pos` among them — the help had copied the OPTION spellings `nmax`/`Nmin`, so `idx.nmax` errored. **Still open**: 77 struct rows describe their fields in prose, so direction 1 does not reach them. The gate reports that count in its own output line rather than implying full coverage; converting a row to the list form is what moves it. A mechanical prose→list rewrite was written and **discarded** — it produced confident nonsense (`'full-blocks'` split at a field name, nested struct-array subfields hoisted). | `python3 tools/help_audit.py` (last line) |
 | A11 | L | **CLOSED v3.33.1** — `Contents.m` is 78 lines; the 74 'New in v…' sections moved to `CHANGELOG.md`. The six versions that existed ONLY in `Contents.m` (v2.1, v2.2, v2.3, v2.4, v2.4.1, v2.4.2) were written into the changelog in the same commit and the version sets were diffed to prove nothing was lost. Original finding: `Contents.m` (1149 lines) is a full changelog duplicate: "New in v…" sections for 60+ releases, out of chronological order (v2.5 after v2.4.2, v3.1.0 inside the v2.4.1 block). `help shAnalysis` prints all of it. The CHANGELOG is the authority; Contents.m should carry the product line, the class overview and the quick start only. | `grep -n "New in" Contents.m` |
 
 ### 4.2 Inferred (needs Tier A measurement before any decision)
@@ -428,6 +432,27 @@ Version: MINOR per approved row.
   `shSynthesisGradient` and `seaLevelFingerprint` raise documented,
   test-pinned `shSynthesis:*` identifiers; renaming those is MAJOR and waits
   for WP1 (new finding A15).
+- 2026-09-08 — **Correction to the entry below**: Tier A is unavailable
+  *locally*, but the self-hosted runner A8 still runs `runAllTests` on every
+  PR, so a change can still be checked against MATLAB — one PR round-trip
+  later instead of immediately. WP0's debt was discharged that way the same
+  evening. What genuinely cannot proceed is work whose ACCEPTANCE needs
+  interactive measurement (WP2's speed budgets) or a decision (WP1).
+- 2026-09-08 — **Tier A is unavailable until further notice** (Matthias:
+  "Tier A is gone for now. we rely on tier B for the time being and finish
+  everything that does not need the bridge"). Consequence, stated so it is
+  not rediscovered: work proceeds on Tier B green alone, every WP row carries
+  ◐ on the verification board, and the discharge that clears each ◐ is named
+  in §6.2. Packages whose ACCEPTANCE needs MATLAB do not start: WP2 (speed
+  budgets are measurements), WP3/WP4/WP5 (new numerics — the Python oracle can
+  be written but nothing can be checked against it), WP7 (`metamorphic`
+  method = low-level, bitwise). WP1 is additionally blocked on the 4.0.0
+  decision. What remains Tier-B-completable: **WP6**, **A12**, **A13**.
+- 2026-09-08 — WP0 and WP6 run as one release train on one branch, as §5
+  anticipated for the hygiene packages. The harness pins the branch name for
+  this session, so §3.3's one-WP-one-branch rule cannot be followed literally;
+  the train is **3.34.0** (MINOR — WP6 adds `setup_shAnalysis(BuildSearch=)`
+  and the generated reference pages).
 - 2026-09-08 — The section vocabulary of help blocks is now closed and gated:
   `Inputs`, `Outputs`, `Options`, `Example`, `Error identifiers`,
   `References`. Near-miss spellings are rejected by name. Prose sub-headings
@@ -437,15 +462,16 @@ Version: MINOR per approved row.
 | WP | Static gates | Tier A (MATLAB) | CI | Merged |
 |---|---|---|---|---|
 | audit 2026-09-08 | ☑ read | — | — | — |
-| WP0 (v3.33.1) | ☑ 9 gates + 4 self-test suites, 0 findings | ◐ **NOT RUN** — no MATLAB in this session | ◐ pending | ◐ pending |
+| WP0 (v3.33.1) | ☑ 9 gates + 4 self-test suites, 0 findings | ☑ **CI self-hosted (A8), green** | ☑ PR #95 | ◐ pending |
+| A12+A16 (v3.34.0) | ☑ 9 gates + 5 self-test suites, 0 findings | ◐ pending on the next CI run | ◐ pending | ◐ pending |
 
-**WP0 debt, named**: `runAllTests` was not executed. Tier B only. The
-prediction to check it against is **262** test methods (Correctness 136,
-Contract 62, Robustness 54, Science 8, Performance 2) — Contract gained
-`testDeformationIDs`. The one behavioural change is the identifier rename in
-`shSynthesisDeformation`; everything else is comments, generated artifacts
-and Python tooling. Discharge by running `runAllTests` on A8 or the
-acceptance machine and recording the count here.
+**WP0 debt: DISCHARGED.** The local MATLAB bridge is gone, but the
+self-hosted runner A8 is not: `runAllTests (self-hosted)` on PR #95 went
+green (268 runs, 3 filtered for absent optional fixtures, 2026-09-08
+20:25 UTC). So Tier A is reachable **through CI** even when it is not
+reachable from a sandbox — do not record a session as Tier-B-only without
+saying which of the two is meant. The run also refuted the predicted
+count; see A16.
 
 ### 6.3 What the next session could be wrong for not reading
 - The toolbox is at **3.33.1**, package is `+shLowLevel`. Memory summaries
@@ -468,24 +494,34 @@ acceptance machine and recording the count here.
 
 ### 6.4 Next action
 
-WP0 is done. The two things that need Matthias, in order:
+WP0, A12 (mostly), A14 and A16 are done and on PR #95. In progress on the
+same branch, in this order:
 
-1. **Discharge the WP0 Tier A debt** (§6.2) — one command on A8 or the
-   acceptance machine:
-```
-matlab -batch "cd('C:\Users\matth\Documents\MATLAB\shAnalysis'); setup_shAnalysis; runAllTests"   % expect 262 passed
-```
-2. **Decide WP1's shape** — it is the next WP in the proposed order and it
-   is blocked on one question only: hard break in **4.0.0** (recommended,
-   consistent with the v3.0.0 and v3.33.0 precedents) or one release with a
-   deprecation shim. A15 (the documented `shSynthesis:*` identifiers in
-   `kernelFactors`, `shSynthesisGradient`, `seaLevelFingerprint`) rides on
-   the same decision — it is a MAJOR change either way.
+1. **WP6** — documentation to the MathWorks layout. Entirely Tier B except
+   `builddocsearchdb`, which is one MATLAB call made by
+   `setup_shAnalysis(BuildSearch=true)` on the user's machine, not by the
+   build. Absorbs the A12 prose backlog: the per-entity argument table
+   needs the same field list the gate wants, so converting a row serves
+   both.
+2. **A13** — `resolutionMap`'s hardcoded `R = 6371`.
 
-WP6 is the other unblocked one (documentation to the MathWorks layout) and
-would now also absorb A12; WP2 needs Tier A and cannot start from a sandbox.
+The one thing that needs Matthias:
+
+**Decide WP1's shape.** Hard break in **4.0.0** (recommended, consistent
+with the v3.0.0 and v3.33.0 precedents) or one release with a deprecation
+shim. A15 (the documented `shSynthesis:*` identifiers in `kernelFactors`,
+`shSynthesisGradient`, `seaLevelFingerprint`) rides on the same decision —
+MAJOR either way. Nothing else is blocked on it.
+
+To re-run the gates and the prediction from a fresh sandbox:
+```
+pip install reportlab matplotlib && \
+  for g in tools/*.py tools/dev/{no_map_renderer,check_api,api_audit,attribution_sweep}.py; do python3 $g; done && \
+  for t in tools/tests/test_*.py; do python3 $t; done && \
+  python3 tools/dev/count_tests.py
+```
 
 ---
 *shAnalysis v3.33.0 audited | 2026-09-08 18:30 UTC | Claude Fable 5.1 |
-WP0 executed and record updated | 2026-09-08 20:00 UTC | Claude Opus 5 |
+WP0 (v3.33.1) and A12/A14/A16 (v3.34.0) | 2026-09-08 | Claude Opus 5 |
 Developed by Matthias Weigelt with the help of Claude.*

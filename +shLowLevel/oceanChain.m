@@ -122,7 +122,9 @@ function [out, rep] = oceanChain(folder, opts)
 %                 SeparateCirculation)
 %       lamModes  (K x 1) variance per EOF mode ([] unless
 %                 SeparateCirculation)
-%     rep  (1 x 1) struct  steps, version, dropped/uncovered epochs
+%     rep  (1 x 1) struct  steps, version, dropped/uncovered epochs,
+%          nEpochs (epochs processed), nGadRestored and nGaaApplied
+%          (how many months each background correction reached)
 %
 %   Example
 %     kn = readmatrix("loadLoveNumbers_Gegout97.txt", FileType = "text", ...

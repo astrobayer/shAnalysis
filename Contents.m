@@ -1,5 +1,5 @@
 % shAnalysis - Spherical harmonic analysis toolbox
-% Version 3.33.1 (R2026a-compatible) 08-Sep-2026
+% Version 3.34.0 (R2026a-compatible) 08-Sep-2026
 %
 % The line above is what ver('shAnalysis') reports as the product name:
 % keep it a SHORT name, not a sentence and not a version string (pinned
@@ -62,7 +62,7 @@
 %   CHANGELOG.md is the authority and the only place a release is
 %   described. This file used to repeat it: 74 "New in v..." sections,
 %   out of chronological order, printed in full by `help shAnalysis`.
-%   They were moved to CHANGELOG.md in v3.33.1 - nothing was lost, the
+%   They were moved to CHANGELOG.md in v3.33.1 - nothing was lost; the
 %   six versions that existed only here (v2.1 to v2.4.2) were written
 %   into the changelog in the same commit.
 %

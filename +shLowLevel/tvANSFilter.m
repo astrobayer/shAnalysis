@@ -53,11 +53,23 @@ function [Xf, op, info] = tvANSFilter(X, tYears, idx, opts)
 %         (validated: 1.8e-15). 'on' errors if conditions are violated.
 %   Outputs
 %     Xf     (P,T) double   filtered series (deterministic part restored)
-%     op     struct         filter operator: Ut, V, lam, s, Ac, SA, M,
-%                           idx, tYears, model, Xres, Xfres
+%     op     struct         filter operator: layout ('full' | 'blocks',
+%                           which of the two forms below is filled),
+%                           Ut, V (layout 'full'), blocks and sBlocks
+%                           (layout 'blocks': the per-block eigenbases
+%                           and the per-block variance factors),
+%                           lam, s, Ac, SA, M, idx, tYears, model,
+%                           Xres, Xfres, and detLeverage / detResVar
+%                           (the deterministic fit's leverage and
+%                           residual variance, carried for the exact
+%                           basin sigma of shLowLevel.basinDeconvolve)
 %                           (use with shLowLevel.opApply / shLowLevel.basinDeconvolve /
 %                           shLowLevel.resolutionMap)
-%     info   struct         noise/signal/VCE diagnostics; additionally
+%     info   struct         noise/signal/VCE diagnostics: noise, signal,
+%                           vce (the per-month variance factors s), lam,
+%                           and sigmaNote (a string saying which
+%                           posterior-sigma formula was used, empty when
+%                           the filter is unconstrained); additionally
 %                           info.sigmaXfres (P x T): 1-sigma posterior
 %                           uncertainty of the filtered residual per
 %                           coefficient/month, diag((I-W_t)S) =

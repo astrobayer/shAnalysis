@@ -64,7 +64,8 @@ function filt = kalmanFilter(model, obs, opts)
 %            essentially exact at dof = P; see its accuracy note)
 %
 %   Outputs
-%     filt  (1 x 1) struct  companion-space filter results:
+%     filt  (1 x 1) struct  companion-space filter results, including
+%           B (pP x P double) the companion selection matrix:
 %           xf, xp (pP x T double) filtered / predicted states,
 %           Pf, Pp (pP x pP x T double, StoreCov="full") or
 %           dPf, dPp (pP x T double, StoreCov="diag"|"matfile")

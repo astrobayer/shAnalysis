@@ -11,7 +11,7 @@ td,th{border:1px solid #ccc;padding:3px 8px;font-size:13px;text-align:left}
 h2{margin-top:34px;border-bottom:2px solid #444}
 .toc a{margin-right:10px;font-size:13px}
 </style></head><body>
-<h1>shAnalysis API reference (v3.33.1)</h1>
+<h1>shAnalysis API reference (v3.34.0)</h1>
 <p>Generated from the source arguments blocks and help text - inputs,
 name-value options with defaults, and outputs for every public function
 and method. Regenerated with every release; the source of truth is the
@@ -193,7 +193,7 @@ code itself.</p>
 <b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Idx</code></td><td>n x m</td><td>struct</td><td>struct()</td></tr><tr><td><code>TYears</code></td><td>1 x :</td><td>double</td><td>[]</td></tr><tr><td><code>PerMonth</code></td><td>1 x 1</td><td>logical</td><td>false</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
 <tr><td><code>k</code></td><td>(1,1) double  regression scaling factor</td></tr>
-<tr><td><code>info</code></td><td>struct: sigmaK (regression 1-sigma), kMonthly (T x 1, if PerMonth), matched (T x 1 logical), aTrue, aFilt</td></tr>
+<tr><td><code>info</code></td><td>struct: sigmaK (regression 1-sigma), kMonthly (T x 1, only with PerMonth), matched (T x 1 logical), nMatched (nnz of matched, the epochs the regression actually used), aTrue, aFilt</td></tr>
 </table>
 </div>
 <div class="entry" id="shLowLevel.buildCondFun">
@@ -366,7 +366,7 @@ code itself.</p>
 <tr><td><code>modes</code></td><td>1 x K cell of shCoefficients (spatial patterns)</td></tr>
 <tr><td><code>pcs</code></td><td>(T,K) double, unit variance columns</td></tr>
 <tr><td><code>varExplained</code></td><td>(K,1) double, fraction in [0,1]</td></tr>
-<tr><td><code>info</code></td><td>struct: singular values, total variance, T</td></tr>
+<tr><td><code>info</code></td><td>struct: singularValues, totalVariance, T (epochs), centered (whether the mean was removed, = Center)</td></tr>
 </table>
 </div>
 <div class="entry" id="shLowLevel.eofSeparate">
@@ -377,7 +377,7 @@ code itself.</p>
 <b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>NKeep</code></td><td>1 x 1</td><td>double</td><td>[]</td></tr><tr><td><code>MaxModes</code></td><td>1 x 1</td><td>double</td><td>10</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
 <tr><td><code>circ</code></td><td>(Q x T) double  coherent (circulation) part noiseR (Q x T) double  time-centred residual minus CIRC</td></tr>
-<tr><td><code>info</code></td><td>(1 x 1) struct  lam (variance per mode), nKeep, northSeparated (logical, per leading mode), varExplained (fraction, kept modes), rmsNoise (area-weighted RMS of NOISER)</td></tr>
+<tr><td><code>info</code></td><td>(1 x 1) struct  lam (variance per mode), nKeep, bulkEdge (the Marchenko-Pastur bulk edge the retained modes must exceed), northSeparated (logical, per leading mode), varExplained (fraction, kept modes), rmsNoise (area-weighted RMS of NOISER)</td></tr>
 </table>
 <b>Example</b><pre>    % after [out, rep] = oceanChain(...): rebuild the pixel residuals
     % R (Q x T), weights wA, then
@@ -467,7 +467,7 @@ code itself.</p>
 <b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Dest</code></td><td>1 x 1</td><td>string</td><td>&quot;&quot;</td></tr><tr><td><code>Timeout</code></td><td>1 x 1</td><td>double</td><td>120</td></tr><tr><td><code>Proxy</code></td><td>1 x 1</td><td>string</td><td>&quot;&quot;</td></tr><tr><td><code>Update</code></td><td>1 x 1</td><td>logical</td><td>false</td></tr><tr><td><code>Quiet</code></td><td>1 x 1</td><td>logical</td><td>false</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
 <tr><td><code>files</code></td><td>(1,:) string  present file paths (new + existing)</td></tr>
-<tr><td><code>info</code></td><td>struct: fetched, updated, skipped, names, url</td></tr>
+<tr><td><code>info</code></td><td>struct: fetched, updated, skipped, names, url, dest (the folder the files were resolved against)</td></tr>
 </table>
 </div>
 <div class="entry" id="shLowLevel.fetchGAX">
@@ -477,7 +477,7 @@ code itself.</p>
 <b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>dest</code></td><td>1 x 1</td><td>string</td><td>&quot;&quot;</td></tr></table>
 <b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Products</code></td><td>1 x :</td><td>string</td><td>[&quot;GAD&quot;, &quot;GAA&quot;]</td></tr><tr><td><code>Series</code></td><td>1 x :</td><td>string</td><td>[&quot;01_GRACE/GFZ/GFZ Release 06&quot;, &quot;01_GRACE/GFZ/GFZ Release 06.3 (GFO)&quot;]</td></tr><tr><td><code>Update</code></td><td>1 x 1</td><td>logical</td><td>false</td></tr><tr><td><code>MaxFiles</code></td><td>1 x 1</td><td>double</td><td>Inf</td></tr><tr><td><code>Downloader</code></td><td>1 x 1</td><td>string</td><td>&quot;websave&quot;</td></tr><tr><td><code>BudgetSec</code></td><td>1 x 1</td><td>double</td><td>Inf</td></tr><tr><td><code>MaxFailures</code></td><td>1 x 1</td><td>double</td><td>5</td></tr><tr><td><code>PauseSec</code></td><td>1 x 1</td><td>double</td><td>1.5</td></tr><tr><td><code>RetryAfterCap</code></td><td>1 x 1</td><td>double</td><td>30</td></tr><tr><td><code>Quiet</code></td><td>1 x 1</td><td>logical</td><td>false</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
-<tr><td><code>info</code></td><td>(1 x 1) struct  nListed, nDownloaded, nSkipped, nFailed, nRemaining (budget cut) per product, series actually used</td></tr>
+<tr><td><code>info</code></td><td>(1 x 1) struct  products (1 x nProducts struct array with nListed, nDownloaded, nSkipped, nFailed and nRemaining - the budget cut - per product) and series, the series actually used</td></tr>
 </table>
 <b>Example</b><pre>    f = shLowLevel.fetchGAX(&quot;E:/DATAPOOL/GravityField/GAX&quot;);
     [out, rep] = shLowLevel.oceanChain(ser, kn = kn, OceanMask = oc, ...
@@ -496,7 +496,7 @@ code itself.</p>
 <b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Dest</code></td><td>1 x 1</td><td>string</td><td>&quot;&quot;</td></tr><tr><td><code>Timeout</code></td><td>1 x 1</td><td>double</td><td>300</td></tr><tr><td><code>List</code></td><td>n x m</td><td>table</td><td>table()</td></tr><tr><td><code>Proxy</code></td><td>1 x 1</td><td>string</td><td>&quot;&quot;</td></tr><tr><td><code>Update</code></td><td>1 x 1</td><td>logical</td><td>false</td></tr><tr><td><code>Quiet</code></td><td>1 x 1</td><td>logical</td><td>false</td></tr><tr><td><code>Pause</code></td><td>1 x 1</td><td>double</td><td>3</td></tr><tr><td><code>Retries</code></td><td>1 x 1</td><td>double</td><td>3</td></tr><tr><td><code>Type</code></td><td>1 x 1</td><td>string</td><td>&quot;static&quot;</td></tr><tr><td><code>Files</code></td><td>1 x 1</td><td>string</td><td>&quot;*.gfc*&quot;</td></tr><tr><td><code>Mode</code></td><td>1 x 1</td><td>string</td><td>&quot;auto&quot;</td></tr><tr><td><code>FileList</code></td><td>n x m</td><td>table</td><td>table()</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
 <tr><td><code>file</code></td><td>string   local path(s): one per model, or every file of the series in temporal mode (bulk selections are concatenated)</td></tr>
-<tr><td><code>info</code></td><td>struct: url, skipped (true if already present) and mode (1,1) string reporting the path that actually ran - &quot;model&quot; (single static model) | &quot;archive&quot; (whole-series ZIP in one request) | &quot;files&quot; (per-file fallback) | &quot;present&quot; (nothing to do); a script can tell a fresh download from a no-op by this field</td></tr>
+<tr><td><code>info</code></td><td>struct: url, skipped (true if already present), updated (the files that were replaced by a newer copy), failed (true when the download did not complete) and mode (1,1) string reporting the path that actually ran - &quot;model&quot; (single static model) | &quot;archive&quot; (whole-series ZIP in one request) | &quot;files&quot; (per-file fallback) | &quot;present&quot; (nothing to do); a script can tell a fresh download from a no-op by this field</td></tr>
 </table>
 </div>
 <div class="entry" id="shLowLevel.fetchITSG">
@@ -507,7 +507,7 @@ code itself.</p>
 <b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Dest</code></td><td>1 x 1</td><td>string</td><td>&quot;&quot;</td></tr><tr><td><code>Nmax</code></td><td>1 x 1</td><td>double</td><td>NaN</td></tr><tr><td><code>Product</code></td><td>1 x 1</td><td>string</td><td>&quot;monthly&quot;</td></tr><tr><td><code>Timeout</code></td><td>1 x 1</td><td>double</td><td>60</td></tr><tr><td><code>Proxy</code></td><td>1 x 1</td><td>string</td><td>&quot;&quot;</td></tr><tr><td><code>Update</code></td><td>1 x 1</td><td>logical</td><td>false</td></tr><tr><td><code>Quiet</code></td><td>1 x 1</td><td>logical</td><td>false</td></tr><tr><td><code>Release</code></td><td>1 x 1</td><td>string</td><td>&quot;&quot;</td></tr><tr><td><code>BaseURL</code></td><td>1 x 1</td><td>string</td><td>&quot;https://ftp.tugraz.at/pub/ITSG/GRACE&quot;</td></tr><tr><td><code>Catalog</code></td><td>1 x :</td><td>double</td><td>[]</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
 <tr><td><code>files</code></td><td>(1,:) string   paths of all present files (new + existing)</td></tr>
-<tr><td><code>info</code></td><td>struct: fetched, updated, skipped, missing (string arrays), url</td></tr>
+<tr><td><code>info</code></td><td>struct: fetched, updated, skipped, missing (string arrays), dest (target folder), base (server base URL) and product (the ITSG product actually requested)</td></tr>
 </table>
 </div>
 <div class="entry" id="shLowLevel.fetchITSGBackground">
@@ -517,7 +517,7 @@ code itself.</p>
 <b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>months</code></td><td>n x 1</td><td>-</td><td>required</td></tr></table>
 <b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Products</code></td><td>1 x :</td><td>string</td><td>&quot;dealiasing&quot;</td></tr><tr><td><code>Dest</code></td><td>1 x 1</td><td>string</td><td>&quot;&quot;</td></tr><tr><td><code>Release</code></td><td>1 x 1</td><td>string</td><td>&quot;&quot;</td></tr><tr><td><code>Update</code></td><td>1 x 1</td><td>logical</td><td>false</td></tr><tr><td><code>MaxFiles</code></td><td>1 x 1</td><td>double</td><td>Inf</td></tr><tr><td><code>BudgetSec</code></td><td>1 x 1</td><td>double</td><td>Inf</td></tr><tr><td><code>MaxFailures</code></td><td>1 x 1</td><td>double</td><td>5</td></tr><tr><td><code>PauseSec</code></td><td>1 x 1</td><td>double</td><td>1.5</td></tr><tr><td><code>RetryAfterCap</code></td><td>1 x 1</td><td>double</td><td>30</td></tr><tr><td><code>Downloader</code></td><td>1 x 1</td><td>string</td><td>&quot;websave&quot;</td></tr><tr><td><code>BaseURL</code></td><td>1 x 1</td><td>string</td><td>&quot;https://ftp.tugraz.at/pub/ITSG/GRACE&quot;</td></tr><tr><td><code>Quiet</code></td><td>1 x 1</td><td>logical</td><td>false</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
-<tr><td><code>info</code></td><td>(1 x 1) struct  per-product nListed/nDownloaded/nSkipped/ nFailed/nRemaining, missing months, releases used</td></tr>
+<tr><td><code>info</code></td><td>(1 x 1) struct  products (1 x nProducts struct array with nListed, nDownloaded, nSkipped, nFailed, nRemaining per product), missing (months not found) and releases (used)</td></tr>
 </table>
 <b>Example</b><pre>    f = shLowLevel.fetchITSGBackground([&quot;2018-06&quot;, &quot;2018-07&quot;]);
     g = shCoefficients.read(f(1));   % plain gfc, C(n+1, m+1)</pre>
@@ -679,7 +679,7 @@ code itself.</p>
 <b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>url</code></td><td>1 x 1</td><td>string</td><td>required</td></tr><tr><td><code>dest</code></td><td>1 x 1</td><td>string</td><td>required</td></tr></table>
 <b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>MaxTries</code></td><td>1 x 1</td><td>double</td><td>4</td></tr><tr><td><code>BaseDelay</code></td><td>1 x 1</td><td>double</td><td>2</td></tr><tr><td><code>MaxDelay</code></td><td>1 x 1</td><td>double</td><td>60</td></tr><tr><td><code>Timeout</code></td><td>1 x 1</td><td>double</td><td>60</td></tr><tr><td><code>WebsaveFallback</code></td><td>1 x 1</td><td>logical</td><td>true</td></tr><tr><td><code>Quiet</code></td><td>1 x 1</td><td>logical</td><td>true</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
-<tr><td><code>info</code></td><td>(1 x 1) struct with fields status  (1 x 1) double  final HTTP status code tries   (1 x 1) double  attempts used waited  (1 x 1) double  total seconds slept between attempts bytes   (1 x 1) double  bytes written to DEST</td></tr>
+<tr><td><code>info</code></td><td>(1 x 1) struct with fields status  (1 x 1) double  final HTTP status code tries   (1 x 1) double  attempts used waited  (1 x 1) double  total seconds slept between attempts bytes   (1 x 1) double  bytes written to DEST transport (1 x 1) string  present ONLY when the websave fallback ran (value &quot;websave-fallback&quot;); the normal path leaves the field absent, so test with isfield</td></tr>
 </table>
 <b>Example</b><pre>    info = shLowLevel.httpFetch(&quot;https://isdc-data.gfz.de/...&quot;, ...
         &quot;C:/data/aux.dat&quot;, MaxTries = 5);</pre>
@@ -746,7 +746,7 @@ code itself.</p>
 <b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>model</code></td><td>1 x 1</td><td>struct</td><td>required</td></tr><tr><td><code>obs</code></td><td>1 x :</td><td>struct</td><td>required</td></tr></table>
 <b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>StoreCov</code></td><td>1 x 1</td><td>string</td><td>&quot;full&quot;</td></tr><tr><td><code>Contribution</code></td><td>1 x 1</td><td>logical</td><td>true</td></tr><tr><td><code>QC</code></td><td>1 x 1</td><td>string</td><td>&quot;none&quot;</td></tr><tr><td><code>QCAlpha</code></td><td>1 x 1</td><td>double</td><td>1e-3</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
-<tr><td><code>filt</code></td><td>(1 x 1) struct  companion-space filter results: xf, xp (pP x T double) filtered / predicted states, Pf, Pp (pP x pP x T double, StoreCov=&quot;full&quot;) or dPf, dPp (pP x T double, StoreCov=&quot;diag&quot;|&quot;matfile&quot;) covariances, covFile (1 x 1) string path of the v7.3 MAT holding Pf/Pp (StoreCov=&quot;matfile&quot; only, else &quot;&quot; - delete it when done), contrib (P x T double) data share per coefficient (NaN in gaps), gap (1 x T logical), qcStat (1 x T double) innovation statistic (NaN when QC=&quot;none&quot; or in gaps), qcDof (1 x T double), qcReject (1 x T logical) epochs rejected (always all-false unless QC=&quot;reject&quot;), P (1 x 1) block size, order (1 x 1), storeCov (1 x 1) string. The physical state is the first block: xf(1:P, :).</td></tr>
+<tr><td><code>filt</code></td><td>(1 x 1) struct  companion-space filter results, including B (pP x P double) the companion selection matrix: xf, xp (pP x T double) filtered / predicted states, Pf, Pp (pP x pP x T double, StoreCov=&quot;full&quot;) or dPf, dPp (pP x T double, StoreCov=&quot;diag&quot;|&quot;matfile&quot;) covariances, covFile (1 x 1) string path of the v7.3 MAT holding Pf/Pp (StoreCov=&quot;matfile&quot; only, else &quot;&quot; - delete it when done), contrib (P x T double) data share per coefficient (NaN in gaps), gap (1 x T logical), qcStat (1 x T double) innovation statistic (NaN when QC=&quot;none&quot; or in gaps), qcDof (1 x T double), qcReject (1 x T logical) epochs rejected (always all-false unless QC=&quot;reject&quot;), P (1 x 1) block size, order (1 x 1), storeCov (1 x 1) string. The physical state is the first block: xf(1:P, :).</td></tr>
 </table>
 <b>Example</b><pre>    model = shLowLevel.estimateVAR(X, Order=1);
     obs = repmat(struct(&#x27;l&#x27;,[],&#x27;R&#x27;,[],&#x27;N&#x27;,[],&#x27;b&#x27;,[]), 1, numel(ep));
@@ -927,7 +927,7 @@ code itself.</p>
 <b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>kn</code></td><td>n x 1</td><td>double</td><td>[]</td></tr><tr><td><code>OceanMask</code></td><td>n x m</td><td>-</td><td>[]</td></tr><tr><td><code>GravisFolder</code></td><td>1 x 1</td><td>string</td><td>&quot;&quot;</td></tr><tr><td><code>GIAFile</code></td><td>1 x 1</td><td>string</td><td>&quot;GRAVIS-2B_COSTG_0200_GIA_ICE-6G_D_VM5a_0001.gz&quot;</td></tr><tr><td><code>GIAEpoch</code></td><td>1 x 1</td><td>double</td><td>2011</td></tr><tr><td><code>Filter</code></td><td>1 x 1</td><td>string</td><td>&quot;gauss445&quot;</td></tr><tr><td><code>GridStep</code></td><td>1 x 1</td><td>double</td><td>1</td></tr><tr><td><code>SpanEnd</code></td><td>1 x 1</td><td>double</td><td>[]</td></tr><tr><td><code>GADFolder</code></td><td>1 x 1</td><td>string</td><td>&quot;&quot;</td></tr><tr><td><code>GAAFolder</code></td><td>1 x 1</td><td>string</td><td>&quot;&quot;</td></tr><tr><td><code>SeparateCirculation</code></td><td>1 x 1</td><td>logical</td><td>false</td></tr><tr><td><code>CoastBufferKm</code></td><td>1 x 1</td><td>double</td><td>300</td></tr><tr><td><code>RemoveLandLeakage</code></td><td>1 x 1</td><td>logical</td><td>false</td></tr><tr><td><code>LandLeakIter</code></td><td>1 x 1</td><td>double</td><td>1</td></tr><tr><td><code>Quiet</code></td><td>1 x 1</td><td>logical</td><td>true</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
 <tr><td><code>out</code></td><td>(1 x 1) struct with fields epochs    (T x 1) decimal years oceanMean (T x 1) area-weighted ocean-mean EWH [cm] trend     (1 x 1) barystatic trend [mm/yr] trendGt   (1 x 1) the same as mass rate [Gt/yr] over the mask trendSigma (1 x 1) OLS 1-sigma of the trend [mm/yr] (no AR correction - stated, not hidden) ampAnnual (1 x 1) annual amplitude of the ocean mean [mm] sigMon    (1 x 1) open-ocean residual RMS after the per-pixel trend+seasonal fit [m] (the honest noise proxy) oceanArea (1 x 1) mask area [m^2] circulationRMS (1 x 1) area-weighted RMS of the separated residual circulation [m] (NaN unless SeparateCirculation) nModes    (1 x 1) EOF modes the North rule kept (0 unless SeparateCirculation) lamModes  (K x 1) variance per EOF mode ([] unless SeparateCirculation)</td></tr>
-<tr><td><code>rep</code></td><td>(1 x 1) struct  steps, version, dropped/uncovered epochs</td></tr>
+<tr><td><code>rep</code></td><td>(1 x 1) struct  steps, version, dropped/uncovered epochs, nEpochs (epochs processed), nGadRestored and nGaaApplied (how many months each background correction reached)</td></tr>
 </table>
 <b>Example</b><pre>    kn = readmatrix(&quot;loadLoveNumbers_Gegout97.txt&quot;, FileType = &quot;text&quot;, ...
         NumHeaderLines = 2);
@@ -1180,7 +1180,7 @@ code itself.</p>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
 <tr><td><code>S</code></td><td>(Ngrid,1) double  relative sea-level change over the ocean [m per unit load], 0 on land</td></tr>
 <tr><td><code>grid</code></td><td>struct            latDeg/lonDeg rings of the solver grid</td></tr>
-<tr><td><code>info</code></td><td>struct: iterations, dS, massResidual [kg/m^2 sphere mean], eustatic [m], kappa, areaFractionOcean, S2D (nlat x nlon)</td></tr>
+<tr><td><code>info</code></td><td>struct: iterations, dS, converged (dS below the tolerance), massResidual [kg/m^2 sphere mean], eustatic [m], kappa, areaFractionOcean, S2D (nlat x nlon)</td></tr>
 </table>
 </div>
 <div class="entry" id="shLowLevel.sensitivityKernel">
@@ -1276,7 +1276,7 @@ code itself.</p>
 <b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Lmax</code></td><td>1 x 1</td><td>double</td><td>required</td></tr></table>
 <b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Nmin</code></td><td>1 x 1</td><td>double</td><td>2</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
-<tr><td><code>idx</code></td><td>struct: n/m/cs (P x 1), P (1 x 1), nmax, Nmin - the canonical vector ordering of the toolbox</td></tr>
+<tr><td><code>idx</code></td><td>(1,1) struct  the canonical vector ordering of the toolbox, fields n, m, cs   (P x 1) double  degree, order and 0=cosine/1=sine of every element, in vector order P          (1,1) double    number of elements Lmax       (1,1) double    maximum degree (the LMAX argument) minDegree  (1,1) double    first degree included (the Nmin option; the FIELD keeps the older spelling) pos        (Lmax+1 x Lmax+1 x 2) double  reverse map, the vector position of (n, m, cs) or 0 when absent</td></tr>
 </table>
 </div>
 <div class="entry" id="shLowLevel.shOrderRMS">
@@ -1286,7 +1286,7 @@ code itself.</p>
 <b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>C</code></td><td>n x m</td><td>double</td><td>required</td></tr><tr><td><code>S</code></td><td>n x m</td><td>double</td><td>required</td></tr></table>
 <b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>R</code></td><td>1 x 1</td><td>double</td><td>6378136.3</td></tr><tr><td><code>N0</code></td><td>1 x 1</td><td>double</td><td>0</td></tr><tr><td><code>SigmaC</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>SigmaS</code></td><td>n x m</td><td>double</td><td>[]</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
-<tr><td><code>spec</code></td><td>struct: order, ordVariance, ordRMS, ordAmplitude, cumVariance, cumRMS, cumAmplitude, (err*), R, domain = &#x27;order&#x27;  (consumed by plotSHSpectrum)</td></tr>
+<tr><td><code>spec</code></td><td>struct: order, ordVariance, ordRMS, ordAmplitude, cumVariance, cumRMS, cumAmplitude, R, domain = &#x27;order&#x27;  (consumed by plotSHSpectrum); with sigmas also errVariance, errRMS and errAmplitude</td></tr>
 </table>
 </div>
 <div class="entry" id="shLowLevel.shReadGFC">
@@ -1294,7 +1294,7 @@ code itself.</p>
 <p class="h1line">Read an ICGEM ASCII .gfc gravity field model file.</p>
 <p>MODEL = SHREADGFC(FILENAME) parses header key:value pairs and the gfc/gfct data block of a standard ICGEM-format file (GRACE/GRACE-FO monthly solutions, static models, GOCE, EGM2008, etc.). Gzip- compressed files (.gfc.gz) are transparently decompressed.</p>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
-<tr><td><code>model</code></td><td>(1,1) struct  fields: C/S/sigmaC/sigmaS (nmax+1 x nmax+1 double), GM/R (1,1 double), nmax (1,1 double), tide (string), variable terms (trend/annual/semiannual) when present</td></tr>
+<tr><td><code>model</code></td><td>(1,1) struct  fields: C/S/sigmaC/sigmaS (nmax+1 x nmax+1 double), GM/R (1,1 double), nmax (1,1 double), tide (string), modelname (string), header (struct, the parsed file header) and variableTerms (struct array of trend/annual/semiannual terms, empty when the file carries none)</td></tr>
 </table>
 </div>
 <div class="entry" id="shLowLevel.shSpectralCrossover">
@@ -1370,7 +1370,7 @@ code itself.</p>
 <b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Height</code></td><td>1 x 1</td><td>double</td><td>250e3</td></tr><tr><td><code>Nmin</code></td><td>1 x 1</td><td>double</td><td>2</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
 <tr><td><code>comps</code></td><td>struct of (nlat,nlon) double [1/s^2]: uu, nn, ee, un, ue, ne  (symmetric tensor; 1 Eotvos = 1e-9 1/s^2). Components involving east are NaN at |lat| = 90.</td></tr>
-<tr><td><code>info</code></td><td>struct: maxTraceResidual (max |trace|/max|G| over the grid, excluding poles) - the built-in Laplace self-check</td></tr>
+<tr><td><code>info</code></td><td>struct: maxTraceResidual (max |trace|/max|G| over the grid, excluding poles) - the built-in Laplace self-check - plus r (1,1 double, the evaluation radius [m]) and Height (1,1 double [m], the option as given)</td></tr>
 </table>
 </div>
 <div class="entry" id="shLowLevel.signalVarianceKaula">
@@ -1505,8 +1505,8 @@ code itself.</p>
 <b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>NoiseCov</code></td><td>P x P</td><td>double</td><td>[]</td></tr><tr><td><code>Constraints</code></td><td>P x q</td><td>double</td><td>[]</td></tr><tr><td><code>SignalMode</code></td><td>n x m</td><td>-</td><td>&#x27;isotropic&#x27;</td></tr><tr><td><code>NIterSignal</code></td><td>1 x 1</td><td>double</td><td>3</td></tr><tr><td><code>Robust</code></td><td>1 x 1</td><td>logical</td><td>false</td></tr><tr><td><code>Shrinkage</code></td><td>1 x 1</td><td>double</td><td>0.1</td></tr><tr><td><code>VCEMinDegree</code></td><td>1 x 1</td><td>double</td><td>round(2/3 * idx.Lmax)</td></tr><tr><td><code>VCEBands</code></td><td>1 x :</td><td>double</td><td>[]</td></tr><tr><td><code>Blocks</code></td><td>n x m</td><td>-</td><td>&#x27;auto&#x27;</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
 <tr><td><code>Xf</code></td><td>(P,T) double   filtered series (deterministic part restored)</td></tr>
-<tr><td><code>op</code></td><td>struct         filter operator: Ut, V, lam, s, Ac, SA, M, idx, tYears, model, Xres, Xfres (use with shLowLevel.opApply / shLowLevel.basinDeconvolve / shLowLevel.resolutionMap)</td></tr>
-<tr><td><code>info</code></td><td>struct         noise/signal/VCE diagnostics; additionally info.sigmaXfres (P x T): 1-sigma posterior uncertainty of the filtered residual per coefficient/month, diag((I-W_t)S) = (V.^2)*(s_t*lam./(lam+s_t)) (validated to 3.5e-16 against the direct matrix product). With constraints (v2.5) this is the EXACT diagonal of (W-I)S(W-I)&#x27; + s*W*N*W&#x27; - the earlier unconstrained formula underestimated along constrained directions.</td></tr>
+<tr><td><code>op</code></td><td>struct         filter operator: layout (&#x27;full&#x27; | &#x27;blocks&#x27;, which of the two forms below is filled), Ut, V (layout &#x27;full&#x27;), blocks and sBlocks (layout &#x27;blocks&#x27;: the per-block eigenbases and the per-block variance factors), lam, s, Ac, SA, M, idx, tYears, model, Xres, Xfres, and detLeverage / detResVar (the deterministic fit&#x27;s leverage and residual variance, carried for the exact basin sigma of shLowLevel.basinDeconvolve) (use with shLowLevel.opApply / shLowLevel.basinDeconvolve / shLowLevel.resolutionMap)</td></tr>
+<tr><td><code>info</code></td><td>struct         noise/signal/VCE diagnostics: noise, signal, vce (the per-month variance factors s), lam, and sigmaNote (a string saying which posterior-sigma formula was used, empty when the filter is unconstrained); additionally info.sigmaXfres (P x T): 1-sigma posterior uncertainty of the filtered residual per coefficient/month, diag((I-W_t)S) = (V.^2)*(s_t*lam./(lam+s_t)) (validated to 3.5e-16 against the direct matrix product). With constraints (v2.5) this is the EXACT diagonal of (W-I)S(W-I)&#x27; + s*W*N*W&#x27; - the earlier unconstrained formula underestimated along constrained directions.</td></tr>
 </table>
 </div>
 <div class="entry" id="shLowLevel.twsChain">
@@ -2261,7 +2261,7 @@ code itself.</p>
 <b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td>required</td></tr></table>
 <b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Breaks</code></td><td>1 x :</td><td>double</td><td>-</td></tr><tr><td><code>Periods</code></td><td>1 x :</td><td>double</td><td>double.empty(1,0)</td></tr><tr><td><code>T0</code></td><td>1 x 1</td><td>double</td><td>NaN</td></tr><tr><td><code>ARCorrect</code></td><td>1 x 1</td><td>logical</td><td>false</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
-<tr><td><code>out</code></td><td>struct: trends per segment (shCoefficients), F/p per break, segment epochs</td></tr>
+<tr><td><code>out</code></td><td>(1,1) struct  NOT an shCoefficients - the coefficient matrices are plain (n1 x n1) doubles - fields breaks              (1 x B) double  the break epochs, as given [decimal years] t0                  (1,1) double  reference epoch used trend1C, trend1S    (n1 x n1) double  pre-break rate [units/yr], cosine and sine sigmaTrend1C, sigmaTrend1S  (n1 x n1) double  their 1-sigma hingeC, hingeS      (n1 x n1 x B) double  rate CHANGE at each break; the post-break rate is trend1 + cumsum over the hinges sigmaHingeC, sigmaHingeS  (n1 x n1 x B) double  1-sigma of the rate changes trendNoBreakC       (n1 x n1) double  rate of the no-break model, the F-test&#x27;s null sigmaTrendNoBreakC  (n1 x n1) double  its 1-sigma F, pValue           (n1 x n1) double  F statistic and p-value per cosine coefficient FS, pValueS         (n1 x n1) double  the same for the sine coefficients</td></tr>
 </table>
 </div>
 <div class="entry" id="shSeries.truncate">
@@ -2395,4 +2395,4 @@ code itself.</p>
 <tr><td><code>obj</code></td><td>(1 x 1) shClimatology   copy with the note appended to its history</td></tr>
 </table>
 </div>
-<hr><p style="font-size:11px;color:#888">Developed by Matthias Weigelt with the help of Claude (Fable 5), 08-Sep-2026 (v3.33.1). Generated by tools - do not edit.</p></body></html>
+<hr><p style="font-size:11px;color:#888">Developed by Matthias Weigelt with the help of Claude (Fable 5), 08-Sep-2026 (v3.34.0). Generated by tools - do not edit.</p></body></html>

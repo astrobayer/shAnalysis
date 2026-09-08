@@ -38,7 +38,8 @@ function [S, grid, info] = seaLevelFingerprint(loadRegion, ocean, idx, opts)
 %     S     (Ngrid,1) double  relative sea-level change over the ocean
 %                             [m per unit load], 0 on land
 %     grid  struct            latDeg/lonDeg rings of the solver grid
-%     info  struct: iterations, dS, massResidual [kg/m^2 sphere mean],
+%     info  struct: iterations, dS, converged (dS below the tolerance),
+%           massResidual [kg/m^2 sphere mean],
 %           eustatic [m], kappa, areaFractionOcean, S2D (nlat x nlon)
 %
 %   Limitations (documented): elastic only (no viscous GIA response),

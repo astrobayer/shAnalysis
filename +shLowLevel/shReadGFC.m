@@ -32,7 +32,9 @@ function model = shReadGFC(filename)
 %   Outputs
 %     model  (1,1) struct  fields: C/S/sigmaC/sigmaS (nmax+1 x nmax+1
 %            double), GM/R (1,1 double), nmax (1,1 double), tide (string),
-%            variable terms (trend/annual/semiannual) when present
+%            modelname (string), header (struct, the parsed file header)
+%            and variableTerms (struct array of trend/annual/semiannual
+%            terms, empty when the file carries none)
 %
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 

@@ -156,6 +156,14 @@ jobs:
             python3 "$t"
           done
 
+      # The number the self-hosted job's run is checked against. Counting
+      # by hand said 261 and the runner ran 268: '^function test' counts
+      # the script-based entry point and misses testPerformance's nine
+      # bench* rows and the parameterised expansion. Printed here so the
+      # prediction sits next to the run in the same workflow.
+      - name: Declared test count
+        run: python3 tools/dev/count_tests.py
+
   test:
     name: runAllTests (${{ matrix.os }})
     strategy:
