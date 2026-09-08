@@ -159,8 +159,8 @@ do not see; **L** = polish.
 | A4 | M | **CLOSED v3.33.1** — and much wider than stated — 13 files in `+shLowLevel` (Outputs, Options AND Inputs) and 52 class methods, 65 help blocks in all. Repaired against the source, not against either block: `readTN14`, `parseGraceFilename`, `resolutionMap`, `shAnalysisGrid`, `basinDeconvolve`, `buildSignalCov`, `vceRescale`, `mcPropagate` all documented fields, shapes or formulas the code does not produce. `help_audit.py` v3.0.2 rejects duplicate and below-the-footer sections; `fix_help.py` (the writer that injected them) refuses to add a second one. Original finding: Seven help blocks contain **two** `Outputs` sections (`errorMap`, `mcPropagate`, `parseGraceFilename`, `readTN14`, `resolutionMap`, `shSynthesis`, `shSynthesisDeformation`). `help_audit.py` checks presence, not uniqueness, so this passed. | sandbox scan of help blocks |
 | A5 | M | **CLOSED v3.33.1** — `docs/apiReference.html` deleted — nothing wrote it or read it. `doc_sync_audit.py` now fails on any HTML page outside `html/`, fault-injected. Original finding: `docs/apiReference.html` is a byte-identical copy of `html/apiReference.html`. Two locations, one authority rule violated; nothing compares them. | `cmp` |
 | A6 | L | **CLOSED v3.33.1** — README points at `ci.yml` instead of naming a tag it would have to keep in step (`fixture_tag_audit.py` already gates the tag itself). Original finding: README line 108 still says CI "pulls the orphan branch 'testdata'"; CI has pinned the tag `fixtures-2026-08` since v3.26.1/ci v2.9.0. | `README.md`, `ci.yml` |
-| A7 | M | **PARTIALLY CLOSED v3.34.0** — the Help browser now reaches a page per entity via `html/ref/index.html` in `helptoc.xml`. Still open: no `helpsearch-v*` database (browser search finds nothing) and no `demos.xml` (no Examples tab) — both are WP6 stage 2. Original finding: `doc` integration is incomplete: no `helpsearch-v*` database, no `demos.xml`, `info.xml` present. | `ls html/` |
-| A8 | M | **PARTIALLY CLOSED v3.34.0** — 199 generated pages under `html/ref/` share one stylesheet and one heading skeleton, gated by `refpages_audit.py`; the 196 entities that existed only inside the 304 KB monolith now each have a page. Still open: the 50 hand-written narrative pages keep their five vocabularies and their inline `<style>` — converting them is WP6 stage 2. Original finding: The 50 hand-written `html/` pages use five different heading vocabularies for the same thing ("See also"/"See Also", "Outputs"/"Output Arguments", "Example"/"Examples", "Inputs / Outputs", "Options") and each page inlines its own `<style>` block (no shared stylesheet). 196 API entities have a dedicated page only inside the 304 KB monolith. | heading histogram over `html/*.html` |
+| A7 | M | **CLOSED v3.34.0**, and partly wrong as written — `demos.xml` now exists, generated from the `demo_shAnalysis` registry (16 cases, gated both ways), and the Help browser reaches a page per entity via `html/ref/index.html`. The search database was **never missing as a capability**: `setup_shAnalysis(Docs=true)` has always run `builddocsearchdb` on `html/`; only the built index is absent from the repo, deliberately (a binary artifact belongs on the machine that searches it). No second option was added. **Unverified in Tier B**: whether `builddocsearchdb` descends into `html/ref/` — confirm on the acceptance machine. Original finding: `doc` integration is incomplete: no `helpsearch-v*` database, no `demos.xml`, `info.xml` present. | `ls html/` |
+| A8 | M | **CLOSED v3.34.0** — all 250 pages link one `html/shAnalysis.css`; the inline blocks turned out to be ONE stylesheet copied fifty times (49 byte-identical + one in the generated reference), so merging them lost nothing, and `make_apiref.py` emits the link so the copy cannot return. 46 structural headings renamed to one spelling. `doc_sync_audit.py` gates the stylesheet, the link and the heading vocabulary; `refpages_audit.py` gates the generated skeleton. Original finding: The 50 hand-written `html/` pages use five different heading vocabularies for the same thing ("See also"/"See Also", "Outputs"/"Output Arguments", "Example"/"Examples", "Inputs / Outputs", "Options") and each page inlines its own `<style>` block (no shared stylesheet). 196 API entities have a dedicated page only inside the 304 KB monolith. | heading histogram over `html/*.html` |
 | A9 | M | `testPerformance` asserts exactly one ratio (cache warm/cold) and one absolute bound (`dt < 5 s`); everything else is logged, not gated. There is no speed budget for `legendreALF`, `shSynthesis`, `shAnalysisGrid`, `applyDDK`, `leakageCorrect` or the Kalman step, so a 1.3× regression ships unnoticed. | `tests/testPerformance.m` |
 | A10 | L | **13 left** (`resolutionMap` closed in v3.34.0 with A13). Package functions never named in `tests/` : `antarcticaChain`, `buildSignalCov`, `gravisDataFolder`, `gridHandover`, `icgemDate2Year`, `opApply`, `pctile`, `plotBasinSeries`, `plotCovariance`, `shDestripe`, `shGaussianFilter`, `shSpectralCrossover`, `vceRescale`. Some are certainly exercised indirectly (`ts.destripe` → `shDestripe`); the point is that coverage by name is not measured. | name scan |
 | A15 | M | A3 is **wider than the audit's 12**: `kernelFactors` (`shSynthesis:missingLoveNumbers`, `:badQuantity`, `:heightInvalid`), `shSynthesisGradient` (`shSynthesis:badInput`) and `seaLevelFingerprint` (`shSynthesis:missingLoveNumbers`) also raise identifiers they do not own. Unlike `shSynthesisDeformation`'s, these ARE documented and pinned by `testContract`/`testCorrectness`, so renaming them is a MAJOR change. Belongs in WP1's identifier sweep, not in a patch. | `grep -rn "shSynthesis:" --include=*.m` |
@@ -352,7 +352,7 @@ are hygiene and can run in one release train (3.34.0 or 4.0.0, see WP1).
 | 5e `[ ]` | `shLowLevel.readGrid(ncfile, Var=…)` (netCDF → grid + metadata, inverse of `writeGrid`) so GLDAS/WGHM enter `shCoefficients.analysis` | `writeGrid` roundtrip; one GLDAS file | S |
 Version: MINOR per approved row.
 
-### WP6 — Documentation to the MathWorks layout   `[~] STAGE 1 DONE in v3.34.0`
+### WP6 — Documentation to the MathWorks layout   `[~] STAGES 1-2 DONE in v3.34.0`
 
 **Stage 1 (done)**: `make_refpages.py` + `html/shAnalysis.css` + the
 `refpages_audit.py` gate + `helptoc.xml` entry — 199 pages, one skeleton,
@@ -362,10 +362,15 @@ Version History, FAILS its own >80% bar (74% strict / 81% loose-and-wrong)
 and is dropped; item (3)'s "existing tag categories" do not exist in the
 data (helptoc-derived mapping: 163/198, 75 in one catch-all), so topic
 categories need an editorial decision from Matthias.
-**Stage 2 (open)**: convert the 50 narrative pages to the shared stylesheet
-and heading vocabulary; `demos.xml`; `setup_shAnalysis(BuildSearch=true)`
-building `helpsearch-v4` locally; retire the hand-written duplicates that
-a generated page now supersedes.
+**Stage 2 (done in v3.34.0)**: the 50 narrative pages link the shared
+stylesheet and use one structural heading vocabulary (A8 closed);
+`demos.xml` generated from the demo registry (A7's Examples tab);
+`setup_shAnalysis(Docs=true)` already built the search index, so no
+`BuildSearch` option was added — the WP proposed something that existed.
+**Stage 3 (open)**: retire the hand-written pages a generated page now
+supersedes. Deferred deliberately: `doc_sync_audit`'s COVERAGE check
+requires every entity to be named in a NARRATIVE page or the guide, so
+deleting pages changes what that check means and needs its own decision.
 
 Original scope below.
 
