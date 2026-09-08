@@ -81,8 +81,13 @@ New tests assert a property each function's own help states:
 - `shClimatology.fromCoef` honours its documented row layout, one
   distinct constant per row so a swapped mapping is visible
 
-268/269 -> 300/301 tests. `runAllTests` is the verification: these were
-authored without a MATLAB interpreter and checked statically only.
+268/269 -> 300/301 tests, and the self-hosted runner executed **exactly
+301** - the prediction matched. 296 passed, 4 filtered (the optional
+real-data fixtures), 1 failed: `testCompareDelegatesToCompareSolutions`
+gave `compareSeries` 8 epochs where it requires >= 12 common ones. That
+guard is an `error` a hundred lines into the function, not part of its
+`arguments` block, so reading the signature was not enough. Fixed by
+giving the fixture two full years.
 
 ### Fixed - `demos.xml` carries the version stamp, and nothing said so
 

@@ -533,7 +533,7 @@ Original scope below.
 | audit 2026-09-08 | ☑ read | — | — | — |
 | WP0 (v3.33.1) | ☑ 9 gates + 4 self-test suites, 0 findings | ☑ CI self-hosted (A8), green — 268 runs | ☑ PR #95 | ◐ pending |
 | v3.34.0 (A7, A8, A12, A13, A16, WP6.1+2) | ☑ 12 gate steps + 6 self-test suites, 0 findings | ☑ **CI self-hosted (A8), green — 269 runs, 265 passed, 4 filtered** | ☑ PR #95 | ◐ pending |
-| v3.34.1 (A10, A17, A18, A19-partial) | ☑ 11 gates + 8 self-test suites + mlint, 0 findings | ◐ **PREDICTED 300 methods / 301 runs — not yet run** | ◐ pending | ◐ pending |
+| v3.34.1 (A10, A17, A18, A19-partial) | ☑ 13 gates + 8 self-test suites + mlint, 0 findings | ◑ **A8 ran 301 — the prediction matched EXACTLY** (296 passed, 1 failed, 4 filtered). The one failure was a new test of mine, `testCompareDelegatesToCompareSolutions`: `compareSeries` needs >= 12 common epochs and it gave 8. Fixed; re-run pending. | ◐ pending | ◐ pending |
 
 **Tier A debt: DISCHARGED for both releases.** The local MATLAB bridge is
 gone, but the self-hosted runner A8 is not: `runAllTests (self-hosted)`
@@ -601,11 +601,16 @@ about the source.
   are fine and the repo already uses them; parenthesised expressions and
   plain function calls are not. Run it on every changed `.m`, and read the
   new tests for the same shape it cannot see (`mk(1).FieldKind`).
-- **Read the delegate before testing it.** `shSeries.compare` goes to
-  `compareSeries`, not `compareSolutions` like `shCoefficients.compare`;
-  `ts.climatology()` needs >= 6 epochs; `shCoefficients` properties are
-  `SetAccess = private` so a test cannot set an epoch. Each of those was a
-  test written wrong first and corrected against the source.
+- **Read the delegate's GUARDS, not only its options.** `shSeries.compare`
+  goes to `compareSeries`, not `compareSolutions` like
+  `shCoefficients.compare`; `ts.climatology()` needs >= 6 epochs;
+  `compareSeries` needs >= 12 COMMON epochs; `shCoefficients` properties
+  are `SetAccess = private` so a test cannot set an epoch. The first three
+  were caught statically by reading the source; the fourth (12 epochs) was
+  NOT — its `arguments` block says nothing, the guard is an `error` a
+  hundred lines in, and it cost the one red test of v3.34.1. When writing
+  a test for a function you cannot run, grep it for `error(` and `assert(`
+  before choosing fixture sizes.
 - **Do not write a number into this file that you did not just read.** The
   v3.34.1 per-class test counts were guessed (161/68) and were wrong
   (159/70) — in the same edit that closed a finding about unmeasured facts.

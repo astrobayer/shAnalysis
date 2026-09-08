@@ -1750,7 +1750,10 @@ verifyEqual(testCase, same.spatial.rmsd, 0, 'AbsTol', 1e-18);
 
 % shSeries.compare is a DIFFERENT delegate - shLowLevel.compareSeries -
 % which prepends the object as the reference series.
-L = 6; T = 8;
+% compareSeries needs >= 12 COMMON epochs (its own guard, line ~112) and
+% fits trends and phase lags, so give it two full years rather than the
+% bare minimum.
+L = 6; T = 24;
 Cs = zeros(L+1, L+1, T);  Ss = zeros(L+1, L+1, T);
 for k = 1:T
     Cs(:, :, k) = tril(randn(L+1));
