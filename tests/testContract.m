@@ -455,7 +455,7 @@ for t = 1:T
     Ss(:, :, t) = tril(Ss(:, :, t), -1); Ss(:, 1, t) = 0;
 end
 ts = shSeries(Cs, Ss = Ss, Epochs = [2010.1 2010.2]);
-tmp = fullfile(tempdir, sprintf('shx_anim_%d.avi', randi(1e9)));  % CI-portable
+tmp = [tempname '.avi'];                                          % CI-portable
 cleanup = onCleanup(@() deleteIfThere(tmp)); %#ok<NASGU>
 % v3.32.0: geoMap draws the frames and is not on this machine, so what
 % is exercised here is the CONTAINER - codec choice, extension
@@ -894,7 +894,7 @@ if had
 else
     restore = onCleanup(@() shLowLevel.dataFolder("reset")); %#ok<NASGU>
 end
-tmp = fullfile(tempdir, sprintf('shx_data_%d', randi(1e9)));
+tmp = tempname;
 f = shLowLevel.dataFolder(tmp);
 verifyEqual(testCase, char(f), char(string(tmp)));
 verifyTrue(testCase, isfolder(f));
@@ -1117,7 +1117,7 @@ function testSafeMoveContract(testCase)
 %   the file, VERIFY the outcome rather than trust the status flag,
 %   retry a configurable number of times, and fail with an actionable
 %   identifier rather than a bare OS message.
-d = fullfile(tempdir, sprintf('shx_move_%d', randi(1e9)));
+d = tempname;
 mkdir(d);
 cl = onCleanup(@() rmIfFolder(d)); %#ok<NASGU>
 src = fullfile(d, 'a.bin');
@@ -1168,7 +1168,7 @@ function testSafeMoveSurvivesALockedDestination(testCase)
 %   for - which is also the acceptance machine.
 assumeTrue(testCase, ispc, ...
     'file locking during a move is Windows behaviour');
-d = fullfile(tempdir, sprintf('shx_lock_%d', randi(1e9)));
+d = tempname;
 mkdir(d);
 cl = onCleanup(@() rmIfFolder(d)); %#ok<NASGU>
 src = fullfile(d, 'a.bin');
@@ -1210,7 +1210,7 @@ function testStandardChainHandlesTrailingCorrectionTables(testCase)
 %   made routine use of an up-to-date series impossible. Uncovered
 %   epochs are now dropped and the fact recorded in the report.
 dd = shxTestDataDir();
-fol = fullfile(tempdir, sprintf('shx_chain_%d', randi(1e9)));
+fol = tempname;
 mkdir(fol);
 cl = onCleanup(@() rmIfFolder(fol)); %#ok<NASGU>
 
@@ -1240,7 +1240,7 @@ verifyError(testCase, @() shLowLevel.standardChain(fol, ...
     'shLowLevel:standardChain:uncoveredEpochs');
 
 % a series with no overlap at all is a different mistake and says so
-folF = fullfile(tempdir, sprintf('shx_chain_f_%d', randi(1e9)));
+folF = tempname;
 mkdir(folF);
 clF = onCleanup(@() rmIfFolder(folF)); %#ok<NASGU>
 g.write(fullfile(folF, 'ITSG-Grace2018_n60_2099-07.gfc'), Sidecar = false);
@@ -1257,7 +1257,7 @@ function testProvenanceSidecarsDoNotBreakTheRoundTrip(testCase)
 %   read back BY the toolbox. Also pins that the class API can switch the
 %   sidecar off, which it previously could not.
 dd = shxTestDataDir();
-fol = fullfile(tempdir, sprintf('shx_sidecar_%d', randi(1e9)));
+fol = tempname;
 mkdir(fol);
 cl = onCleanup(@() rmIfFolder(fol)); %#ok<NASGU>
 g = shCoefficients.read(fullfile(dd, 'ITSG-Grace2018_n60_2008-04.gfc'));
@@ -1287,7 +1287,7 @@ function testMakeTutorialsFollowsTheRegistry(testCase)
 %   from it within a release - and .mlx is a binary zip, so the drift
 %   would not even show in a diff. Pin that every case gets a tutorial
 %   and that the content comes from the registry.
-d = fullfile(tempdir, sprintf('shx_tut_%d', randi(1e9)));
+d = tempname;
 cl = onCleanup(@() rmIfFolder(d)); %#ok<NASGU>
 
 out = shLowLevel.makeTutorials(Dest = d, Cases = ["D01" "D05"], ...

@@ -199,6 +199,33 @@ radius, every kilometre figure scales exactly with it, and `anisotropy`
 field names, and it takes `resolutionMap` off A10's list of functions
 never named in a test. Declared test count 268 methods / 269 runs.
 
+### Fixed - ten tests whose temp folder a killed run could poison
+
+`runAllTests (self-hosted)` failed on
+`testProvenanceSidecarsDoNotBreakTheRoundTrip` with
+
+```
+[Warning: Directory already exists.]
+[Warning: ...\shx_sidecar_176639289\plain.gfc: 1502 of 1891 coefficient
+ records (degrees 0..54) for the header's max_degree 60 - truncated file?]
+Error ID: 'shSeries:sizeMismatch'
+All epochs must share nmax (epoch 3 has 54, expected 60)
+```
+
+Two CI runs had been **cancelled** mid-suite by the next push. A killed
+MATLAB process runs no `onCleanup`, so a half-written `plain.gfc` stayed
+behind in the runner's temp folder - and the folder name,
+`sprintf('shx_sidecar_%d', randi(1e9))`, is reproducible whenever the rng
+state at that point is, so the next run walked straight back into it and
+read the truncated file as a third epoch.
+
+Ten tests built their temp path that way. They now use `tempname`, which
+is the pattern this repo already documents in `tests/rmIfFolder.m` and
+uses in eight other places: it returns a path that does not exist, so no
+leftover can be found and no two runs can collide. The test was never
+skipped, widened or given a tolerance - it isolates itself now, which is
+what it should always have done.
+
 ### Fixed - two gates that were not looking where they claimed
 
 - `attribution_sweep.py` globbed `html/*.html`, so it kept reporting 50

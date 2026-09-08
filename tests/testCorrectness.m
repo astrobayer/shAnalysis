@@ -3596,7 +3596,7 @@ function testFetchITSGMonthsArrayOffline(testCase)
 %   setup(Download="all") starter level with the operator-&& array
 %   error (2026-08-18). Offline: BaseURL points at an empty local
 %   folder, so both months are reported missing, no network involved.
-tmp = fullfile(tempdir, sprintf('shx_itsg_%d', randi(1e9)));
+tmp = tempname;
 mkdir(fullfile(tmp, 'ITSG-Grace2018', 'monthly', 'monthly_n96'));
 mkdir(fullfile(tmp, 'ITSG-Grace_operational', 'monthly', 'monthly_n96'));
 dst = fullfile(tmp, 'out');
