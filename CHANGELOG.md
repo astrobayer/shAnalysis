@@ -123,6 +123,33 @@ rather than papered over:
   derivable - classes, class methods, package functions, root functions,
   plus an A-Z list - and topic categories wait for an editorial decision.
 
+### Added - WP6 stage 2: one look, one vocabulary, an Examples tab
+
+- **The 50 hand-written pages now link `html/shAnalysis.css`.** They had
+  carried an inline `<style>` block each - and only **two were distinct**:
+  49 were byte-identical and one more sat in the generated
+  `apiReference.html`. One stylesheet copied fifty times is exactly what
+  A8 described. `make_apiref.py` emits the link instead of the block, so
+  the copy cannot come back with the next regeneration.
+- **One spelling per structural heading.** 46 headings were renamed:
+  `See also` -> `See Also` (34), `Outputs` -> `Output Arguments` (7),
+  `Example` -> `Examples` (6), `Inputs` -> `Input Arguments`,
+  `Inputs / Outputs` -> `Arguments` (5, where one table genuinely covers
+  both). Narrative pages keep their own page-specific headings; only the
+  structural ones are pinned.
+- **`demos.xml`** (`tools/dev/make_demos.py`), derived from the case
+  registry inside `demo_shAnalysis.m` so a case cannot exist in one and
+  not the other. 16 cases, each with a `demo_shAnalysis("Dnn")` callback.
+- `doc_sync_audit.py` gates all three: no inline `<style>` anywhere in
+  `html/`, every page links the stylesheet, structural headings use the
+  house spelling, and `demos.xml` matches the registry both ways. Six
+  more fault injections.
+
+`setup_shAnalysis(Docs=true)` already ran `builddocsearchdb` on `html/` -
+the audit's A7 missed it, so no second option was added; its help now
+says the index covers `html/ref/` too and explains why the binary index
+is not committed.
+
 ### Fixed - two gates that were not looking where they claimed
 
 - `attribution_sweep.py` globbed `html/*.html`, so it kept reporting 50

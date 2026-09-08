@@ -141,3 +141,60 @@ ul.index li { break-inside: avoid; margin-bottom: 0.2rem; }
   .page { padding: 1rem 0.85rem 2rem; }
   h1 { font-size: 1.4rem; }
 }
+
+/* ------------------------------------------------------------------ *
+ * Narrative pages and the generated apiReference.
+ *
+ * These rules were 49 byte-identical inline <style> blocks (the
+ * narrative pages) plus one more in apiReference.html - one stylesheet
+ * copied fifty times, which is what A8 found. They live here now, and
+ * refpages_audit.py fails on any <style> left in html/.
+ * ------------------------------------------------------------------ */
+
+.content {
+  max-width: 62rem;
+  margin: 0 auto;
+  padding: 1.5rem 2rem 3.75rem;
+}
+
+code.inline {
+  background: var(--panel);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+.tag {
+  display: inline-block;
+  background: var(--accent);
+  color: var(--link);
+  border-radius: 3px;
+  padding: 1px 7px;
+  font-size: 0.79rem;
+  margin-right: 6px;
+}
+
+.seealso a { margin-right: 14px; }
+
+.note {
+  background: #fff8e6;
+  border-left: 3px solid #e0b400;
+  padding: 0.5rem 0.75rem;
+  margin: 0.75rem 0;
+}
+
+.provenance,
+p.ver {
+  margin-top: 2.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--rule);
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+/* apiReference.html: one entry per entity, stacked */
+.entry {
+  border-top: 1px solid var(--rule);
+  padding: 0.75rem 0;
+}
+.h1line { font-weight: 600; }
+.toc a { margin-right: 10px; }

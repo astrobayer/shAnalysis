@@ -171,6 +171,9 @@ jobs:
       - name: Reference pages match the help blocks
         run: python3 tools/dev/refpages_audit.py
 
+      - name: Examples tab matches the demo registry
+        run: python3 tools/dev/make_demos.py --check
+
   test:
     name: runAllTests (${{ matrix.os }})
     strategy:

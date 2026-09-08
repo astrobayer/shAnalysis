@@ -590,6 +590,69 @@ def main():
             probs.append("%s is documented ONLY in the generated API "
                          "reference - no narrative page or guide section" % k)
 
+    # --- DEMOS: the Examples tab is derived from the registry inside
+    # demo_shAnalysis.m, so a case cannot exist in one and not the other.
+    dx = os.path.join(ROOT, "demos.xml")
+    if not os.path.isfile(dx):
+        probs.append("demos.xml is missing - run tools/dev/make_demos.py")
+    else:
+        try:
+            import xml.etree.ElementTree as ET
+            root_el = ET.parse(dx).getroot()
+            labels = [it.findtext("label") or ""
+                      for it in root_el.findall(".//demoitem")]
+        except Exception as exc:                       # noqa: BLE001
+            probs.append("demos.xml does not parse: %s" % exc)
+            labels = []
+        with open(os.path.join(ROOT, "demo_shAnalysis.m"),
+                  encoding="utf-8") as fh:
+            ids = re.findall(r'^\s*mk\("(D\d+)"', fh.read(), re.M)
+        for cid in ids:
+            if not any(x.startswith(cid) for x in labels):
+                probs.append("demos.xml: no entry for demo case %s - run "
+                             "tools/dev/make_demos.py" % cid)
+        for lab in labels:
+            cid = lab.split()[0]
+            if cid not in ids:
+                probs.append("demos.xml: entry %s is not in the "
+                             "demo_shAnalysis registry" % cid)
+
+    # --- ONE LOOK, ONE VOCABULARY (A8). Fifty pages each carried the
+    # SAME inline <style> block - one stylesheet copied fifty times - and
+    # the same section went by "See also"/"See Also", "Example"/
+    # "Examples", "Outputs"/"Output Arguments"/"Inputs / Outputs".
+    # Page-specific narrative headings stay free; only the structural
+    # ones are pinned, and only to their canonical spelling.
+    CANON = {"see also": "See Also", "example": "Examples",
+             "examples": "Examples", "outputs": "Output Arguments",
+             "inputs": "Input Arguments",
+             "inputs / outputs": "Arguments", "inputs/outputs": "Arguments",
+             "output arguments": "Output Arguments",
+             "input arguments": "Input Arguments", "arguments": "Arguments",
+             "syntax": "Syntax", "description": "Description",
+             "options": "Options"}
+    css = os.path.join(ROOT, "html", "shAnalysis.css")
+    if not os.path.isfile(css):
+        probs.append("html/shAnalysis.css is missing - it is the one "
+                     "authority for the look of every page")
+    for fn in sorted(os.listdir(HTML)):
+        if not fn.endswith(".html"):
+            continue
+        with open(os.path.join(HTML, fn), encoding="utf-8") as fh:
+            d = fh.read()
+        if "<style" in d:
+            probs.append("%s: inline <style> - link html/shAnalysis.css "
+                         "instead; fifty copies of one stylesheet is what "
+                         "A8 found" % fn)
+        if 'href="shAnalysis.css"' not in d:
+            probs.append("%s: does not link the shared stylesheet" % fn)
+        for m in re.finditer(r"<(h[23])[^>]*>(.*?)</\1>", d, re.S):
+            raw = re.sub(r"<[^>]+>", "", m.group(2)).strip()
+            canon = CANON.get(raw.lower())
+            if canon and canon != raw:
+                probs.append("%s: heading '%s' - the house spelling is "
+                             "'%s'" % (fn, raw, canon))
+
     # --- ONE LOCATION: html/ is the only page authority. docs/ carried a
     # byte-identical copy of the generated apiReference.html for months;
     # nothing wrote it, nothing read it, and nothing compared the two, so

@@ -524,19 +524,19 @@ count; see A16.
 
 ### 6.4 Next action
 
-WP0, A12 (mostly), A14 and A16 are done and on PR #95. In progress on the
-same branch, in this order:
+Done and on PR #95: WP0, A12 (mostly), A14, A16, and WP6 stages 1 and 2
+(A7 and A8 closed). Remaining Tier-B work, in this order:
 
-1. **WP6 stage 2** — convert the 50 narrative pages to `html/shAnalysis.css`
-   and the one heading vocabulary (closes A8), `demos.xml` for the Examples
-   tab, `setup_shAnalysis(BuildSearch=true)` to build `helpsearch-v4`
-   locally (closes A7), retire the hand-written pages a generated page now
-   supersedes. Entirely Tier B except the one `builddocsearchdb` call,
-   which runs on the user's machine and not in the build.
-2. **A12's remaining 77 prose rows** — converting one to the field-list form
-   moves it into the gate's verified count and gives the reference page a
-   real argument table. The two jobs are the same edit.
-3. **A13** — `resolutionMap`'s hardcoded `R = 6371`.
+1. **A12's remaining 77 prose rows** — converting one to the field-list
+   form moves it into the gate's verified count AND gives its reference
+   page a real argument table. The two jobs are the same edit, so this is
+   now the highest-value row left.
+2. **A13** — `resolutionMap`'s hardcoded `R = 6371`.
+3. **WP6 stage 3** — retiring the narrative pages a generated page
+   supersedes; needs a decision on what `doc_sync_audit`'s COVERAGE check
+   should mean afterwards.
+4. **A9/A10** — the speed budgets need Tier A (WP2), but the coverage-by-
+   name gap (A10) can be measured from a sandbox.
 
 The one thing that needs Matthias:
 
