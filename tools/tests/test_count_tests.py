@@ -76,21 +76,28 @@ class TestCounting(unittest.TestCase):
         self.assertEqual(c["runs"], c["methods"])
 
 
+EXPECTED_RUNS = 301          # v3.34.1: 269 + 32 for A10/A18
+
+
 class TestRepository(unittest.TestCase):
     def test_this_repository_counts(self):
+        """The tripwire: bump EXPECTED_RUNS with any test added or removed.
+
+        It is deliberately an absolute number - the whole point of A16 is
+        that the prediction is checked against what the runner executed.
+        """
         tests = os.path.join(ROOT, "tests")
         total = sum(ct.count_file(os.path.join(tests, f))["runs"]
                     for f in os.listdir(tests)
                     if f.startswith("test") and f.endswith(".m"))
-        # the number the self-hosted runner is expected to execute; bump
-        # it in the same commit as any test added or removed
-        self.assertEqual(total, 269)
+        self.assertEqual(total, EXPECTED_RUNS)
 
     def test_mismatch_is_a_finding(self):
         self.assertEqual(ct.main(["--executed", "1"]), 1)
 
     def test_match_is_not(self):
-        self.assertEqual(ct.main(["--executed", "269"]), 0)
+        # one authority for the number, even inside this file
+        self.assertEqual(ct.main(["--executed", str(EXPECTED_RUNS)]), 0)
 
 
 if __name__ == "__main__":

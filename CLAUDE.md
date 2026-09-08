@@ -23,13 +23,13 @@ says whether it was *read* or *inferred*.
 
 | Fact | Value | Evidence |
 |---|---|---|
-| Version | **3.34.0**, 08-Sep-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
+| Version | **3.34.1**, 08-Sep-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
 | Branches | `main` only; `claude/getframe-recapture` and `claude/readshm` are gone (merged/deleted) | `GET /branches` |
 | Public surface | 3 classes / 71 methods, 122 `+shLowLevel` functions (+4 private), 3 root functions | `tools/dev/api_extract.py` run in sandbox |
-| Tests | 5 classes, **268 methods / 269 runs**: Correctness 136, Contract 61, Robustness 53, Science 7, Performance 11 methods (12 runs, `nmaxP` x2). 3 filter out without the optional real-data fixtures. The 268/269 baseline was reconciled against the self-hosted run of PR #95 at 267/268, +1 for `testResolutionMapRadiusIsAChoice`. | `python3 tools/dev/count_tests.py` |
+| Tests | 5 classes, **300 methods / 301 runs**: Correctness 159, Contract 70, Robustness 53, Science 7, Performance 11 methods (12 runs, `nmaxP` x2). 4 filter out without the optional real-data fixtures. v3.34.1 added 32 for A10/A18; the 268/269 baseline before it was confirmed exactly by the self-hosted run at `5acf14c`. | `python3 tools/dev/count_tests.py` |
 | Python oracles | 16 `tools/dev/validate_*.py` + `tools/audit/*` | listing |
-| Docs | 50 hand-written `html/*.html` + **199 generated `html/ref/*.html`** (one per entity + index, `make_refpages.py`), one shared `html/shAnalysis.css`, `helptoc.xml`, `info.xml`, guide PDF, generated `html/apiReference.html`. `docs/` holds the PDF and `apiExamples.json` only - no HTML page lives outside `html/` (gated). | listing |
-| CI | `gates` job on ubuntu (help_audit, doc_sync_audit, no_map_renderer, toolbox_dependency_audit, nv_casing_audit, fixture_tag_audit, gate self-tests `tools/tests/`, `count_tests`, `refpages_audit`) + `runAllTests (self-hosted)` on A8/R2026a; fixtures from tag `fixtures-2026-08` | `.github/workflows/ci.yml` |
+| Docs | 50 hand-written `html/*.html` + **200 generated `html/ref/*.html`** (one per entity + index, `make_refpages.py`), one shared `html/shAnalysis.css`, `helptoc.xml`, `info.xml`, guide PDF, generated `html/apiReference.html`. `docs/` holds the PDF and `apiExamples.json` only - no HTML page lives outside `html/` (gated). | listing |
+| CI | `gates` job on ubuntu (help_audit, doc_sync_audit, no_map_renderer, toolbox_dependency_audit, nv_casing_audit, fixture_tag_audit, gate self-tests `tools/tests/`, `count_tests`, `name_coverage`, `refpages_audit`) + `runAllTests (self-hosted)` on A8/R2026a; fixtures from tag `fixtures-2026-08` | `.github/workflows/ci.yml` |
 | Namespace | `+shLowLevel` (renamed from `+shx` in v3.0.0). Any memory saying `shx.*` is stale. | README §History |
 
 ### 1.1 Already implemented — do NOT propose again
@@ -162,7 +162,10 @@ do not see; **L** = polish.
 | A7 | M | **CLOSED v3.34.0**, and partly wrong as written — `demos.xml` now exists, generated from the `demo_shAnalysis` registry (16 cases, gated both ways), and the Help browser reaches a page per entity via `html/ref/index.html`. The search database was **never missing as a capability**: `setup_shAnalysis(Docs=true)` has always run `builddocsearchdb` on `html/`; only the built index is absent from the repo, deliberately (a binary artifact belongs on the machine that searches it). No second option was added. **Unverified in Tier B**: whether `builddocsearchdb` descends into `html/ref/` — confirm on the acceptance machine. Original finding: `doc` integration is incomplete: no `helpsearch-v*` database, no `demos.xml`, `info.xml` present. | `ls html/` |
 | A8 | M | **CLOSED v3.34.0** — all 250 pages link one `html/shAnalysis.css`; the inline blocks turned out to be ONE stylesheet copied fifty times (49 byte-identical + one in the generated reference), so merging them lost nothing, and `make_apiref.py` emits the link so the copy cannot return. 46 structural headings renamed to one spelling. `doc_sync_audit.py` gates the stylesheet, the link and the heading vocabulary; `refpages_audit.py` gates the generated skeleton. Original finding: The 50 hand-written `html/` pages use five different heading vocabularies for the same thing ("See also"/"See Also", "Outputs"/"Output Arguments", "Example"/"Examples", "Inputs / Outputs", "Options") and each page inlines its own `<style>` block (no shared stylesheet). 196 API entities have a dedicated page only inside the 304 KB monolith. | heading histogram over `html/*.html` |
 | A9 | M | `testPerformance` asserts exactly one ratio (cache warm/cold) and one absolute bound (`dt < 5 s`); everything else is logged, not gated. There is no speed budget for `legendreALF`, `shSynthesis`, `shAnalysisGrid`, `applyDDK`, `leakageCorrect` or the Kalman step, so a 1.3× regression ships unnoticed. | `tests/testPerformance.m` |
-| A10 | L | **13 left** (`resolutionMap` closed in v3.34.0 with A13). Package functions never named in `tests/` : `antarcticaChain`, `buildSignalCov`, `gravisDataFolder`, `gridHandover`, `icgemDate2Year`, `opApply`, `pctile`, `plotBasinSeries`, `plotCovariance`, `shDestripe`, `shGaussianFilter`, `shSpectralCrossover`, `vceRescale`. Some are certainly exercised indirectly (`ts.destripe` → `shDestripe`); the point is that coverage by name is not measured. | name scan |
+| A10 | L | **CLOSED v3.34.1** — and the finding was **larger than recorded**: 13 package functions plus **22 public class methods** (A18). `tools/dev/name_coverage.py` measures it now, over the whole public surface, with comments stripped so a name in a `% see also` line does not count; it states its own reach in its last line (naming is not exercise). 32 new tests, each asserting a property the function's own help states. One allowed exception, `runAllTests`, with its reason in the gate. Original finding: package functions never named in `tests/`, coverage by name not measured. | `python3 tools/dev/name_coverage.py` |
+| A17 | M | **CLOSED v3.34.1** — `gridHandover` continues its signature with `...`, so `api_extract.py` (single-line regex) parsed the file to NOTHING: no entity in `api_data.py`, no reference page, while `apiReference.html` sent the reader to "as built by shLowLevel.gridHandover, which documents every field". `refpages_audit`'s COVER check compares pages against that same artifact, so it was silent by construction. **Four parsers of the public surface exist; two were blind the same way and agreed with each other** — which is why the new SURFACE check in `doc_sync_audit.py` compares against the FILESYSTEM (MATLAB's file/function rule is ground truth), not a second parser. `api_extract` now refuses to write an incomplete artifact. Pinned by `tools/tests/test_api_extract.py` (5 of 7 fail pre-fix). | `python3 tools/doc_sync_audit.py` |
+| A18 | M | **CLOSED v3.34.1** — A10's blind spot was not only the package: **22 public class methods** were named by no test either — every operator (`plus`, `minus`, `uminus`, `mtimes`, `times`), `disp` on all three classes, `compare`, `fan`, `spectrum`, `triangle`, and eight `shClimatology` methods. Operators were deliberately NOT allowlisted: they are callable by name, and a test checking `plus(a,b)` against `a + b` is stronger than one checking either alone. | `python3 tools/dev/name_coverage.py` |
+| A19 | M | **OPEN, partially closed.** `opApply`'s help offered `mode` values `'apply' | 'applyT'` that the arguments block rejects (`'forward' | 'transp'`) — the same help block's syntax lines had it right. Fixed and pinned in v3.34.1, found while writing the A10 test, not by any gate. **The general check is not built**: a crude scan (any quoted word on a comment line naming the option) produced 25 hits of which 24 were false positives — output-field docs, prose, and the wrong method's options in a class file. A correct gate must scope each help row to its OWN arguments block; `api_data.py` already carries exactly that pairing (`args[].validators` + `args[].desc`), so the instrument is cheap — it just has to be written against the scoped data, not by grepping. | `grep -n "mustBeMember" +shLowLevel/*.m` |
 | A15 | M | A3 is **wider than the audit's 12**: `kernelFactors` (`shSynthesis:missingLoveNumbers`, `:badQuantity`, `:heightInvalid`), `shSynthesisGradient` (`shSynthesis:badInput`) and `seaLevelFingerprint` (`shSynthesis:missingLoveNumbers`) also raise identifiers they do not own. Unlike `shSynthesisDeformation`'s, these ARE documented and pinned by `testContract`/`testCorrectness`, so renaming them is a MAJOR change. Belongs in WP1's identifier sweep, not in a patch. | `grep -rn "shSynthesis:" --include=*.m` |
 | A14 | M | **CLOSED v3.33.1** — the three gate self-tests in `tools/tests/` (committed in v3.32/v3.33) were **never run by CI**, and `test_legacy_name_tolerated` had been broken since the v3.33.0 sweep drained `LEGACY` to empty — an untested instrument, silently. CI now runs `tools/tests/`; the stale test asserts the mechanism with a temporary entry instead of pinning a member name. | `.github/workflows/ci.yml` before/after |
 | A13 | L | **CLOSED v3.34.0** — the km conversion is the `RadiusKm` option, default unchanged at 6371 so no number moves, documented as the MEAN radius (deliberately not the coefficients' reference radius 6378.1363 km) and overridable. Pinned by `testResolutionMapRadiusIsAChoice`, a metamorphic test: the angular half-widths are radius-invariant, every km figure scales exactly with it, and `anisotropy` — a ratio — does not. That test also removes `resolutionMap` from A10's never-named list. | `+shLowLevel/resolutionMap.m` |
@@ -442,6 +445,29 @@ Original scope below.
 ## 6. Records
 
 ### 6.1 Decisions (append-only; date, decision, evidence)
+- 2026-09-08 — **A10 was closed over the WHOLE public surface, not the 13
+  recorded.** Measuring it turned up 22 more (A18). The gate covers package
+  functions, root functions and public class methods together, because a
+  gate scoped to the convenient part of a surface is how A10 stayed open.
+- 2026-09-08 — **Operators are not allowlisted.** `plus`/`minus`/`times`/
+  `mtimes`/`uminus`/`disp` are reachable by name, so the tests call them by
+  name and check the result against the operator syntax. The allowlist holds
+  exactly one entry, `runAllTests`, which cannot name itself without
+  recursing.
+- 2026-09-08 — **The name-coverage gate's claim is deliberately narrow and
+  says so in its own output.** It proves a test mentions the entity in
+  executable code; it does not prove the test asserts anything. An entity
+  reached only indirectly still counts as uncovered — that is the point,
+  since an indirect test is exactly what misses a rename in the callee.
+- 2026-09-08 — **A19's general gate was NOT built, deliberately.** A crude
+  scan for "documented option values the arguments block rejects" produced
+  25 hits, 24 of them false (output-field docs, prose, the wrong method's
+  options inside a class file). Shipping it would have repeated the A12
+  checker's history of confident nonsense. The correct instrument scopes
+  each help row to its own arguments block, and `api_data.py` already pairs
+  them; it is cheap, but it is a separate row, not a bolt-on to this one.
+- 2026-09-08 — v3.34.1 is a PATCH: a parser fix, a wrong help row, a new
+  gate and 32 tests. No documented call or identifier changed.
 - 2026-09-08 — Handover document retired to `tools/dev/HANDOVER_shAnalysis_RETIRED.md`;
   `CLAUDE.md` is the single point of truth. Evidence: PR `wp0-record`.
   *(§5 work packages still pending Matthias's approval.)*
@@ -499,6 +525,7 @@ Original scope below.
 | audit 2026-09-08 | ☑ read | — | — | — |
 | WP0 (v3.33.1) | ☑ 9 gates + 4 self-test suites, 0 findings | ☑ CI self-hosted (A8), green — 268 runs | ☑ PR #95 | ◐ pending |
 | v3.34.0 (A7, A8, A12, A13, A16, WP6.1+2) | ☑ 12 gate steps + 6 self-test suites, 0 findings | ☑ **CI self-hosted (A8), green — 269 runs, 265 passed, 4 filtered** | ☑ PR #95 | ◐ pending |
+| v3.34.1 (A10, A17, A18, A19-partial) | ☑ 11 gates + 8 self-test suites + mlint, 0 findings | ◐ **PREDICTED 300 methods / 301 runs — not yet run** | ◐ pending | ◐ pending |
 
 **Tier A debt: DISCHARGED for both releases.** The local MATLAB bridge is
 gone, but the self-hosted runner A8 is not: `runAllTests (self-hosted)`
@@ -547,6 +574,33 @@ about the source.
   `shSeries:sizeMismatch` (2026-09-08). Tests now use `tempname` so a
   leftover cannot be found again, but a cancelled run still wastes an A8
   slot and can leave litter. Batch the pushes.
+- **A gate's reach can be defined by the bug it should catch.** A17:
+  `refpages_audit`'s COVER check compared the generated pages against
+  `api_data.py` — the very artifact the broken extractor wrote. Zero
+  findings, one missing page. When two instruments read the same fact,
+  check them against ground truth (here: MATLAB's rule that a file defines
+  the function it is named after), never against each other. Two of this
+  repo's four surface parsers were blind the same way and agreed.
+- **Fault injection finds bugs in the fix, not only in the code.** The
+  first attempt at A17's continuation joiner happily joined a COMMENT line,
+  and a `(base MATLAB only)` in the help text supplied the closing paren —
+  a signature that parsed to nonsense instead of failing. That surfaced
+  only because the injected fault did NOT fire when it should have. An
+  injection that behaves unexpectedly is a finding about the instrument.
+- **mlint_lite is the only MATLAB syntax check a Tier-B session has, and it
+  earns its keep.** It rejected fifteen `(gA + gB).C` lines: MATLAB cannot
+  index into a parenthesised expression. Method dot-chains (`ts.at(k).toGrid`)
+  are fine and the repo already uses them; parenthesised expressions and
+  plain function calls are not. Run it on every changed `.m`, and read the
+  new tests for the same shape it cannot see (`mk(1).FieldKind`).
+- **Read the delegate before testing it.** `shSeries.compare` goes to
+  `compareSeries`, not `compareSolutions` like `shCoefficients.compare`;
+  `ts.climatology()` needs >= 6 epochs; `shCoefficients` properties are
+  `SetAccess = private` so a test cannot set an epoch. Each of those was a
+  test written wrong first and corrected against the source.
+- **Do not write a number into this file that you did not just read.** The
+  v3.34.1 per-class test counts were guessed (161/68) and were wrong
+  (159/70) — in the same edit that closed a finding about unmeasured facts.
 - Do not re-propose what §1.1 lists. The first audit draft did, without
   repository access; that draft is superseded by this file.
 - Tier B sessions cannot measure B1–B3 or set WP2 budgets. Say so; do not
@@ -554,16 +608,25 @@ about the source.
 
 ### 6.4 Next action
 
-Done and on PR #95: WP0, A12, A13, A14, A16, and WP6 stages 1 and 2 —
-A1, A3 (partial), A4, A5, A6, A7, A8, A11, A12, A13, A14, A16 closed.
-Remaining Tier-B work, in this order:
+Done and on PR #95: WP0, WP6 stages 1-2, and findings A1, A3 (partial),
+A4, A5, A6, A7, A8, A10, A11, A12, A13, A14, A16, A17, A18 closed;
+A19 partially.
+
+**Tier-B work is now exhausted except for two rows, both needing a
+decision rather than a keyboard:**
 
 1. **WP6 stage 3** — retiring the narrative pages a generated page
    supersedes; needs a decision on what `doc_sync_audit`'s COVERAGE check
-   should mean afterwards.
-2. **A10** — 13 package functions still never named in a test. The speed
-   budgets (A9/WP2) need Tier A, but coverage by name can be measured and
-   closed from a sandbox.
+   should mean afterwards. (Note A17 made this sharper: `gridHandover` is
+   named only by `html/mapBridge.html`, so deleting narrative pages can
+   silently drop entities out of COVERAGE.)
+2. **A19** — the scoped "documented option values must be accepted"
+   gate. Buildable from `api_data.py` without MATLAB; left unbuilt here
+   because a crude version was 96% false positives and the A12 lesson
+   says do not ship a checker that lies first.
+
+Everything else open (A9/WP2 budgets, WP3, WP4, WP5, WP7) needs either a
+MATLAB measurement or WP1's decision.
 
 The one thing that needs Matthias:
 
@@ -583,6 +646,8 @@ pip install reportlab matplotlib && \
 
 ---
 *shAnalysis v3.33.0 audited | 2026-09-08 18:30 UTC | Claude Fable 5.1 |
-WP0 (v3.33.1) and A7/A8/A12/A13/A14/A16 + WP6.1-2 (v3.34.0) | 2026-09-08 |
-Claude Opus 5 | Both releases green on A8 via CI, 269 runs |
+WP0 (v3.33.1), A7/A8/A12/A13/A14/A16 + WP6.1-2 (v3.34.0), and
+A10/A17/A18 (v3.34.1) | 2026-09-08 | Claude Opus 5 |
+v3.33.1 and v3.34.0 green on A8 via CI (269 runs); v3.34.1 predicts
+300 methods / 301 runs and is NOT yet run |
 Developed by Matthias Weigelt with the help of Claude.*

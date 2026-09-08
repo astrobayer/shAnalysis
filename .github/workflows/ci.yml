@@ -164,6 +164,14 @@ jobs:
       - name: Declared test count
         run: python3 tools/dev/count_tests.py
 
+      # Thirteen package functions were named by no test at all, and the
+      # audit could only find that by hand. Coverage BY NAME is a weak
+      # claim - it says a test mentions the entity in executable code,
+      # nothing about what it asserts - but it is the claim that was
+      # unmeasured, and an entity nothing names cannot be covered at all.
+      - name: Public entities named by a test
+        run: python3 tools/dev/name_coverage.py
+
       # The generated reference pages are DERIVED from the help blocks.
       # A page that drifted from its source is the failure this toolbox
       # already shipped once: a correct version stamp on help text

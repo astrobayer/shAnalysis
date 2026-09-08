@@ -1,5 +1,89 @@
 # Changelog
 
+## [3.34.1] - 2026-09-08 - A public function nothing could see, and coverage by name
+
+Two instruments were measuring less than their silence suggested. No
+numerical behaviour changes; one help block corrected.
+
+### Fixed - a public function was invisible to the API extractor (A17)
+
+`gridHandover` continues its signature across two lines with `...`.
+`api_extract.py` matched the signature on a single raw line, so the file
+parsed to nothing and the entity never reached `api_data.py`. It
+therefore had no reference page - while `apiReference.html` told the
+reader the handover bundle was "as built by shLowLevel.gridHandover,
+which documents every field", linking nowhere.
+
+`refpages_audit.py`'s COVER check compares the generated pages against
+`api_data.py`, so it reported zero findings: the gate's reach was
+defined by the bug it should have caught.
+
+Four parsers of "what is a public entity" live in this repository. Two
+were blind the same way - `api_extract.parse_function_file` and
+`doc_sync_audit.parse_one` - and they agreed with each other. That is
+why the new guard checks the FILESYSTEM, not a second parser's opinion:
+MATLAB requires a file to define the function it is named after, so
+every `+shLowLevel/X.m` owes exactly one entity `shLowLevel.X`.
+
+- both parsers join `...` continuations and read the help block after
+  the LAST continuation line. Both skip comment lines inside a
+  continuation, as MATLAB does - joining one let a `(base MATLAB only)`
+  in a help line supply the closing paren and parse to nonsense. Found
+  while fault-injecting, not by review.
+- `api_extract.py` refuses to write `api_data.py` when any public file
+  produces no entity.
+- `doc_sync_audit.py` gains a SURFACE check, fault-injected both ways.
+- `tools/tests/test_api_extract.py`: 5 of its 7 tests fail against the
+  pre-fix extractor; the 2 that pass cover shapes never broken.
+
+122 package entities (was 121), 200 reference pages (was 199).
+
+### Fixed - `opApply` documented option values it rejects
+
+Its Inputs row offered `'apply' | 'applyT'`; the arguments block accepts
+only `'forward' | 'transp'`, which the same help block's syntax lines
+had right. A caller following the row got a validation error. Found
+while writing the test that now pins both modes.
+
+### Added - `tools/dev/name_coverage.py`, and the 32 tests that satisfy it (A10)
+
+The audit found thirteen package functions no test file mentioned, by
+hand. Nothing measured it, so the set could only grow - and it was
+larger than recorded: **22 public class methods** were unnamed too
+(A18), among them every operator (`plus`, `minus`, `uminus`, `mtimes`,
+`times`) and `disp` on all three classes.
+
+The gate strips comments first, so a name in a `% see also` line does
+not count. Its claim is deliberately narrow and it says so in its own
+output: naming is not exercise. Operators get no exemption - they are
+callable by name, and a test that checks `plus(a, b)` against `a + b`
+is stronger than one that checks either alone.
+
+New tests assert a property each function's own help states:
+
+- `icgemDate2Year` hand-computed epochs across a leap and a non-leap
+  year, and the documented `< 1.8e7` pass-through
+- `pctile` against the documented order statistic, the median identity,
+  clamping, non-finite handling and empty input
+- `gridHandover` reads FieldKind off the C00 identity - the same grid is
+  labelled full, anomaly, unknown or mixed by C00 alone
+- `shDestripe` annihilates a polynomial in degree, passes `m < MinOrder`
+  through bitwise, and leaves a subset with too few degrees alone
+- `shGaussianFilter` is exactly the weights applied by degree
+- `shSpectralCrossover` finds the first crossing and returns NaN for none
+- `vceRescale` is quadratic in the residuals and inverse in the
+  covariance - powers of two, so the identities are bitwise
+- `opApply` is the true adjoint of its forward operator, dense and
+  block-diagonal
+- `buildSignalCov` is scale-equivariant
+- `plotBasinSeries`, `plotCovariance`, `spectrum`, `triangle` return
+  graphics handles; `disp` prints the identifying facts
+- `shClimatology.fromCoef` honours its documented row layout, one
+  distinct constant per row so a swapped mapping is visible
+
+268/269 -> 300/301 tests. `runAllTests` is the verification: these were
+authored without a MATLAB interpreter and checked statically only.
+
 ## [3.34.0] - 2026-09-08 - Struct fields, a correct test count, and reference pages
 
 Second half of the documentation-rot work, and the check that closes the

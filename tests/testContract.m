@@ -1628,3 +1628,189 @@ end
 verifyError(testCase, @() ts.toGrid(-89.9:0.02:89.9, 0:0.02:359.98, ...
     Quantity = "geoid", MaxMemGB = 0.01), 'shSeries:toGrid:tooLarge');
 end
+
+% ---------------------------------------------------------------- A10 (v3.34.1)
+% Contract-level coverage of package functions and class methods the audit
+% found unnamed in any test: shipped paths, error identifiers, and the
+% graphics handles the plot helpers promise.
+
+function testGravisDataFolderResolvesToTheShippedCopies(testCase)
+p = shLowLevel.gravisDataFolder();
+verifyClass(testCase, p, 'string');
+verifyTrue(testCase, isfolder(p), 'the shipped data/gravis folder must exist');
+% it is the folder the chains fall back to, so it must carry the basins
+verifyTrue(testCase, isfile(fullfile(p, 'basins_AIS.json')) || ...
+                     isfile(fullfile(p, 'basins_GIS.json')), ...
+    'no GravIS basin polygon found in the shipped folder');
+% derived from the package location, never hardcoded: it must sit next to
+% the +shLowLevel folder this very function was loaded from
+verifyEqual(testCase, exist(char(p), 'dir'), 7);
+end
+
+function testAntarcticaChainRefusesToAssumeAFrame(testCase)
+% "kn REQUIRED, the empty default errors: no frame is assumed". The guard
+% runs before any file is touched, so a nonexistent folder still reaches it.
+verifyError(testCase, @() shLowLevel.antarcticaChain("no_such_folder_here"), ...
+    'shLowLevel:gravisRegionChain:noKn');
+end
+
+function testShSpectralCrossoverNeedsAnErrorSpectrum(testCase)
+spec.degree = (0:10)';
+spec.degAmplitude = ones(11, 1);
+% no errAmplitude field: shDegreeRMS was called without sigmaC/sigmaS
+verifyError(testCase, @() shLowLevel.shSpectralCrossover(spec), ...
+    'shSpectralCrossover:missingField');
+end
+
+function testPlotBasinSeriesReturnsAxesForTheStandardFigure(testCase)
+fig = figure('Visible', 'off');
+cleanup = onCleanup(@() close(fig)); %#ok<NASGU>
+rng(515);
+t = (2003:1/12:2015)';
+c = 100 * sin(2*pi*t) + 3 * randn(size(t));
+s = 2 * ones(size(t));
+h = shLowLevel.plotBasinSeries(t, c, s, Label = "test basin", Units = "Gt");
+verifyTrue(testCase, isgraphics(h), 'plotBasinSeries must return a handle');
+% sigma is documented as optional - [] means "no band", not an error
+h2 = shLowLevel.plotBasinSeries(t, c, [], Trend = false);
+verifyTrue(testCase, isgraphics(h2));
+% and a gap wider than GapThreshold is hatched rather than interpolated
+tGap = [t(1:60); t(90:end)];
+cGap = [c(1:60); c(90:end)];
+h3 = shLowLevel.plotBasinSeries(tGap, cGap, []);
+verifyTrue(testCase, isgraphics(h3));
+end
+
+function testPlotCovarianceDrawsBothTypes(testCase)
+fig = figure('Visible', 'off');
+cleanup = onCleanup(@() close(fig)); %#ok<NASGU>
+rng(516);
+idx = shLowLevel.shIndex(6);
+A = randn(idx.P);
+M = A * A' + idx.P * eye(idx.P);        % symmetric positive definite
+h = shLowLevel.plotCovariance(M, idx);
+verifyTrue(testCase, isgraphics(h), 'plotCovariance must return a handle');
+h2 = shLowLevel.plotCovariance(M, idx, Type = "covariance", BlockLines = false);
+verifyTrue(testCase, isgraphics(h2));
+verifyError(testCase, @() shLowLevel.plotCovariance(M, idx, Type = "nope"), ...
+    'MATLAB:validators:mustBeMember');
+end
+
+function testCoefficientSpectrumAndTriangleReturnHandles(testCase)
+fig = figure('Visible', 'off');
+cleanup = onCleanup(@() close(fig)); %#ok<NASGU>
+rng(517);
+g = shCoefficients(tril(randn(13)) * 1e-9, tril(randn(13), -1) * 1e-9, ...
+    Epoch = 2024.1);
+verifyTrue(testCase, isgraphics(g.spectrum()));
+verifyTrue(testCase, isgraphics(g.triangle()));
+end
+
+function testDispPrintsTheIdentifyingFacts(testCase)
+rng(518);
+g = shCoefficients(tril(randn(9)) * 1e-9, tril(randn(9), -1) * 1e-9, ...
+    Epoch = 2024.1, Name = "unit test field");
+out = evalc('disp(g)');
+verifyTrue(testCase, contains(out, "shCoefficients"));
+verifyTrue(testCase, contains(out, "unit test field"));
+verifyTrue(testCase, contains(out, "nmax=8"));
+
+n1 = 7;
+T = 24;                    % climatology fits 6 parameters: it needs >= 6
+Cs = zeros(n1, n1, T);  Ss = zeros(n1, n1, T);
+for k = 1:T
+    Cs(:, :, k) = tril(randn(n1));
+    Ss(:, :, k) = tril(randn(n1), -1);
+end
+ts = shSeries(Cs, Ss = Ss, Epochs = 2015 + (0:T-1)'/12);
+outTs = evalc('disp(ts)');
+verifyTrue(testCase, contains(outTs, "shSeries"));
+verifyTrue(testCase, contains(outTs, "T=24 epochs"));
+
+clim = ts.climatology();
+outC = evalc('disp(clim)');
+verifyTrue(testCase, contains(outC, "shClimatology"));
+end
+
+function testCompareDelegatesToCompareSolutions(testCase)
+rng(519);
+n1 = 11;
+C = tril(randn(n1)) * 1e-9;  S = tril(randn(n1), -1) * 1e-9;
+gA = shCoefficients(C, S, Epoch = 2024.1);
+gB = shCoefficients(C * 1.01, S * 1.01, Epoch = 2024.1);
+lat = -80:20:80;  lon = 0:40:320;
+rep = gA.compare(gB, LatDeg = lat, LonDeg = lon);
+ref = shLowLevel.compareSolutions(gA, gB, LatDeg = lat, LonDeg = lon);
+verifyEqual(testCase, rep.spatial.rmsd, ref.spatial.rmsd, 'RelTol', 1e-12);
+verifyTrue(testCase, isfield(rep, 'spectral'));
+verifyTrue(testCase, isfield(rep, 'spatial'));
+% a field compared with itself has zero difference, whatever the grid
+same = gA.compare(gA, LatDeg = lat, LonDeg = lon);
+verifyEqual(testCase, same.spatial.rmsd, 0, 'AbsTol', 1e-18);
+
+% shSeries.compare is a DIFFERENT delegate - shLowLevel.compareSeries -
+% which prepends the object as the reference series.
+L = 6; T = 8;
+Cs = zeros(L+1, L+1, T);  Ss = zeros(L+1, L+1, T);
+for k = 1:T
+    Cs(:, :, k) = tril(randn(L+1));
+    Ss(:, :, k) = tril(randn(L+1), -1);
+end
+t = 2015 + (0:T-1)'/12;
+tsA = shSeries(Cs, Ss = Ss, Epochs = t);
+tsB = shSeries(Cs * 1.05, Ss = Ss * 1.05, Epochs = t);
+idxS = shLowLevel.shIndex(L);
+basis = zeros(idxS.P, 1);  basis(1) = 1;      % pick one coefficient
+repTs = tsA.compare(tsB, Basin = basis, Idx = idxS, Names = ["A", "B"]);
+verifyEqual(testCase, repTs.names, ["A", "B"]);
+verifyEqual(testCase, size(repTs.y), [T 2]);
+% column 1 is the reference - the object the method was called on
+gA1 = tsA.at(1);
+xA1 = shLowLevel.vecFromCS(gA1.C, gA1.S, idxS);
+verifyEqual(testCase, repTs.y(1, 1), xA1(1), 'AbsTol', 1e-15);
+% B is A scaled by 1.05 and the basin functional is linear, so column 2
+% is that same multiple of column 1
+verifyEqual(testCase, repTs.y(:, 2), 1.05 * repTs.y(:, 1), 'RelTol', 1e-12);
+end
+
+function testClimatologyFromCoefHonoursTheDocumentedRowLayout(testCase)
+% COEF is (6+2K) x (2*Nc): rows are bias, trend, cosAnn, sinAnn, cosSemi,
+% sinSemi, then the cos/sin pair of each extra period; columns 1:Nc are
+% C(:) and Nc+1:2*Nc are S(:) of the flattened series. Each row is given a
+% distinct constant here, so a row swapped in the mapping is visible.
+n1 = 5;
+Nc = n1^2;
+ts = shSeries(zeros(n1, n1, 4), Ss = zeros(n1, n1, 4), ...
+    Epochs = 2015 + (0:3)'/12);
+coef = zeros(6, 2*Nc);
+for r = 1:6
+    coef(r, 1:Nc)     = r;            % the C half of row r
+    coef(r, Nc+1:end) = -r;           % the S half of row r
+end
+clim = shClimatology.fromCoef(coef, 2016.0, ts);
+verifyClass(testCase, clim, 'shClimatology');
+verifyEqual(testCase, clim.t0, 2016.0);
+verifyEqual(testCase, clim.biasC,    1 * ones(n1));
+verifyEqual(testCase, clim.trendC,   2 * ones(n1));
+verifyEqual(testCase, clim.cosAnnC,  3 * ones(n1));
+verifyEqual(testCase, clim.sinAnnC,  4 * ones(n1));
+verifyEqual(testCase, clim.cosSemiC, 5 * ones(n1));
+verifyEqual(testCase, clim.sinSemiC, 6 * ones(n1));
+verifyEqual(testCase, clim.biasS,   -1 * ones(n1));
+verifyEqual(testCase, clim.sinSemiS, -6 * ones(n1));
+% GM/R travel from the series, not from a hardcoded default
+verifyEqual(testCase, clim.GM, ts.GM);
+verifyEqual(testCase, clim.R, ts.R);
+
+% K extra periods need exactly 6 + 2K rows - the assertion is documented
+coefK = zeros(8, 2*Nc);
+coefK(7, 1:Nc) = 7;                   % cos of the first extra period
+coefK(8, 1:Nc) = 8;                   % sin of the first extra period
+climK = shClimatology.fromCoef(coefK, 2016.0, ts, Periods = 1.5);
+verifyEqual(testCase, climK.periods, 1.5);
+verifyEqual(testCase, climK.extraCosC(:, :, 1), 7 * ones(n1));
+verifyEqual(testCase, climK.extraSinC(:, :, 1), 8 * ones(n1));
+verifyError(testCase, ...
+    @() shClimatology.fromCoef(coef, 2016.0, ts, Periods = 1.5), ...
+    'shClimatology:badInput');
+end
