@@ -116,7 +116,10 @@ CF-1.8 export, provenance sidecars, geoMap bridge (`toGrid`, `gridHandover`).
    `python tools/nv_casing_audit.py`, `python tools/fixture_tag_audit.py`,
    `python tools/dev/mlint_lite.py <changed files>`, `python tools/dev/check_api.py`,
    `python tools/dev/api_audit.py`, `python tools/dev/attribution_sweep.py`,
-   `python tools/dev/refpages_audit.py`; then every `tools/tests/test_*.py`.
+   `python tools/dev/refpages_audit.py`, `python tools/dev/name_coverage.py`,
+   `python tools/dev/make_demos.py --check`; then every `tools/tests/test_*.py`.
+   **This list must equal what `ci.yml` runs.** It did not, and CI failed on
+   `make_demos --check` at `0ab29b5` while eleven local gates were green.
    Regenerate before auditing when help blocks changed:
    `api_extract.py` -> `make_apiref.py` -> `make_refpages.py` -> `make_guide.py`.
 5. Predict the test count before running (`runAllTests`) with
@@ -132,9 +135,14 @@ CF-1.8 export, provenance sidecars, geoMap bridge (`toGrid`, `gridHandover`).
    (`doc_sync_audit.py` requires the top `## [x.y.z]` to equal `Contents.m`
    and rejects any `Unreleased` heading — bump in the same commit), verdict
    per tier, debt named, next action as a command.
-9. Regenerate what the version stamps: `tools/dev/make_apiref.py` and
-   `tools/dev/make_guide.py` (needs `reportlab` + `matplotlib`;
-   `pip install reportlab matplotlib`). Both stamps are gated.
+9. Regenerate what the version stamps: `tools/dev/make_apiref.py`,
+   `tools/dev/make_refpages.py`, `tools/dev/make_demos.py` and
+   `tools/dev/make_guide.py` (the last needs `reportlab` + `matplotlib`;
+   `pip install reportlab matplotlib`). **Four** artifacts carry the
+   version, not two: `apiReference.html`, `html/ref/*`, `demos.xml` and
+   the guide PDF. All four stamps are now gated by `doc_sync_audit.py`;
+   `demos.xml` was not until v3.34.1, which is how a bump alone shipped a
+   stale one.
 
 Machine facts: acceptance machine `C:\Users\matth\Documents\MATLAB\shAnalysis`,
 data `E:\DATAPOOL\GravityField`; self-hosted runner A8 (R2026a, MinGW64,
@@ -601,6 +609,13 @@ about the source.
 - **Do not write a number into this file that you did not just read.** The
   v3.34.1 per-class test counts were guessed (161/68) and were wrong
   (159/70) — in the same edit that closed a finding about unmeasured facts.
+- **Run what CI runs, not what §3.4 lists — and if they differ, fix §3.4.**
+  v3.34.1 went out with eleven local gates green and `gates` red: CI also
+  runs `make_demos.py --check`, which §3.4 never named, and `demos.xml`
+  carries the version stamp so the bump alone made it stale. The list in
+  §3.4 is now the authority and must equal `ci.yml`; `doc_sync_audit.py`
+  gained the `demos.xml` VERSION check so the omission cannot cost a CI
+  round-trip again.
 - Do not re-propose what §1.1 lists. The first audit draft did, without
   repository access; that draft is superseded by this file.
 - Tier B sessions cannot measure B1–B3 or set WP2 budgets. Say so; do not
