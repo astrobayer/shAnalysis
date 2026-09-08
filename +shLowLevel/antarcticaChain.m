@@ -38,8 +38,9 @@ function [gt, rep] = antarcticaChain(folder, gravisFolder, opts)
 %
 %   Outputs
 %     gt   (1,1) double  total AIS trend over the basin union [Gt/yr]
-%     rep  (1,1) struct  as greenlandChain, plus basins (table: name,
-%          gt) integrated per GravIS polygon
+%     rep  (1,1) struct  as returned by shLowLevel.gravisRegionChain -
+%          the same fields as greenlandChain, with basins filled: a table
+%          of name and gt integrated per GravIS polygon
 %
 %   Example
 %     [gt, rep] = shLowLevel.antarcticaChain("E:/series/COSTG", ...

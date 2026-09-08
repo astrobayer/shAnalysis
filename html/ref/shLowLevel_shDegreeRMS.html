@@ -22,7 +22,7 @@
 <h2>Name-Value Arguments</h2>
 <p class="none">None.</p>
 <h2>Output Arguments</h2>
-<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>spec</code></td><td class="desc">struct: degree (nmax+1 x 1), degVariance/degRMS/ degAmplitude, cumVariance/cumRMS/cumAmplitude, R, domain; errVariance/errRMS/errAmplitude when sigmas are supplied</td></tr></table>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>spec</code></td><td class="desc">(1,1) struct  fields degree        (nmax+1 x 1) double  the degree axis degVariance, degRMS, degAmplitude  (nmax+1 x 1) double per-degree signal measures cumVariance, cumRMS, cumAmplitude  (nmax+1 x 1) double their cumulative counterparts R             (1,1) double  the radius the amplitudes use domain        (1,:) char    &#x27;degree&#x27; (consumed by plotSHSpectrum) errVariance, errRMS, errAmplitude  (nmax+1 x 1) double the same for the formal errors; present only when sigmas were supplied</td></tr></table>
 <h2>Error Identifiers</h2>
 <p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
 <h2>Version History</h2>

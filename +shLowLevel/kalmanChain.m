@@ -99,15 +99,26 @@ function [ts, rep] = kalmanChain(obsIn, opts)
 %   Outputs
 %     ts   (1 x 1) shSeries  smoothed series on the epoch grid, formal
 %          1-sigma stacks filled, every step in the history
-%     rep  (1 x 1) struct  report: mode, order, nEpochs, nGaps,
-%          qcStat (1 x K double, NaN when QC="none"), nRejected,
-%          centers (F x 1 string, neq mode) and sigma2 (F x K double,
-%          multi-center: per-epoch VCE variance factors, NaN where a
-%          center has no file or in fixed-weight mode),
-%          specRadius, meanContribution (mean data share per epoch,
-%          Kurtenbach Sec. 3.3.2; NaN in gaps), epochs, gap (logical),
-%          model (the estimateVAR struct, for reuse), memGB (covariance
-%          storage actually used)
+%     rep  (1,1) struct  fields
+%          mode       (1,1) string  "solution" | "neq"
+%          order      (1,1) double  the VAR order used
+%          nEpochs    (1,1) double  epochs on the output grid
+%          nGaps      (1,1) double  epochs with no data
+%          qcStat     (1 x K) double  innovation statistic per epoch; NaN
+%                     when QC="none"
+%          nRejected  (1,1) double  epochs QC rejected
+%          centers    (F x 1) string  contributor labels; "neq" mode
+%          sigma2     (F x K) double  per-epoch VCE variance factors;
+%                     NaN where a centre has no file, and in
+%                     fixed-weight mode
+%          specRadius (1,1) double  spectral radius of the companion
+%                     matrix; < 1 is stable
+%          meanContribution  (1 x K) double  mean data share per epoch
+%                     (Kurtenbach Sec. 3.3.2); NaN in gaps
+%          epochs     (K,1) double  the epoch grid
+%          gap        (1 x K) logical  which epochs were gaps
+%          model      (1,1) struct  the estimateVAR struct, for reuse
+%          memGB      (1,1) double  covariance storage actually used
 %
 %   Example  % daily-type smoothing of a noisy series with a GAX prior
 %     tsm = shSeries.fromFolder(gaxFolder).truncate(40);

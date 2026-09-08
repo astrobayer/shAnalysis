@@ -167,7 +167,7 @@ do not see; **L** = polish.
 | A14 | M | **CLOSED v3.33.1** — the three gate self-tests in `tools/tests/` (committed in v3.32/v3.33) were **never run by CI**, and `test_legacy_name_tolerated` had been broken since the v3.33.0 sweep drained `LEGACY` to empty — an untested instrument, silently. CI now runs `tools/tests/`; the stale test asserts the mechanism with a temporary entry instead of pinning a member name. | `.github/workflows/ci.yml` before/after |
 | A13 | L | **CLOSED v3.34.0** — the km conversion is the `RadiusKm` option, default unchanged at 6371 so no number moves, documented as the MEAN radius (deliberately not the coefficients' reference radius 6378.1363 km) and overridable. Pinned by `testResolutionMapRadiusIsAChoice`, a metamorphic test: the angular half-widths are radius-invariant, every km figure scales exactly with it, and `anisotropy` — a ratio — does not. That test also removes `resolutionMap` from A10's never-named list. | `+shLowLevel/resolutionMap.m` |
 | A16 | M | **CLOSED v3.34.0** — the **test count in this file was wrong** and so was the v3.33.1 prediction. `grep -c '^function test'` counts the script-based harness entry point as a test and misses every `bench*` method and every parameterised expansion: it said 261, the prediction said 262, the self-hosted runner ran **268**. `tools/dev/count_tests.py` now reports methods and runs per class, expands `TestParameter`, and exits non-zero on `--executed` mismatch; CI prints it. | PR #95 `runAllTests (self-hosted)` log vs `count_tests.py` |
-| A12 | M | **MOSTLY CLOSED v3.34.0** — `help_audit.py` now checks struct output fields in BOTH directions: documented ⇒ assigned (where the help gives a field list) and assigned ⇒ documented (everywhere, no parsing needed). The second direction found **55** fields the code returns and the help never named, `shIndex`'s `Lmax`/`minDegree`/`pos` among them — the help had copied the OPTION spellings `nmax`/`Nmin`, so `idx.nmax` errored. **Still open**: 77 struct rows describe their fields in prose, so direction 1 does not reach them. The gate reports that count in its own output line rather than implying full coverage; converting a row to the list form is what moves it. A mechanical prose→list rewrite was written and **discarded** — it produced confident nonsense (`'full-blocks'` split at a field name, nested struct-array subfields hoisted). | `python3 tools/help_audit.py` (last line) |
+| A12 | M | **CLOSED v3.34.0** — `help_audit.py` checks struct output fields in BOTH directions: documented ⇒ assigned, and assigned ⇒ documented. **Every one of the 96 documented struct outputs is now covered**: 79 carry a field list verified against the source, 17 name the function that builds them (delegation), **0 are prose**. The sweep found **eleven** help blocks naming fields the code does not produce — `shIndex`'s `nmax`/`Nmin` (the FIELDS are `Lmax`/`minDegree`, so `idx.nmax` errored), `shReadGFC`'s `tide` (it lives in `header.tide_system`), `readSINEX`'s `header`, `gravisL2B`'s `files`, and the eight found by hand in v3.33.1 — plus 55 fields the code returns that the help never named. A mechanical prose→list rewrite was written and **discarded**: it produced confident nonsense (`'full-blocks'` split at a field name, nested struct-array subfields hoisted), so all 79 were converted by hand against the source. | `python3 tools/help_audit.py` (last line) |
 | A11 | L | **CLOSED v3.33.1** — `Contents.m` is 78 lines; the 74 'New in v…' sections moved to `CHANGELOG.md`. The six versions that existed ONLY in `Contents.m` (v2.1, v2.2, v2.3, v2.4, v2.4.1, v2.4.2) were written into the changelog in the same commit and the version sets were diffed to prove nothing was lost. Original finding: `Contents.m` (1149 lines) is a full changelog duplicate: "New in v…" sections for 60+ releases, out of chronological order (v2.5 after v2.4.2, v3.1.0 inside the v2.4.1 block). `help shAnalysis` prints all of it. The CHANGELOG is the authority; Contents.m should carry the product line, the class overview and the quick start only. | `grep -n "New in" Contents.m` |
 
 ### 4.2 Inferred (needs Tier A measurement before any decision)
@@ -529,19 +529,16 @@ count; see A16.
 
 ### 6.4 Next action
 
-Done and on PR #95: WP0, A12 (mostly), A14, A16, and WP6 stages 1 and 2
-(A7 and A8 closed). Remaining Tier-B work, in this order:
+Done and on PR #95: WP0, A12, A13, A14, A16, and WP6 stages 1 and 2 —
+A1, A3 (partial), A4, A5, A6, A7, A8, A11, A12, A13, A14, A16 closed.
+Remaining Tier-B work, in this order:
 
-1. **A12's remaining 77 prose rows** — converting one to the field-list
-   form moves it into the gate's verified count AND gives its reference
-   page a real argument table. The two jobs are the same edit, so this is
-   now the highest-value row left.
-2. **A13** — `resolutionMap`'s hardcoded `R = 6371`.
-3. **WP6 stage 3** — retiring the narrative pages a generated page
+1. **WP6 stage 3** — retiring the narrative pages a generated page
    supersedes; needs a decision on what `doc_sync_audit`'s COVERAGE check
    should mean afterwards.
-4. **A9/A10** — the speed budgets need Tier A (WP2), but the coverage-by-
-   name gap (A10) can be measured from a sandbox.
+2. **A10** — 13 package functions still never named in a test. The speed
+   budgets (A9/WP2) need Tier A, but coverage by name can be measured and
+   closed from a sandbox.
 
 The one thing that needs Matthias:
 

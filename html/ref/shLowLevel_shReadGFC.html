@@ -22,7 +22,7 @@
 <h2>Name-Value Arguments</h2>
 <p class="none">None.</p>
 <h2>Output Arguments</h2>
-<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>model</code></td><td class="desc">(1,1) struct  fields: C/S/sigmaC/sigmaS (nmax+1 x nmax+1 double), GM/R (1,1 double), nmax (1,1 double), tide (string), modelname (string), header (struct, the parsed file header) and variableTerms (struct array of trend/annual/semiannual terms, empty when the file carries none)</td></tr></table>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>model</code></td><td class="desc">(1,1) struct  fields C, S, sigmaC, sigmaS  (nmax+1 x nmax+1) double  coefficients and their formal errors GM, R   (1,1) double  the file&#x27;s reference constants nmax    (1,1) double  maximum degree read modelname  (1,1) string  the model&#x27;s own name header  (1,1) struct  the parsed file header, verbatim - this is where the TIDE SYSTEM lives, as header.tide_system when the file declares one. There is no model.tide field; <a href="shCoefficients_read.html"><code>shCoefficients.read</code></a> lifts it out of the header variableTerms  (1,:) struct array  trend/annual/semiannual terms; empty when the file carries none</td></tr></table>
 <h2>Error Identifiers</h2>
 <p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
 <h2>Version History</h2>

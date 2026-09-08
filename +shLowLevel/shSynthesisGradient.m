@@ -90,19 +90,28 @@ function [dq, info] = shSynthesisGradient(C, S, GM, R, latDeg, lonDeg, opts)
 %         are processed in bands so nmax is not limited by it
 %
 %   Outputs
-%     dq  (1,1) struct  fields north, east, up, each (nlat x nlon)
-%           double for Mode "grid" or (npts x 1) double for "points".
-%           EAST is NaN where |lat| = 90 - the east direction does not
-%           exist at a pole, and the cos(phi) division there returns a
-%           finite, meaningless number if it is not caught. UP is []
-%           for surface quantities (see above)
-%     info  (1,1) struct  quantity, units, r [m], nmin, nmax, hasUp
-%           (1,1) logical, lat (1 x nlat) double, latType (1,1) string,
-%           lon (1 x nlon) double - the latitudes and longitudes actually
-%           used. latType is always "geocentric" here: this function has
-%           no ellipsoid. shCoefficients.gradient overwrites both when it
-%           was handed geodetic input, so the convention travels with the
-%           numbers instead of being remembered by the caller
+%     dq  (1,1) struct  each field is (nlat x nlon) double for
+%         Mode="grid" or (npts x 1) double for "points". Fields
+%         north  the north component of the gradient
+%         east   the east component. NaN where |lat| = 90 - the east
+%                direction does not exist at a pole, and the cos(phi)
+%                division there returns a finite, meaningless number if
+%                it is not caught
+%         up     the radial component; [] for surface quantities (see
+%                above)
+%     info  (1,1) struct  fields
+%           quantity  (1,1) string   what was differentiated
+%           units     (1,1) string   the units of dq
+%           r         (1,1) double   evaluation radius [m]
+%           nmin, nmax  (1,1) double  the degree range used
+%           hasUp     (1,1) logical  whether dq.up is filled
+%           lat       (1 x nlat) double  latitudes actually used
+%           lon       (1 x nlon) double  longitudes actually used
+%           latType   (1,1) string   always "geocentric" here: this
+%                     function has no ellipsoid. shCoefficients.gradient
+%                     overwrites lat and latType when it was handed
+%                     geodetic input, so the convention travels with the
+%                     numbers instead of being remembered by the caller
 %
 %   Example
 %     % a zonal degree-2 pattern: the east gradient must vanish exactly

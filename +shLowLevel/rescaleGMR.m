@@ -22,8 +22,11 @@ function [C2, S2, sig] = rescaleGMR(C, S, GM1, R1, GM2, R2, sigmaC, sigmaS)
 %
 %   Outputs
 %     C2, S2    (n1,n1) double  coefficients w.r.t. (GM2, R2)
-%     sig       (1,1) struct  fields C and S, each (n1,n1) double or []
-%               when the corresponding sigma was not supplied
+%     sig  (1,1) struct  fields
+%          C  (n1,n1) double or []  rescaled cosine sigmas, empty when
+%             sigmaC was not supplied
+%          S  (n1,n1) double or []  rescaled sine sigmas, empty when
+%             sigmaS was not supplied
 %
 %   Claude (Fable 5), 2026-08-07 (v2.4).
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).

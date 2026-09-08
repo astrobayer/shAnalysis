@@ -42,12 +42,14 @@ function smo = rtsSmoother(filt, opts)
 %           backward gain needs the full predicted covariances.
 %
 %   Outputs
-%     smo  (1 x 1) struct  smoothed results, physical block only:
-%          xs (P x T double) smoothed states, sig (P x T double)
-%          formal 1-sigma per coefficient (sqrt of the smoothed
-%          covariance diagonal), PsLast (P x P double) full smoothed
-%          covariance of the LAST epoch (equals the filtered one
-%          there), P (1 x 1), order (1 x 1)
+%     smo  (1,1) struct  smoothed results, PHYSICAL block only. Fields
+%          xs      (P x T) double  smoothed states
+%          sig     (P x T) double  formal 1-sigma per coefficient, the
+%                  square root of the smoothed covariance diagonal
+%          PsLast  (P x P) double  the full smoothed covariance of the
+%                  LAST epoch, which equals the filtered one there
+%          P       (1,1) double  block size
+%          order   (1,1) double  the VAR order
 %
 %   Example
 %     filt = shLowLevel.kalmanFilter(model, obs);   % StoreCov="full"

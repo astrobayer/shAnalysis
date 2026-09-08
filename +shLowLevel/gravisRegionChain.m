@@ -20,9 +20,24 @@ function [gt, rep] = gravisRegionChain(region, folder, gravisFolder, opts)
 %
 %   Outputs
 %     gt   (1,1) double  basin-mask mass trend [Gt/yr]
-%     rep  (1,1) struct  trendGrid, lat, lon, sigTrend, residRMS, mask,
-%          unionMask, m, iterations, stoppedBy, basins (antarctica),
-%          steps, l2b, version, created
+%     rep  (1,1) struct  fields
+%          trendGrid   (nlat x nlon) double  the trend field [cm/yr EWH]
+%          lat, lon    (1,:) double  the grid it is on [deg]
+%          sigTrend    (nlat x nlon) double  its 1-sigma
+%          residRMS    (1,1) double  RMS of the post-fit residual
+%          mask        (nlat x nlon) logical  the region
+%          unionMask   (nlat x nlon) logical  region plus the buffer the
+%                      leakage step needed
+%          m           (nlat x nlon) double  the inverted (leakage
+%                      corrected) map
+%          iterations  (1,1) double  leakage iterations run
+%          stoppedBy   (1,1) string  why the iteration stopped
+%          basins      table  per-polygon integrals; filled for
+%                      antarctica, empty otherwise
+%          steps       (1,K) string  the stages applied, with parameters
+%          l2b         (1,1) struct  the shLowLevel.gravisL2B report
+%          version     (1,1) string  shLowLevel.version at run time
+%          created     (1,1) string  when the run happened
 %
 %   Example
 %     % called for you by the wrappers; direct use mirrors them:

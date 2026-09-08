@@ -22,7 +22,7 @@
 <h2>Name-Value Arguments</h2>
 <table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>NLat</code></td><td>1 x 1</td><td>double</td><td><code>idx.Lmax + 1</code></td><td class="desc">number of latitude rings   [default Lmax+1]</td></tr><tr><td><code>NLon</code></td><td>1 x 1</td><td>double</td><td><code>2*idx.Lmax + 2</code></td><td class="desc">number of longitudes  [default 2*idx.Lmax + 2]</td></tr></table>
 <h2>Output Arguments</h2>
-<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>Y</code></td><td class="desc">(NLat*NLon x idx.P) double   synthesis matrix</td></tr><tr><td><code>w</code></td><td class="desc">(NLat*NLon x 1)     double   quadrature weights, sum(w) = 1</td></tr><tr><td><code>grid</code></td><td class="desc">struct: theta, lambda [rad], latDeg (NLat x 1), lonDeg (NLon x 1)</td></tr></table>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>Y</code></td><td class="desc">(NLat*NLon x idx.P) double   synthesis matrix</td></tr><tr><td><code>w</code></td><td class="desc">(NLat*NLon x 1)     double   quadrature weights, sum(w) = 1</td></tr><tr><td><code>grid</code></td><td class="desc">(1,1) struct  fields theta   (NLat x 1) double  co-latitude of each ring [rad] lambda  (NLon x 1) double  longitude of each column [rad] latDeg  (NLat x 1) double  the same latitudes [deg] lonDeg  (NLon x 1) double  the same longitudes [deg]</td></tr></table>
 <h2>Error Identifiers</h2>
 <p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
 <h2>Version History</h2>

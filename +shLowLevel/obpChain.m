@@ -53,8 +53,12 @@ function [out, rep] = obpChain(folder, opts)
 %       refMean   (nLat x nLon) subtracted reference-period mean [cm]
 %       oceanMeanOBP (T x 1) area-weighted ocean mean of the anomaly
 %                 [cm] - contains the atmospheric term by definition
-%     rep  (1 x 1) struct  steps, version, nEpochs, nGadRestored,
-%          nRefEpochs (epochs inside RefPeriod)
+%     rep  (1,1) struct  fields
+%          steps         (1,K) string  the stages applied, with parameters
+%          version       (1,1) string  shLowLevel.version at run time
+%          nEpochs       (1,1) double  epochs processed
+%          nGadRestored  (1,1) double  months the GAD restore reached
+%          nRefEpochs    (1,1) double  epochs inside RefPeriod
 %
 %   Example
 %     kn = readmatrix("loadLoveNumbers_Gegout97.txt", FileType = "text", ...

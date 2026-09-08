@@ -44,12 +44,17 @@ function [x, out] = neqCombine(neqs, opts)
 %
 %   Outputs
 %     x    (P x 1) double  combined solution
-%     out  (1 x 1) struct  sigma2 (K x 1) final variance factors (the
-%          fixed 1./Weights when given), w (K x 1) = 1./sigma2,
-%          redundancy (K x 1) partial redundancies (NaN in fixed mode),
-%          nIter (1 x 1), converged (1 x 1 logical), N (P x P) combined
-%          normal matrix, Cx (P x P, Covariance=true only), names
-%          (K x 1 string)
+%     out  (1,1) struct  fields
+%          sigma2      (K x 1) double  final variance factors; the fixed
+%                      1./Weights when those were given
+%          w           (K x 1) double  = 1./sigma2
+%          redundancy  (K x 1) double  partial redundancies; NaN in fixed
+%                      mode, where nothing was estimated
+%          nIter       (1,1) double   VCE iterations used
+%          converged   (1,1) logical  whether it converged
+%          N           (P x P) double  the combined normal matrix
+%          Cx          (P x P) double  its inverse; Covariance=true only
+%          names       (K x 1) string  the contributor labels
 %
 %   Example  % two centers, same month, same background
 %     a = shLowLevel.readSINEX(fileA, Index = idx);

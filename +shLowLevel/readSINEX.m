@@ -27,19 +27,25 @@ function snx = readSINEX(filename, opts)
 %     Only    ("all") estimate streams only the SOLUTION/ESTIMATE block of large files
 %
 %   Outputs
-%     snx  (1 x 1) struct  parsed solution with fields n, m, cs
-%          (Q x 1 double) parameter list (cs: 0=C, 1=S; file order or
-%          IDX order), x and sig (Q x 1 double) estimates and formal
-%          sigmas (NaN if absent), M (Q x Q double) covariance or
-%          normal-equation matrix per Output= ([] if absent), kind
-%          ('COVA' | 'NEQ' | ''), stats (v3.20: parsed
-%          +SOLUTION/STATISTICS - keys/values verbatim plus nobs,
-%          nunk, dof, wsos (l'Pl; also matched from "SQUARE SUM OF
-%          RESIDUALS") and vfactor where present; struct([]) when the
-%          block is absent, and always struct([]) on the streaming
-%          Only="estimate" path, which stops before it - neqCombine's
-%          VCE feeds on nobs and wsos), epoch (1 x 1 double) and
-%          header meta
+%     snx  (1,1) struct  the parsed solution, fields
+%          n, m, cs  (Q x 1) double  the parameter list; cs is 0 for C,
+%                    1 for S, in file order or in IDX order when Index
+%                    was given
+%          x, sig    (Q x 1) double  estimates and formal sigmas; sig is
+%                    NaN where the file carries none
+%          M         (Q x Q) double  covariance or normal-equation
+%                    matrix, per Output=; [] when absent
+%          kind      (1,:) char  'COVA' | 'NEQ' | ''
+%          epoch     (1,1) double  the solution's reference epoch
+%          stats     (1,1) struct  the parsed +SOLUTION/STATISTICS block
+%                    (v3.20): keys and values verbatim, plus nobs, nunk,
+%                    dof, wsos (l'Pl, also matched from "SQUARE SUM OF
+%                    RESIDUALS") and vfactor where present.
+%                    struct([]) when the block is absent, and ALWAYS
+%                    struct([]) on the streaming Only="estimate" path,
+%                    which stops before it - shLowLevel.neqCombine's VCE
+%                    feeds on nobs and wsos, so that path cannot supply
+%                    it
 %
 %   Format handling (VERIFIED against a real ITSG-Grace2018 n96 SINEX from
 %   TU Graz): parameter type tokens are CN/SN; the degree is the first

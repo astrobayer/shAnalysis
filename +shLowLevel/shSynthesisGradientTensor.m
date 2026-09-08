@@ -29,13 +29,19 @@ function [comps, info] = shSynthesisGradientTensor(C, S, GM, R, latDeg, lonDeg, 
 %     Height (250e3) [m]  evaluation altitude above R
 %     Nmin (2)            zero degrees below nmin
 %   Outputs
-%     comps  struct of (nlat,nlon) double [1/s^2]: uu, nn, ee, un, ue,
-%            ne  (symmetric tensor; 1 Eotvos = 1e-9 1/s^2). Components
-%            involving east are NaN at |lat| = 90.
-%     info   struct: maxTraceResidual (max |trace|/max|G| over the grid,
-%            excluding poles) - the built-in Laplace self-check - plus
-%            r (1,1 double, the evaluation radius [m]) and the altitude
-%            it was formed from, echoed back as the field .Height
+%     comps  (1,1) struct  the six independent components of the
+%            symmetric tensor, each (nlat,nlon) double [1/s^2]; 1 Eotvos
+%            = 1e-9 1/s^2. Fields
+%            uu, nn, ee  the diagonal (up, north, east)
+%            un, ue, ne  the off-diagonal terms. Every component
+%                        involving east is NaN at |lat| = 90
+%     info  (1,1) struct  fields
+%           maxTraceResidual  (1,1) double  max |trace| / max|G| over the
+%                             grid, poles excluded - the built-in Laplace
+%                             self-check
+%           r                 (1,1) double  evaluation radius [m]
+%           Height            (1,1) double  the altitude r was formed
+%                             from, echoed back [m]
 %
 %   Claude (Fable 5), 2026-08-07 (v2.4).
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).

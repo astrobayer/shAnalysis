@@ -216,7 +216,9 @@ methods
         %   Inputs
         %     other  (1,1) shCoefficients  solution to compare against OBJ
         %   Outputs
-        %     rep        (1 x 1) struct   shLowLevel.compareSolutions report
+        %     rep        (1,1) struct   as returned by
+        %                shLowLevel.compareSolutions, which documents
+        %                every field
         %     h          (1 x 1) graphics handle   figure (Plot = true)
         %
         [rep, h] = shLowLevel.compareSolutions(obj, other, varargin{:});
@@ -477,7 +479,9 @@ methods
     function spec = degreeRMS(obj, opts)
         %DEGREERMS Degree variance/RMS/amplitude spectrum (+ error spectrum).
         %   Outputs
-        %     spec       struct: n, amp/rms/var, err   degree spectrum incl. formal-error curve
+        %     spec       (1,1) struct   the degree spectrum, including
+        %                the formal-error curve, as returned by
+        %                shLowLevel.shDegreeRMS
         %
         %   Options
         %     N0 (0)  first degree included in the spectrum
@@ -716,7 +720,9 @@ methods
         %     latDeg  (1,:) double  latitudes [deg]
         %     lonDeg  (1,:) double  longitudes [deg]
         %   Outputs
-        %     H          (1 x 1) struct   the handle struct geo.map returns
+        %     H          (1,1) struct   the graphics handle struct, as
+        %                returned by geoMap's map function - this
+        %                toolbox draws no map of its own
         %
         %   Options
         %     Quantity ("ewh")  any kernelFactors quantity
@@ -866,11 +872,16 @@ methods
         %     latDeg  (1,:) double  latitudes [deg]
         %     lonDeg  (1,:) double  longitudes [deg]
         %   Outputs
-        %     dq       (1 x 1) struct   fields north, east, up: each
-        %                (nlat x nlon) double, or (npts x 1) for
+        %     dq       (1,1) struct   as returned by
+        %                shLowLevel.shSynthesisGradient: north, east and
+        %                up, each (nlat x nlon) double or (npts x 1) for
         %                Mode="points"; up is [] for surface quantities
-        %     info       (1 x 1) struct   quantity, units, r, nmin, nmax,
-        %                hasUp, lat (as given), latType, lon
+        %     info       (1,1) struct   as returned by
+        %                shLowLevel.shSynthesisGradient (quantity, units,
+        %                r, nmin, nmax, hasUp, lat, lon, latType), except
+        %                that lat and latType are overwritten here when
+        %                geodetic input was given, so the convention
+        %                travels with the numbers
         %
         %   Options
         %     Quantity ("geoid")  any kernelFactors quantity
@@ -979,12 +990,13 @@ methods
         %     latDeg  (1,:) double  latitudes [deg], convention per LatType
         %     lonDeg  (1,:) double  longitudes [deg]
         %   Outputs
-        %     b          (1 x 1) struct   Z (nlat x nlon) double values;
-        %                lat (nlat x 1) double AS GIVEN; lon (1 x nlon)
-        %                double; Units, LatType, Quantity, ProductType,
-        %                Source, Name, FieldKind (1,1) string; Epoch,
-        %                C00, Zmin, Zmax, Zmean (1,1) double; History
-        %                (: x 1) string
+        %     b          (1,1) struct   the handover bundle, as built by
+        %                shLowLevel.gridHandover, which documents every
+        %                field: Z (nlat x nlon) double values; lat
+        %                (nlat x 1) AS GIVEN; lon (1 x nlon); the string
+        %                fields Units, LatType, Quantity, ProductType,
+        %                Source, Name and FieldKind; the scalars Epoch,
+        %                C00, Zmin, Zmax and Zmean; and History
         %
         %   Options
         %     Quantity ("ewh")  any kernelFactors quantity; the default is
@@ -1262,7 +1274,8 @@ methods (Static)
         %
         %   Outputs
         %     obj        (1 x 1) shCoefficients   Stokes coefficients estimated from the grid (exact on ring grids; Kaula for scattered points)
-        %     info       (1 x 1) struct   diagnostics, see shLowLevel.shAnalysisGrid
+        %     info       (1,1) struct   the estimation diagnostics, as
+        %                returned by shLowLevel.shAnalysisGrid
         %
         arguments
             grid double

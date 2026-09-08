@@ -22,7 +22,7 @@
 <h2>Name-Value Arguments</h2>
 <table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>Deconvolve</code></td><td>1 x 1</td><td>logical</td><td><code>false</code></td><td class="desc">apply <a href="shLowLevel_basinDeconvolve.html"><code>shLowLevel.basinDeconvolve</code></a> to the basin series (undo kernel attenuation)</td></tr><tr><td><code>Op</code></td><td>n x m</td><td>struct</td><td><code>struct()</code></td><td class="desc">linear operator/kernel the map is derived from</td></tr><tr><td><code>Ridge</code></td><td>1 x 1</td><td>double</td><td><code>0</code></td><td class="desc">Tikhonov ridge added to the deconvolution normal matrix; raise it when the kernel matrix is ill-conditioned (out.condA reports the condition number)</td></tr></table>
 <h2>Output Arguments</h2>
-<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>avg</code></td><td class="desc">(K x T) double   basin averages (deconvolved when Deconvolve=true)</td></tr><tr><td><code>out</code></td><td class="desc">struct: sigma (K x T), c, attn, condA (deconvolution path)</td></tr></table>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>avg</code></td><td class="desc">(K x T) double   basin averages (deconvolved when Deconvolve=true)</td></tr><tr><td><code>out</code></td><td class="desc">(1,1) struct   on the deconvolution path, as returned by <a href="shLowLevel_basinDeconvolve.html"><code>shLowLevel.basinDeconvolve</code></a> (sigma, c, attn, condA, avgNaive); empty otherwise</td></tr></table>
 <h2>Error Identifiers</h2>
 <p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
 <h2>Version History</h2>

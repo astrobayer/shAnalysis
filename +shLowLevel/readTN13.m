@@ -11,7 +11,7 @@ function tn = readTN13(filename)
 %   Inputs
 %     filename  char/string  path (.txt, or .gz which is gunzipped)
 %   Outputs
-%     tn  struct:
+%     tn  (1,1) struct  fields
 %       epoch  (K,1) double  interval mid-points [decimal years]
 %       C10, C11, S11        (K,1) double  degree-1 Stokes coefficients
 %       sigC10, sigC11, sigS11 (K,1) double 1-sigma

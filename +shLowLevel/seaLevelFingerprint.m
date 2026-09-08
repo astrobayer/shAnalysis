@@ -37,10 +37,21 @@ function [S, grid, info] = seaLevelFingerprint(loadRegion, ocean, idx, opts)
 %   Outputs
 %     S     (Ngrid,1) double  relative sea-level change over the ocean
 %                             [m per unit load], 0 on land
-%     grid  struct            latDeg/lonDeg rings of the solver grid
-%     info  struct: iterations, dS, converged (dS below the tolerance),
-%           massResidual [kg/m^2 sphere mean],
-%           eustatic [m], kappa, areaFractionOcean, S2D (nlat x nlon)
+%     grid  (1,1) struct  the solver grid, as returned by
+%           shLowLevel.synthesisMatrix (latDeg/lonDeg rings)
+%     info  (1,1) struct  fields
+%           iterations        (1,1) double   sweeps of the sea-level
+%                             equation actually run
+%           dS                (1,1) double   last change in the solution
+%           converged         (1,1) logical  dS fell below the tolerance
+%           massResidual      (1,1) double   [kg/m^2 sphere mean] - the
+%                             conservation check
+%           eustatic          (1,1) double   uniform equivalent rise [m]
+%           kappa             (1,1) double   the rotational feedback
+%                             factor applied
+%           areaFractionOcean (1,1) double   ocean area / sphere area
+%           S2D               (nlat x nlon) double  the sea-level change
+%                             field
 %
 %   Limitations (documented): elastic only (no viscous GIA response),
 %   no rotational feedback, fixed coastlines, band-limited load/ocean

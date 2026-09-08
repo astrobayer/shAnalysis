@@ -224,6 +224,37 @@ class TestStructFields(unittest.TestCase):
         ha.struct_fields(h, STRUCT_SRC, "foo", self.outs(), stats)
         self.assertEqual(stats["delegated"], 1)
 
+    def test_classdef_local_functions_count_as_the_method_source(self):
+        # shSeries.mean builds its info struct in meanWindowInfo, a local
+        # function after the class body. Scoping a method to its own body
+        # (which killed 57 false positives) hid those assignments.
+        src = ("classdef c\n  methods\n    function [g, info] = mean(obj)\n"
+               "      info = meanWindowInfo(obj);\n    end\n  end\nend\n"
+               "\nfunction info = meanWindowInfo(obj)\n"
+               "info = struct('coverage', 1, 'attenuation', []);\nend\n")
+        import tempfile
+        d = tempfile.mkdtemp()
+        p = os.path.join(d, "c.m")
+        with open(p, "w", encoding="utf-8") as fh:
+            fh.write(src)
+        with open(p, encoding="utf-8") as fh:
+            lines = fh.readlines()
+        i = next(k for k, L in enumerate(lines) if "function [g, info]" in L)
+        e = ha.parse_from(lines, i, "")
+        self.assertIn("attenuation", ha.fields_assigned_to(e["src"], "info"))
+
+    def test_delegation_needs_an_explicit_marker(self):
+        # a bare "from" or "see" appears in ordinary prose and silently
+        # excused five rows that were in fact documented here
+        for prose in ("(1,1) struct  sigmas from the ocean-fit residual",
+                      "(1,1) struct  see the notes above",
+                      "(1,1) struct  the value removed from the file"):
+            self.assertIsNone(ha.DELEGATED.search(prose), prose)
+        for marker in ("(1,1) struct  as returned by shLowLevel.other",
+                       "(1,1) struct  the shLowLevel.gravisL2B report",
+                       "(1,1) struct  output of shLowLevel.synthesisMatrix"):
+            self.assertIsNotNone(ha.DELEGATED.search(marker), marker)
+
     def test_prose_rows_are_counted_not_silently_passed(self):
         h = STRUCT_HELP.replace(
             "     info  (1,1) struct  fields\n"

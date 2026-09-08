@@ -22,7 +22,11 @@ function [Y, w, grid] = synthesisMatrix(idx, opts)
 %   Outputs
 %     Y      (NLat*NLon x idx.P) double   synthesis matrix
 %     w      (NLat*NLon x 1)     double   quadrature weights, sum(w) = 1
-%     grid   struct: theta, lambda [rad], latDeg (NLat x 1), lonDeg (NLon x 1)
+%     grid  (1,1) struct  fields
+%           theta   (NLat x 1) double  co-latitude of each ring [rad]
+%           lambda  (NLon x 1) double  longitude of each column [rad]
+%           latDeg  (NLat x 1) double  the same latitudes [deg]
+%           lonDeg  (NLon x 1) double  the same longitudes [deg]
 %
 %   Claude (Fable 5), 2026-08-07.
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).

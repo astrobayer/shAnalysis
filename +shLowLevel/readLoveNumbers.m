@@ -49,11 +49,17 @@ function [LN, info] = readLoveNumbers(filename, opts)
 %                        CF->CM->CF roundtrip is exact.
 %
 %   Outputs
-%     LN    struct: n     (D x 1) degrees, ascending
+%     LN  (1,1) struct  fields
+%           n     (D x 1) degrees, ascending
 %                   kn    (D x 1) potential load Love numbers k'_n
 %                   hn    (D x 1) vertical    (NaN if absent from file)
 %                   ln    (D x 1) horizontal  (NaN if absent from file)
-%     info  struct: source, columns, frame, interpolated (logical mask)
+%     info  (1,1) struct  fields
+%           source        (1,1) string   the file it was read from
+%           columns       (1,:) string   the columns actually used
+%           frame         (1,1) string   the degree-1 frame declared
+%           interpolated  (D x 1) logical  which degrees were filled in
+%                         rather than read
 %
 %   Example (G7 GNSS chain)
 %     LN = shLowLevel.readLoveNumbers("prem_load.txt", Columns="n h l k", ...

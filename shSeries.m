@@ -265,9 +265,24 @@ methods
         %     g          (1 x 1) shCoefficients   mean field over the window,
         %         with sigmas (scatter-based for "arithmetic", propagated
         %         through the fit for "model")
-        %     info       (1 x 1) struct   estimator, range, nUsed, nTotal,
-        %         nDropped, span, coverage, maxGapYears, centroidOffset,
-        %         epoch, attenuation (K+2 x 2 [period factor], "model" only)
+        %     info       (1,1) struct   fields
+        %         estimator       (1,1) string   which estimator ran
+        %         range           (1,2) double   the window requested
+        %         nUsed           (1,1) double   epochs that contributed
+        %         nTotal          (1,1) double   epochs in the series
+        %         nDropped        (1,1) double   epochs dropped as empty
+        %         span            (1,2) double   first and last epoch used
+        %         coverage        (1,1) double   used*dt / window length,
+        %                         capped at 1; NaN below two epochs
+        %         maxGapYears     (1,1) double   largest gap between two
+        %                         used epochs; NaN below two epochs
+        %         centroidOffset  (1,1) double   mean(used) minus the
+        %                         window centre - how lopsided the sample
+        %                         is
+        %         epoch           (1,1) double   the epoch stamped on the
+        %                         returned field
+        %         attenuation     (K+2 x 2) double  [period factor];
+        %                         Estimator="model" only
         %
         %   Example
         %     gBase = ts.mean(Range = [2004 2010]);
@@ -816,7 +831,9 @@ methods
         %   Inputs
         %     others  shSeries or cell of shSeries  series to compare; OBJ is the reference
         %   Outputs
-        %     rep        (1 x 1) struct   shLowLevel.compareSeries report
+        %     rep        (1,1) struct   as returned by
+        %                shLowLevel.compareSeries, which documents every
+        %                field
         %     h          (1 x 1) graphics handle   figure (Plot = true)
         %
         if ~iscell(others), others = {others}; end
@@ -1141,8 +1158,13 @@ methods
         %
         %   Outputs
         %     out        (1 x 1) shSeries   tvANS-filtered series with sigmaCs/Ss posterior stacks (exact incl. constraints, v2.5)
-        %     op         struct   stored linear operator (V/Ut/lam/s or blocks, model, detLeverage/detResVar) for deconvolution and resolution maps
-        %     info       struct: sigmaXfres (P x T), sigmaNote, VCE diagnostics
+        %     op         (1,1) struct   the stored linear operator, as
+        %                returned by shLowLevel.tvANSFilter, for
+        %                shLowLevel.basinDeconvolve and
+        %                shLowLevel.resolutionMap
+        %     info       (1,1) struct   the noise, signal and VCE
+        %                diagnostics, as returned by
+        %                shLowLevel.tvANSFilter
         %
         arguments
             obj
@@ -1226,7 +1248,9 @@ methods
         %
         %   Outputs
         %     avg        (K x T) double   basin averages (deconvolved when Deconvolve=true)
-        %     out        struct: sigma (K x T), c, attn, condA (deconvolution path)
+        %     out        (1,1) struct   on the deconvolution path, as
+        %                returned by shLowLevel.basinDeconvolve (sigma,
+        %                c, attn, condA, avgNaive); empty otherwise
         %
         %   Options
         %     Ridge (0)  Tikhonov ridge added to the deconvolution normal
@@ -1283,9 +1307,11 @@ methods
         %     latDeg  (1,:) double  latitudes [deg], convention per LatType
         %     lonDeg  (1,:) double  longitudes [deg]
         %   Outputs
-        %     b          (1 x 1) struct   as shCoefficients.toGrid, with Z
+        %     b          (1,1) struct   as built by
+        %                shLowLevel.gridHandover, the same bundle
+        %                shCoefficients.toGrid returns, with Z
         %                (nlat x nlon x nEpochs) double, Epoch and C00
-        %                (nEpochs x 1) double, and FieldKind "mixed" if
+        %                (nEpochs x 1) double, and FieldKind "mixed" when
         %                the epochs disagree
         %
         %   Options

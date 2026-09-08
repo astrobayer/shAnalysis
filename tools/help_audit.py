@@ -88,9 +88,20 @@ def parse_from(lines, i0, expect):
         if mf and len(mf.group(1)) <= ind:
             end = k
             break
+    # In a classdef file the local functions after the class body are
+    # part of the implementation - shSeries.mean builds its info struct
+    # in meanWindowInfo - so they belong to every method's source. They
+    # sit at indentation 0, which inside a classdef only a local function
+    # can be.
+    local = ""
+    if any(re.match(r"^classdef\b", L) for L in lines[:40]):
+        for k, L in enumerate(lines):
+            if re.match(r"^function\s", L):
+                local = "".join(lines[k:])
+                break
     return {"name": m.group(2), "outs": outs, "ins": ins,
             "help": "\n".join(help_lines), "args": args, "line": i,
-            "src": "".join(lines[i:end])}
+            "src": "".join(lines[i:end]) + local}
 
 def norm(s):
     return re.sub(r"[\s'\"]+", "", s)
@@ -156,12 +167,19 @@ STRUCT_ROW = re.compile(r"^(\s{2,10})(\w+)\s{2,}(.*?\bstruct\b.*)$")
 # both spellings are in the tree already; the leading dot is the older one
 FIELD_ROW = re.compile(r"^(\s+)\.?([A-Za-z_]\w*"
                        r"(?:\s*[,/]\s*\.?[A-Za-z_]\w*)*)"
-                       r"(?:\s{2,}(.*))?$")
-DELEGATED = re.compile(r"\b(?:from|as returned by|as in|see|output of|the)\s+"
-                       r"(?:shLowLevel\.)?(\w+)\b.*\b(?:output|struct|report)"
-                       r"|\b(?:from|as returned by|as in|output of)\s+"
-                       r"(?:shLowLevel\.)?\w+", re.I)
-ENDS_FIELDS = re.compile(r"\bfields\s*:?\s*$")
+                       r"(?:\s+(.*))?$")
+# A struct built by ANOTHER function is documented there, not here. The
+# marker has to be explicit and name that function: a bare "from" or
+# "see" appears in ordinary prose ("removed from the file", "from the
+# ocean-fit residual") and silently excused five rows that were in fact
+# documented here and verifiable.
+DELEGATED = re.compile(
+    r"\b(?:as returned by|as documented by|output of|built by|"
+    r"as in)\s+(?:shLowLevel\.)?\w+"
+    r"|\bfrom\s+shLowLevel\.\w+"
+    r"|\bthe\s+shLowLevel\.\w+\s+(?:report|struct|output)"
+    r"|\bshLowLevel\.\w+\s+(?:returns|documents)\b", re.I)
+ENDS_FIELDS = re.compile(r"\bfields\s*:?\s*$", re.I)
 SECTION_END = re.compile(r"^\s*(Inputs?|Options?|Example|Error identifiers|"
                          r"References|Developed by)\b")
 
@@ -184,9 +202,31 @@ def struct_field_docs(help_text):
             k += 1
             continue
         indent, var, desc = len(m.group(1)), m.group(2), m.group(3)
-        delegated = bool(DELEGATED.search(desc))
+        # "as returned by shLowLevel.synthesisMatrix" often wraps, so the
+        # delegation marker is looked for across the row and the two lines
+        # under it, not on the row alone
+        window = " ".join([desc] + [x.strip() for x in lines[k + 1:k + 3]])
+        delegated = bool(DELEGATED.search(window))
+        # The marker is the first line ending in "fields", which may be
+        # the row itself or the last line of a short preamble ("...the
+        # PHYSICAL state is the first block. Fields"). Everything after
+        # it, indented deeper, is the list.
         fields, j = [], k + 1
-        if ENDS_FIELDS.search(desc):
+        marked = bool(ENDS_FIELDS.search(desc))
+        while not marked and j < len(lines):
+            L2 = lines[j]
+            if not L2.strip() or SECTION_END.match(L2):
+                break
+            m2 = re.match(r"^(\s+)", L2)
+            if not m2 or len(m2.group(1)) <= indent:
+                break
+            j += 1
+            if ENDS_FIELDS.search(L2):
+                marked = True
+                break
+        if not marked:
+            j = k + 1
+        if marked:
             while j < len(lines):
                 L2 = lines[j]
                 if not L2.strip() or SECTION_END.match(L2):

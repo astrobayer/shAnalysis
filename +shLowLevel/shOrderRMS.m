@@ -22,10 +22,18 @@ function spec = shOrderRMS(C, S, opts)
 %     R (6378136.3) [m], N0 (0)  zero degrees below n0 first,
 %     SigmaC, SigmaS ([])        formal errors
 %   Outputs
-%     spec  struct: order, ordVariance, ordRMS, ordAmplitude,
-%           cumVariance, cumRMS, cumAmplitude, R,
-%           domain = 'order'  (consumed by plotSHSpectrum); with sigmas
-%           also errVariance, errRMS and errAmplitude
+%     spec  (1,1) struct  fields
+%           order         (nmax+1 x 1) double  the order axis
+%           ordVariance, ordRMS, ordAmplitude  (nmax+1 x 1) double
+%                         per-order signal measures
+%           cumVariance, cumRMS, cumAmplitude  (nmax+1 x 1) double
+%                         their cumulative counterparts
+%           R             (1,1) double  the radius the amplitudes use
+%           domain        (1,:) char    'order' (consumed by
+%                         plotSHSpectrum)
+%           errVariance, errRMS, errAmplitude  (nmax+1 x 1) double
+%                         the same for the formal errors; present only
+%                         when sigmas were supplied
 %
 %   Claude (Fable 5), 2026-08-07 (v2.4.1).
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).

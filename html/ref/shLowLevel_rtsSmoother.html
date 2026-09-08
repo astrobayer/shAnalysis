@@ -28,7 +28,7 @@
 <h2>Name-Value Arguments</h2>
 <table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>Lag</code></td><td>1 x 1</td><td>double</td><td><code>Inf</code></td><td class="desc">(1 x 1) double  smoothing window in epochs: the estimate at t uses data up to t+Lag; 0 returns the pure filter estimates, Inf the full RTS pass. The filt requirement below applies to both.</td></tr></table>
 <h2>Output Arguments</h2>
-<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>smo</code></td><td class="desc">(1 x 1) struct  smoothed results, physical block only: xs (P x T double) smoothed states, sig (P x T double) formal 1-sigma per coefficient (sqrt of the smoothed covariance diagonal), PsLast (P x P double) full smoothed covariance of the LAST epoch (equals the filtered one there), P (1 x 1), order (1 x 1)</td></tr></table>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>smo</code></td><td class="desc">(1,1) struct  smoothed results, PHYSICAL block only. Fields xs      (P x T) double  smoothed states sig     (P x T) double  formal 1-sigma per coefficient, the square root of the smoothed covariance diagonal PsLast  (P x P) double  the full smoothed covariance of the LAST epoch, which equals the filtered one there P       (1,1) double  block size order   (1,1) double  the VAR order</td></tr></table>
 <h2>Error Identifiers</h2>
 <p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
 <h2>Version History</h2>

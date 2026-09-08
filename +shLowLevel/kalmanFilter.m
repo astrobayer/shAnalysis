@@ -64,21 +64,28 @@ function filt = kalmanFilter(model, obs, opts)
 %            essentially exact at dof = P; see its accuracy note)
 %
 %   Outputs
-%     filt  (1 x 1) struct  companion-space filter results, including
-%           B (pP x P double) the companion selection matrix:
-%           xf, xp (pP x T double) filtered / predicted states,
-%           Pf, Pp (pP x pP x T double, StoreCov="full") or
-%           dPf, dPp (pP x T double, StoreCov="diag"|"matfile")
-%           covariances, covFile (1 x 1) string path of the v7.3 MAT
-%           holding Pf/Pp (StoreCov="matfile" only, else "" - delete
-%           it when done),
-%           contrib (P x T double) data share per coefficient (NaN in
-%           gaps), gap (1 x T logical), qcStat (1 x T double)
-%           innovation statistic (NaN when QC="none" or in gaps),
-%           qcDof (1 x T double), qcReject (1 x T logical) epochs
-%           rejected (always all-false unless QC="reject"), P (1 x 1)
-%           block size, order (1 x 1), storeCov (1 x 1) string. The
-%           physical state is the first block: xf(1:P, :).
+%     filt  (1,1) struct  companion-space filter results. The PHYSICAL
+%           state is the first block, xf(1:P, :). Fields
+%           xf, xp    (pP x T) double  filtered and predicted states
+%           Pf, Pp    (pP x pP x T) double  covariances, StoreCov="full"
+%           dPf, dPp  (pP x T) double  their diagonals instead, for
+%                     StoreCov="diag" or "matfile"
+%           covFile   (1,1) string  path of the v7.3 MAT holding Pf/Pp,
+%                     StoreCov="matfile" only, else "" - delete it when
+%                     you are done with it
+%           B         (pP x P) double  the companion selection matrix
+%           contrib   (P x T) double   data share per coefficient, NaN in
+%                     gaps
+%           gap       (1 x T) logical  which epochs had no data
+%           qcStat    (1 x T) double   innovation statistic; NaN when
+%                     QC="none" or in a gap
+%           qcDof     (1 x T) double   its degrees of freedom
+%           qcReject  (1 x T) logical  epochs rejected; always all-false
+%                     unless QC="reject"
+%           P         (1,1) double  block size
+%           order     (1,1) double  the VAR order
+%           storeCov  (1,1) string  which of the three layouts above is
+%                     filled
 %
 %   Example
 %     model = shLowLevel.estimateVAR(X, Order=1);
