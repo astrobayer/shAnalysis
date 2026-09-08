@@ -517,15 +517,24 @@ confirmation that the counter is right about a real run and not only
 about the source.
 
 ### 6.3 What the next session could be wrong for not reading
-- The toolbox is at **3.33.1**, package is `+shLowLevel`. Memory summaries
-  that say 3.32.2 or `shx.*` are stale.
-- The guide PDF is current again (rebuilt at 3.33.1) and its stamp is gated.
+- The toolbox is at **3.34.0**, package is `+shLowLevel`. Memory summaries
+  that say 3.32.2, 3.33.x or `shx.*` are stale. §1 is the authority; this
+  bullet was itself stale for two commits, which is the same defect the
+  release fixes.
+- The guide PDF is current (rebuilt at each bump) and its stamp is gated.
   Building it needs `pip install reportlab matplotlib` — not present by
   default in a fresh sandbox.
 - **A green gate is not a correct document.** Nine gates were green while 65
-  help blocks carried two contradictory sections and eight functions
+  help blocks carried two contradictory sections and ELEVEN functions
   documented struct fields that do not exist. Read what an instrument
-  inspects before trusting its silence (A12 is what is still unmeasured).
+  inspects before trusting its silence — and prefer an instrument that
+  states its own reach, as `help_audit.py`'s last line now does.
+- **A new checker lies before it tells the truth.** The A12 checker produced
+  67 invented findings across three bugs, then five more classes of wrong
+  result during the conversion (MATLAB's `'` is transpose after a value;
+  `struct()` alternates name and value; a class method's source is not the
+  whole class file). Read its output against the source before acting on
+  it, and fault-inject every rule.
 - `doc_sync_audit.py` requires the top CHANGELOG heading to equal
   `Contents.m` and rejects `Unreleased` headings: bump the version in the
   same commit, then regenerate `apiReference.html`, `html/ref/` and the
@@ -574,5 +583,6 @@ pip install reportlab matplotlib && \
 
 ---
 *shAnalysis v3.33.0 audited | 2026-09-08 18:30 UTC | Claude Fable 5.1 |
-WP0 (v3.33.1) and A12/A14/A16 (v3.34.0) | 2026-09-08 | Claude Opus 5 |
+WP0 (v3.33.1) and A7/A8/A12/A13/A14/A16 + WP6.1-2 (v3.34.0) | 2026-09-08 |
+Claude Opus 5 | Both releases green on A8 via CI, 269 runs |
 Developed by Matthias Weigelt with the help of Claude.*
