@@ -23,7 +23,9 @@ function [T, info] = listITSG(opts)
 %                  product (1,1) string  "monthly" | "daily" | "static"
 %                  nmax    (1,1) double  60/96/120 (NaN for daily/static)
 %                  url     (1,1) string  folder URL or mirror path
-%     info       (1,1) struct  fields: source (string), nReleases (double)
+%     info  (1,1) struct  fields
+%           source     (1,1) string  where the catalogue came from
+%           nReleases  (1,1) double  releases found
 %
 %   Example
 %     T = shLowLevel.listITSG();

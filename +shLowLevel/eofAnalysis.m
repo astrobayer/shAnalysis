@@ -23,8 +23,14 @@ function [modes, pcs, varExplained, info] = eofAnalysis(ts, opts)
 %     modes         1 x K cell of shCoefficients (spatial patterns)
 %     pcs           (T,K) double, unit variance columns
 %     varExplained  (K,1) double, fraction in [0,1]
-%     info          struct: singularValues, totalVariance, T (epochs),
-%                   centered (whether the mean was removed, = Center)
+%     info  (1,1) struct  fields
+%           singularValues  (K x 1) double  singular values of the
+%                           centred data matrix
+%           totalVariance   (1,1) double    total variance before
+%                           truncation
+%           T               (1,1) double    epochs used
+%           centered        (1,1) logical   whether the temporal mean was
+%                           removed (= the Center option)
 %
 %   Claude (Fable 5), 2026-08-07 (v2.4).
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).

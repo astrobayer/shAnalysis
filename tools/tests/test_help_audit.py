@@ -181,6 +181,35 @@ class TestStructFields(unittest.TestCase):
                "'Format', 'yyyy-MM-dd'))));\nend\n")
         self.assertEqual(ha.fields_assigned_to(src, "out"), {"created"})
 
+    def test_transpose_is_not_a_quote(self):
+        # MATLAB ' is transpose after a value. Reading w' as the start of a
+        # string desynchronised the scan and hid three of basinKernel's
+        # four fields - which would have made a correct help block look
+        # wrong the moment its row was converted to a field list.
+        src = ("function info = f(w, mask)\n"
+               "info = struct('areaFraction', w' * mask, "
+               "'nGridPoints', numel(mask), 'buffered', true, "
+               "'tapered', false);\nend\n")
+        self.assertEqual(
+            ha.fields_assigned_to(src, "info"),
+            {"areaFraction", "nGridPoints", "buffered", "tapered"})
+
+    def test_doubled_quote_inside_a_literal(self):
+        src = ("function out = f()\n"
+               "out = struct('name', 'it''s fine', 'other', 1);\nend\n")
+        self.assertEqual(ha.fields_assigned_to(src, "out"),
+                         {"name", "other"})
+
+    def test_a_quoted_value_is_not_a_field(self):
+        # struct() alternates name, value: the "zeroField" in
+        # struct(..., 'stoppedBy', "zeroField", ...) is a VALUE, and
+        # counting it invented a field leakageCorrect does not have
+        src = ("function info = f()\n"
+               "info = struct('stoppedBy', \"zeroField\", "
+               "'converged', true);\nend\n")
+        self.assertEqual(ha.fields_assigned_to(src, "info"),
+                         {"stoppedBy", "converged"})
+
     def test_sibling_method_variables_do_not_leak(self):
         # a class file holds many methods; 'info' in another one is not this
         # one's (that leak invented 57 findings)

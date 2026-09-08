@@ -36,11 +36,16 @@ function [circ, noiseR, info] = eofSeparate(R, w, opts)
 %   Outputs
 %     circ   (Q x T) double  coherent (circulation) part
 %     noiseR (Q x T) double  time-centred residual minus CIRC
-%     info   (1 x 1) struct  lam (variance per mode), nKeep,
-%            bulkEdge (the Marchenko-Pastur bulk edge the retained modes
-%            must exceed), northSeparated (logical, per leading mode),
-%            varExplained (fraction, kept modes), rmsNoise
-%            (area-weighted RMS of NOISER)
+%     info  (1,1) struct  fields
+%           lam             (M x 1) double   variance per mode
+%           nKeep           (1,1) double     modes kept as coherent
+%           bulkEdge        (1,1) double     the Marchenko-Pastur bulk
+%                           edge a retained mode must exceed
+%           northSeparated  (:,1) logical    per leading mode, whether
+%                           North's rule separates it from its neighbour
+%           varExplained    (1,1) double     fraction of variance in the
+%                           kept modes
+%           rmsNoise        (1,1) double     area-weighted RMS of NOISER
 %
 %   Example
 %     % after [out, rep] = oceanChain(...): rebuild the pixel residuals

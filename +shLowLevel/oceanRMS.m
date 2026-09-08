@@ -44,11 +44,13 @@ function [rmsVal, info] = oceanRMS(grid, latDeg, lonDeg, ocean, opts)
 %   Outputs
 %     rmsVal     (1,1) double  open-ocean RMS, in GRID's units. NaN when
 %                the erosion leaves no points
-%     info       (1,1) struct  fields: nPixels (1,1 double, points used),
-%                fractionUsed (1,1 double, of the whole grid),
-%                mask (nLat x nLon logical, the eroded region - plot it
-%                once before trusting the number), minDistanceKm,
-%                weighted (1,1 logical)
+%     info  (1,1) struct  fields
+%           nPixels       (1,1) double   points that entered the RMS
+%           fractionUsed  (1,1) double   those as a fraction of the grid
+%           mask          (nLat x nLon) logical  the eroded region - plot
+%                         it once before trusting the number
+%           minDistanceKm (1,1) double   erosion distance applied [km]
+%           weighted      (1,1) logical  whether area weights were used
 %
 %   Example
 %     isOcean = @(la, lo) ~inpolygon(lo, la, landLon, landLat);

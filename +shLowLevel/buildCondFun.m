@@ -59,10 +59,13 @@ function [f, info] = buildCondFun(idx, opts)
 %   Outputs
 %     f     function handle  Sigma~ = f(Sigma) for (P x P) covariances
 %           in IDX ordering - pass as estimateVAR(..., CondFun=f)
-%     info  (1 x 1) struct  grid (synthesisMatrix grid struct), M
-%           (1 x 1) number of grid points, region (M x 1 double or []),
-%           W (M x M double) the elementwise spatial weight Z .* T,
-%           memGB (1 x 1) storage of the precomputed operators
+%     info  (1,1) struct  fields
+%           grid    (1,1) struct   the synthesisMatrix grid struct
+%           M       (1,1) double   number of grid points
+%           region  (M x 1) double or []  the region weight, empty when
+%                   none was given
+%           W       (M x M) double  the elementwise spatial weight Z .* T
+%           memGB   (1,1) double   storage of the precomputed operators
 %
 %   Example
 %     kn  = shLowLevel.readLoveNumbers(lovePath);

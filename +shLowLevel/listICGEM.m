@@ -40,7 +40,10 @@ function [T, info] = listICGEM(opts)
 %     T     table:  static:          name, year, degree, data, url
 %                   temporal:        group, center, series, path, url, zip
 %                   temporal+Series: name, url
-%     info  struct: source, retrieved, note
+%     info  (1,1) struct  fields
+%           source     (1,1) string  where the catalogue came from
+%           retrieved  (1,1) string  when it was read
+%           note       (1,1) string  what the listing covers
 %
 %   v2.4.2: the temporal branch previously matched only "getseries" links
 %   in the static HTML (release notes of 3 centers -> 3 rows) and missed

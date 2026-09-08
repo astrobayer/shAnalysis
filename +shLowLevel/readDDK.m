@@ -51,7 +51,12 @@ function W = readDDK(source, opts)
 %                     read from
 %
 %   Outputs
-%     W          struct: nmax (1 x 1), name, blocks (1 x 241) struct array with m, cs, n (degrees), M (square block matrix)
+%     W  (1,1) struct  fields
+%        nmax    (1,1) double  maximum degree the filter covers
+%        name    (1,1) string  the DDK label, e.g. "DDK3"
+%        blocks  (1 x 241) struct array  one per (order, cs) block, each
+%                with m (1,1 double), cs ('c'|'s'), n (1,B double, the
+%                degrees) and M (B x B double, the square block matrix)
 %
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 arguments

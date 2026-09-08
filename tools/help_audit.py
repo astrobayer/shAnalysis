@@ -208,6 +208,20 @@ def struct_field_docs(help_text):
     return out
 
 
+def _is_transpose(src, i):
+    """In MATLAB ' is transpose after a value, a quote otherwise.
+
+    struct('areaFraction', w' * mask, 'nGridPoints', ...) - the ' in w'
+    is an operator. Reading it as a string delimiter desynchronises
+    everything after it, which hid three of basinKernel's four fields
+    and would have made a correct help block look wrong.
+    """
+    k = i - 1
+    while k >= 0 and src[k] in " \t":
+        k -= 1
+    return k >= 0 and (src[k].isalnum() or src[k] in "_)]}.'")
+
+
 def struct_field_names(args):
     """'name' literals at depth 0 of a struct() argument list.
 
@@ -215,15 +229,32 @@ def struct_field_names(args):
     string(datetime('now', 'Format', 'yyyy-MM-dd'))) is one field, not
     three - so anything inside a nested paren is skipped.
     """
-    names, depth, i = set(), 0, 0
+    # struct() alternates name, value, name, value: only the EVEN
+    # depth-0 arguments are field names. Without this, the "zeroField" in
+    # struct(..., 'stoppedBy', "zeroField", ...) looked like a field of
+    # its own - a phantom that weakens both directions of the check.
+    names, depth, i, arg = set(), 0, 0, 0
     while i < len(args):
         c = args[i]
         if c in "([{":
             depth += 1
         elif c in ")]}":
             depth -= 1
+        elif c == "," and depth == 0:
+            arg += 1
         elif c in "'\"":
-            j = args.find(c, i + 1)
+            if c == "'" and _is_transpose(args, i):
+                i += 1
+                continue
+            j = i + 1
+            while True:
+                j = args.find(c, j)
+                if j < 0:
+                    break
+                if j + 1 < len(args) and args[j + 1] == c:   # '' escape
+                    j += 2
+                    continue
+                break
             if j < 0:
                 break
             if depth == 0:
@@ -231,8 +262,8 @@ def struct_field_names(args):
                 k = j + 1
                 while k < len(args) and args[k] in " \t\r\n.":
                     k += 1
-                if re.fullmatch(r"[A-Za-z_]\w*", lit) and \
-                        k < len(args) and args[k] == ",":
+                if arg % 2 == 0 and re.fullmatch(r"[A-Za-z_]\w*", lit) \
+                        and k < len(args) and args[k] == ",":
                     names.add(lit)
             i = j
         i += 1

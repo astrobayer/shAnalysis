@@ -35,12 +35,13 @@ function [N, info] = buildNoiseCov(Xres, idx, opts)
 %           (1,1) struct with fields layout ('blocks'), blocks (cell of
 %           row index vectors), mats (cell of the dense blocks), diagN
 %           (P x 1 double) and P (1,1 double)
-%     info  (1,1) struct  which fields are present depends on the path:
-%           mode  (char)  'empirical' | 'full' | 'full-blocks'
-%           nBlocks (1,1) double  number of (order, C/S, parity) blocks;
-%                 absent for mode 'full'
-%           T     (1,1) double  epochs used; mode 'empirical' only
-%           shrinkage (1,1) double  the gamma applied; 'empirical' only
+%     info  (1,1) struct  which fields are present depends on the path
+%           taken, fields
+%           mode       (1,:) char  'empirical' | 'full' | 'full-blocks'
+%           nBlocks    (1,1) double  number of (order, C/S, parity)
+%                      blocks; absent for mode 'full'
+%           T          (1,1) double  epochs used; mode 'empirical' only
+%           shrinkage  (1,1) double  the gamma applied; 'empirical' only
 %
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 

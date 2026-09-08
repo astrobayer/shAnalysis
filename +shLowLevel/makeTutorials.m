@@ -31,10 +31,12 @@ function out = makeTutorials(opts)
 %     Quiet (false)  suppress progress output
 %
 %   Outputs
-%     out        (1,1) struct  fields: files (1,N string, the .m files
-%                written), mlx (1,M string, the .mlx files written -
-%                empty when Convert is false or unavailable), dest
-%                (1,1 string), converted (1,1 logical)
+%     out  (1,1) struct  fields
+%          files      (1,N) string   the .m files written
+%          mlx        (1,M) string   the .mlx files written; empty when
+%                     Convert is false or the conversion is unavailable
+%          dest       (1,1) string   the folder written to
+%          converted  (1,1) logical  whether the .mlx conversion ran
 %
 %   Example
 %     shLowLevel.makeTutorials(Cases = ["D01" "D05"]);

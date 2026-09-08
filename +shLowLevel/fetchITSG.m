@@ -45,9 +45,14 @@ function [files, info] = fetchITSG(months, opts)
 %     Catalog ([])  row numbers of the shLowLevel.listITSG catalogue to fetch completely
 %   Outputs
 %     files  (1,:) string   paths of all present files (new + existing)
-%     info   struct: fetched, updated, skipped, missing (string arrays),
-%            dest (target folder), base (server base URL) and product
-%            (the ITSG product actually requested)
+%     info   (1,1) struct  fields
+%            fetched  (1,:) string  files downloaded now
+%            updated  (1,:) string  files replaced by a newer copy
+%            skipped  (1,:) string  files already present
+%            missing  (1,:) string  months the server did not offer
+%            dest     (1,1) string  target folder
+%            base     (1,1) string  server base URL
+%            product  (1,1) string  the ITSG product actually requested
 %
 %   Load the result with ts = shSeries.fromFolder(dest). Source:
 %   ftp.tugraz.at/pub/ITSG/GRACE (Mayer-Guerr et al.); cite the ITSG

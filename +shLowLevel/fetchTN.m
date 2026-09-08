@@ -33,8 +33,13 @@ function [files, info] = fetchTN(opts)
 %   Outputs
 %     files  (1,:) string  verified present file paths (new + updated
 %                          + kept existing)
-%     info   (1,1) struct  fetched / updated / skipped / failed
-%                          (string arrays of file names), urls, dest
+%     info   (1,1) struct  fields
+%            fetched  (1,:) string  files downloaded now
+%            updated  (1,:) string  files replaced by a newer copy
+%            skipped  (1,:) string  files already present
+%            failed   (1,:) string  files that did not arrive
+%            urls     (1,:) string  the URLs used, in the same order
+%            dest     (1,1) string  target folder
 %
 %   Example
 %     shLowLevel.fetchTN(Update = true);            % monthly refresh, safe swap

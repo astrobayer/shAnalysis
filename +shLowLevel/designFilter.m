@@ -36,13 +36,17 @@ function [W, info] = designFilter(SigmaC, SigmaS, opts)
 %     Name ("designFilter")  stored in W.name
 %
 %   Outputs
-%     W          (1,1) struct  fields: nmax (1,1 double), name (char),
-%                blocks (1,K struct: m (1,1 double), cs ('c'|'s'),
-%                n (1,B double, degrees), M (B x B double)) - identical
-%                layout to shLowLevel.readDDK
-%     info       (1,1) struct  fields: alpha (1,1 double), mode (string:
-%                "diagonal" | "fullcov"), gainRange (1,2 double,
-%                min/max eigenvalue over all blocks)
+%     W  (1,1) struct  identical layout to shLowLevel.readDDK, fields
+%        nmax    (1,1) double  maximum degree the filter covers
+%        name    (1,:) char    the filter's label
+%        blocks  (1,K) struct  one per (order, cs) block, each with
+%                m (1,1 double), cs ('c'|'s'), n (1,B double, the
+%                degrees) and M (B x B double, the block matrix)
+%     info  (1,1) struct  fields
+%           alpha      (1,1) double  the regularisation actually used
+%           mode       (1,1) string  "diagonal" | "fullcov"
+%           gainRange  (1,2) double  min and max eigenvalue over all
+%                      blocks
 %
 %   Example
 %     W = shLowLevel.designFilter(g.sigmaC, g.sigmaS, Alpha = 1);
