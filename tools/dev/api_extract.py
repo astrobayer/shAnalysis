@@ -97,15 +97,24 @@ def parse_help(block):
     if m:
         idx = [k for k, L in enumerate(lines)
                if re.match(r"^\s*Outputs?\s*$", L)][0] + 1
+        row_indent = None
         while idx < len(lines):
             s = lines[idx]
             if s.strip() == "" or re.match(
                     r"^\s*(Inputs?|Options?)\s*:?\s*$", s) or re.match(
                     r"^\s*(Example|Notes?|Developed)\b", s):
                 break
-            mo = re.match(r"^\s{1,8}([\w.]+(?:,\s*[\w.]+)*)\s{2,}(.+)$", s)
-            if mo:
-                outputs.append([mo.group(1), mo.group(2).strip()])
+            # A row starts at the section's own indent; anything indented
+            # DEEPER is a continuation - the sub-fields of a returned
+            # struct, above all. Without the indent test, "tn (1,1) struct
+            # fields / epoch ... / C20, C30 ..." became three outputs for a
+            # one-output function (6 entities carried that before this
+            # rule: httpFetch, obpChain, oceanChain, poleTideConvert,
+            # readMascon, readTN13).
+            mo = re.match(r"^(\s{1,8})([\w.]+(?:,\s*[\w.]+)*)\s{2,}(.+)$", s)
+            if mo and (row_indent is None or len(mo.group(1)) <= row_indent):
+                row_indent = len(mo.group(1))
+                outputs.append([mo.group(2), mo.group(3).strip()])
             elif outputs:
                 outputs[-1][1] += " " + s.strip()
             idx += 1

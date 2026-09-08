@@ -184,8 +184,6 @@ methods
         %   Outputs
         %     g          (1 x 1) shCoefficients   month k with epoch and sigmas
         %
-        %   Outputs
-        %     g  (1,1) shCoefficients  the k-th epoch as a standalone field
         arguments
             obj
             k (1,1) double {mustBeInteger, mustBePositive}
@@ -419,10 +417,6 @@ methods
         %     clim       (1 x 1) shClimatology   fitted bias/trend/annual/semiannual (+Periods=) with coefficient sigmas
         %     resid      (1 x 1) shSeries   residual series about the fit
         %
-        %   Options
-        %     ARCorrect (false)  correct the parameter sigmas for AR(1)
-        %         residual autocorrelation (Kendall-corrected r1); the
-        %         uncorrected sigmas are optimistic for monthly series
         arguments
             obj
             opts.Robust (1,1) logical = false
@@ -490,9 +484,6 @@ methods
         %   Outputs
         %     out        struct: trends per segment (shCoefficients), F/p per break, segment epochs
         %
-        %   Outputs
-        %     out  (1,1) shSeries  modified copy; the operation is appended to the
-        %              history (immutable value-class pattern)
         arguments
             obj
             opts.Breaks (1,:) double
@@ -551,9 +542,6 @@ methods
         %   Outputs
         %     out        (1 x 1) shSeries   fan-filtered per month
         %
-        %   Outputs
-        %     out  (1,1) shSeries  modified copy; the operation is appended to the
-        %              history (immutable value-class pattern)
         arguments
             obj
             rDegKm (1,1) double {mustBePositive}
@@ -591,9 +579,6 @@ methods
         %     ReplaceC30 ("auto")  "auto" (replace when the table has a
         %         non-NaN C30 for that month) | "never" | "always"
         %
-        %   Outputs
-        %     out  (1,1) shSeries  modified copy; the operation is appended to the
-        %              history (immutable value-class pattern)
         arguments
             obj
             tn
@@ -620,9 +605,6 @@ methods
         %     Tolerance (0.05)  maximum |epoch difference| [yr] accepted
         %         when matching a table entry to this epoch
         %
-        %   Outputs
-        %     out  (1,1) shSeries  modified copy; the operation is appended to the
-        %              history (immutable value-class pattern)
         arguments
             obj
             tn
@@ -759,9 +741,6 @@ methods
         %   Outputs
         %     out        (1 x 1) shSeries   GIA trend removed about the series mean epoch
         %
-        %   Outputs
-        %     out  (1,1) shSeries  modified copy; the operation is appended to the
-        %              history (immutable value-class pattern)
         arguments
             obj
             gia (1,1) shCoefficients
@@ -796,9 +775,6 @@ methods
         %   Outputs
         %     out        (1 x 1) shSeries   DDK-decorrelated per month
         %
-        %   Outputs
-        %     out  (1,1) shSeries  modified copy; the operation is appended to the
-        %              history (immutable value-class pattern)
         arguments
             obj
             W
@@ -826,9 +802,6 @@ methods
         %     rep        (1 x 1) struct   shLowLevel.compareSeries report
         %     h          (1 x 1) graphics handle   figure (Plot = true)
         %
-        %   Outputs
-        %     rep  (1,1) struct  shLowLevel.compareSeries report
-        %     h    (1,1) graphics handle  figure (Plot = true only)
         if ~iscell(others), others = {others}; end
         [rep, h] = shLowLevel.compareSeries([{obj}, others], varargin{:});
     end
@@ -846,9 +819,6 @@ methods
         %   Outputs
         %     out        (1 x 1) shSeries   background model added back epoch-matched (e.g. GSM + GAD)
         %
-        %   Outputs
-        %     out  (1,1) shSeries  modified copy; the operation is appended to the
-        %              history (immutable value-class pattern)
         arguments
             obj
             gax (1,1) shSeries
@@ -888,9 +858,6 @@ methods
         %   Outputs
         %     out        (1 x 1) shSeries   per-month difference (series or single field)
         %
-        %   Outputs
-        %     out  (1,1) shSeries  modified copy; the operation is appended to the
-        %              history (immutable value-class pattern)
         if isa(b, 'shCoefficients')
             if a.nmax ~= b.nmax
                 error('shSeries:sizeMismatch', ...
@@ -934,9 +901,6 @@ methods
         %         moving window instead (WindowLength=6 with PolyOrder=3 is
         %         the common "P3M6" variant)
         %
-        %   Outputs
-        %     out  (1,1) shSeries  modified copy; the operation is appended to the
-        %              history (immutable value-class pattern)
         arguments
             obj
             opts.MinOrder (1,1) double = 6
@@ -962,9 +926,6 @@ methods
         %   Outputs
         %     out        (1 x 1) shSeries   Gaussian-smoothed per month
         %
-        %   Outputs
-        %     out  (1,1) shSeries  modified copy; the operation is appended to the
-        %              history (immutable value-class pattern)
         arguments
             obj
             radiusKm (1,1) double {mustBePositive}
@@ -989,9 +950,6 @@ methods
         %   Outputs
         %     out        (1 x 1) shSeries   truncated per month
         %
-        %   Outputs
-        %     out  (1,1) shSeries  modified copy; the operation is appended to the
-        %              history (immutable value-class pattern)
         arguments
             obj
             nmaxNew (1,1) double {mustBeInteger, mustBeNonnegative}
@@ -1023,9 +981,6 @@ methods
         %   Outputs
         %     out        (1 x 1) shSeries   gap months removed
         %
-        %   Outputs
-        %     out  (1,1) shSeries  modified copy; the operation is appended to the
-        %              history (immutable value-class pattern)
         bad = false(1, obj.nEpochs);
         for k = 1:obj.nEpochs
             bad(k) = any(~isfinite(obj.Cs(:,:,k)), 'all') ...
@@ -1466,9 +1421,6 @@ methods (Static)
         %   Outputs
         %     obj        (1 x 1) shSeries   all gfc(.gz) files of a folder, epoch-sorted
         %
-        %   Outputs
-        %     obj  (1,1) shSeries  modified copy; the operation is appended to the
-        %              history (immutable value-class pattern)
         arguments
             folder (1,1) string
             opts.Pattern (1,1) string = "*.gfc*"

@@ -143,6 +143,19 @@ jobs:
       - name: Fixture tag currency
         run: python3 tools/fixture_tag_audit.py
 
+      # The gates above are instruments; these are the instruments'
+      # own tests. They were committed in v3.32/v3.33 and never run by
+      # CI, so a gate could have been silently broken by an edit and
+      # nothing would have said so. Each test pairs a fault injection
+      # (the check fires on a defect) with a clean-tree assertion (it
+      # stays silent otherwise).
+      - name: Gate self-tests
+        run: |
+          for t in tools/tests/test_*.py; do
+            echo "== $t"
+            python3 "$t"
+          done
+
   test:
     name: runAllTests (${{ matrix.os }})
     strategy:

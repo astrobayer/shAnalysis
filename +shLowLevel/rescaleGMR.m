@@ -14,20 +14,16 @@ function [C2, S2, sig] = rescaleGMR(C, S, GM1, R1, GM2, R2, sigmaC, sigmaS)
 %   model releases.
 %
 %   Inputs
-%     C, S      (n1,n1) double
+%     C, S      (n1,n1) double  coefficients w.r.t. (GM1, R1)
 %     GM1, R1   (1,1) double  current reference [m^3/s^2], [m]
-%     GM2, R2   (1,1) double  target reference
-%     sigmaC/S  (n1,n1) double, optional: rescaled by the same positive
-%               factors, returned in sig.C / sig.S
-%   Inputs
-%     GM2    (1 x 1) target gravitational parameter [m^3/s^2]
-%     R2     (1 x 1) target reference radius [m]
-%     sigmaC (n+1 x n+1) cosine sigmas rescaled alongside C (optional)
-%     sigmaS (n+1 x n+1) sine sigmas rescaled alongside S (optional)
+%     GM2, R2   (1,1) double  target reference [m^3/s^2], [m]
+%     sigmaC, sigmaS  (n1,n1) double, optional  formal errors, rescaled by
+%               the same positive factors and returned in sig.C / sig.S
 %
 %   Outputs
-%     C2, S2    (n1,n1) double
-%     sig       struct with fields C, S (empty if no sigmas given)
+%     C2, S2    (n1,n1) double  coefficients w.r.t. (GM2, R2)
+%     sig       (1,1) struct  fields C and S, each (n1,n1) double or []
+%               when the corresponding sigma was not supplied
 %
 %   Claude (Fable 5), 2026-08-07 (v2.4).
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).

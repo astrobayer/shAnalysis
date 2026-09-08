@@ -1,15 +1,27 @@
 #!/usr/bin/env python3
-"""help_audit: enforce complete in-file documentation (v3.0.1).
+"""help_audit: enforce complete in-file documentation (v3.0.2).
 
 Every public function and class method must document, in its help text:
   - every positional input (name mentioned),
   - every name-value option WITH its default value,
   - an Outputs section naming every output with a size or type token,
   - an Example (in-file, or registered in docs/apiExamples.json).
+
+Structural rules on the help block itself (v3.0.2), added after 13 files
+were found carrying two sections of the same kind - a generated block
+appended below a hand-written one, with the two disagreeing about the
+returned struct fields. Presence checks alone cannot see that:
+  - a section heading of the house vocabulary appears AT MOST ONCE,
+  - no section heading appears after the provenance footer (the doc
+    builder and the audit's own section parser stop reading there),
+  - headings use the house spelling exactly (Outputs, not Output; Example,
+    not Examples; Error identifiers, not Errors; Options, not
+    "Name/value options").
+
 Runs in CI before the test suite; nonzero exit on any finding.
 
 Developed by Matthias Weigelt with the help of Claude (Fable 5),
-2026-08-10 (v3.0.1).
+2026-08-10 (v3.0.1); structural section rules 2026-09-08 (v3.0.2).
 """
 import json, os, re, sys
 
@@ -29,7 +41,8 @@ def join_cont(lines):
     return out
 
 def parse_file(path):
-    lines = open(path, encoding="utf-8", errors="replace").readlines()
+    with open(path, encoding="utf-8", errors="replace") as fh:
+        lines = fh.readlines()
     return parse_from(lines, 0, os.path.basename(path)[:-2])
 
 def parse_from(lines, i0, expect):
@@ -71,10 +84,56 @@ def parse_from(lines, i0, expect):
 def norm(s):
     return re.sub(r"[\s'\"]+", "", s)
 
+# House section vocabulary. A heading is a help line that is nothing but the
+# name (with an optional colon); anything else on the line is prose.
+SECTIONS = ("Inputs", "Outputs", "Options", "Example", "Error identifiers",
+            "References")
+# Near-misses that the section parsers silently do not recognise.
+NEAR_MISS = {"Output": "Outputs", "Input": "Inputs", "Examples": "Example",
+             "Errors": "Error identifiers", "Error Identifiers":
+             "Error identifiers", "Name/value options": "Options",
+             "Name-value options": "Options", "Option": "Options",
+             "Outputs Arguments": "Outputs", "Output Arguments": "Outputs",
+             "Input Arguments": "Inputs"}
+HEAD_RE = re.compile(r"^\s{2,6}([A-Za-z][A-Za-z/\- ]*?)\s*:?\s*$")
+PROV_RE = re.compile(r"^\s*Developed by ", re.I)
+
+def structure(help_text, label):
+    """duplicate / misplaced / misspelt section headings"""
+    probs = []
+    seen = {}
+    prov = None
+    for k, L in enumerate(help_text.split("\n")):
+        if prov is None and PROV_RE.match(L):
+            prov = k
+        m = HEAD_RE.match(L.rstrip())
+        if not m:
+            continue
+        name = m.group(1).strip()
+        if name in NEAR_MISS:
+            probs.append("%s: section '%s' should be spelt '%s' (the house "
+                         "vocabulary; other spellings are invisible to the "
+                         "section parsers)" % (label, name, NEAR_MISS[name]))
+            continue
+        if name not in SECTIONS:
+            continue          # free prose sub-heading inside a description
+        if name in seen:
+            probs.append("%s: section '%s' appears twice (help lines %d and "
+                         "%d); one authority per section" %
+                         (label, name, seen[name] + 1, k + 1))
+        else:
+            seen[name] = k
+        if prov is not None and k > prov:
+            probs.append("%s: section '%s' comes after the provenance "
+                         "footer, where the doc builder stops reading" %
+                         (label, name))
+    return probs
+
 def audit(entry, label, examples):
     H = entry["help"]; probs = []
     if not H.strip():
         return [label + ": no help text"]
+    probs += structure(H, label)
     Hn = norm(H)
     # positional inputs (skip obj/varargin/opts)
     for a in entry["ins"]:
@@ -117,7 +176,8 @@ def main():
     examples = set()
     jp = os.path.join(ROOT, "docs", "apiExamples.json")
     if os.path.isfile(jp):
-        J = json.load(open(jp))
+        with open(jp, encoding="utf-8") as fh:
+            J = json.load(fh)
         ents = J["entries"] if isinstance(J, dict) and "entries" in J else J
         examples = {e["name"] for e in ents if e.get("example")}
     probs = []
@@ -134,7 +194,8 @@ def main():
     for cls in ["shCoefficients.m", "shSeries.m", "shClimatology.m"]:
         p = os.path.join(ROOT, cls)
         if not os.path.isfile(p): continue
-        lines = open(p, encoding="utf-8", errors="replace").readlines()
+        with open(p, encoding="utf-8", errors="replace") as fh:
+            lines = fh.readlines()
         # walk methods blocks, tracking each block's Access/Hidden attrs;
         # a block opened by '<ind>methods...' closes at '<ind>end'
         i = 0; seen = set()

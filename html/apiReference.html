@@ -11,7 +11,7 @@ td,th{border:1px solid #ccc;padding:3px 8px;font-size:13px;text-align:left}
 h2{margin-top:34px;border-bottom:2px solid #444}
 .toc a{margin-right:10px;font-size:13px}
 </style></head><body>
-<h1>shAnalysis API reference (v3.33.0)</h1>
+<h1>shAnalysis API reference (v3.33.1)</h1>
 <p>Generated from the source arguments blocks and help text - inputs,
 name-value options with defaults, and outputs for every public function
 and method. Regenerated with every release; the source of truth is the
@@ -170,8 +170,8 @@ code itself.</p>
 <b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>B</code></td><td>n x m</td><td>double</td><td>required</td></tr><tr><td><code>op</code></td><td>1 x 1</td><td>struct</td><td>required</td></tr></table>
 <b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Ridge</code></td><td>1 x 1</td><td>double</td><td>0</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
-<tr><td><code>avgHat</code></td><td>(K x T) double   deconvolved basin averages</td></tr>
-<tr><td><code>out</code></td><td>struct: c (K x T) deconvolved coefficients, sigma (K x T) 1-sigma incl. deterministic term (v2.5), avgNaive, attn, condA</td></tr>
+<tr><td><code>avgHat</code></td><td>(K x T) double  deconvolved basin averages, ((B&#x27;B)*c + B&#x27;model) ./ diag(B&#x27;B)</td></tr>
+<tr><td><code>out</code></td><td>(1,1) struct  fields c         (K x T) double  span coefficients sigma     (K x T) double  1-sigma of avgHat, deterministic term included (v2.5) avgNaive  (K x T) double  naive averages of the filtered field (attenuated and leaky) for comparison attn      (K x T) double  diag(A_t) ./ diag(B&#x27;B) attenuation factors condA     (T x 1) double  cond(A_t) per month</td></tr>
 </table>
 </div>
 <div class="entry" id="shLowLevel.basinKernel">
@@ -227,19 +227,19 @@ code itself.</p>
 <b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Xres</code></td><td>P x T</td><td>double</td><td>required</td></tr><tr><td><code>idx</code></td><td>1 x 1</td><td>struct</td><td>required</td></tr></table>
 <b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Mode</code></td><td>n x m</td><td>-</td><td>&#x27;empirical&#x27;</td></tr><tr><td><code>FullCov</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>Shrinkage</code></td><td>1 x 1</td><td>double</td><td>0.1</td></tr><tr><td><code>Assemble</code></td><td>n x m</td><td>-</td><td>&#x27;full&#x27;</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
-<tr><td><code>N</code></td><td>(P x P) double or block struct   noise covariance (order/parity block-diagonal for Assemble (&#x27;full&#x27;)=&#x27;blocks&#x27;)</td></tr>
-<tr><td><code>info</code></td><td>struct: mode, shrinkage, blocks metadata</td></tr>
+<tr><td><code>N</code></td><td>(P x P) double for Assemble=&#x27;full&#x27;; for Assemble=&#x27;blocks&#x27; a (1,1) struct with fields layout (&#x27;blocks&#x27;), blocks (cell of row index vectors), mats (cell of the dense blocks), diagN (P x 1 double) and P (1,1 double)</td></tr>
+<tr><td><code>info</code></td><td>(1,1) struct  which fields are present depends on the path: mode  (char)  &#x27;empirical&#x27; | &#x27;full&#x27; | &#x27;full-blocks&#x27; nBlocks (1,1) double  number of (order, C/S, parity) blocks; absent for mode &#x27;full&#x27; T     (1,1) double  epochs used; mode &#x27;empirical&#x27; only shrinkage (1,1) double  the gamma applied; &#x27;empirical&#x27; only</td></tr>
 </table>
 </div>
 <div class="entry" id="shLowLevel.buildSignalCov">
 <h3><code>shLowLevel.buildSignalCov(Xres, N, idx, opts)</code></h3>
 <p class="h1line">Iterative, data-driven signal covariance.</p>
 <p>[S, info] = shLowLevel.buildSignalCov(Xres, N, idx) estimates the signal covariance from the residual series itself - no hydrology prior.</p>
-<b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Xres</code></td><td>P x T</td><td>double</td><td>required</td></tr><tr><td><code>N</code></td><td>n x m</td><td>-</td><td>required</td></tr><tr><td><code>idx</code></td><td>1 x 1</td><td>struct</td><td>required</td></tr></table>
+<b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Xres</code></td><td>P x T</td><td>double</td><td>required</td></tr><tr><td><code>N</code></td><td>P x P</td><td>-</td><td>required</td></tr><tr><td><code>idx</code></td><td>1 x 1</td><td>struct</td><td>required</td></tr></table>
 <b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Mode</code></td><td>n x m</td><td>-</td><td>&#x27;isotropic&#x27;</td></tr><tr><td><code>NIter</code></td><td>1 x 1</td><td>double</td><td>3</td></tr><tr><td><code>FloorRel</code></td><td>1 x 1</td><td>double</td><td>1e-8</td></tr><tr><td><code>MapSmooth</code></td><td>1 x 1</td><td>logical</td><td>true</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
-<tr><td><code>S</code></td><td>(P x P) double   signal covariance in idx ordering</td></tr>
-<tr><td><code>info</code></td><td>struct: mode, iterations, degree-variance model</td></tr>
+<tr><td><code>S</code></td><td>(P x P) double  signal covariance in idx ordering; sparse diagonal when N is the block container</td></tr>
+<tr><td><code>info</code></td><td>(1,1) struct  fields c       (P x NIter+1) double  per-coefficient variances, column 1 the initialization, one column per iteration varMap  (Ngrid x 1) double  spatial variance map, weighted global mean 1; Mode=&#x27;inhomogeneous&#x27; only</td></tr>
 </table>
 </div>
 <div class="entry" id="shLowLevel.chi2Quantile">
@@ -400,13 +400,13 @@ code itself.</p>
 <div class="entry" id="shLowLevel.errorMap">
 <h3><code>shLowLevel.errorMap(M, idx, latDeg, lonDeg, opts)</code></h3>
 <p class="h1line">Analytic formal-error maps from a full coefficient covariance.</p>
-<p>[SIG, LAT, LON] = shLowLevel.errorMap(M, IDX, LAT, LON, Quantity (&quot;geoid&quot;)=&quot;ewh&quot;, kn ([])=kn) computes the pointwise 1-sigma of a synthesized field from a full P x P covariance (e.g. shLowLevel.readSINEX(...,</p>
+<p>[SIG, LAT, LON] = shLowLevel.errorMap(M, IDX, LAT, LON, Quantity (&quot;geoid&quot;)=&quot;ewh&quot;, kn ([])=kn) computes the pointwise 1-sigma of a synthesized field from a full P x P covariance (e.g. shLowLevel.readSINEX(..., Output=&quot;covariance&quot;).M, reordered via Index=idx).</p>
 <b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>M</code></td><td>P x P</td><td>double</td><td>required</td></tr><tr><td><code>idx</code></td><td>1 x 1</td><td>struct</td><td>required</td></tr><tr><td><code>latDeg</code></td><td>1 x :</td><td>double</td><td>required</td></tr><tr><td><code>lonDeg</code></td><td>1 x :</td><td>double</td><td>required</td></tr></table>
 <b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Quantity</code></td><td>1 x 1</td><td>string</td><td>&quot;geoid&quot;</td></tr><tr><td><code>kn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>hn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>GM</code></td><td>1 x 1</td><td>double</td><td>3.986004415e14</td></tr><tr><td><code>R</code></td><td>1 x 1</td><td>double</td><td>6378136.3</td></tr><tr><td><code>Height</code></td><td>1 x 1</td><td>double</td><td>0</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
-<tr><td><code>sig</code></td><td>(nlat x nlon) double  1-sigma of the synthesized quantity</td></tr>
-<tr><td><code>latDeg</code></td><td>(1, nlat) double  latitude grid used [deg]</td></tr>
-<tr><td><code>lonDeg</code></td><td>(1, nlon) double  longitude grid used [deg]</td></tr>
+<tr><td><code>sig</code></td><td>(nlat,nlon) double  1-sigma of the field [unit of quantity]</td></tr>
+<tr><td><code>latDeg</code></td><td>(1,nlat) double     latitude grid used [deg], as passed in</td></tr>
+<tr><td><code>lonDeg</code></td><td>(1,nlon) double     longitude grid used [deg], as passed in</td></tr>
 </table>
 </div>
 <div class="entry" id="shLowLevel.estimateDegree1">
@@ -679,11 +679,7 @@ code itself.</p>
 <b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>url</code></td><td>1 x 1</td><td>string</td><td>required</td></tr><tr><td><code>dest</code></td><td>1 x 1</td><td>string</td><td>required</td></tr></table>
 <b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>MaxTries</code></td><td>1 x 1</td><td>double</td><td>4</td></tr><tr><td><code>BaseDelay</code></td><td>1 x 1</td><td>double</td><td>2</td></tr><tr><td><code>MaxDelay</code></td><td>1 x 1</td><td>double</td><td>60</td></tr><tr><td><code>Timeout</code></td><td>1 x 1</td><td>double</td><td>60</td></tr><tr><td><code>WebsaveFallback</code></td><td>1 x 1</td><td>logical</td><td>true</td></tr><tr><td><code>Quiet</code></td><td>1 x 1</td><td>logical</td><td>true</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
-<tr><td><code>info</code></td><td>(1 x 1) struct with fields</td></tr>
-<tr><td><code>status</code></td><td>(1 x 1) double  final HTTP status code</td></tr>
-<tr><td><code>tries</code></td><td>(1 x 1) double  attempts used</td></tr>
-<tr><td><code>waited</code></td><td>(1 x 1) double  total seconds slept between attempts</td></tr>
-<tr><td><code>bytes</code></td><td>(1 x 1) double  bytes written to DEST</td></tr>
+<tr><td><code>info</code></td><td>(1 x 1) struct with fields status  (1 x 1) double  final HTTP status code tries   (1 x 1) double  attempts used waited  (1 x 1) double  total seconds slept between attempts bytes   (1 x 1) double  bytes written to DEST</td></tr>
 </table>
 <b>Example</b><pre>    info = shLowLevel.httpFetch(&quot;https://isdc-data.gfz.de/...&quot;, ...
         &quot;C:/data/aux.dat&quot;, MaxTries = 5);</pre>
@@ -860,7 +856,7 @@ code itself.</p>
 <b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>fun</code></td><td>1 x 1</td><td>function_handle</td><td>required</td></tr><tr><td><code>g</code></td><td>1 x 1</td><td>shCoefficients</td><td>required</td></tr></table>
 <b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>N</code></td><td>1 x 1</td><td>double</td><td>500</td></tr><tr><td><code>Cov</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>Idx</code></td><td>n x m</td><td>struct</td><td>struct([])</td></tr><tr><td><code>Seed</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>KeepSamples</code></td><td>1 x 1</td><td>logical</td><td>false</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
-<tr><td><code>out</code></td><td>(1,1) struct  fields: samples (K x nSamples double), mean, sigma (K x 1 double)  Monte-Carlo moments of the functional</td></tr>
+<tr><td><code>out</code></td><td>(1,1) struct  Monte-Carlo moments of the functional, fields mean   size(fun(g)) double  sample mean sigma  size(fun(g)) double  sample 1-sigma (N-1 normalization) N      (1,1) double         number of samples drawn samples (K x N) double      only when KeepSamples=true; K = numel(fun(g)), one column-ized draw per column</td></tr>
 </table>
 </div>
 <div class="entry" id="shLowLevel.nashSutcliffe">
@@ -914,11 +910,7 @@ code itself.</p>
 <b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>folder</code></td><td>1 x 1</td><td>string</td><td>required</td></tr></table>
 <b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>kn</code></td><td>n x 1</td><td>double</td><td>[]</td></tr><tr><td><code>OceanMask</code></td><td>n x m</td><td>-</td><td>[]</td></tr><tr><td><code>GADFolder</code></td><td>1 x 1</td><td>string</td><td>&quot;&quot;</td></tr><tr><td><code>GravisFolder</code></td><td>1 x 1</td><td>string</td><td>&quot;&quot;</td></tr><tr><td><code>GIAFile</code></td><td>1 x 1</td><td>string</td><td>&quot;GRAVIS-2B_COSTG_0200_GIA_ICE-6G_D_VM5a_0001.gz&quot;</td></tr><tr><td><code>GIAEpoch</code></td><td>1 x 1</td><td>double</td><td>2011</td></tr><tr><td><code>GridStep</code></td><td>1 x 1</td><td>double</td><td>1</td></tr><tr><td><code>SpanEnd</code></td><td>1 x 1</td><td>double</td><td>[]</td></tr><tr><td><code>Filter</code></td><td>1 x 1</td><td>string</td><td>&quot;gauss445&quot;</td></tr><tr><td><code>RefPeriod</code></td><td>1 x 2</td><td>double</td><td>[2002.25, 2020.25]</td></tr><tr><td><code>Quiet</code></td><td>1 x 1</td><td>logical</td><td>true</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
-<tr><td><code>out</code></td><td>(1 x 1) struct with fields</td></tr>
-<tr><td><code>grid</code></td><td>(nLat x nLon x T) OBP anomaly [cm EWH], land NaN</td></tr>
-<tr><td><code>lat, lon</code></td><td>(nLat x 1), (nLon x 1) grid vectors [deg]</td></tr>
-<tr><td><code>epochs</code></td><td>(T x 1) decimal years</td></tr>
-<tr><td><code>refMean</code></td><td>(nLat x nLon) subtracted reference-period mean [cm] oceanMeanOBP (T x 1) area-weighted ocean mean of the anomaly [cm] - contains the atmospheric term by definition</td></tr>
+<tr><td><code>out</code></td><td>(1 x 1) struct with fields grid      (nLat x nLon x T) OBP anomaly [cm EWH], land NaN lat, lon  (nLat x 1), (nLon x 1) grid vectors [deg] epochs    (T x 1) decimal years refMean   (nLat x nLon) subtracted reference-period mean [cm] oceanMeanOBP (T x 1) area-weighted ocean mean of the anomaly [cm] - contains the atmospheric term by definition</td></tr>
 <tr><td><code>rep</code></td><td>(1 x 1) struct  steps, version, nEpochs, nGadRestored, nRefEpochs (epochs inside RefPeriod)</td></tr>
 </table>
 <b>Example</b><pre>    kn = readmatrix(&quot;loadLoveNumbers_Gegout97.txt&quot;, FileType = &quot;text&quot;, ...
@@ -934,13 +926,7 @@ code itself.</p>
 <b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>folder</code></td><td>1 x 1</td><td>string</td><td>required</td></tr></table>
 <b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>kn</code></td><td>n x 1</td><td>double</td><td>[]</td></tr><tr><td><code>OceanMask</code></td><td>n x m</td><td>-</td><td>[]</td></tr><tr><td><code>GravisFolder</code></td><td>1 x 1</td><td>string</td><td>&quot;&quot;</td></tr><tr><td><code>GIAFile</code></td><td>1 x 1</td><td>string</td><td>&quot;GRAVIS-2B_COSTG_0200_GIA_ICE-6G_D_VM5a_0001.gz&quot;</td></tr><tr><td><code>GIAEpoch</code></td><td>1 x 1</td><td>double</td><td>2011</td></tr><tr><td><code>Filter</code></td><td>1 x 1</td><td>string</td><td>&quot;gauss445&quot;</td></tr><tr><td><code>GridStep</code></td><td>1 x 1</td><td>double</td><td>1</td></tr><tr><td><code>SpanEnd</code></td><td>1 x 1</td><td>double</td><td>[]</td></tr><tr><td><code>GADFolder</code></td><td>1 x 1</td><td>string</td><td>&quot;&quot;</td></tr><tr><td><code>GAAFolder</code></td><td>1 x 1</td><td>string</td><td>&quot;&quot;</td></tr><tr><td><code>SeparateCirculation</code></td><td>1 x 1</td><td>logical</td><td>false</td></tr><tr><td><code>CoastBufferKm</code></td><td>1 x 1</td><td>double</td><td>300</td></tr><tr><td><code>RemoveLandLeakage</code></td><td>1 x 1</td><td>logical</td><td>false</td></tr><tr><td><code>LandLeakIter</code></td><td>1 x 1</td><td>double</td><td>1</td></tr><tr><td><code>Quiet</code></td><td>1 x 1</td><td>logical</td><td>true</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
-<tr><td><code>out</code></td><td>(1 x 1) struct with fields</td></tr>
-<tr><td><code>epochs</code></td><td>(T x 1) decimal years oceanMean (T x 1) area-weighted ocean-mean EWH [cm]</td></tr>
-<tr><td><code>trend</code></td><td>(1 x 1) barystatic trend [mm/yr]</td></tr>
-<tr><td><code>trendGt</code></td><td>(1 x 1) the same as mass rate [Gt/yr] over the mask trendSigma (1 x 1) OLS 1-sigma of the trend [mm/yr] (no AR correction - stated, not hidden) ampAnnual (1 x 1) annual amplitude of the ocean mean [mm]</td></tr>
-<tr><td><code>sigMon</code></td><td>(1 x 1) open-ocean residual RMS after the per-pixel trend+seasonal fit [m] (the honest noise proxy) oceanArea (1 x 1) mask area [m^2] circulationRMS (1 x 1) area-weighted RMS of the separated residual circulation [m] (NaN unless SeparateCirculation)</td></tr>
-<tr><td><code>nModes</code></td><td>(1 x 1) EOF modes the North rule kept (0 unless SeparateCirculation)</td></tr>
-<tr><td><code>lamModes</code></td><td>(K x 1) variance per EOF mode ([] unless SeparateCirculation)</td></tr>
+<tr><td><code>out</code></td><td>(1 x 1) struct with fields epochs    (T x 1) decimal years oceanMean (T x 1) area-weighted ocean-mean EWH [cm] trend     (1 x 1) barystatic trend [mm/yr] trendGt   (1 x 1) the same as mass rate [Gt/yr] over the mask trendSigma (1 x 1) OLS 1-sigma of the trend [mm/yr] (no AR correction - stated, not hidden) ampAnnual (1 x 1) annual amplitude of the ocean mean [mm] sigMon    (1 x 1) open-ocean residual RMS after the per-pixel trend+seasonal fit [m] (the honest noise proxy) oceanArea (1 x 1) mask area [m^2] circulationRMS (1 x 1) area-weighted RMS of the separated residual circulation [m] (NaN unless SeparateCirculation) nModes    (1 x 1) EOF modes the North rule kept (0 unless SeparateCirculation) lamModes  (K x 1) variance per EOF mode ([] unless SeparateCirculation)</td></tr>
 <tr><td><code>rep</code></td><td>(1 x 1) struct  steps, version, dropped/uncovered epochs</td></tr>
 </table>
 <b>Example</b><pre>    kn = readmatrix(&quot;loadLoveNumbers_Gegout97.txt&quot;, FileType = &quot;text&quot;, ...
@@ -982,7 +968,7 @@ code itself.</p>
 <p>META = shLowLevel.parseGraceFilename(FILENAME) parses the standard GRACE / GRACE-FO Level-2 naming convention PPP-2_YYYYDDD-YYYYDDD_*.gfc[.gz] e.g. GSM-2_2024032-2024060_GRFO_UTCSR_BA01_0600.gfc, where PPP is one of GSM, GAA, GAB, GAC, GAD and YYYYDDD are year + day-of-year of the coverage span. Best-effort: fields are NaN/&quot;unknown&quot; when the pattern does not match (static models, renamed files); callers can always override via explicit options.</p>
 <b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>filename</code></td><td>n x m</td><td>-</td><td>required</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
-<tr><td><code>meta</code></td><td>(1,1) struct  fields: center/product/release (string), epoch/year/month (double), nmax (double, NaN if absent)</td></tr>
+<tr><td><code>meta</code></td><td>(1,1) struct  fields productType (1,1) string  &quot;GSM&quot;|&quot;GAA&quot;|&quot;GAB&quot;|&quot;GAC&quot;|&quot;GAD&quot;, or &quot;unknown&quot; when no prefix matches epochStart, epochStop (1,1) double  coverage span [decimal years], NaN when no date pattern matches epoch       (1,1) double  span mid-point [decimal years], NaN with the span</td></tr>
 </table>
 </div>
 <div class="entry" id="shLowLevel.pctile">
@@ -1072,12 +1058,7 @@ code itself.</p>
 <p>MAS = shLowLevel.readMascon(FILENAME) reads gridded mascon solutions for comparison against the SH chain (base MATLAB: ncread/ncinfo, no toolboxes). Variable names are auto-detected among the layouts used by JPL RL06 (&#x27;lwe_thickness&#x27;), CSR RL06 (&#x27;lwe_thickness&#x27;), and generic &#x27;lwe&#x27;/&#x27;water_thickness&#x27;; time units &quot;days since YYYY-MM-DD&quot; are converted to decimal years.</p>
 <b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>filename</code></td><td>n x m</td><td>-</td><td>required</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
-<tr><td><code>mas</code></td><td>(1 x 1) struct  with the fields below</td></tr>
-<tr><td><code>lat</code></td><td>(nlat,1) double [deg]   (as stored - typically GEODETIC; convert with shLowLevel.geodetic2geocentric before synthesizing SH fields on this grid!)</td></tr>
-<tr><td><code>lon</code></td><td>(nlon,1) double [deg, 0..360)</td></tr>
-<tr><td><code>epoch</code></td><td>(T,1) double decimal years</td></tr>
-<tr><td><code>ewh</code></td><td>(nlat,nlon,T) double [cm or m AS STORED - check mas.units]</td></tr>
-<tr><td><code>units, name</code></td><td>strings</td></tr>
+<tr><td><code>mas</code></td><td>(1 x 1) struct  fields lat    (nlat,1) double [deg]  as stored - typically GEODETIC; convert with shLowLevel.geodetic2geocentric before synthesizing SH fields on this grid! lon    (nlon,1) double [deg, 0..360) epoch  (T,1) double  decimal years ewh    (nlat,nlon,T) double  [cm or m AS STORED - check mas.units] units, name  (1,1) string</td></tr>
 </table>
 </div>
 <div class="entry" id="shLowLevel.readSHM">
@@ -1112,9 +1093,7 @@ code itself.</p>
 <p>TN = shLowLevel.readTN13(FILENAME) parses the official TN-13 product (JPL/CSR/GFZ, e.g. TN-13_GEOC_CSR_RL06.txt): data lines GRCOF2  n  m  Clm  Slm  Clm_sig  Slm_sig  begin  end with n=1, m=0/1 and begin/end epochs yyyymmdd.hhmm. Line pairs (m=0, m=1) sharing the same interval are combined into one monthly record with the interval mid-point as epoch.</p>
 <b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>filename</code></td><td>n x m</td><td>-</td><td>required</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
-<tr><td><code>tn</code></td><td>struct:</td></tr>
-<tr><td><code>epoch</code></td><td>(K,1) double  interval mid-points [decimal years]</td></tr>
-<tr><td><code>C10, C11, S11</code></td><td>(K,1) double  degree-1 Stokes coefficients sigC10, sigC11, sigS11 (K,1) double 1-sigma t0, t1 (K,1) double  interval bounds [decimal years]</td></tr>
+<tr><td><code>tn</code></td><td>struct: epoch  (K,1) double  interval mid-points [decimal years] C10, C11, S11        (K,1) double  degree-1 Stokes coefficients sigC10, sigC11, sigS11 (K,1) double 1-sigma t0, t1 (K,1) double  interval bounds [decimal years]</td></tr>
 </table>
 </div>
 <div class="entry" id="shLowLevel.readTN14">
@@ -1123,7 +1102,7 @@ code itself.</p>
 <p>TN = shLowLevel.readTN14(FILENAME) reads the CSR/GFZ &quot;TN-14&quot; technical-note text format: an arbitrary text header followed by data lines with 10 whitespace-separated numeric columns MJD_begin  yearfrac_begin  C20  C20-mean*1e10  sigC20*1e10 ... C30  C30-mean*1e10  sigC30*1e10  MJD_end  yearfrac_end C30 columns contain &#x27;NaN&#x27; for months where no SLR C30 is provided (pre GRACE-FO accelerometer degradation).</p>
 <b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>filename</code></td><td>n x m</td><td>-</td><td>required</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
-<tr><td><code>tn</code></td><td>(1,1) struct  fields: t (T x 1 double, decimal years), C20/C30 (T x 1 double), sigmaC20/sigmaC30 (T x 1 double)</td></tr>
+<tr><td><code>tn</code></td><td>(1,1) struct  one row per table line (T rows), fields epochStart, epochStop (T x 1 double)  span bounds [decimal years] epoch      (T x 1 double)  span mid-point [decimal years] C20, C30   (T x 1 double)  SLR replacement coefficients; C30 is NaN for months the file leaves blank sigmaC20, sigmaC30 (T x 1 double)  1-sigma, scaled out of the file&#x27;s 1e-10 units</td></tr>
 </table>
 </div>
 <div class="entry" id="shLowLevel.requireGeoMap">
@@ -1143,10 +1122,10 @@ code itself.</p>
 <h3><code>shLowLevel.rescaleGMR(C, S, GM1, R1, GM2, R2, sigmaC, sigmaS)</code></h3>
 <p class="h1line">Convert Stokes coefficients between (GM, R) reference values.</p>
 <p>[C2, S2] = shLowLevel.rescaleGMR(C, S, GM1, R1, GM2, R2) re-expresses coefficients given w.r.t. (GM1, R1) in the reference (GM2, R2):</p>
-<b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>C</code></td><td>n x m</td><td>double</td><td>required</td></tr><tr><td><code>S</code></td><td>n x m</td><td>double</td><td>required</td></tr><tr><td><code>GM1</code></td><td>1 x 1</td><td>double</td><td>required</td></tr><tr><td><code>R1</code></td><td>1 x 1</td><td>double</td><td>required</td></tr><tr><td><code>GM2</code></td><td>1 x 1</td><td>double</td><td>required</td></tr><tr><td><code>R2</code></td><td>1 x 1</td><td>double</td><td>required</td></tr><tr><td><code>sigmaC</code></td><td>n+1 x n+1</td><td>double</td><td>[]</td></tr><tr><td><code>sigmaS</code></td><td>n+1 x n+1</td><td>double</td><td>[]</td></tr></table>
+<b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>C</code></td><td>n x m</td><td>double</td><td>required</td></tr><tr><td><code>S</code></td><td>n x m</td><td>double</td><td>required</td></tr><tr><td><code>GM1</code></td><td>1 x 1</td><td>double</td><td>required</td></tr><tr><td><code>R1</code></td><td>1 x 1</td><td>double</td><td>required</td></tr><tr><td><code>GM2</code></td><td>1 x 1</td><td>double</td><td>required</td></tr><tr><td><code>R2</code></td><td>1 x 1</td><td>double</td><td>required</td></tr><tr><td><code>sigmaC</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>sigmaS</code></td><td>n x m</td><td>double</td><td>[]</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
-<tr><td><code>C2, S2</code></td><td>(n1,n1) double</td></tr>
-<tr><td><code>sig</code></td><td>struct with fields C, S (empty if no sigmas given)</td></tr>
+<tr><td><code>C2, S2</code></td><td>(n1,n1) double  coefficients w.r.t. (GM2, R2)</td></tr>
+<tr><td><code>sig</code></td><td>(1,1) struct  fields C and S, each (n1,n1) double or [] when the corresponding sigma was not supplied</td></tr>
 </table>
 </div>
 <div class="entry" id="shLowLevel.resolutionMap">
@@ -1156,7 +1135,7 @@ code itself.</p>
 <b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>op</code></td><td>1 x 1</td><td>struct</td><td>required</td></tr><tr><td><code>t</code></td><td>1 x 1</td><td>double</td><td>required</td></tr><tr><td><code>latDeg</code></td><td>: x 1</td><td>double</td><td>required</td></tr><tr><td><code>lonDeg</code></td><td>: x 1</td><td>double</td><td>required</td></tr></table>
 <b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>NAz</code></td><td>1 x 1</td><td>double</td><td>8</td></tr><tr><td><code>PsiMax</code></td><td>1 x 1</td><td>double</td><td>20</td></tr><tr><td><code>NPsi</code></td><td>1 x 1</td><td>double</td><td>120</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
-<tr><td><code>res</code></td><td>(nlat x nlon) double  local resolution [km] of the filter</td></tr>
+<tr><td><code>res</code></td><td>(1,1) struct  one row per query point (nPts rows), fields psiHalfDeg  (nPts x NAz) double  half-width per azimuth [deg] azDeg       (1 x NAz) double     azimuths evaluated [deg] kmMean, kmMin, kmMax (nPts x 1) double  half-width across the azimuths [km] anisotropy  (nPts x 1) double    kmMax ./ kmMin, the striping fingerprint (1 = isotropic kernel)</td></tr>
 </table>
 </div>
 <div class="entry" id="shLowLevel.rtsSmoother">
@@ -1233,7 +1212,7 @@ code itself.</p>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
 <tr><td><code>C</code></td><td>(nmax+1 x nmax+1) double  estimated cosine coefficients</td></tr>
 <tr><td><code>S</code></td><td>(nmax+1 x nmax+1) double  estimated sine coefficients</td></tr>
-<tr><td><code>info</code></td><td>(1,1) struct  fields: condest (1,1 double), nObs (1,1 double), kaula (1,1 double, NaN when unregularized)</td></tr>
+<tr><td><code>info</code></td><td>(1,1) struct  fields method    (1,:) char  operator actually used, &#x27;rings&#x27; or &#x27;ls&#x27; nPoints   (1,1) double  observations entering the estimate unobservedDegrees (1,:) double  degrees with a zero kernel, returned as 0 in C and S regularized (1,1) logical  whether Kaula &gt; 0 was applied condEst   (1,1) double  condition estimate of the system (worst per-order value for &#x27;rings&#x27;) residRMS  (1,1) double  RMS of the post-fit residuals in the units of the input grid</td></tr>
 </table>
 </div>
 <div class="entry" id="shLowLevel.shDegreeRMS">
@@ -1332,10 +1311,10 @@ code itself.</p>
 <p class="h1line">Spherical harmonic synthesis of a global/regional grid.</p>
 <p>[GRID, LAT, LON] = SHSYNTHESIS(C, S, GM, R, LATVEC, LONVEC) synthesizes the disturbing-potential-derived quantity (default: geoid height) on the grid LATVEC x LONVEC (degrees) from fully normalized (ICGEM) Stokes coefficients C, S at the reference sphere r = R.</p>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
-<tr><td><code>grid</code></td><td>(nlat x nlon) double  synthesized quantity</td></tr>
-<tr><td><code>lat</code></td><td>(1, nlat) double  latitude grid [deg]</td></tr>
-<tr><td><code>lon</code></td><td>(1, nlon) double  longitude grid [deg]</td></tr>
-<tr><td><code>P</code></td><td>(1,1) struct  cached Legendre functions (pass back in for reuse)</td></tr>
+<tr><td><code>grid</code></td><td>(nlat x nlon) double  synthesized field in the units of the requested quantity</td></tr>
+<tr><td><code>lat</code></td><td>(1 x nlat) double  geocentric latitude grid used [deg]</td></tr>
+<tr><td><code>lon</code></td><td>(1 x nlon) double  longitude grid used [deg]</td></tr>
+<tr><td><code>P</code></td><td>(nmax+1 x nmax+1 x nlat) double  Legendre array as returned by LEGENDREALF; pass it back via &#x27;P&#x27; to skip the recursion. EMPTY in latitude-banded mode (MaxMemGB exceeded): the blocks are streamed and discarded, so request the 4th output only with a memory budget that fits the full array.</td></tr>
 </table>
 </div>
 <div class="entry" id="shLowLevel.shSynthesisDeformation">
@@ -1345,9 +1324,7 @@ code itself.</p>
 <b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>C</code></td><td>n x m</td><td>double</td><td>required</td></tr><tr><td><code>S</code></td><td>n x m</td><td>double</td><td>required</td></tr><tr><td><code>R</code></td><td>1 x 1</td><td>double</td><td>required</td></tr><tr><td><code>latDeg</code></td><td>1 x :</td><td>double</td><td>required</td></tr><tr><td><code>lonDeg</code></td><td>1 x :</td><td>double</td><td>required</td></tr></table>
 <b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>kn</code></td><td>n x m</td><td>double</td><td>-</td></tr><tr><td><code>hn</code></td><td>n x m</td><td>double</td><td>-</td></tr><tr><td><code>ln</code></td><td>n x m</td><td>double</td><td>-</td></tr><tr><td><code>Nmin</code></td><td>1 x 1</td><td>double</td><td>1</td></tr><tr><td><code>Mode</code></td><td>1 x 1</td><td>string</td><td>&quot;grid&quot;</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
-<tr><td><code>up</code></td><td>(nlat x nlon | npts) double   vertical elastic deformation [m]</td></tr>
-<tr><td><code>north</code></td><td>same size   horizontal north component [m]</td></tr>
-<tr><td><code>east</code></td><td>same size   horizontal east component [m]</td></tr>
+<tr><td><code>up, north, east</code></td><td>(nlat,nlon) double for Mode=&quot;grid&quot;, (np,1) for Mode=&quot;points&quot;; vertical, north and east elastic deformation [m]. EAST is NaN at |lat| = 90, where the direction is undefined.</td></tr>
 </table>
 </div>
 <div class="entry" id="shLowLevel.shSynthesisGradient">
@@ -1555,7 +1532,7 @@ code itself.</p>
 <b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>N</code></td><td>n x m</td><td>-</td><td>required</td></tr><tr><td><code>Xres</code></td><td>n x m</td><td>double</td><td>required</td></tr><tr><td><code>idx</code></td><td>1 x 1</td><td>struct</td><td>required</td></tr></table>
 <b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Nmin</code></td><td>1 x 1</td><td>double</td><td>round(2/3 * idx.Lmax)</td></tr><tr><td><code>Rows</code></td><td>1 x 1</td><td>logical</td><td>true(0, 1)</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
-<tr><td><code>s</code></td><td>(T x 1) or (nBands x T) double   monthly (band-wise) VCE noise variance factors</td></tr>
+<tr><td><code>s</code></td><td>(T x 1) double   one noise variance factor per month</td></tr>
 </table>
 </div>
 <div class="entry" id="shLowLevel.vdkApply">
@@ -2418,4 +2395,4 @@ code itself.</p>
 <tr><td><code>obj</code></td><td>(1 x 1) shClimatology   copy with the note appended to its history</td></tr>
 </table>
 </div>
-<hr><p style="font-size:11px;color:#888">Developed by Matthias Weigelt with the help of Claude (Fable 5), 05-Sep-2026 (v3.33.0). Generated by tools - do not edit.</p></body></html>
+<hr><p style="font-size:11px;color:#888">Developed by Matthias Weigelt with the help of Claude (Fable 5), 08-Sep-2026 (v3.33.1). Generated by tools - do not edit.</p></body></html>

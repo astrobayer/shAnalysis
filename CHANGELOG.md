@@ -1,5 +1,120 @@
 # Changelog
 
+## [3.33.1] - 2026-09-08 - Documentation rot, and the gates that missed it
+
+Hygiene release: no numerical behaviour changes. Every finding below was
+green on all nine gates for weeks - the gates checked that a section was
+present, never that it appeared once, and never that what it claimed was
+what the code returns.
+
+### Fixed - 65 help blocks carried two sections of the same kind
+
+`fix_help.py` appended a generated `Outputs`/`Options`/`Inputs` section
+below the hand-written one instead of editing it, in every run since
+2026-08-12. `help_audit.py` reads the FIRST such section, so the second
+was invisible to it - and the two disagreed. Where they disagreed, the
+code was consulted and both were often wrong:
+
+- `readTN14`: the help promised a field `tn.t`. There is none; the
+  reader returns `epoch`, `epochStart`, `epochStop`.
+- `parseGraceFilename`: `center`, `product`, `release`, `year`, `month`,
+  `nmax` and "raw tokens" were documented. The parser returns
+  `productType`, `epoch`, `epochStart`, `epochStop` and nothing else.
+- `resolutionMap`: documented as returning an `(nlat x nlon)` double of
+  half-widths. It returns a struct - `psiHalfDeg`, `azDeg`, `kmMean`,
+  `kmMin`, `kmMax`, `anisotropy`.
+- `shAnalysisGrid`: every documented `info` field name was wrong -
+  `condest` for `condEst` (MATLAB is case-sensitive on fields), `nObs`
+  for `nPoints`, and a `kaula` field that does not exist. `method`,
+  `unobservedDegrees`, `regularized` and `residRMS` were undocumented.
+- `basinDeconvolve`: the two `Ridge` descriptions contradicted each
+  other and neither matched the code, which solves
+  `(A'A + lam^2 I) \ (A' v)` with `lam = Ridge*||A||_2` - relative to
+  the spectral norm, which is the whole point of the v2.1 change.
+- `buildSignalCov`: `info` was documented as `mode` and `iterations`,
+  neither of which exists; it holds `c` (P x NIter+1, one column per
+  iteration) and `varMap`.
+- `vceRescale`: documented as returning `(nBands x T)`. It returns
+  `(T x 1)`; `tvANSFilter` assembles the band matrix itself.
+- `mcPropagate`: `q16/q50/q84` percentiles were documented and are not
+  computed; `N` was undocumented; `samples` is conditional on
+  `KeepSamples`.
+- `shSynthesis`: the fourth output `P` is EMPTY in latitude-banded mode
+  (`MaxMemGB` exceeded) - undocumented, and a caller passing it back in
+  would have been puzzled.
+- `readMascon`, `shSynthesisDeformation`, `errorMap`, `rescaleGMR`,
+  `buildNoiseCov`, `shCoefficients.analysis` and 35 class methods:
+  corrected against the source in the same sweep. `errorMap`'s
+  description had been truncated mid-sentence since its first commit.
+
+### Fixed - error identifiers a caller could not catch by owner
+
+`shSynthesisDeformation` raised `shSynthesis:badInput` and
+`shSynthesis:missingLoveNumbers`. It now raises
+`shLowLevel:shSynthesisDeformation:badInput` and
+`:missingLoveNumbers`, documented in its own `Error identifiers` block
+and pinned by `testDeformationIDs` (which also checks the identifier
+survives the `shCoefficients.deformation` delegation). Not a breaking
+change: these identifiers were never documented.
+
+`kernelFactors`, `shSynthesisGradient` and `seaLevelFingerprint` still
+raise `shSynthesis:*`; those identifiers ARE documented and pinned by
+tests, so renaming them is a major-version change and stays with the
+identifier sweep of the next major release.
+
+### Fixed - documentation that had aged
+
+- The shipped workflow guide PDF was stamped v3.28.0 - five releases
+  behind, missing the BREAKING `MinDegree`/`MaxDegree` -> `Nmin`/`Nmax`
+  rename. Rebuilt, and `doc_sync_audit.py` now reads the PDF's page-1
+  running head and fails when it disagrees with `Contents.m` (standard
+  library only: reportlab writes ASCII85 + Flate streams).
+- `docs/apiReference.html` was a byte-identical copy of
+  `html/apiReference.html`. Nothing wrote it, nothing read it, nothing
+  compared them. Deleted; `doc_sync_audit.py` now fails on any HTML page
+  outside `html/`.
+- `README.md` said CI pulls the orphan branch `testdata`. CI has pinned
+  the tag `fixtures-YYYY-MM` since v3.26.1. The README now points at
+  `ci.yml` rather than naming a tag it would have to keep in step.
+- `Contents.m` was 1149 lines, 74 "New in v..." sections out of
+  chronological order, printed in full by `help shAnalysis`. Now 78
+  lines: product line, classes, quick start, internals, tests, and a
+  pointer to this file. Nothing was lost - v2.1, v2.2, v2.3, v2.4,
+  v2.4.1 and v2.4.2 existed only in `Contents.m` and are written up
+  below in this release.
+- Section headings in help blocks now use one vocabulary:
+  `Name/value options:` -> `Options` (5 files), `Errors` -> `Error
+  identifiers` (2), `Output`/`Examples` -> `Outputs`/`Example` in
+  `setup_shAnalysis`.
+
+### Added - the checks that would have caught all of it
+
+- `help_audit.py` (v3.0.2): a house-vocabulary section may appear at
+  most once per help block; no section may appear below the provenance
+  footer, where the doc builder stops reading; near-miss spellings are
+  named with the spelling to use. Prose sub-headings inside a
+  description are explicitly not sections.
+- `tools/tests/test_help_audit.py`: nine tests, each rule fault-injected
+  (fires on the defect) and paired with a clean-tree assertion.
+- `fix_help.py` refuses to create a second section of a kind that
+  already exists, and says so instead of writing.
+- `api_extract.py`: a row in an `Outputs` section starts at the
+  section's own indent; anything deeper is a continuation. Six entities
+  (`httpFetch`, `obpChain`, `oceanChain`, `poleTideConvert`,
+  `readMascon`, `readTN13`) had their struct sub-fields parsed as
+  separate outputs, so the generated reference invented outputs the
+  functions do not have.
+- CI runs `tools/tests/` at last. The three gate self-tests committed in
+  v3.32/v3.33 had never run in CI; one of them
+  (`test_legacy_name_tolerated`) had been broken since the v3.33.0
+  casing sweep drained `LEGACY` to empty, and nothing said so. It now
+  asserts the mechanism instead of a member name.
+
+### Changed
+
+- `CLAUDE.md` records the audit findings this release closes, the ones
+  it leaves open, and the four it adds (A12-A15).
+
 ## [3.33.0] - 2026-09-05 - Name-Value casing, and one real rename
 
 ### BREAKING: `MinDegree` and `MaxDegree` are gone
@@ -1599,7 +1714,128 @@ All notable changes to shAnalysis. The version line in `Contents.m`
 - Real-file validation: CSR/JPL/GFZ TN-13, GSFC TN-14, DDK Wbd
   binaries, ITSG monthly/daily, 460 MB operational SINEX streaming.
 
-## [2.4.2] - earlier
+## [2.4.2] - 2026-08-07
 
+- MIT LICENSE file (Matthias Weigelt); every help text and doc page
+  closes with the attribution statement.
+- `plotSHCoeffTriangle` difference mode: sine sectorals S_nn no longer
+  blanked (the S wing was one column narrow).
+- `shLowLevel.listICGEM(Type="temporal")`: full ~70-series catalogue
+  (was 3 release-note rows) + `Series=` listing single downloadable
+  files.
 - Full-sine-wing triangle difference plots; robust cache-speedup test;
   DDK reader; ICGEM catalogue; persistent data folder.
+
+## [2.4.1] - 2026-08-07
+
+### Added
+- Triangle plots without the centre line; spectrum plots on a LINEAR
+  degree axis (log y kept).
+- `plotSHSpectrum` `Quantity=` amplitude | rms | variance |
+  cumamplitude | cumrms | cumvariance; order-domain plots via
+  `shLowLevel.shOrderRMS` (the striping axis; marginals tested against
+  `shDegreeRMS`); cumulative variance/RMS fields added to
+  `shDegreeRMS`.
+- `shLowLevel.version` - toolbox metadata (name, version, date, root)
+  parsed from `Contents.m`.
+- `shLowLevel.fetch*` take `Update=true` for a safe, parse-verified
+  refresh of existing files (TN-13/TN-14 grow monthly upstream).
+
+## [2.4] - 2026-08-07
+
+### Added
+- Visualization: `shLowLevel.plotSHMap` / `g.map` (divergent map,
+  coastlines, Hammer projection; `plotSHMap` was REMOVED again in
+  3.32.0), `shLowLevel.plotBasinSeries` (sigma band, gaps, trend),
+  triangle difference mode (`RefC`/`RefS`), `shLowLevel.plotCovariance`
+  (block boundaries), `plotSHSpectrum` Kaula + crossover overlays,
+  `shLowLevel.writeAnimation` (MP4, fixed robust scale).
+- `shLowLevel.errorMap` - analytic sigma maps from full covariances
+  (Cholesky, cross-checked against `mcPropagate`).
+- `shLowLevel.eofAnalysis` - EOF/PCA modes as shCoefficients + unit PCs.
+- `shLowLevel.basinScaling` - forward-modelled gain factors
+  (struct | matrix | handle operators).
+- `shSeries.trendBreaks` - hinge breakpoints with F-test (betainc-based
+  p-values, no toolbox; null calibrated at 5.1%/5%).
+- `shLowLevel.shFanFilter` / `g.fan` / `ts.fan` - Han degree x order
+  Gaussian.
+- `shLowLevel.combineCenters` - per-(center, month) VCE combination with
+  partial redundancies, robust block-median option, inter-center
+  correlation diagnostic, posterior sigmas.
+- `shLowLevel.seaLevelFingerprint` - elastic sea-level equation (mass
+  exactly conserved; near-field fall / far-field excess validated).
+- `shLowLevel.writeGrid` - CF-style netCDF export (roundtrip-tested).
+- Reference systems: `shLowLevel.normalFieldCS` (even zonals COMPUTED
+  from WGS84/GRS80 defining constants, matching NIMA TR8350.2 to all
+  published digits), `g.subtractNormalField` (auto-rescaled),
+  `shLowLevel.rescaleGMR` / `g.toReference` (exact (GM, R) conversion;
+  field invariance verified); arithmetic guards GM/R mismatches.
+- `demo_shAnalysis` - selectable case registry (D01..D16,
+  "list"/"core"/"all"/subset, `Visible=` for headless runs); rendered
+  gallery with explanations in the workflow guide PDF.
+- `shLowLevel.fetchITSG` / `shSeries.fromFolder` - on-demand ITSG
+  download (websave, release routing, gap-aware) + folder loading;
+  demos D01-D06 use real data when present, D12-D14 stay synthetic by
+  design (known-truth recovery).
+- `shLowLevel.pctile` - percentile without the Statistics Toolbox (an
+  audit found `prctile` had slipped into two plot functions; fixed).
+
+## [2.3] - 2026-08-07
+
+### Added
+- New synthesis/analysis quantities in `shLowLevel.kernelFactors`:
+  `surface_density` [kg/m^2] R rho_ave/3 (2n+1)/(1+kn),
+  `bottom_pressure` [Pa] g0 * surface density (OBP),
+  `deformation_up` [m] R hn/(1+kn) elastic vertical,
+  `gravity_gradient_rr` [1/s^2] (GM/R^3)(n+1)(n+2) (T_rr).
+- `Height` option: upward continuation (R/r)^p to satellite altitude.
+- `shLowLevel.shSynthesisDeformation` / `g.deformation` - up/north/east
+  elastic load deformation (the GNSS comparison); grid and station-list
+  modes; exact dPbar/dphi via `shLowLevel.legendreALFDeriv` (frozen
+  validated identity, ~5e-10 against numerical gradients).
+
+## [2.2] - 2026-08-07
+
+All rows Python-validated before the MATLAB implementation.
+
+### Added
+- `shLowLevel.basinKernel` - basin kernels from polygons/masks/functions
+  (buffering + spectral taper).
+- `shLowLevel.slepianBasis` - Slepian localization (regional analysis).
+- `shLowLevel.readDDK`, `shLowLevel.applyDDK`, `g.applyDDK`,
+  `ts.applyDDK` - DDK anisotropic decorrelation filters (native binary
+  Wbd support + Nmax truncation in 2.2.1).
+- `ts.removeGIA`, `clim.removeGIA` - GIA correction (user-supplied rate
+  models).
+- `ts.climatology(ARCorrect=true)` - AR(1)-corrected trend/coefficient
+  sigmas.
+- `shLowLevel.mcPropagate` - Monte-Carlo sigma propagation (independent
+  or full SINEX covariance).
+- `shLowLevel.readMascon` - JPL/CSR mascon netCDF reader.
+- `shLowLevel.geodetic2geocentric`, `shLowLevel.geocentric2geodetic`,
+  and `LatType="geodetic"` in the synthesis/analysis entry points.
+- `shLowLevel.shSynthesis(..., MaxMemGB=4)` - latitude-banded streaming
+  makes nmax 2190 real on ordinary RAM.
+- `shLowLevel.tvANSFilter(..., VCEBands=[0 16 33 61])` - per-order-band
+  VCE.
+- `shLowLevel.readSINEX(..., Only="estimate")` - streaming estimate
+  block of multi-100-MB SINEX in seconds.
+
+## [2.1] - 2026-08-07
+
+### Added
+- `shCoefficients.analysis` - SH ANALYSIS: gridded or scattered data ->
+  Stokes coefficients (rings: exact fast per-order solver; scattered:
+  least squares + Kaula).
+- `addDegree1` - TN-13 geocenter insertion (with
+  `shLowLevel.readTN13`), completing the GSM + TN-14 + TN-13 chain.
+- `filter(..., Blocks="auto")` - block-diagonal tvANS (identical
+  results, Lmax ~ 120 tractable) + posterior sigma stacks
+  (`tsF.sigmaCs`/`Ss`) and basin-average sigmas.
+- `climatology(Periods=[161/365.25, 3.66, 7.48])` - S2/K2/K1 tidal
+  alias terms; per-coefficient significance on components.
+- `synthesis(..., Method="fft")` - FFT-along-longitude + latitude
+  parity trick; Legendre recursion stable to degree 2190.
+- `dropNaN` / `select` - GRACE <-> GRACE-FO gap handling.
+- ICGEM 2.0 piecewise gfct files; `shLowLevel.readSINEX` covariances /
+  normal equations.

@@ -88,7 +88,7 @@ function summary = setup_shAnalysis(opts)
 %     DataFolder ("")  persistent data folder, applied BEFORE any fetcher runs
 %     Proxy ("")  per-call proxy URL, e.g. "http://proxy:8080" (empty: MATLAB Web Preferences)
 %
-%   Output
+%   Outputs
 %     summary struct:
 %       root        (1,1) string   toolbox root folder
 %       pathAction  (1,1) string   "already-on-path" | "added-temporarily"
@@ -105,7 +105,7 @@ function summary = setup_shAnalysis(opts)
 %                                  in startup.m to keep them
 %       ok          (1,1) logical  isempty(failed)
 %
-%   Examples
+%   Example
 %     setup_shAnalysis(Permanent = true, Download = "core")
 %     setup_shAnalysis(Download = "filters", DDK = [2 3 5])
 %     s = setup_shAnalysis(DryRun = true, Download = "starter")

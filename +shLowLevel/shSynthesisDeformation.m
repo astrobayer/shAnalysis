@@ -39,20 +39,24 @@ function [up, north, east] = shSynthesisDeformation(C, S, R, latDeg, lonDeg, opt
 %                                   grid: nlat x nlon outer product;
 %                                   points: equal-length LAT/LON vectors
 %                                   evaluated pairwise (GNSS stations)
-%   Outputs [m]
-%     up, north, east   (nlat,nlon) double (grid) or (np,1) (points);
-%                       EAST is NaN at |lat| = 90 (undefined direction)
+%   Outputs
+%     up, north, east  (nlat,nlon) double for Mode="grid", (np,1) for
+%                      Mode="points"; vertical, north and east elastic
+%                      deformation [m]. EAST is NaN at |lat| = 90, where
+%                      the direction is undefined.
 %
 %   All Love numbers are user-supplied - never hardcoded. Ensure kn, hn,
 %   ln come from the SAME loading model (e.g. one PREM table) and the
 %   same (CE/CF) frame convention for degree 1.
 %
-%   Claude (Fable 5), 2026-08-07.
-%   Outputs
-%     up         (nlat x nlon | npts) double   vertical elastic deformation [m]
-%     north      same size   horizontal north component [m]
-%     east       same size   horizontal east component [m]
+%   Error identifiers
+%     shLowLevel:shSynthesisDeformation:badInput
+%         C and S differ in size, or Mode="points" got LAT and LON of
+%         unequal length
+%     shLowLevel:shSynthesisDeformation:missingLoveNumbers
+%         kn, hn or ln does not cover degrees 0..nmax
 %
+%   Claude (Fable 5), 2026-08-07.
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 arguments
     C double
@@ -68,17 +72,20 @@ arguments
 end
 n1 = size(C, 1);
 nmax = n1 - 1;
-assert(isequal(size(C), size(S)), 'shSynthesis:badInput', ...
+assert(isequal(size(C), size(S)), ...
+    'shLowLevel:shSynthesisDeformation:badInput', ...
     'C and S must be equally sized square matrices.');
 for fld = ["kn", "hn", "ln"]
     v = opts.(fld);
-    assert(numel(v) >= n1, 'shSynthesis:missingLoveNumbers', ...
+    assert(numel(v) >= n1, ...
+        'shLowLevel:shSynthesisDeformation:missingLoveNumbers', ...
         'Love numbers %s must cover degrees 0..%d (got %d values).', ...
         fld, nmax, numel(v));
 end
 pts = opts.Mode == "points";
 if pts
-    assert(numel(latDeg) == numel(lonDeg), 'shSynthesis:badInput', ...
+    assert(numel(latDeg) == numel(lonDeg), ...
+        'shLowLevel:shSynthesisDeformation:badInput', ...
         'Mode="points" needs equal-length LAT and LON.');
 end
 

@@ -14,7 +14,7 @@ function spec = shDegreeRMS(C, S, varargin)
 %   computes the error degree amplitude .errAmplitude from formal errors,
 %   using the same degree-RMS formula applied to sigC, sigS.
 %
-%   Name/value options:
+%   Options
 %     'R'     reference radius [m], default 6378136.3
 %     'n0'    lowest degree to include (coefficients below n0 zeroed out
 %             before summation, e.g. n0=2 to drop degree 0/1), default 0

@@ -37,7 +37,7 @@ function n = safeMove(src, dst, opts)
 %     n          (1,1) double   number of attempts used (1 = the move
 %                succeeded immediately, which is the normal case)
 %
-%   Errors
+%   Error identifiers
 %     shLowLevel:safeMove:noSource   SRC does not exist
 %     shLowLevel:safeMove:noDestFolder   the folder of DST does not
 %                exist - a caller bug, reported immediately instead of

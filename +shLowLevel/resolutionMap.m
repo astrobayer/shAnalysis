@@ -20,12 +20,15 @@ function res = resolutionMap(op, t, latDeg, lonDeg, opts)
 %     opts.PsiMax (1,1)   radial search range [deg], default 20
 %     opts.NPsi   (1,1)   radial samples, default 120
 %   Outputs
-%     res  (nlat x nlon) double  local resolution [km] of the filter
+%     res  (1,1) struct  one row per query point (nPts rows), fields
+%          psiHalfDeg  (nPts x NAz) double  half-width per azimuth [deg]
+%          azDeg       (1 x NAz) double     azimuths evaluated [deg]
+%          kmMean, kmMin, kmMax (nPts x 1) double  half-width across the
+%                      azimuths [km]
+%          anisotropy  (nPts x 1) double    kmMax ./ kmMin, the striping
+%                      fingerprint (1 = isotropic kernel)
 %
 %   Claude (Fable 5), 2026-08-07.
-%   Outputs
-%     res        (nlat x nlon) double   local effective resolution [km] of the stored filter operator
-%
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 
 arguments

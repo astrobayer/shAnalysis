@@ -25,15 +25,16 @@ function out = mcPropagate(fun, g, opts)
 %     opts.Seed ([]) double = []        rng seed for reproducibility
 %     opts.KeepSamples (1,1) logical = false
 %   Outputs
-%     out  (1,1) struct  fields: samples (K x nSamples double), mean,
-%          sigma (K x 1 double)  Monte-Carlo moments of the functional
+%     out  (1,1) struct  Monte-Carlo moments of the functional, fields
+%          mean   size(fun(g)) double  sample mean
+%          sigma  size(fun(g)) double  sample 1-sigma (N-1 normalization)
+%          N      (1,1) double         number of samples drawn
+%          samples (K x N) double      only when KeepSamples=true;
+%                 K = numel(fun(g)), one column-ized draw per column
 %
 %   MC error of sigma itself ~ sigma/sqrt(2N) (~3%% at N=500).
 %
 %   Claude (Fable 5), 2026-08-07.
-%   Outputs
-%     out        struct: mean, sigma, samples (N x Q), q16/q50/q84 percentiles of the propagated functional
-%
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 arguments
     fun (1,1) function_handle

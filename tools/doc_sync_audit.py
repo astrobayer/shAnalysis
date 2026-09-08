@@ -37,7 +37,9 @@ Developed by Matthias Weigelt with the help of Claude (Opus 5),
 2026-08-11 (v3.1.2).
 """
 import html as _html
+import base64
 import os
+import zlib
 import re
 import sys
 
@@ -384,6 +386,52 @@ def html_snippets(path):
         yield _html.unescape(re.sub(r"<[^>]+>", "", blk))
 
 
+# The shipped guide PDF carried v3.28.0 while the toolbox was at
+# v3.33.0 - five releases, one of them the BREAKING MinDegree -> Nmin
+# rename. The VERSION check covered apiReference.html and the overview
+# page but not the PDF, because reading a PDF looked like it needed a
+# dependency. It does not: reportlab writes ASCII85 + Flate content
+# streams that the standard library decodes.
+_PDF_TEXT_OP = re.compile(rb"BT\b.*?\bET\b", re.S)
+
+
+def _pdf_inflate(chunk):
+    chunk = chunk.strip()
+    for load in (lambda c: c,
+                 lambda c: base64.a85decode(c, adobe=True),
+                 lambda c: base64.a85decode(c.rstrip(b"~>") + b"~>",
+                                            adobe=True)):
+        try:
+            return zlib.decompress(load(chunk))
+        except Exception:
+            continue
+    return None
+
+
+def pdf_first_page_text(path):
+    """Text of the first content stream. Standard library only."""
+    with open(path, "rb") as fh:
+        data = fh.read()
+    for m in re.finditer(rb"stream\r?\n", data):
+        s = m.end()
+        e = data.find(b"endstream", s)
+        if e < 0:
+            continue
+        head = data[max(0, m.start() - 400):m.start()]
+        if b"/Image" in head or b"/FontFile" in head:
+            continue
+        raw = _pdf_inflate(data[s:e])
+        if raw is None or b"BT" not in raw or b"Tf" not in raw:
+            continue
+        frags = []
+        for blk in _PDF_TEXT_OP.findall(raw):
+            frags += [t.group(0)[1:-1] for t in
+                      re.finditer(rb"\((?:\\.|[^\\()])*\)", blk)]
+        if frags:
+            return b" ".join(frags).decode("latin-1", "replace")
+    return ""
+
+
 def guide_snippets():
     if not os.path.isfile(GUIDE_SRC):
         return
@@ -455,6 +503,20 @@ def main():
                                   chg, re.M):
             probs.append("CHANGELOG.md: %s - a tagged release leaves no "
                          "Unreleased section" % openhdr.strip())
+        pdf = os.path.join(ROOT, "docs", "shAnalysis_workflow_guide.pdf")
+        if not os.path.isfile(pdf):
+            probs.append("docs/shAnalysis_workflow_guide.pdf is missing - "
+                         "build it with tools/dev/make_guide.py")
+        else:
+            page1 = pdf_first_page_text(pdf)
+            mp = re.search(r"shAnalysis v(\S+?) - Workflow", page1)
+            if not mp:
+                probs.append("workflow guide PDF: no version in the page-1 "
+                             "running head - did the title page change?")
+            elif mp.group(1) != ver:
+                probs.append("workflow guide PDF: stamped v%s, Contents.m "
+                             "says %s - rebuild it with "
+                             "tools/dev/make_guide.py" % (mp.group(1), ver))
         if "API reference (v%s)" % ver not in api:
             probs.append("apiReference.html: title is not v%s - regenerate it"
                          % ver)
@@ -521,6 +583,20 @@ def main():
         if not re.search(r"\b" + re.escape(short) + r"\b", blob):
             probs.append("%s is documented ONLY in the generated API "
                          "reference - no narrative page or guide section" % k)
+
+    # --- ONE LOCATION: html/ is the only page authority. docs/ carried a
+    # byte-identical copy of the generated apiReference.html for months;
+    # nothing wrote it, nothing read it, and nothing compared the two, so
+    # it simply aged. A second copy of a generated page is never right.
+    for dirpath, dirnames, filenames in os.walk(ROOT):
+        dirnames[:] = [d for d in dirnames
+                       if d not in (".git", "html", "node_modules")]
+        for fn in filenames:
+            if not fn.endswith(".html"):
+                continue
+            rel = os.path.relpath(os.path.join(dirpath, fn), ROOT)
+            probs.append("%s: HTML pages live in html/ only - this is a "
+                         "second copy that nothing regenerates" % rel)
 
     # structural (audit F-6): content after </html> renders by browser
     # error recovery and passes every text-presence check above

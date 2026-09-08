@@ -4,10 +4,7 @@ function [sig, latDeg, lonDeg] = errorMap(M, idx, latDeg, lonDeg, opts)
 %   [SIG, LAT, LON] = shLowLevel.errorMap(M, IDX, LAT, LON, Quantity ("geoid")="ewh",
 %       kn ([])=kn) computes the pointwise 1-sigma of a synthesized field
 %   from a full P x P covariance (e.g. shLowLevel.readSINEX(...,
-%   Outputs
-%     sig     (nlat x nlon) double  1-sigma of the synthesized quantity
-%     latDeg  (1, nlat) double  latitude grid used [deg]
-%     lonDeg  (1, nlon) double  longitude grid used [deg]
+%   Output="covariance").M, reordered via Index=idx).
 %
 %   Inputs
 %     M       (P,P) double   covariance in IDX ordering (symmetric PSD)
@@ -18,7 +15,9 @@ function [sig, latDeg, lonDeg] = errorMap(M, idx, latDeg, lonDeg, opts)
 %     Quantity ("geoid"), kn, hn ([]), GM (3.986004415e14), R (6378136.3),
 %     Height (0)  - as in shLowLevel.kernelFactors
 %   Outputs
-%     sig  (nlat,nlon) double  1-sigma of the field [unit of quantity]
+%     sig     (nlat,nlon) double  1-sigma of the field [unit of quantity]
+%     latDeg  (1,nlat) double     latitude grid used [deg], as passed in
+%     lonDeg  (1,nlon) double     longitude grid used [deg], as passed in
 %
 %   Cost: O(nlat * nlon * P^2) after one Cholesky; at n96 (P ~ 9400)
 %   budget minutes for a 1-degree grid - truncate M/idx for quick looks.

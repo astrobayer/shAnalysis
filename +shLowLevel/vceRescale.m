@@ -9,19 +9,17 @@ function s = vceRescale(N, Xres, idx, opts)
 %   changes (orbit geometry, beta-prime angle, instrument state) that a
 %   stationary filter ignores.
 %
-%   Options:
-%     Nmin (round(2/3 * idx.Lmax))  lower bound of the
-%             noise-dominated band
-%     Rows (true(0, 1))  extra logical row mask restricting the
-%         variance-component estimation to a subset of the
-%         coefficient vector; this is how VCEBands estimates one
-%         factor per order band. Empty: no restriction
 %   Options
-%     Rows (true(0,1)) extra logical row mask restricting which
-%                     coefficients enter the variance estimate
+%     Nmin (round(2/3 * idx.Lmax))  (1 x 1) lower bound of the
+%             noise-dominated degree band
+%     Rows (true(0,1))  logical row mask restricting the variance-
+%             component estimation to a subset of the coefficient
+%             vector. Empty: no restriction. This is how tvANSFilter's
+%             VCEBands gets one factor per order band - it calls this
+%             function once per band and assembles the rows itself.
 %
 %   Outputs
-%     s          (T x 1) or (nBands x T) double   monthly (band-wise) VCE noise variance factors
+%     s          (T x 1) double   one noise variance factor per month
 %
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 

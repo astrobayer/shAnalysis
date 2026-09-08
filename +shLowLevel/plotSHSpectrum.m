@@ -8,7 +8,7 @@ function h = plotSHSpectrum(specs, varargin)
 %   overlays multiple spectra for comparison (e.g. successive GRACE months,
 %   or signal vs formal error).
 %
-%   Name/value options:
+%   Options
 %     'names'   cell array of legend labels
 %     'units'   'mm' (default) or 'm' for the y-axis
 %     'field'   which spec field to plot, default 'degAmplitude'

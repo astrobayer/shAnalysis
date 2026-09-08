@@ -8,7 +8,7 @@ function [Cf, Sf] = shDestripe(C, S, varargin)
 %   parity split), for all orders m >= 'minOrder'. Coefficients at
 %   m < minOrder are passed through unchanged.
 %
-%   Name/value options:
+%   Options
 %     'minOrder'     lowest order to filter, default 6 (below this, real
 %                    signal dominates and destriping mostly removes signal;
 %                    value is somewhat model/application dependent -- verify
