@@ -669,17 +669,18 @@ Original scope below.
 | v3.34.0 (A7, A8, A12, A13, A16, WP6.1+2) | ☑ 12 gate steps + 6 self-test suites, 0 findings | ☑ **CI self-hosted (A8), green — 269 runs, 265 passed, 4 filtered** | ☑ PR #95 | ☑ 2026-09-09 |
 | v4.0.0 (WP1: A2, A3, A15) | ☑ 14 gates + 10 self-test suites + mlint, 0 findings | ☑ **CI self-hosted (A8) at `5452938`, green — 304 runs, 300 passed, 0 failed, 4 filtered**; `count_tests.py` matched EXACTLY for the third release running, per class as well as in total. First run (`ab52d4f`) also executed 304 but had 5 failures, all one cause: `plotSHSpectrum`'s `arguments` block sat below its `if ~iscell(specs)` guard, so the function did not parse. mlint_lite R6 now catches it. | ☑ PR #96 | ☑ 2026-09-09 |
 | v3.34.1 (A10, A17, A18, A19-partial) | ☑ 13 gates + 8 self-test suites + mlint, 0 findings | ☑ **CI self-hosted (A8) at `7c8cb4c`, green — 301 runs, 297 passed, 0 failed, 4 filtered**; the `count_tests.py` prediction matched EXACTLY, and all 32 new tests pass. First run (`0ab29b5`) also executed 301 but had 1 failure — `testCompareDelegatesToCompareSolutions` gave `compareSeries` 8 epochs where it needs >= 12 common ones. | ☑ PR #95 | ☑ 2026-09-09 |
-| v4.0.1 (A19) | ☑ 13 gates + mlint + make_demos + 11 self-test suites, 0 findings | ☑ **CI self-hosted (A8) at `0b4fb3b`, green — 304 runs, 300 passed, 0 failed, 4 filtered** (shared run with 4.0.2; both releases are on the one head) | ☑ PR #97 | ◐ pending |
-| v4.0.2 (A20; A21 opened) | ☑ 13 gates + mlint + make_demos + 11 self-test suites, 0 findings; `count_tests.py` predicts 303 methods / 304 runs, unchanged (the two `testContract` pins changed an identifier STRING, not a method count) | ☑ **CI self-hosted (A8) at `0b4fb3b`, green — 304 runs, 300 passed, 0 failed, 4 filtered**; the prediction matched EXACTLY for the fourth release running, per class as well as in total (Contract 73, Correctness 159, Performance 12 runs, Robustness 53, Science 7). First run, no red round. | ☑ PR #97 | ◐ pending |
-| v4.0.3 (A21a; A21b opened) | ☑ 13 gates + mlint + make_demos + 11 self-test suites, 0 findings | ◐ awaiting the A8 run | ◐ no PR yet | ◐ pending |
+| v4.0.1 (A19) | ☑ 13 gates + mlint + make_demos + 11 self-test suites, 0 findings | ☑ **CI self-hosted (A8) at `0b4fb3b`, green — 304 runs, 300 passed, 0 failed, 4 filtered** (shared run with 4.0.2; both releases are on the one head) | ☑ PR #97 | ☑ 2026-09-09 |
+| v4.0.2 (A20; A21 opened) | ☑ 13 gates + mlint + make_demos + 11 self-test suites, 0 findings; `count_tests.py` predicts 303 methods / 304 runs, unchanged (the two `testContract` pins changed an identifier STRING, not a method count) | ☑ **CI self-hosted (A8) at `0b4fb3b`, green — 304 runs, 300 passed, 0 failed, 4 filtered**; the prediction matched EXACTLY for the fourth release running, per class as well as in total (Contract 73, Correctness 159, Performance 12 runs, Robustness 53, Science 7). First run, no red round. | ☑ PR #97 | ☑ 2026-09-09 |
+| v4.0.3 (A21a; A21b opened) | ☑ 13 gates + mlint + make_demos + 11 self-test suites, 0 findings | ☑ **CI self-hosted (A8) at `0d06e14`, green — 305 runs, 301 passed, 0 failed, 4 filtered**; the prediction matched EXACTLY for the FIFTH release running, per class as well as in total (Contract 74, Correctness 159, Performance 12 runs, Robustness 53, Science 7), and `testMinusDoesNotEnforceEpochAgreement` ran and passed. First run, no red round. | ☑ PR #98 | ◐ pending |
 
-**Tier A debt: DISCHARGED for all six releases.** The local MATLAB
+**Tier A debt: DISCHARGED for all seven releases.** The local MATLAB
 bridge is gone, but the self-hosted runner A8 is not: `runAllTests
 (self-hosted)` went green on PR #95 at `fcaddd2` (268 runs), `5acf14c`
 (**269 runs, 265 passed, 4 filtered**) and `7c8cb4c` (**301 runs, 297
 passed, 4 filtered**), on PR #96 at `5452938` (**304 runs, 300
-passed, 4 filtered**), and on PR #97 at `0b4fb3b` (**304 runs, 300
-passed, 4 filtered**, covering 4.0.1 and 4.0.2 together). The four
+passed, 4 filtered**), on PR #97 at `0b4fb3b` (**304 runs, 300
+passed, 4 filtered**, covering 4.0.1 and 4.0.2 together), and on PR #98
+at `0d06e14` (**305 runs, 301 passed, 4 filtered**). The four
 filtered are the absent optional real-data fixtures throughout — `testGravisChainsRealData`,
 `testUserSuppliedSINEXFiles`, `testMasconReaderOnARealFile`,
 `testPublishedTrendOnARealSeries`.
@@ -824,8 +825,8 @@ Done and on PR #95: WP0, WP6 stages 1-2, and findings A1, A3 (partial),
 A4, A5, A6, A7, A8, A10, A11, A12, A13, A14, A16, A17, A18 closed;
 A19 partially.
 
-**Six releases are merged to `main` (PR #95, #96, #97); 4.0.3 is on the
-branch and not yet on a PR.** Eighteen of the twenty-two audit findings
+**Six releases are merged to `main` (PR #95, #96, #97); 4.0.3 is green
+on PR #98 and awaiting merge.** Eighteen of the twenty-two audit findings
 are closed (A19 in 4.0.1, A20 in 4.0.2, A21a in 4.0.3). Remaining
 Tier-B work:
 
@@ -846,8 +847,9 @@ Python oracle, and CI runs exactly that. They wait on approval only.
 WP2 step 1 (the budget harness and A8 baselines) is likewise reachable
 through CI; only its two-machine calibration needs the bridge.
 
-**4.0.3 has no PR, so CI has not run on it.** The prediction to check
-against the runner is **304 methods / 305 runs**.
+**Seven releases are merged or green.** 4.0.3 is green on A8 at
+`0d06e14` via PR #98 (305 runs, 301 passed, 0 failed, 4 filtered) and
+waits only on the merge.
 
 To re-run the gates and the prediction from a fresh sandbox:
 ```
@@ -867,5 +869,6 @@ the first four releases green on A8 via CI — 4.0.0 at `5452938`:
 304 runs, 300 passed, 0 failed, 4 filtered.
 4.0.1 and 4.0.2 green on A8 at `0b4fb3b` via PR #97: 304 runs,
 300 passed, 0 failed, 4 filtered, no red round.
-4.0.3 is static-gate green only; no PR, so no CI run yet. |
+4.0.3 green on A8 at `0d06e14` via PR #98: 305 runs, 301 passed,
+0 failed, 4 filtered - the fifth exact count prediction running. |
 Developed by Matthias Weigelt with the help of Claude.*
