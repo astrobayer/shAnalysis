@@ -1,5 +1,56 @@
 # Changelog
 
+## [5.1.1] - 2026-09-09 - the A8 numbers, and a budget pair that can actually bracket the crossover
+
+v5.1.0 is green on A8: **319 runs, 313 passed, 0 failed, 6 filtered**, the
+ninth exact count prediction running. The two point budgets it left
+unbaselined are measured and committed:
+
+| budget | A8 median | against |
+|---|---|---|
+| `synthesis_points_n60` (clenshaw, 2000 pts) | **0.0220564 s** | the retired per-point path's 2.2829 s - **103x** |
+| `synthesis_points_n60_direct` (direct, 200 pts) | 0.0156066 s | - |
+
+### The budgets as shipped could not do what their help claimed
+
+`ClenshawFrom`'s help says `perf_baseline.csv` "budgets both paths so the
+real crossover can replace it". It did not. v5.1.0 budgeted clenshaw at
+2000 points and direct at 200 - two different workloads, so neither
+measures the other and no crossover can be read off them. A crossover
+needs both paths at the SAME point count.
+
+`synthesis_points_n60_clenshaw` fixes it: the same arm, the same `rng`,
+the same 200 points as `synthesis_points_n60_direct`, differing only in
+`Method`. The pair brackets the crossover; the 2000-point case keeps
+guarding the large-scattered regime.
+
+**So `ClenshawFrom = 150` is still the numpy number.** It cannot be
+replaced until that pair has run. What the A8 figures already hint at is
+that MATLAB's crossover is HIGHER than numpy's - direct at 200 points
+(0.0156 s) is faster than clenshaw at 2000 (0.0221 s), and clenshaw is
+not flat enough in P for that to be dismissed - but hinting is not
+measuring, and the number stays until the matched pair says otherwise.
+
+### The gate found a false finding in itself
+
+Adding the matched pair used `case {'a', 'b'}` - one MATLAB arm serving
+two labels. `perf_baseline_audit`'s ARMS rule read only `case 'x'`, so it
+reported both budgets as having no arm: a FALSE finding about correct
+code, and precisely A2's shape (`nv_casing_audit` was blind to
+`inputParser` and so reported nothing about six functions). The rule now
+parses cell-array labels, with two self-tests - one that the multi-label
+form is accepted, one that an undeclared label inside a cell list still
+fires, so the fix cannot have made the rule permissive. 26 self-tests.
+
+### Corrected
+
+`CLAUDE.md` gave clenshaw's speedup as 68-310x. That was the range over
+the two configurations quoted; the third (nmax 120, 2000 points, which
+finished after the release) is **356x**, and direct there is 59.2x,
+bitwise. The range is now 68-356x and names all three configurations.
+
+Test count: 308 methods / **320 runs**.
+
 ## [5.1.0] - 2026-09-09 - two summations for synthesisPoints, faster one by default
 
 WP2 step 2, row B2. `shLowLevel.synthesisPoints` gains `Method`,

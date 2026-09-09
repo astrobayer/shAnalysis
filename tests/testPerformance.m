@@ -22,6 +22,10 @@ classdef testPerformance < matlab.perftest.TestCase
 %       synthesis_fft_n60              the FFT-along-longitude path
 %       synthesis_points_n60           2000 scattered points, clenshaw
 %       synthesis_points_n60_direct    200 scattered points, direct
+%       synthesis_points_n60_clenshaw  THE SAME 200 points, clenshaw -
+%         the two are a matched pair on purpose: a crossover can only
+%         be read off two paths measured at the SAME point count, and
+%         v5.1.0 shipped them at 2000 and 200, which cannot bracket it
 %       analysis_rings_n60             exact per-order ring analysis
 %       apply_ddk_n96                  order-block filter application
 %       leakage_1iter_n24              one leakageCorrect step
@@ -59,6 +63,7 @@ properties (TestParameter)
         'synthesis_fft_n60',    'synthesis_fft_n60', ...
         'synthesis_points_n60', 'synthesis_points_n60', ...
         'synthesis_points_n60_direct', 'synthesis_points_n60_direct', ...
+        'synthesis_points_n60_clenshaw', 'synthesis_points_n60_clenshaw', ...
         'analysis_rings_n60',   'analysis_rings_n60', ...
         'apply_ddk_n96',        'apply_ddk_n96', ...
         'leakage_1iter_n24',    'leakage_1iter_n24', ...
@@ -326,12 +331,15 @@ methods
                 C = g.C; S = g.S;
                 fcn = @() shLowLevel.synthesisPoints(C, S, GM, R, ...
                     la, lo, rr, Method = "clenshaw");
-            case 'synthesis_points_n60_direct'
+            case {'synthesis_points_n60_direct', ...
+                    'synthesis_points_n60_clenshaw'}
                 % 200 points is a GNSS-network-sized station list - the
-                % regime "auto" routes to direct, and the one
-                % shSynthesisDeformation works in. Budgeting only the
-                % 2000-point case would leave the default path for short
-                % lists unguarded.
+                % regime "auto" routes to direct. The two cases share
+                % this arm, and therefore the SAME rng and the SAME
+                % points, so their medians are directly comparable and
+                % bracket the crossover. Measured apart they could not:
+                % v5.1.0 budgeted clenshaw at 2000 and direct at 200 and
+                % so measured neither against the other.
                 g = tc.randomField(60);
                 rng(12);
                 np = 200;
@@ -339,8 +347,13 @@ methods
                 lo = rand(np, 1) * 360;
                 rr = R + rand(np, 1) * 1000;
                 C = g.C; S = g.S;
+                if strcmp(name, 'synthesis_points_n60_direct')
+                    how = "direct";
+                else
+                    how = "clenshaw";
+                end
                 fcn = @() shLowLevel.synthesisPoints(C, S, GM, R, ...
-                    la, lo, rr, Method = "direct");
+                    la, lo, rr, Method = how);
             case 'analysis_rings_n60'
                 rng(9);
                 L = 60;

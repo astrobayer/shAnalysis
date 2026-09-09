@@ -23,10 +23,10 @@ says whether it was *read* or *inferred*.
 
 | Fact | Value | Evidence |
 |---|---|---|
-| Version | **5.1.0**, 09-Sep-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
+| Version | **5.1.1**, 09-Sep-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
 | Branches | `main` only; `claude/getframe-recapture` and `claude/readshm` are gone (merged/deleted) | `GET /branches` |
 | Public surface | 3 classes / 71 methods, 122 `+shLowLevel` functions (+4 private), 3 root functions | `tools/dev/api_extract.py` run in sandbox |
-| Tests | 5 classes, **308 methods / 319 runs**: Correctness 161, Contract 75, Robustness 53, Science 7, Performance 12 methods (23 runs, `budgetCase` x11 + `nmaxP` x2). 4 filter out without the optional real-data fixtures; the 10 speed budgets ALSO filtered in v5.0.2 (14 filtered) and stop doing so in v5.0.3, now that A8 has a baseline. The counter has matched the runner EXACTLY on the last seven green A8 runs (269, 301, 304, 304, 305, 305, 315); the one time it did not was A16, before it existed. | `python3 tools/dev/count_tests.py` |
+| Tests | 5 classes, **308 methods / 320 runs**: Correctness 161, Contract 75, Robustness 53, Science 7, Performance 12 methods (24 runs, `budgetCase` x12 + `nmaxP` x2). 4 filter out without the optional real-data fixtures; the 10 speed budgets ALSO filtered in v5.0.2 (14 filtered) and stop doing so in v5.0.3, now that A8 has a baseline. The counter has matched the runner EXACTLY on the last seven green A8 runs (269, 301, 304, 304, 305, 305, 315); the one time it did not was A16, before it existed. | `python3 tools/dev/count_tests.py` |
 | Python oracles | 16 `tools/dev/validate_*.py` + `tools/audit/*` | listing |
 | Docs | **26** hand-written `html/*.html` (24 per-entity duplicates retired in v5.0.1, WP6 stage 3) + **200 generated `html/ref/*.html`** (one per entity + index, `make_refpages.py`), one shared `html/shAnalysis.css`, `helptoc.xml`, `info.xml`, guide PDF, generated `html/apiReference.html`. `docs/` holds the PDF and `apiExamples.json` only - no HTML page lives outside `html/` (gated). | listing |
 | CI | `gates` job on ubuntu (help_audit, doc_sync_audit, no_map_renderer, toolbox_dependency_audit, nv_casing_audit, fixture_tag_audit, gate self-tests `tools/tests/`, `count_tests`, `name_coverage`, `error_id_audit`, `option_values_audit`, `refpages_audit`, `make_demos --check`, `perf_baseline_audit`) + `runAllTests (self-hosted)` on A8/R2026a; fixtures from tag `fixtures-2026-08` | `.github/workflows/ci.yml` |
@@ -309,7 +309,11 @@ a shared machine.
 `Method = "auto" | "direct" | "clenshaw"`. Measured in
 `tools/dev/validate_points_clenshaw.py` against the per-point code it
 replaces: `direct` (batched Legendre, BITWISE) 52-61x, `clenshaw`
-(per-order lumped coefficients, no `Pbar` ever formed) 68-310x. The two
+(per-order lumped coefficients, no `Pbar` ever formed) 68-356x over
+three configurations (nmax 60 at 200 and 2000 points, nmax 120 at
+2000). On A8 the 2000-point clenshaw case measured **0.0221 s against
+the retired path's 2.2829 s - 103x**; the MATLAB win is smaller than
+numpy's because MATLAB's array ops were never the bottleneck. The two
 shipped paths cross between 100 and 200 points at BOTH nmax 60 and 120 —
 the crossover barely moves with degree, which is why `ClenshawFrom` is
 one scalar (150) and not a rule in `nmax`. **That 150 is numpy, not
@@ -887,7 +891,8 @@ Original scope below.
 | v5.0.0 (A21b) | ☑ 13 gates + mlint + make_demos + 11 self-test suites, 0 findings | ☑ **CI self-hosted (A8) at `631d524`, green — 305 runs, 301 passed, 0 failed, 4 filtered** (shared run with 5.0.1). **TWO red rounds first, both mine, both pin errors** — see the row below. | ☑ PR #99 | ◐ pending |
 | v5.0.1 (WP6 stage 3) | ☑ 13 gates + mlint + make_demos + 12 self-test suites, 0 findings; 50 hand-written pages -> 26, no entity lost COVERAGE | ☑ **CI self-hosted (A8) at `631d524`, green — 305 runs, 301 passed, 0 failed, 4 filtered**; the count prediction matched EXACTLY for the sixth release running. Round 1 (`2530e9f`) failed `testGravisChainsContract`: a pin mapped by call graph, not by which GUARD fires — `fromFolder` asserts `isfolder` (the temp folder EXISTS) then delegates to `read`. Round 2 (`f6481d7`) failed `testTN14IDs`: the pin-enumerating grep used `[A-Za-z]*` and `noC30` HAS DIGITS, so it was never rewritten — and the verification grep repeated the same character class. The new PINS rule closes the second shape. | ☑ PR #99 | ◐ pending |
 | v5.0.2 (WP2 step 1 harness) | ☑ 14 gates + mlint + make_demos + 13 self-test suites, 0 findings | ☑ **CI self-hosted (A8) at `f6d5529`, green — 315 runs, 301 passed, 0 failed, 14 filtered**; the prediction matched EXACTLY for the SEVENTH release running, per class as well as in total (Contract 74, Correctness 159, Performance 22, Robustness 53, Science 7), counts parsed from the 315-row results table. The 14 filtered were the 4 real-data fixtures plus all 10 budgets, exactly as designed — and this is the run that measured the baselines. First run, no red round. | ☑ PR #99 | ◐ pending |
-| v5.1.0 (WP2 step 2, B2) | ☑ 15 gates + mlint + make_demos + 13 self-test suites, 0 findings; `count_tests.py` predicts 308 methods / **319 runs** | ◐ pending — expect **319 runs, 313 passed, 6 filtered**: the 4 real-data fixtures plus the 2 retired/new point budgets, which have no baseline. This is also the run that measures them. | ◐ PR #100 | ◐ pending |
+| v5.1.0 (WP2 step 2, B2) | ☑ 15 gates + mlint + make_demos + 13 self-test suites, 0 findings | ☑ **CI self-hosted (A8) at `640f3be` by workflow_dispatch, green — 319 runs, 313 passed, 0 failed, 6 filtered**; the NINTH exact count prediction running, per class as well as in total (Contract 75, Correctness 161, Performance 23, Robustness 53, Science 7). All three new tests passed, dispatch pin and bitwise-chunking pin included. | ☐ no PR (not asked) | ☐ |
+| v5.1.1 (A8 numbers + matched-pair budget) | ☑ 15 gates + mlint + make_demos + 13 self-test suites (26 in the perf gate), 0 findings | ◐ pending — expect **320 runs, 314 passed, 5 filtered**: the 4 fixtures plus the new clenshaw@200 budget. | ◐ pending | ◐ pending |
 | v5.0.3 (WP2 step 1 baselines) | ☑ 14 gates + mlint + make_demos + 13 self-test suites, 0 findings; `NO_BASELINE` empty | ☑ **CI self-hosted (A8) at `b70c947`, green — 315 runs, 311 passed, 0 failed, 4 filtered**; the EIGHTH exact count prediction running, per class as well as in total. All ten budgets PASSED (they filtered at `f6d5529`), and the only filtered are the four real-data fixtures. Triggered by `workflow_dispatch`, not a PR — #99 merged mid-session and `ci.yml` runs only on push-to-main, pull_request and workflow_dispatch. | ☐ no PR (#99 merged; not asked) | ☐ |
 
 **Tier A debt: DISCHARGED for all nine releases.** The local MATLAB

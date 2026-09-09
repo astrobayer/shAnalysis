@@ -109,7 +109,7 @@ class TestCounting(unittest.TestCase):
         self.assertEqual(c["runs"], c["methods"])
 
 
-EXPECTED_RUNS = 319          # v5.1.0: 315 + 3 synthesisPoints tests + 1 budget
+EXPECTED_RUNS = 320          # v5.1.1: 319 + the matched-pair clenshaw budget
 
 
 class TestRepository(unittest.TestCase):
