@@ -50,26 +50,22 @@ CLASS_FILES = ("shCoefficients.m", "shSeries.m", "shClimatology.m")
 # owning `shAnalysis:shSeries:*`. Same trap as A17 - one name, two jobs.
 _IS_CLASS = frozenset(CLASS_FILES)
 
-# A21b: 29 of the class identifiers are TWO-part (shSeries:badInput), so a
-# caller cannot tell which of the 35 methods raised. Making them three-part
-# is a MAJOR change - testContract pins the current names - so it is a
-# backlog, not a rule: this set may only shrink, and the gate prints its
-# size every run. A two-part identifier NOT listed here is a new defect.
-TWO_PART_OK = {
-    "shClimatology:badIndex", "shClimatology:badInput",
-    "shCoefficients:badIndex", "shCoefficients:badInput",
-    "shCoefficients:badTruncation", "shCoefficients:constantsMismatch",
-    "shCoefficients:epochMismatch", "shCoefficients:epochNotInTable",
-    "shCoefficients:noC30", "shCoefficients:noEpoch",
-    "shCoefficients:noSigmas", "shCoefficients:sizeMismatch",
-    "shSeries:ambiguousRange", "shSeries:badBasis", "shSeries:badIndex",
-    "shSeries:badInput", "shSeries:badRange", "shSeries:badTruncation",
-    "shSeries:constantsMismatch", "shSeries:emptyRange",
-    "shSeries:epochMismatch", "shSeries:missingOp", "shSeries:nanInSeries",
-    "shSeries:noBreaks", "shSeries:noEpoch", "shSeries:noFiles",
-    "shSeries:sizeMismatch", "shSeries:sparseWindow",
-    "shSeries:tooFewEpochs",
-}
+# A21b: DRAINED in v5.0.0. Every class identifier is now three-part, so
+# this set is empty and the rule holds with no exemption. It stays as the
+# mechanism - a new file could earn a temporary entry with a dated reason
+# - and, as in A20, the self-test asserts that mechanism with a TEMPORARY
+# entry rather than pinning a member name, because a loop over an empty
+# set cannot fail (A14).
+TWO_PART_OK = set()
+
+# The middle segment of a class identifier. Normally the raising PUBLIC
+# method, so a caller can tell what they called. The exceptions are the
+# shared private checks: `shCoefficients.checkPair` guards the operand
+# pair for both binary operators, `shSeries.assertClean` guards the
+# stacks for six methods. Those get a stable CONCEPT name rather than the
+# helper's own, so renaming a private function is not a breaking change -
+# which is the whole reason this list is short and hand-written.
+SHARED_CHECKS = {"operands", "stack", "range"}
 
 # error('id', ...) / warning('id', ...) -> identifier is argument 1.
 # assert(cond, 'id', ...)               -> identifier is argument 2.
@@ -234,6 +230,7 @@ def check_classes():
                          "renamed or deleted?" % f)
             continue
         funs = parse_class(path)
+        names = {x["name"] for x in funs}
         need, priv = class_requirements(funs)
         # a private helper calling another private helper would make one hop
         # too few; the rule says so out loud instead of hoping
@@ -258,6 +255,14 @@ def check_classes():
                             "%s.%s raises the two-part %s, which does not name "
                             "its method - use %s:%s:<reason> (A21b)"
                             % (cls, fn["name"], i, cls, fn["name"]))
+                else:
+                    mid = i.split(":")[1]
+                    if mid not in names and mid not in SHARED_CHECKS:
+                        probs.append(
+                            "%s.%s raises %s, whose middle segment names "
+                            "neither a method of this class nor a declared "
+                            "shared check %s" % (cls, fn["name"], i,
+                                                 sorted(SHARED_CHECKS)))
         for meth, ids in sorted(need.items()):
             fn = next(x for x in funs if x["name"] == meth)
             doc = set(DOC_ID_ANY.findall(fn["help"]))
@@ -337,10 +342,12 @@ def main(argv=None):
     print("error_id_audit: 0 findings - %d files raise identifiers, every one "
           "owned by the file that raises it; %d document them, %s. Classes: "
           "%d public methods document every identifier they can raise, their "
-          "private helpers' included; %d identifiers are still two-part and "
-          "sit in the A21b backlog. Reach: +shLowLevel, the root functions "
-          "and the three class files - nothing else."
-          % (checked, checked - len(backlog), tail, cchecked, len(cbacklog)))
+          "private helpers' included, and every identifier is three-part (%s). "
+          "Reach: +shLowLevel, the root functions and the three class files "
+          "- nothing else."
+          % (checked, checked - len(backlog), tail, cchecked,
+             "A21b drained its backlog in v5.0.0" if not cbacklog
+             else "%d still in the A21b backlog" % len(cbacklog)))
     return 0
 
 

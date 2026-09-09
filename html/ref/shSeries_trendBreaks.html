@@ -24,12 +24,12 @@
 <h2>Output Arguments</h2>
 <table><tr><th>Name</th><th>Description</th></tr><tr><td><code>out</code></td><td class="desc">(1,1) struct  NOT an <a href="shCoefficients.html"><code>shCoefficients</code></a> - the coefficient matrices are plain (n1 x n1) doubles - fields breaks              (1 x B) double  the break epochs, as given [decimal years] t0                  (1,1) double  reference epoch used trend1C, trend1S    (n1 x n1) double  pre-break rate [units/yr], cosine and sine sigmaTrend1C, sigmaTrend1S  (n1 x n1) double  their 1-sigma hingeC, hingeS      (n1 x n1 x B) double  rate CHANGE at each break; the post-break rate is trend1 + cumsum over the hinges sigmaHingeC, sigmaHingeS  (n1 x n1 x B) double  1-sigma of the rate changes trendNoBreakC       (n1 x n1) double  rate of the no-break model, the F-test&#x27;s null sigmaTrendNoBreakC  (n1 x n1) double  its 1-sigma F, pValue           (n1 x n1) double  F statistic and p-value per cosine coefficient FS, pValueS         (n1 x n1) double  the same for the sine coefficients</td></tr></table>
 <h2>Error Identifiers</h2>
-<table><tr><th>Identifier</th><th>Raised when</th></tr><tr><td><code>shSeries:noBreaks</code></td><td class="desc">Breaks= is empty; trendBreaks needs at least one break epoch</td></tr></table>
+<table><tr><th>Identifier</th><th>Raised when</th></tr><tr><td><code>shSeries:trendBreaks:noBreaks</code></td><td class="desc">Breaks= is empty; trendBreaks needs at least one break epoch</td></tr></table>
 <h2>Version History</h2>
 <p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
 <h2>See Also</h2>
 <p class="none">No other entity is named in this help block.</p>
-<p class="prov">shAnalysis v4.0.3 (09-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+<p class="prov">shAnalysis v5.0.0 (09-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
 </div>
 </body>
 </html>

@@ -47,8 +47,8 @@ verifyTrue(tc, all(isfinite(m.C(:))));
 mBad = tsN.mean(Omitnan = false);
 verifyTrue(tc, all(isnan(mBad.C(:))));
 % ... but the filter chain must refuse NaN stacks loudly:
-verifyError(tc, @() tsN.gaussian(300), 'shSeries:nanInSeries');
-verifyError(tc, @() tsN.filter("tvANS"), 'shSeries:nanInSeries');
+verifyError(tc, @() tsN.gaussian(300), 'shSeries:stack:nanInSeries');
+verifyError(tc, @() tsN.filter("tvANS"), 'shSeries:stack:nanInSeries');
 end
 
 % -------------------------------------------------------- GAX edge cases
@@ -71,7 +71,7 @@ function testSingleEpochSeries(tc)
 ts = randomSeries(6, 1);
 m = ts.mean;                                    % mean of one epoch = itself
 verifyEqual(tc, m.C, ts.Cs(:,:,1), AbsTol = 0);
-verifyError(tc, @() ts.climatology(), 'shSeries:tooFewEpochs');
+verifyError(tc, @() ts.climatology(), 'shSeries:climatology:tooFewEpochs');
 end
 
 % ------------------------------------------------- rank-deficient basins
@@ -1105,7 +1105,7 @@ verifyGreaterThan(testCase, ts.epochs(2), 2025);
 ts40 = shSeries.fromFolder(d, Pattern = "ITSG-*_n60_*.gfc", Truncate = 40);
 verifyEqual(testCase, ts40.nmax, 40);
 verifyError(testCase, ...
-    @() shSeries.fromFolder(fullfile(d, 'no_such_dir')), 'shSeries:noFiles');
+    @() shSeries.fromFolder(fullfile(d, 'no_such_dir')), 'shSeries:fromFolder:noFiles');
 end
 
 function testSeriesTNWrappers(testCase)

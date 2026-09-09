@@ -205,7 +205,7 @@ methods
         %     gs         (1 x 1) shCoefficients   sine component
         %
         %   Error identifiers
-        %     shClimatology:badIndex
+        %     shClimatology:periodic:badIndex
         %         k exceeds the number of stored extra periods
         %
         arguments
@@ -213,7 +213,7 @@ methods
             k (1,1) double {mustBeInteger, mustBePositive}
         end
         if k > numel(obj.periods)
-            error('shClimatology:badIndex', ...
+            error('shClimatology:periodic:badIndex', ...
                 'Only %d extra periods are stored.', numel(obj.periods));
         end
         lbl = sprintf("period %.6g yr", obj.periods(k));
@@ -240,7 +240,7 @@ methods
         %     phase      (nlat x nlon) double   phase [rad] of the harmonic
         %
         %   Error identifiers
-        %     shClimatology:badInput
+        %     shClimatology:amplitudeMap:badInput
         %         WHICH is not "annual", "semiannual" or an extra-period index
         %
         arguments
@@ -258,7 +258,7 @@ methods
         elseif string(which) == "semiannual"
             gc = obj.cosSemiannual; gs = obj.sinSemiannual;
         else
-            error('shClimatology:badInput', ...
+            error('shClimatology:amplitudeMap:badInput', ...
                 'which must be "annual", "semiannual" or an extra-period index.');
         end
         args = {latVec, lonVec, 'Quantity', opts.Quantity};
@@ -314,7 +314,7 @@ methods (Static)
         %     obj        (1 x 1) shClimatology   rebuilt from a coefficient table with the series' layout
         %
         %   Error identifiers
-        %     shClimatology:badInput
+        %     shClimatology:fromCoef:badInput
         %         coef does not have 6 + 2*numel(Periods) rows
         %
         arguments
@@ -325,7 +325,7 @@ methods (Static)
             opts.CoefSigma double = []
         end
         K = numel(opts.Periods);
-        assert(size(coef,1) == 6 + 2*K, 'shClimatology:badInput', ...
+        assert(size(coef,1) == 6 + 2*K, 'shClimatology:fromCoef:badInput', ...
             'coef must have %d rows for %d extra periods.', 6+2*K, K);
         n1 = series.nmax + 1;
         Nc = n1^2;

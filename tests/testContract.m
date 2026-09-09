@@ -44,30 +44,30 @@ end
 % ----------------------------------------------------- shCoefficients IDs
 function testConstructorBadInput(tc)
 verifyError(tc, @() shCoefficients(ones(3,4), ones(3,4)), ...
-    'shCoefficients:badInput');                      % non-square
+    'shCoefficients:shCoefficients:badInput');                      % non-square
 verifyError(tc, @() shCoefficients(ones(3), ones(4)), ...
-    'shCoefficients:badInput');                      % C/S size differ
+    'shCoefficients:shCoefficients:badInput');                      % C/S size differ
 verifyError(tc, @() shCoefficients(ones(3), ones(3), SigmaC = ones(4)), ...
-    'shCoefficients:badInput');
+    'shCoefficients:shCoefficients:badInput');
 verifyError(tc, @() shCoefficients(ones(3), ones(3), SigmaS = ones(4)), ...
-    'shCoefficients:badInput');
+    'shCoefficients:shCoefficients:badInput');
 end
 
 function testTruncationAndIndexIDs(tc)
 g = randomField(10, 2020);
-verifyError(tc, @() g.truncate(11), 'shCoefficients:badTruncation');
-verifyError(tc, @() g.setCoefficient(11, 0, 1, NaN), 'shCoefficients:badIndex');
-verifyError(tc, @() g.setCoefficient(2, 3, 1, 1), 'shCoefficients:badIndex');
+verifyError(tc, @() g.truncate(11), 'shCoefficients:truncate:badTruncation');
+verifyError(tc, @() g.setCoefficient(11, 0, 1, NaN), 'shCoefficients:setCoefficient:badIndex');
+verifyError(tc, @() g.setCoefficient(2, 3, 1, 1), 'shCoefficients:setCoefficient:badIndex');
 end
 
 function testPairCheckIDs(tc)
 a = randomField(10, 2020.0);
 b = randomField(12, 2020.0);
-verifyError(tc, @() a - b, 'shCoefficients:sizeMismatch');
+verifyError(tc, @() a - b, 'shCoefficients:operands:sizeMismatch');
 c = shCoefficients(a.C, a.S, GM = a.GM * 1.001, R = a.R, Epoch = 2020);
-verifyError(tc, @() a - c, 'shCoefficients:constantsMismatch');
+verifyError(tc, @() a - c, 'shCoefficients:operands:constantsMismatch');
 d = randomField(10, 2021.0);        % plus enforces epoch agreement
-verifyError(tc, @() a + d, 'shCoefficients:epochMismatch');
+verifyError(tc, @() a + d, 'shCoefficients:operands:epochMismatch');
 end
 
 function testMinusDoesNotEnforceEpochAgreement(tc)
@@ -88,9 +88,9 @@ end
 function testTN14IDs(tc)
 tnFile = writeSyntheticTN14(tc);
 g0 = randomField(10, NaN);
-verifyError(tc, @() g0.applyTN14(tnFile), 'shCoefficients:noEpoch');
+verifyError(tc, @() g0.applyTN14(tnFile), 'shCoefficients:applyTN14:noEpoch');
 g1 = randomField(10, 2035.0);       % far outside table
-verifyError(tc, @() g1.applyTN14(tnFile), 'shCoefficients:epochNotInTable');
+verifyError(tc, @() g1.applyTN14(tnFile), 'shCoefficients:applyTN14:epochNotInTable');
 g2 = randomField(10, 2020.13);      % nearest row has NaN C30
 verifyError(tc, @() g2.applyTN14(tnFile, ReplaceC30 = "always"), ...
     'shCoefficients:noC30');
@@ -100,7 +100,7 @@ end
 
 function testCrossoverNoSigmasID(tc)
 g = randomField(10, 2020);          % constructed without sigmas
-verifyError(tc, @() g.crossover(), 'shCoefficients:noSigmas');
+verifyError(tc, @() g.crossover(), 'shCoefficients:crossover:noSigmas');
 end
 
 function testSynthesisIDs(tc)
@@ -144,44 +144,44 @@ end
 
 % ---------------------------------------------------------- shSeries IDs
 function testSeriesConstructionIDs(tc)
-verifyError(tc, @() shSeries(rand(3,3,4)), 'shSeries:badInput');   % no Epochs
+verifyError(tc, @() shSeries(rand(3,3,4)), 'shSeries:shSeries:badInput');   % no Epochs
 verifyError(tc, @() shSeries(rand(3,3,4), Ss = rand(3,3,4), ...
-    Epochs = [1 2 3]), 'shSeries:badInput');                       % T mismatch
+    Epochs = [1 2 3]), 'shSeries:shSeries:badInput');                       % T mismatch
 a = randomField(8, 2020.0); b = randomField(10, 2020.1);
-verifyError(tc, @() shSeries([a; b]), 'shSeries:sizeMismatch');
+verifyError(tc, @() shSeries([a; b]), 'shSeries:shSeries:sizeMismatch');
 c = shCoefficients(a.C, a.S, GM = a.GM, R = a.R * 1.01, Epoch = 2020.1);
-verifyError(tc, @() shSeries([a; c]), 'shSeries:constantsMismatch');
+verifyError(tc, @() shSeries([a; c]), 'shSeries:shSeries:constantsMismatch');
 end
 
 function testSeriesMethodIDs(tc)
 ts = randomSeries(8, 8);
-verifyError(tc, @() ts.at(9), 'shSeries:badIndex');
-verifyError(tc, @() ts.basinAverage(ones(3, 1)), 'shSeries:badBasis');
+verifyError(tc, @() ts.at(9), 'shSeries:at:badIndex');
+verifyError(tc, @() ts.basinAverage(ones(3, 1)), 'shSeries:basinAverage:badBasis');
 verifyError(tc, @() ts.basinAverage(ones(3, 1), Deconvolve = true), ...
-    'shSeries:missingOp');
-verifyError(tc, @() shSeries.read('zz_no_such_*.gfc'), 'shSeries:noFiles');
+    'shSeries:basinAverage:missingOp');
+verifyError(tc, @() shSeries.read('zz_no_such_*.gfc'), 'shSeries:read:noFiles');
 
 short = randomSeries(8, 3);
-verifyError(tc, @() short.climatology(), 'shSeries:tooFewEpochs');
+verifyError(tc, @() short.climatology(), 'shSeries:climatology:tooFewEpochs');
 
 nanEp = shSeries(ts.Cs, Ss = ts.Ss, Epochs = [NaN, 2:8], ...
     GM = ts.GM, R = ts.R);
-verifyError(tc, @() nanEp.climatology(), 'shSeries:noEpoch');
-verifyError(tc, @() nanEp.filter("tvANS"), 'shSeries:noEpoch');
+verifyError(tc, @() nanEp.climatology(), 'shSeries:climatology:noEpoch');
+verifyError(tc, @() nanEp.filter("tvANS"), 'shSeries:filter:noEpoch');
 
 Cs = ts.Cs; Cs(2,1,3) = NaN;
 nanTs = shSeries(Cs, Ss = ts.Ss, Epochs = ts.epochs, GM = ts.GM, R = ts.R);
-verifyError(tc, @() nanTs.destripe(), 'shSeries:nanInSeries');
+verifyError(tc, @() nanTs.destripe(), 'shSeries:stack:nanInSeries');
 end
 
 function testRestoreIDs(tc)
 gsm = randomSeries(8, 6);
 gad = randomSeries(10, 6);
-verifyError(tc, @() gsm.restore(gad), 'shSeries:sizeMismatch');
+verifyError(tc, @() gsm.restore(gad), 'shSeries:restore:sizeMismatch');
 gad8 = gsm.truncate(8);             % same nmax, but shift epochs far away
 shifted = shSeries(gad8.Cs, Ss = gad8.Ss, Epochs = gad8.epochs + 5, ...
     GM = gad8.GM, R = gad8.R, ProductType = "GAD");
-verifyError(tc, @() gsm.restore(shifted), 'shSeries:epochMismatch');
+verifyError(tc, @() gsm.restore(shifted), 'shSeries:restore:epochMismatch');
 end
 
 % ----------------------------------------------------------- immutability
@@ -344,7 +344,7 @@ end
 function testSelectBadInputID(testCase)
 n1 = 3; T = 5;
 ts = shSeries(zeros(n1,n1,T), Ss = zeros(n1,n1,T), Epochs = 2002+(0:T-1)');
-verifyError(testCase, @() ts.select([0 7 9]), 'shSeries:badInput');
+verifyError(testCase, @() ts.select([0 7 9]), 'shSeries:select:badInput');
 end
 
 function testClimatologyPeriodicBadIndexID(testCase)
@@ -352,14 +352,14 @@ T = 24; n1 = 3;
 ts = shSeries(1e-9*randn(n1,n1,T), Ss = zeros(n1,n1,T), ...
     Epochs = 2002 + (0:T-1)'/12);
 clim = ts.climatology();
-verifyError(testCase, @() clim.periodic(1), 'shClimatology:badIndex');
+verifyError(testCase, @() clim.periodic(1), 'shClimatology:periodic:badIndex');
 end
 
 function testAddDegree1NoEpochID(testCase)
 g = shCoefficients(zeros(3), zeros(3));
 tn = struct('epoch', 2008.29, 'C10', 1e-10, 'C11', 2e-10, 'S11', 3e-10, ...
     'sigC10', 1e-12, 'sigC11', 1e-12, 'sigS11', 1e-12);
-verifyError(testCase, @() g.addDegree1(tn), 'shCoefficients:noEpoch');
+verifyError(testCase, @() g.addDegree1(tn), 'shCoefficients:addDegree1:noEpoch');
 end
 
 % =============================================================== v2.4
@@ -1347,9 +1347,9 @@ verifyError(testCase, @() shLowLevel.twsChain(tmp, tmp), ...
 % an empty series folder fails loudly at the first stage (the aux-file
 % check with its fetch hint sits behind the series read by design)
 verifyError(testCase, @() shLowLevel.twsChain(tmp, tmp, kn = kn), ...
-    'shSeries:noFiles');
+    'shSeries:fromFolder:noFiles');
 verifyError(testCase, @() shLowLevel.gravisL2B(tmp, tmp), ...
-    'shSeries:noFiles');
+    'shSeries:fromFolder:noFiles');
 end
 
 function testGravisChainsRealData(testCase)
@@ -1381,16 +1381,16 @@ function testMeanPeriodContract(testCase)
 t = 2004 + ((0:35)' + 0.5)/12;
 ts = shSeries(ones(3,3,36), Ss = zeros(3,3,36), Epochs = t);
 verifyError(testCase, @() ts.mean(Range = [2010 2011]), ...
-    'shSeries:emptyRange');
+    'shSeries:mean:emptyRange');
 verifyError(testCase, @() ts.mean(Range = [2006 2004]), ...
-    'shSeries:badRange');
+    'shSeries:range:badRange');
 verifyError(testCase, @() ts.mean(Range = [2004 2007], MinEpochs = 99), ...
-    'shSeries:tooFewEpochs');
+    'shSeries:mean:tooFewEpochs');
 % "model" needs 6 + 2K epochs inside the window
 verifyError(testCase, @() ts.mean(Range = [2004 2004.4], ...
-    Estimator = "model"), 'shSeries:tooFewEpochs');
+    Estimator = "model"), 'shSeries:mean:tooFewEpochs');
 verifyError(testCase, @() ts.select([1 2], Range = [2004 2005]), ...
-    'shSeries:badInput');
+    'shSeries:select:badInput');
 verifyError(testCase, @() ts.mean(Estimator = "voronoi"), ?MException);
 end
 
@@ -1401,8 +1401,8 @@ t = 2003 + (0:T-1)'/365.25;
 ts = shSeries(zeros(3,3,T), Ss = zeros(3,3,T), Epochs = t);
 verifyGreaterThan(testCase, max(t), 2010);
 verifyWarning(testCase, @() ts.select([2004 2010]), ...
-    'shSeries:ambiguousRange');
-w = warning('off', 'shSeries:ambiguousRange');
+    'shSeries:select:ambiguousRange');
+w = warning('off', 'shSeries:select:ambiguousRange');
 restore = onCleanup(@() warning(w));
 idx = ts.select([2004 2010]);
 verifyEqual(testCase, idx.nEpochs, 2);            % indices, as documented
@@ -1830,7 +1830,7 @@ verifyEqual(testCase, climK.extraCosC(:, :, 1), 7 * ones(n1));
 verifyEqual(testCase, climK.extraSinC(:, :, 1), 8 * ones(n1));
 verifyError(testCase, ...
     @() shClimatology.fromCoef(coef, 2016.0, ts, Periods = 1.5), ...
-    'shClimatology:badInput');
+    'shClimatology:fromCoef:badInput');
 end
 
 % ---------------------------------------------------------------- WP1 (v4.0.0)

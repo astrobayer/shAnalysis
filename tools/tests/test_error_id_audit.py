@@ -130,6 +130,10 @@ class TestRealRepository(unittest.TestCase):
         """A20: the finding is closed, not merely tracked."""
         self.assertEqual(eia.UNDOCUMENTED, set())
 
+    def test_the_two_part_backlog_is_empty(self):
+        """A21b: likewise closed, not tracked."""
+        self.assertEqual(eia.TWO_PART_OK, set())
+
     def test_the_backlog_mechanism_still_works_while_empty(self):
         """A14's lesson: a drained list makes a membership test vacuous.
 
@@ -177,11 +181,11 @@ methods
         %AT One epoch.
         %
         %   Error identifiers
-        %     shSeries:badIndex
+        %     shSeries:at:badIndex
         %         k exceeds nEpochs
         %
         if k > obj.nEpochs
-            error('shSeries:badIndex', 'k=%d too big.', k);
+            error('shSeries:at:badIndex', 'k=%d too big.', k);
         end
     end
 
@@ -189,8 +193,8 @@ methods
         %FILTER Filter the series.
         %
         %   Error identifiers
-        %     shSeries:nanInSeries
-        %         the stacks carry NaN (raised by assertClean)
+        %     shSeries:stack:nanInSeries
+        %         the stacks carry NaN (the shared stack check)
         %
         obj.assertClean('filter');
         out = obj;
@@ -199,7 +203,7 @@ end
 methods (Access = private)
     function assertClean(obj, opname)
         if any(isnan(obj.Cs(:)))
-            error('shSeries:nanInSeries', '%s needs clean stacks.', opname);
+            error('shSeries:stack:nanInSeries', '%s needs clean stacks.', opname);
         end
     end
 end
@@ -246,49 +250,64 @@ class TestClassPass(unittest.TestCase):
     def test_a_private_helpers_id_must_be_documented_by_its_caller(self):
         """The rule that makes the pass worth having."""
         broken = CLASS_OK.replace(
-            "        %     shSeries:nanInSeries\n"
-            "        %         the stacks carry NaN (raised by assertClean)\n", "")
+            "        %     shSeries:stack:nanInSeries\n"
+            "        %         the stacks carry NaN (the shared stack check)\n", "")
         probs, _, _ = _run_class(broken)
-        self.assertTrue(any("filter can raise shSeries:nanInSeries" in p
+        self.assertTrue(any("filter can raise shSeries:stack:nanInSeries" in p
                             for p in probs), probs)
 
     def test_a_documented_id_the_method_cannot_reach_is_a_finding(self):
         broken = CLASS_OK.replace(
-            "        %     shSeries:badIndex",
-            "        %     shSeries:noSuchThing\n"
-            "        %         invented\n        %     shSeries:badIndex")
+            "        %     shSeries:at:badIndex",
+            "        %     shSeries:at:noSuchThing\n"
+            "        %         invented\n        %     shSeries:at:badIndex")
         probs, _, _ = _run_class(broken)
-        self.assertTrue(any("documents shSeries:noSuchThing" in p
+        self.assertTrue(any("documents shSeries:at:noSuchThing" in p
                             for p in probs), probs)
 
     def test_a_missing_section_is_a_finding(self):
         broken = CLASS_OK.replace("        %   Error identifiers\n"
-                                  "        %     shSeries:badIndex\n"
+                                  "        %     shSeries:at:badIndex\n"
                                   "        %         k exceeds nEpochs\n", "")
         probs, _, _ = _run_class(broken)
         self.assertTrue(any("has no 'Error identifiers' section" in p
                             for p in probs), probs)
 
     def test_a_foreign_identifier_is_a_finding(self):
-        broken = CLASS_OK.replace("error('shSeries:badIndex'",
-                                  "error('shCoefficients:badIndex'")
+        broken = CLASS_OK.replace("error('shSeries:at:badIndex'",
+                                  "error('shCoefficients:at:badIndex'")
         probs, _, _ = _run_class(broken)
         self.assertTrue(any("the class owns shSeries:* only" in p
                             for p in probs), probs)
 
-    def test_a_new_two_part_identifier_is_a_finding(self):
-        """A21b is a backlog, not a licence: an id outside it is a defect."""
-        probs, backlog, _ = _run_class(CLASS_OK, extra_two_part=set())
+    def test_a_two_part_identifier_is_a_finding(self):
+        """A21b, v5.0.0: two-part is a defect, not a backlog entry."""
+        two = CLASS_OK.replace("shSeries:at:badIndex", "shSeries:badIndex")
+        probs, backlog, _ = _run_class(two)
         self.assertTrue(any("two-part shSeries:badIndex" in p
                             for p in probs), probs)
         self.assertEqual(backlog, [])
 
-    def test_the_listed_two_part_ids_are_a_backlog_not_a_finding(self):
-        probs, backlog, _ = _run_class(
-            CLASS_OK, extra_two_part={"shSeries:badIndex",
-                                      "shSeries:nanInSeries"})
+    def test_the_drained_backlog_mechanism_still_works(self):
+        """A14 again: a loop over an empty set cannot fail, so assert the
+        MECHANISM with a temporary entry instead of a member name."""
+        two = CLASS_OK.replace("shSeries:at:badIndex", "shSeries:badIndex")
+        probs, backlog, _ = _run_class(two,
+                                       extra_two_part={"shSeries:badIndex"})
         self.assertEqual(probs, [])
-        self.assertEqual(backlog, ["shSeries:badIndex", "shSeries:nanInSeries"])
+        self.assertEqual(backlog, ["shSeries:badIndex"])
+
+    def test_a_middle_segment_that_names_no_method_is_a_finding(self):
+        """The rule that makes three-part mean something."""
+        typo = CLASS_OK.replace("shSeries:at:badIndex", "shSeries:att:badIndex")
+        probs, _, _ = _run_class(typo)
+        self.assertTrue(any("names neither a method of this class" in p
+                            for p in probs), probs)
+
+    def test_a_declared_shared_check_is_accepted(self):
+        """`stack` is not a method, and must still pass."""
+        probs, _, _ = _run_class(CLASS_OK)
+        self.assertEqual(probs, [])
 
     def test_a_second_private_hop_is_reported_not_missed(self):
         """One hop is checked, not assumed - the depth guard must fire."""
@@ -312,7 +331,7 @@ class TestRealClassFiles(unittest.TestCase):
         probs, backlog, checked = eia.check_classes()
         self.assertEqual(probs, [])
         self.assertEqual(checked, 31)
-        self.assertEqual(len(backlog), 29)
+        self.assertEqual(backlog, [])
 
     def test_minus_does_not_claim_the_epoch_check_plus_does(self):
         """shCoefficients.plus calls checkEpochs; minus deliberately does
@@ -320,8 +339,11 @@ class TestRealClassFiles(unittest.TestCase):
         keep them apart, or the help would promise a wrong catch."""
         funs = eia.parse_class(os.path.join(eia.ROOT, "shCoefficients.m"))
         need, _ = eia.class_requirements(funs)
-        self.assertIn("shCoefficients:epochMismatch", need["plus"])
-        self.assertNotIn("shCoefficients:epochMismatch", need["minus"])
+        self.assertIn("shCoefficients:operands:epochMismatch", need["plus"])
+        self.assertNotIn("shCoefficients:operands:epochMismatch", need["minus"])
+        # both operators DO reach the rest of the shared operand check, so
+        # the `operands` segment does not flatten the distinction away
+        self.assertIn("shCoefficients:operands:sizeMismatch", need["minus"])
 
 
 if __name__ == "__main__":

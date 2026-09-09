@@ -1,5 +1,93 @@
 # Changelog
 
+## [5.0.0] - 2026-09-09 - Every class identifier names its method (A21b)
+
+**BREAKING.** The 29 two-part identifiers the three classes raised are
+now three-part. A caller could not tell which of the 35 methods raised
+`shSeries:badInput`; now they can.
+
+### BREAKING - what changes for a caller
+
+Any `catch`, `verifyError` or `warning('off', ...)` naming one of these
+must be updated. **One old identifier maps to several new ones** - that
+is the point of the change, and it is why a repo-wide replace would have
+been wrong (the A15 lesson, applied per raise site rather than per file):
+
+| was | now |
+|---|---|
+| `shClimatology:badIndex` | `shClimatology:periodic:badIndex` |
+| `shClimatology:badInput` | `shClimatology:amplitudeMap:badInput`<br>`shClimatology:fromCoef:badInput` |
+| `shCoefficients:badIndex` | `shCoefficients:addDegree1:badIndex`<br>`shCoefficients:setCoefficient:badIndex`<br>`shCoefficients:vec:badIndex` |
+| `shCoefficients:badInput` | `shCoefficients:mtimes:badInput`<br>`shCoefficients:operands:badInput`<br>`shCoefficients:shCoefficients:badInput`<br>`shCoefficients:times:badInput` |
+| `shCoefficients:badTruncation` | `shCoefficients:truncate:badTruncation` |
+| `shCoefficients:constantsMismatch` | `shCoefficients:operands:constantsMismatch` |
+| `shCoefficients:epochMismatch` | `shCoefficients:operands:epochMismatch` |
+| `shCoefficients:epochNotInTable` | `shCoefficients:addDegree1:epochNotInTable`<br>`shCoefficients:applyTN14:epochNotInTable` |
+| `shCoefficients:noC30` | `shCoefficients:applyTN14:noC30` |
+| `shCoefficients:noEpoch` | `shCoefficients:addDegree1:noEpoch`<br>`shCoefficients:applyTN14:noEpoch` |
+| `shCoefficients:noSigmas` | `shCoefficients:crossover:noSigmas` |
+| `shCoefficients:sizeMismatch` | `shCoefficients:operands:sizeMismatch` |
+| `shSeries:ambiguousRange` | `shSeries:select:ambiguousRange` |
+| `shSeries:badBasis` | `shSeries:basinAverage:badBasis` |
+| `shSeries:badIndex` | `shSeries:at:badIndex` |
+| `shSeries:badInput` | `shSeries:minus:badInput`<br>`shSeries:select:badInput`<br>`shSeries:shSeries:badInput` |
+| `shSeries:badRange` | `shSeries:range:badRange` |
+| `shSeries:badTruncation` | `shSeries:truncate:badTruncation` |
+| `shSeries:constantsMismatch` | `shSeries:shSeries:constantsMismatch` |
+| `shSeries:emptyRange` | `shSeries:mean:emptyRange` |
+| `shSeries:epochMismatch` | `shSeries:minus:epochMismatch`<br>`shSeries:restore:epochMismatch` |
+| `shSeries:missingOp` | `shSeries:basinAverage:missingOp` |
+| `shSeries:nanInSeries` | `shSeries:stack:nanInSeries` |
+| `shSeries:noBreaks` | `shSeries:trendBreaks:noBreaks` |
+| `shSeries:noEpoch` | `shSeries:climatology:noEpoch`<br>`shSeries:filter:noEpoch`<br>`shSeries:mean:noEpoch` |
+| `shSeries:noFiles` | `shSeries:fromFolder:noFiles`<br>`shSeries:read:noFiles` |
+| `shSeries:sizeMismatch` | `shSeries:minus:sizeMismatch`<br>`shSeries:restore:sizeMismatch`<br>`shSeries:shSeries:sizeMismatch` |
+| `shSeries:sparseWindow` | `shSeries:mean:sparseWindow` |
+| `shSeries:tooFewEpochs` | `shSeries:climatology:tooFewEpochs`<br>`shSeries:mean:tooFewEpochs` |
+
+Three identifiers were already three-part and are unchanged:
+`shSeries:removeAlias:tooShort`, `shSeries:toGrid:empty`,
+`shSeries:toGrid:tooLarge`.
+
+### The middle segment: a method, or a named shared check
+
+Normally it is the raising **public method**, the constructor included
+(`shCoefficients:shCoefficients:badInput`) so the rule has no exception
+to remember.
+
+The four private helpers are the deliberate exception. `checkPair` and
+`checkEpochs` guard the operand pair for the binary operators;
+`assertClean` guards the stacks for six methods; `rangeToYears` parses a
+`Range=`. Naming *them* in the identifier would make renaming a private
+function a breaking change, so they carry a stable CONCEPT segment
+instead - `operands`, `stack`, `range` - and the help says so rather
+than naming the helper.
+
+The distinction that matters survives it: `plus` reaches
+`shCoefficients:operands:epochMismatch`, `minus` does not, because
+`minus` calls only `checkPair`. A test pins both halves.
+
+### The gate now proves the middle segment
+
+Three-part alone would be a spelling convention. `error_id_audit.py`
+checks that the middle segment names either a method of that class or one
+of the three declared shared checks, so `shSeries:att:badIndex` fails.
+`TWO_PART_OK` is drained to empty and, per A14, its self-test asserts the
+MECHANISM with a temporary entry rather than looping over a set that can
+no longer fail.
+
+### Verification
+
+47 raise sites rewritten, scoped to the function each sits in; 58 source
+lines and 58 help rows. 47 test pins were remapped **by line**, each to
+the method the call under test actually reaches - `ts.mean(Range=...)`
+raising a bad range goes to `shSeries:range:badRange` (the shared parser)
+while the empty-window case goes to `shSeries:mean:emptyRange`. Three
+`html/` references and one line of `make_guide.py` followed.
+
+No numerical behaviour changed; no signature changed; the test count is
+unchanged at 304 methods / 305 runs.
+
 ## [4.0.3] - 2026-09-09 - The class surface joins the identifier gate (A21a)
 
 A21's documentation half. The three class files raised **32** error

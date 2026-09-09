@@ -1450,7 +1450,7 @@ verifyEqual(testCase, out.C(:, 1), g.C(:, 1) - CnResc(:, 1), 'AbsTol', 1e-18);
 verifyLessThan(testCase, abs(out.C(3, 1) - res(3, 1)), 1e-15);
 % arithmetic guard: mismatched R errors with the documented ID
 gW = shCoefficients(g.C, g.S, GM = infoN.GM, R = infoN.a);
-verifyError(testCase, @() g - gW, 'shCoefficients:constantsMismatch');
+verifyError(testCase, @() g - gW, 'shCoefficients:operands:constantsMismatch');
 end
 
 function testDiffSpectrumIdentities(testCase)
@@ -4178,8 +4178,8 @@ verifyEqual(testCase, difOp.C, viaNeg.C);
 W = tril(rand(gA.nmax + 1));
 eleMat = times(gA, W);
 verifyEqual(testCase, eleMat.C, gA.C .* W);
-verifyError(testCase, @() mtimes(gA, W), 'shCoefficients:badInput');
-verifyError(testCase, @() times(gA, gB), 'shCoefficients:badInput');
+verifyError(testCase, @() mtimes(gA, W), 'shCoefficients:mtimes:badInput');
+verifyError(testCase, @() times(gA, gB), 'shCoefficients:times:badInput');
 end
 
 function testSeriesMinusEqualsItsMethodCall(testCase)

@@ -89,12 +89,12 @@ methods
         %         operation appends one line
         %
         %   Error identifiers
-        %     shSeries:badInput
+        %     shSeries:shSeries:badInput
         %         the raw-stack form needs a square Cs, a matching Ss=, and one
         %         Epochs= entry per layer
-        %     shSeries:constantsMismatch
+        %     shSeries:shSeries:constantsMismatch
         %         GM or R differ between epochs of the series
-        %     shSeries:sizeMismatch
+        %     shSeries:shSeries:sizeMismatch
         %         the epochs do not all share nmax - truncate first
         arguments
             in
@@ -114,13 +114,13 @@ methods
             nm = arr(1).nmax;
             for k = 2:T
                 if arr(k).nmax ~= nm
-                    error('shSeries:sizeMismatch', ...
+                    error('shSeries:shSeries:sizeMismatch', ...
                         'All epochs must share nmax (epoch %d has %d, expected %d) - truncate first.', ...
                         k, arr(k).nmax, nm);
                 end
                 if abs(arr(k).GM - arr(1).GM) > 1e-9*arr(1).GM || ...
                    abs(arr(k).R - arr(1).R) > 1e-9*arr(1).R
-                    error('shSeries:constantsMismatch', ...
+                    error('shSeries:shSeries:constantsMismatch', ...
                         'GM/R differ within the series (epoch %d).', k);
                 end
             end
@@ -159,15 +159,15 @@ methods
             obj.Ss = opts.Ss;
             if isempty(obj.Ss) || ~isequal(size(obj.Cs), size(obj.Ss)) ...
                     || size(in,1) ~= size(in,2)
-                error('shSeries:badInput', ...
+                error('shSeries:shSeries:badInput', ...
                     'Raw-stack form requires square Cs and matching Ss=... stacks.');
             end
             T = size(in, 3);
             if isempty(opts.Epochs)
-                error('shSeries:badInput', 'Raw-stack form requires Epochs=...');
+                error('shSeries:shSeries:badInput', 'Raw-stack form requires Epochs=...');
             end
             if numel(opts.Epochs) ~= T
-                error('shSeries:badInput', 'numel(Epochs) must equal size(Cs,3).');
+                error('shSeries:shSeries:badInput', 'numel(Epochs) must equal size(Cs,3).');
             end
             obj.epochs = opts.Epochs;
             obj.GM = opts.GM; obj.R = opts.R;
@@ -194,7 +194,7 @@ methods
         %     g          (1 x 1) shCoefficients   month k with epoch and sigmas
         %
         %   Error identifiers
-        %     shSeries:badIndex
+        %     shSeries:at:badIndex
         %         k exceeds nEpochs
         %
         arguments
@@ -202,7 +202,7 @@ methods
             k (1,1) double {mustBeInteger, mustBePositive}
         end
         if k > obj.nEpochs
-            error('shSeries:badIndex', 'k=%d exceeds nEpochs=%d.', k, obj.nEpochs);
+            error('shSeries:at:badIndex', 'k=%d exceeds nEpochs=%d.', k, obj.nEpochs);
         end
         sc = []; ss = [];
         if ~isempty(obj.sigmaCs), sc = obj.sigmaCs(:,:,k); ss = obj.sigmaSs(:,:,k); end
@@ -270,7 +270,7 @@ methods
         %         annual and semi-annual - e.g. 161/365.25 for the S2 alias
         %     Omitnan (true)     (1 x 1) logical, ignore NaN coefficients
         %         ("arithmetic") or drop NaN epochs ("model"); false makes
-        %         a NaN month poison the result / raise shSeries:nanInSeries
+        %         a NaN month poison the result / raise shSeries:stack:nanInSeries
         %     MinEpochs (1)      (1 x 1) double, minimum number of epochs
         %         inside the window; below it the call errors
         %
@@ -302,19 +302,21 @@ methods
         %     [gGap, info] = ts.mean(Range = [2015 2021], Estimator = "model");
         %
         %   Error identifiers
-        %     shSeries:badRange
+        %     shSeries:range:badRange
         %         Range= is not [t1 t2] with t2 > t1 (decimal years or datetime)
-        %     shSeries:emptyRange
+        %     shSeries:mean:emptyRange
         %         no epoch falls inside Range=
-        %     shSeries:nanInSeries
+        %     shSeries:stack:nanInSeries
         %         Estimator="model" on stacks that carry NaN - fill or drop the gap
-        %         epochs first (raised by assertClean)
-        %     shSeries:noEpoch
+        %         epochs first. The `stack` segment marks a check shared by
+%         several methods, so it stays stable if the private helper
+%         behind it is renamed
+        %     shSeries:mean:noEpoch
         %         Estimator="model" needs a finite epoch on every entry
-        %     shSeries:sparseWindow
+        %     shSeries:mean:sparseWindow
         %         warning - Estimator="model" and the window is less than half
         %         covered by epochs
-        %     shSeries:tooFewEpochs
+        %     shSeries:mean:tooFewEpochs
         %         the window holds fewer than MinEpochs epochs, or fewer than the
         %         deterministic model has parameters
         %
@@ -333,7 +335,7 @@ methods
             rg = rangeToYears(opts.Range);
             keep = find(obj.epochs(:)' >= rg(1) & obj.epochs(:)' <= rg(2));
             if isempty(keep)
-                error('shSeries:emptyRange', ...
+                error('shSeries:mean:emptyRange', ...
                     ['No epoch falls in [%.4f %.4f]; the series spans ' ...
                      '%.4f to %.4f.'], rg(1), rg(2), ...
                     min(obj.epochs), max(obj.epochs));
@@ -347,7 +349,7 @@ methods
         nDropped = 0;
         if opts.Estimator == "model"
             if isempty(sub.epochs) || any(~isfinite(sub.epochs))
-                error('shSeries:noEpoch', ...
+                error('shSeries:mean:noEpoch', ...
                     'Estimator="model" requires a finite epoch for every entry.');
             end
             if opts.Omitnan
@@ -359,7 +361,7 @@ methods
             end
         end
         if sub.nEpochs < opts.MinEpochs
-            error('shSeries:tooFewEpochs', ...
+            error('shSeries:mean:tooFewEpochs', ...
                 'The window holds %d epoch(s), MinEpochs = %d.', ...
                 sub.nEpochs, opts.MinEpochs);
         end
@@ -386,7 +388,7 @@ methods
         else
             nPar = 6 + 2 * numel(opts.Periods);
             if sub.nEpochs < nPar
-                error('shSeries:tooFewEpochs', ...
+                error('shSeries:mean:tooFewEpochs', ...
                     ['Estimator="model" needs >= %d epochs inside the ' ...
                      'window for %d parameters (got %d).'], ...
                     nPar, nPar, sub.nEpochs);
@@ -416,7 +418,7 @@ methods
         info = meanWindowInfo(sub, rg, obj.nEpochs, nDropped, ...
             opts.Estimator, ep, atten);
         if opts.Estimator == "model" && info.coverage < 0.5
-            warning('shSeries:sparseWindow', ...
+            warning('shSeries:mean:sparseWindow', ...
                 ['Estimator="model": the window is %.0f%% covered ' ...
                  '(largest gap %.2f yr) - the model is extrapolating.'], ...
                 100 * info.coverage, info.maxGapYears);
@@ -463,12 +465,12 @@ methods
         %     resid      (1 x 1) shSeries   residual series about the fit
         %
         %   Error identifiers
-        %     shSeries:nanInSeries
+        %     shSeries:stack:nanInSeries
         %         the stacks carry NaN - fill or drop the gap epochs first (raised
-        %         by assertClean)
-        %     shSeries:noEpoch
+        %         by the shared stack check)
+        %     shSeries:climatology:noEpoch
         %         climatology needs a finite epoch on every entry
-        %     shSeries:tooFewEpochs
+        %     shSeries:climatology:tooFewEpochs
         %         fewer epochs than the climatology model has parameters
         %
         arguments
@@ -481,12 +483,12 @@ methods
         end
         obj.assertClean('climatology');
         if any(~isfinite(obj.epochs))
-            error('shSeries:noEpoch', ...
+            error('shSeries:climatology:noEpoch', ...
                 'climatology requires finite epochs for every entry.');
         end
         nPar = 6 + 2*numel(opts.Periods);
         if obj.nEpochs < nPar
-            error('shSeries:tooFewEpochs', ...
+            error('shSeries:climatology:tooFewEpochs', ...
                 'climatology needs >= %d epochs for %d parameters (got %d).', ...
                 nPar, nPar, obj.nEpochs);
         end
@@ -556,7 +558,7 @@ methods
         %                              sine coefficients
         %
         %   Error identifiers
-        %     shSeries:noBreaks
+        %     shSeries:trendBreaks:noBreaks
         %         Breaks= is empty; trendBreaks needs at least one break epoch
         %
         arguments
@@ -566,7 +568,7 @@ methods
             opts.T0 (1,1) double = NaN
             opts.ARCorrect (1,1) logical = false
         end
-        assert(~isempty(opts.Breaks), 'shSeries:noBreaks', ...
+        assert(~isempty(opts.Breaks), 'shSeries:trendBreaks:noBreaks', ...
             'trendBreaks needs at least one break epoch.');
         t0 = opts.T0;
         if isnan(t0), t0 = mean(obj.epochs); end
@@ -743,10 +745,10 @@ methods
         %     ts = ts.removeAlias(SplitEpoch = 2018.4);
         %
         %   Error identifiers
-        %     shSeries:nanInSeries
+        %     shSeries:stack:nanInSeries
         %         the stacks carry NaN - fill or drop the gap epochs first (raised
-        %         by assertClean)
-        %     shSeries:noEpoch
+        %         by the shared stack check)
+        %     shSeries:removeAlias:noEpoch
         %         removeAlias needs a finite epoch on every entry
         %     shSeries:removeAlias:tooShort
         %         the series is too short, too sparse or rank deficient to separate
@@ -766,7 +768,7 @@ methods
         obj.assertClean('removeAlias');
         t = obj.epochs(:);
         if any(~isfinite(t))
-            error('shSeries:noEpoch', ...
+            error('shSeries:removeAlias:noEpoch', ...
                 'removeAlias requires finite epochs for every entry.');
         end
         t0 = opts.T0;
@@ -907,10 +909,10 @@ methods
         %     out        (1 x 1) shSeries   background model added back epoch-matched (e.g. GSM + GAD)
         %
         %   Error identifiers
-        %     shSeries:epochMismatch
+        %     shSeries:restore:epochMismatch
         %         no GAX epoch lies within Tolerance of a series epoch and
         %         AllowMissing is false
-        %     shSeries:sizeMismatch
+        %     shSeries:restore:sizeMismatch
         %         nmax differs from the GAX field - truncate first
         %
         arguments
@@ -920,7 +922,7 @@ methods
             opts.AllowMissing (1,1) logical = false
         end
         if obj.nmax ~= gax.nmax
-            error('shSeries:sizeMismatch', ...
+            error('shSeries:restore:sizeMismatch', ...
                 'nmax differs (%d vs %d) - truncate first.', obj.nmax, gax.nmax);
         end
         out = obj;
@@ -933,7 +935,7 @@ methods
             elseif opts.AllowMissing
                 nMissing = nMissing + 1;
             else
-                error('shSeries:epochMismatch', ...
+                error('shSeries:restore:epochMismatch', ...
                     'No %s epoch within %.3f yr of %.4f (epoch %d).', ...
                     gax.productType, opts.Tolerance, obj.epochs(k), k);
             end
@@ -953,16 +955,16 @@ methods
         %     out        (1 x 1) shSeries   per-month difference (series or single field)
         %
         %   Error identifiers
-        %     shSeries:badInput
+        %     shSeries:minus:badInput
         %         the right operand is neither an shCoefficients nor an shSeries
-        %     shSeries:epochMismatch
+        %     shSeries:minus:epochMismatch
         %         series minus series needs matching epoch sets
-        %     shSeries:sizeMismatch
+        %     shSeries:minus:sizeMismatch
         %         the operands differ in nmax
         %
         if isa(b, 'shCoefficients')
             if a.nmax ~= b.nmax
-                error('shSeries:sizeMismatch', ...
+                error('shSeries:minus:sizeMismatch', ...
                     'nmax differs (%d vs %d).', a.nmax, b.nmax);
             end
             out = a;
@@ -971,18 +973,18 @@ methods
             out.history(end+1) = "subtracted field: " + b.name;
         elseif isa(b, 'shSeries')
             if a.nmax ~= b.nmax
-                error('shSeries:sizeMismatch', ...
+                error('shSeries:minus:sizeMismatch', ...
                     'nmax differs (%d vs %d).', a.nmax, b.nmax);
             end
             if a.nEpochs ~= b.nEpochs || any(abs(a.epochs - b.epochs) > 0.05)
-                error('shSeries:epochMismatch', ...
+                error('shSeries:minus:epochMismatch', ...
                     'Series minus requires matching epoch sets.');
             end
             out = a;
             out.Cs = a.Cs - b.Cs; out.Ss = a.Ss - b.Ss;
             out.history(end+1) = "subtracted series (" + b.productType + ")";
         else
-            error('shSeries:badInput', 'Unsupported operand for minus.');
+            error('shSeries:minus:badInput', 'Unsupported operand for minus.');
         end
     end
 
@@ -1004,9 +1006,9 @@ methods
         %         the common "P3M6" variant)
         %
         %   Error identifiers
-        %     shSeries:nanInSeries
+        %     shSeries:stack:nanInSeries
         %         the stacks carry NaN - fill or drop the gap epochs first (raised
-        %         by assertClean)
+        %         by the shared stack check)
         %
         arguments
             obj
@@ -1034,9 +1036,9 @@ methods
         %     out        (1 x 1) shSeries   Gaussian-smoothed per month
         %
         %   Error identifiers
-        %     shSeries:nanInSeries
+        %     shSeries:stack:nanInSeries
         %         the stacks carry NaN - fill or drop the gap epochs first (raised
-        %         by assertClean)
+        %         by the shared stack check)
         %
         arguments
             obj
@@ -1063,7 +1065,7 @@ methods
         %     out        (1 x 1) shSeries   truncated per month
         %
         %   Error identifiers
-        %     shSeries:badTruncation
+        %     shSeries:truncate:badTruncation
         %         the requested nmax exceeds the series' own
         %
         arguments
@@ -1071,7 +1073,7 @@ methods
             nmaxNew (1,1) double {mustBeInteger, mustBeNonnegative}
         end
         if nmaxNew > obj.nmax
-            error('shSeries:badTruncation', ...
+            error('shSeries:truncate:badTruncation', ...
                 'Requested nmax %d exceeds available %d.', nmaxNew, obj.nmax);
         end
         out = obj; k = nmaxNew + 1;
@@ -1118,7 +1120,7 @@ methods
         %   is a time range for a monthly series and a valid pair of
         %   INDICES for a daily one (T > 2010 samples is under six years).
         %   It is resolved as indices whenever both values are integers in
-        %   1..T, and a warning (shSeries:ambiguousRange) fires when they
+        %   1..T, and a warning (shSeries:select:ambiguousRange) fires when they
         %   would also have been a plausible window. Say what you mean:
         %
         %   OUT = ts.select(Range = [tMin tMax]) is always a time window,
@@ -1142,13 +1144,13 @@ methods
         %     tsB  = ts.select(Range = [2004 2010]);
         %
         %   Error identifiers
-        %     shSeries:ambiguousRange
+        %     shSeries:select:ambiguousRange
         %         warning - a two-element WHICH was read as INDICES although both
         %         values also fall inside the epoch span; pass Range= to mean years
-        %     shSeries:badInput
+        %     shSeries:select:badInput
         %         WHICH and Range= were both given, a logical mask has the wrong
         %         length, indices are not integers in 1..nEpochs, or neither was given
-        %     shSeries:badRange
+        %     shSeries:range:badRange
         %         Range= is not [t1 t2] with t2 > t1 (decimal years or datetime)
         %
         %   See also mean, dropNaN
@@ -1159,25 +1161,25 @@ methods
         end
         T = obj.nEpochs;
         if ~isempty(opts.Range)
-            assert(isempty(which), 'shSeries:badInput', ...
+            assert(isempty(which), 'shSeries:select:badInput', ...
                 'Pass either WHICH or Range=, not both.');
             rg = rangeToYears(opts.Range);
             keep = find(obj.epochs(:)' >= rg(1) & obj.epochs(:)' <= rg(2));
         elseif islogical(which)
-            assert(numel(which) == T, 'shSeries:badInput', ...
+            assert(numel(which) == T, 'shSeries:select:badInput', ...
                 'Logical mask must have %d elements.', T);
             keep = find(which(:)');
         elseif numel(which) == 2 && ~all(which == round(which) & which >= 1 & which <= T)
             keep = find(obj.epochs(:)' >= which(1) & obj.epochs(:)' <= which(2));
         else
-            assert(~isempty(which), 'shSeries:badInput', ...
+            assert(~isempty(which), 'shSeries:select:badInput', ...
                 'Give WHICH (mask, indices or [tMin tMax]) or Range=.');
             assert(all(which == round(which)) && all(which >= 1) && all(which <= T), ...
-                'shSeries:badInput', 'Indices must be integers in 1..%d.', T);
+                'shSeries:select:badInput', 'Indices must be integers in 1..%d.', T);
             keep = which(:)';
             if numel(which) == 2 && all(isfinite(obj.epochs)) && ...
                     all(which >= min(obj.epochs)) && all(which <= max(obj.epochs))
-                warning('shSeries:ambiguousRange', ...
+                warning('shSeries:select:ambiguousRange', ...
                     ['select([%g %g]) was read as INDICES, but both values ' ...
                      'also fall inside the epoch span - use Range= for a ' ...
                      'time window.'], which(1), which(2));
@@ -1259,10 +1261,10 @@ methods
         %                shLowLevel.tvANSFilter
         %
         %   Error identifiers
-        %     shSeries:nanInSeries
+        %     shSeries:stack:nanInSeries
         %         the stacks carry NaN - fill or drop the gap epochs first (raised
-        %         by assertClean)
-        %     shSeries:noEpoch
+        %         by the shared stack check)
+        %     shSeries:filter:noEpoch
         %         filter needs a finite epoch on every entry
         %
         arguments
@@ -1282,7 +1284,7 @@ methods
         end
         obj.assertClean('filter');
         if any(~isfinite(obj.epochs))
-            error('shSeries:noEpoch', ...
+            error('shSeries:filter:noEpoch', ...
                 'filter requires finite epochs for every entry.');
         end
         idx = shLowLevel.shIndex(obj.nmax, Nmin = opts.Nmin);
@@ -1357,9 +1359,9 @@ methods
         %         (out.condA reports the condition number)
         %
         %   Error identifiers
-        %     shSeries:badBasis
+        %     shSeries:basinAverage:badBasis
         %         B is not P x K in shLowLevel.shIndex ordering for this nmax
-        %     shSeries:missingOp
+        %     shSeries:basinAverage:missingOp
         %         Deconvolve=true without Op= from ts.filter("tvANS", ...)
         arguments
             obj
@@ -1370,14 +1372,14 @@ methods
         end
         if opts.Deconvolve
             if isempty(fieldnames(opts.Op))
-                error('shSeries:missingOp', ...
+                error('shSeries:basinAverage:missingOp', ...
                     'Deconvolve=true requires Op=op from ts.filter("tvANS", ...).');
             end
             [avg, out] = shLowLevel.basinDeconvolve(B, opts.Op, Ridge = opts.Ridge);
         else
             idx = shLowLevel.shIndex(obj.nmax);
             if size(B,1) ~= idx.P
-                error('shSeries:badBasis', ...
+                error('shSeries:basinAverage:badBasis', ...
                     'B must be P x K in shLowLevel.shIndex(Nmax=%d) ordering (P=%d).', ...
                     obj.nmax, idx.P);
             end
@@ -1533,7 +1535,7 @@ methods (Static)
         %         reading (NaN: keep the file resolution)
         %
         %   Error identifiers
-        %     shSeries:noFiles
+        %     shSeries:read:noFiles
         %         the pattern matched no file, or matched only provenance sidecars
         arguments
             files
@@ -1543,7 +1545,7 @@ methods (Static)
                 && contains(string(files), ["*", "?"])
             d = dir(char(files));
             if isempty(d)
-                error('shSeries:noFiles', 'Pattern matched no files: %s', ...
+                error('shSeries:read:noFiles', 'Pattern matched no files: %s', ...
                     char(files));
             end
             list = string(fullfile({d.folder}, {d.name}))';
@@ -1554,7 +1556,7 @@ methods (Static)
             % toolbox. Sidecars are metadata, never solutions.
             list = list(~endsWith(list, ".provenance.json"));
             if isempty(list)
-                error('shSeries:noFiles', ...
+                error('shSeries:read:noFiles', ...
                     'Pattern matched only provenance sidecars: %s', ...
                     char(files));
             end
@@ -1581,7 +1583,7 @@ methods (Static)
         %     obj        (1 x 1) shSeries   all gfc(.gz) files of a folder, epoch-sorted
         %
         %   Error identifiers
-        %     shSeries:noFiles
+        %     shSeries:fromFolder:noFiles
         %         FOLDER is not a folder
         %
         arguments
@@ -1589,7 +1591,7 @@ methods (Static)
             opts.Pattern (1,1) string = "*.gfc*"
             opts.Truncate (1,1) double = NaN
         end
-        assert(isfolder(folder), 'shSeries:noFiles', ...
+        assert(isfolder(folder), 'shSeries:fromFolder:noFiles', ...
             'Not a folder: %s', folder);
         obj = shSeries.read(string(fullfile(char(folder), ...
             char(opts.Pattern))), Truncate = opts.Truncate);
@@ -1599,7 +1601,7 @@ end
 methods (Access = private)
     function assertClean(obj, opname)
         if any(isnan(obj.Cs(:))) || any(isnan(obj.Ss(:)))
-            error('shSeries:nanInSeries', ...
+            error('shSeries:stack:nanInSeries', ...
                 '%s requires NaN-free stacks - fill or drop gap epochs first.', ...
                 opname);
         end
@@ -1636,7 +1638,7 @@ if isdatetime(rg)
 end
 rg = double(rg(:))';
 assert(numel(rg) == 2 && all(isfinite(rg)) && rg(2) > rg(1), ...
-    'shSeries:badRange', ...
+    'shSeries:range:badRange', ...
     'Range must be [t1 t2] with t2 > t1 (decimal years or datetime).');
 end
 
