@@ -22,7 +22,7 @@ the one before it -- more useful in practice for tuning a smooth filter radius t
 <h2>Output Arguments</h2>
 <table><tr><th>Argument</th><th>Description</th></tr><tr><td><code class='inline'>nCrossover</code></td><td>First integer degree where errAmplitude &gt; degAmplitude. NaN if no crossing occurs.</td></tr><tr><td><code class='inline'>degreeInterp</code></td><td>Sub-degree (real-valued) interpolated crossover estimate. NaN if no crossing occurs.</td></tr></table>
 <h2>Examples</h2>
-<h3>Finding a data-driven filter radius</h3><pre>spec = shDegreeRMS(dC, dS, 'R', R, 'n0', 2, 'sigmaC', sigC, 'sigmaS', sigS);
+<h3>Finding a data-driven filter radius</h3><pre>spec = shDegreeRMS(dC, dS, R=R, Nmin=2, SigmaC=sigC, SigmaS=sigS);
 [nX, nXi] = shSpectralCrossover(spec);
 fprintf('crossover near degree %.1f -- consider truncating there or filtering to suppress it\n', nXi);</pre><p>A common rule of thumb is to choose a Gaussian filter radius whose weight function (shGaussianWeights) has dropped substantially by nXi, rather than truncating hard (which introduces ringing).</p>
 <h2>See Also</h2>

@@ -123,7 +123,7 @@ try
     for k = 1:T
         zA(k) = shLowLevel.shSynthesis(fl.Cs(:,:,k), fl.Ss(:,:,k), ...
             3.986004415e14, 6378136.3, -5, 300, ...
-            'quantity', 'ewh', 'kn', kn, 'nmin', 2);
+            'Quantity', 'ewh', 'kn', kn, 'Nmin', 2);
     end
     z = shLowLevel.hydroExtremeIndex(zA, fl.epochs);
     % published Amazon droughts: 2005, 2010, and 2015/16 (El Nino) -

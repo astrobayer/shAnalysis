@@ -3,7 +3,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="shAnalysis.css">
 </head><body><div class="content">
-<h1>shAnalysis API reference (v3.34.1)</h1>
+<h1>shAnalysis API reference (v4.0.0)</h1>
 <p>Generated from the source arguments blocks and help text - inputs,
 name-value options with defaults, and outputs for every public function
 and method. Regenerated with every release; the source of truth is the
@@ -661,9 +661,7 @@ code itself.</p>
             &quot;GSM&quot;, &quot;ITSG-Grace2018&quot;, 2008.29, 0, string.empty(0,1), 60, 0);
     b.FieldKind        % &quot;anomaly&quot;
 
-  See also SHCOEFFICIENTS/TOGRID, SHSERIES/TOGRID, KERNELFACTORS.
-
-  Claude (Opus 5), 2026-08-23 (v3.31.0).</pre>
+  See also SHCOEFFICIENTS/TOGRID, SHSERIES/TOGRID, KERNELFACTORS.</pre>
 </div>
 <div class="entry" id="shLowLevel.gridScaling">
 <h3><code>shLowLevel.gridScaling(model, latDeg, lonDeg, opts)</code></h3>
@@ -1010,17 +1008,21 @@ code itself.</p>
 </table>
 </div>
 <div class="entry" id="shLowLevel.plotSHCoeffTriangle">
-<h3><code>shLowLevel.plotSHCoeffTriangle(C, S, varargin)</code></h3>
+<h3><code>shLowLevel.plotSHCoeffTriangle(C, S, opts)</code></h3>
 <p class="h1line">Coefficient-triangle diagnostic plot.</p>
 <p>PLOTSHCOEFFTRIANGLE(C, S) shows |Cnm| (left half) and |Snm| (right half) as a single degree/order &quot;butterfly&quot; triangle image on a log color scale -- the standard first diagnostic for spotting striping, leakage, or bad coefficients before spectral/spatial analysis. x-axis: order m (mirrored: Snm on the LEFT, Cnm on the RIGHT), y-axis: degree n with the apex (n=0) at the TOP - the triangle&#x27;s peak points upwards. The data aspect ratio is fixed to 1:1, so the axes box is 2:1 (x spans 2*nmax+1 units, y spans nmax+1) and every imagesc cell renders square (v2.3.1).</p>
+<b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>C</code></td><td>n x m</td><td>double</td><td>required</td></tr><tr><td><code>S</code></td><td>n x m</td><td>double</td><td>required</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Nmax</code></td><td>n x m</td><td>-</td><td>size(C,1)-1</td></tr><tr><td><code>CLim</code></td><td>n x m</td><td>-</td><td>[]</td></tr><tr><td><code>Ax</code></td><td>n x m</td><td>-</td><td>[]</td></tr><tr><td><code>RefC</code></td><td>n x m</td><td>-</td><td>[]</td></tr><tr><td><code>RefS</code></td><td>n x m</td><td>-</td><td>[]</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
 <tr><td><code>h</code></td><td>(1 x 1) graphics handle   butterfly triangle image (abs log10 or signed diff with RefC/RefS)</td></tr>
 </table>
 </div>
 <div class="entry" id="shLowLevel.plotSHSpectrum">
-<h3><code>shLowLevel.plotSHSpectrum(specs, varargin)</code></h3>
+<h3><code>shLowLevel.plotSHSpectrum(specs, opts)</code></h3>
 <p class="h1line">Log-log degree-amplitude spectrum plot.</p>
 <p>PLOTSHSPECTRUM(SPEC) plots SPEC.degree vs SPEC.degAmplitude (from SHDEGREERMS) on a log-log scale, in mm geoid-height-equivalent.</p>
+<b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>specs</code></td><td>n x m</td><td>-</td><td>required</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Names</code></td><td>n x m</td><td>-</td><td>{}</td></tr><tr><td><code>Units</code></td><td>n x m</td><td>-</td><td>&#x27;mm&#x27;</td></tr><tr><td><code>Field</code></td><td>n x m</td><td>-</td><td>&#x27;&#x27;</td></tr><tr><td><code>Ax</code></td><td>n x m</td><td>-</td><td>[]</td></tr><tr><td><code>Kaula</code></td><td>n x m</td><td>-</td><td>[]</td></tr><tr><td><code>MarkCrossover</code></td><td>false</td><td>-</td><td>false</td></tr><tr><td><code>Quantity</code></td><td>n x m</td><td>-</td><td>&#x27;amplitude&#x27;</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
 <tr><td><code>h</code></td><td>(1 x 1) graphics handle   log-log spectrum axes</td></tr>
 </table>
@@ -1117,15 +1119,13 @@ code itself.</p>
 <div class="entry" id="shLowLevel.requireGeoMap">
 <h3><code>shLowLevel.requireGeoMap()</code></h3>
 <p class="h1line">Assert that geoMap is on the path; say where it is.</p>
-<p>LOC = shLowLevel.requireGeoMap() returns the path of geo.map, or raises shAnalysis:geoMapRequired with a message that says what to do instead of reporting an undefined function three frames deeper.</p>
+<p>LOC = shLowLevel.requireGeoMap() returns the path of geo.map, or raises shLowLevel:requireGeoMap:geoMapRequired with a message that says what to do instead of reporting an undefined function three frames deeper.</p>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
 <tr><td><code>loc</code></td><td>(1,:) char  full path of geo.map, for provenance records</td></tr>
 </table>
 <b>Example</b><pre>    loc = shLowLevel.requireGeoMap();   % errors if geoMap is absent
 
-  See also SHCOEFFICIENTS/MAP, SHCOEFFICIENTS/TOGRID, WRITEANIMATION.
-
-  Claude (Opus 5), 2026-08-23 (v3.32.0).</pre>
+  See also SHCOEFFICIENTS/MAP, SHCOEFFICIENTS/TOGRID, WRITEANIMATION.</pre>
 </div>
 <div class="entry" id="shLowLevel.rescaleGMR">
 <h3><code>shLowLevel.rescaleGMR(C, S, GM1, R1, GM2, R2, sigmaC, sigmaS)</code></h3>
@@ -1225,17 +1225,21 @@ code itself.</p>
 </table>
 </div>
 <div class="entry" id="shLowLevel.shDegreeRMS">
-<h3><code>shLowLevel.shDegreeRMS(C, S, varargin)</code></h3>
+<h3><code>shLowLevel.shDegreeRMS(C, S, opts)</code></h3>
 <p class="h1line">Spectral (degree-domain) analysis of spherical harmonic coefficients.</p>
 <p>SPEC = SHDEGREERMS(C, S) computes, per degree n = 0..nmax: .degVariance(n+1)  = sum_m (Cnm^2 + Snm^2) .degRMS(n+1)       = sqrt(degVariance) .degAmplitude(n+1) = R * degRMS            [geoid-height-equivalent, m] .cumAmplitude(n+1) = R * sqrt(cumsum(degVariance))   [cumulative, m]</p>
+<b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>C</code></td><td>n x m</td><td>double</td><td>required</td></tr><tr><td><code>S</code></td><td>n x m</td><td>double</td><td>required</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>R</code></td><td>1 x 1</td><td>double</td><td>6378136.3</td></tr><tr><td><code>Nmin</code></td><td>1 x 1</td><td>double</td><td>0</td></tr><tr><td><code>SigmaC</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>SigmaS</code></td><td>n x m</td><td>double</td><td>[]</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
 <tr><td><code>spec</code></td><td>(1,1) struct  fields degree        (nmax+1 x 1) double  the degree axis degVariance, degRMS, degAmplitude  (nmax+1 x 1) double per-degree signal measures cumVariance, cumRMS, cumAmplitude  (nmax+1 x 1) double their cumulative counterparts R             (1,1) double  the radius the amplitudes use domain        (1,:) char    &#x27;degree&#x27; (consumed by plotSHSpectrum) errVariance, errRMS, errAmplitude  (nmax+1 x 1) double the same for the formal errors; present only when sigmas were supplied</td></tr>
 </table>
 </div>
 <div class="entry" id="shLowLevel.shDestripe">
-<h3><code>shLowLevel.shDestripe(C, S, varargin)</code></h3>
+<h3><code>shLowLevel.shDestripe(C, S, opts)</code></h3>
 <p class="h1line">Remove correlated (north-south striping) noise from Stokes</p>
 <p>coefficients, following Swenson &amp; Wahr (2006).</p>
+<b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>C</code></td><td>n x m</td><td>double</td><td>required</td></tr><tr><td><code>S</code></td><td>n x m</td><td>double</td><td>required</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>MinOrder</code></td><td>1 x 1</td><td>double</td><td>6</td></tr><tr><td><code>PolyOrder</code></td><td>1 x 1</td><td>double</td><td>3</td></tr><tr><td><code>WindowLength</code></td><td>n x m</td><td>double</td><td>[]</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
 <tr><td><code>Cf</code></td><td>(nmax+1 x nmax+1) double   destriped cosine coefficients</td></tr>
 <tr><td><code>Sf</code></td><td>(nmax+1 x nmax+1) double   destriped sine coefficients</td></tr>
@@ -1271,9 +1275,11 @@ code itself.</p>
 </table>
 </div>
 <div class="entry" id="shLowLevel.shGaussianWeights">
-<h3><code>shLowLevel.shGaussianWeights(nmax, radius_km, varargin)</code></h3>
+<h3><code>shLowLevel.shGaussianWeights(nmax, radius_km, opts)</code></h3>
 <p class="h1line">Degree-domain weights for isotropic Gaussian smoothing.</p>
 <p>WN = SHGAUSSIANWEIGHTS(NMAX, RADIUS_KM) computes the Jekeli (1981) Gaussian averaging function weights Wn, n = 0..NMAX, for an averaging radius RADIUS_KM [km] (half-width at which the spatial weighting function drops to 1/2). Standard GRACE/GRACE-FO mass-change smoothing.</p>
+<b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>nmax</code></td><td>1 x 1</td><td>double</td><td>required</td></tr><tr><td><code>radius_km</code></td><td>1 x 1</td><td>double</td><td>required</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>R</code></td><td>1 x 1</td><td>double</td><td>6378.1363</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
 <tr><td><code>Wn</code></td><td>(nmax+1 x 1) double   Jekeli (1981) weights, W(1) = 1, monotone non-increasing</td></tr>
 </table>
@@ -1293,7 +1299,7 @@ code itself.</p>
 <p class="h1line">Order-domain spectral diagnostics (striping direction).</p>
 <p>SPEC = shLowLevel.shOrderRMS(C, S) sums coefficient power per ORDER m - the complementary view to shLowLevel.shDegreeRMS and the natural axis for GRACE striping (correlated errors live at high orders):</p>
 <b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>C</code></td><td>n x m</td><td>double</td><td>required</td></tr><tr><td><code>S</code></td><td>n x m</td><td>double</td><td>required</td></tr></table>
-<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>R</code></td><td>1 x 1</td><td>double</td><td>6378136.3</td></tr><tr><td><code>N0</code></td><td>1 x 1</td><td>double</td><td>0</td></tr><tr><td><code>SigmaC</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>SigmaS</code></td><td>n x m</td><td>double</td><td>[]</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>R</code></td><td>1 x 1</td><td>double</td><td>6378136.3</td></tr><tr><td><code>Nmin</code></td><td>1 x 1</td><td>double</td><td>0</td></tr><tr><td><code>SigmaC</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>SigmaS</code></td><td>n x m</td><td>double</td><td>[]</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
 <tr><td><code>spec</code></td><td>(1,1) struct  fields order         (nmax+1 x 1) double  the order axis ordVariance, ordRMS, ordAmplitude  (nmax+1 x 1) double per-order signal measures cumVariance, cumRMS, cumAmplitude  (nmax+1 x 1) double their cumulative counterparts R             (1,1) double  the radius the amplitudes use domain        (1,:) char    &#x27;order&#x27; (consumed by plotSHSpectrum) errVariance, errRMS, errAmplitude  (nmax+1 x 1) double the same for the formal errors; present only when sigmas were supplied</td></tr>
 </table>
@@ -1316,9 +1322,11 @@ code itself.</p>
 </table>
 </div>
 <div class="entry" id="shLowLevel.shSynthesis">
-<h3><code>shLowLevel.shSynthesis(C, S, GM, R, latVec, lonVec, varargin)</code></h3>
+<h3><code>shLowLevel.shSynthesis(C, S, GM, R, latVec, lonVec, opts)</code></h3>
 <p class="h1line">Spherical harmonic synthesis of a global/regional grid.</p>
 <p>[GRID, LAT, LON] = SHSYNTHESIS(C, S, GM, R, LATVEC, LONVEC) synthesizes the disturbing-potential-derived quantity (default: geoid height) on the grid LATVEC x LONVEC (degrees) from fully normalized (ICGEM) Stokes coefficients C, S at the reference sphere r = R.</p>
+<b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>C</code></td><td>n x m</td><td>double</td><td>required</td></tr><tr><td><code>S</code></td><td>n x m</td><td>double</td><td>required</td></tr><tr><td><code>GM</code></td><td>n x m</td><td>double</td><td>required</td></tr><tr><td><code>R</code></td><td>n x m</td><td>double</td><td>required</td></tr><tr><td><code>latVec</code></td><td>n x m</td><td>double</td><td>required</td></tr><tr><td><code>lonVec</code></td><td>n x m</td><td>double</td><td>required</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Quantity</code></td><td>n x m</td><td>-</td><td>&#x27;geoid&#x27;</td></tr><tr><td><code>Nmin</code></td><td>0</td><td>-</td><td>0</td></tr><tr><td><code>Nmax</code></td><td>n x m</td><td>-</td><td>size(C,1)-1</td></tr><tr><td><code>kn</code></td><td>n x 1</td><td>-</td><td>[]</td></tr><tr><td><code>rho_ave</code></td><td>5517</td><td>-</td><td>5517</td></tr><tr><td><code>rho_water</code></td><td>1000</td><td>-</td><td>1000</td></tr><tr><td><code>P</code></td><td>n x m</td><td>-</td><td>[]</td></tr><tr><td><code>Method</code></td><td>n x m</td><td>-</td><td>&#x27;auto&#x27;</td></tr><tr><td><code>MaxMemGB</code></td><td>4</td><td>-</td><td>4</td></tr><tr><td><code>hn</code></td><td>n x m</td><td>-</td><td>[]</td></tr><tr><td><code>Height</code></td><td>0</td><td>-</td><td>0</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
 <tr><td><code>grid</code></td><td>(nlat x nlon) double  synthesized field in the units of the requested quantity</td></tr>
 <tr><td><code>lat</code></td><td>(1 x nlat) double  geocentric latitude grid used [deg]</td></tr>
@@ -1367,9 +1375,7 @@ code itself.</p>
   single-coefficient closed forms at 2e-16.
 
   See also SHSYNTHESIS, SHSYNTHESISDEFORMATION, SHSYNTHESISGRADIENTTENSOR,
-  KERNELFACTORS, LEGENDREALFDERIV.
-
-  Claude (Opus 5), 2026-08-22 (v3.30.0).</pre>
+  KERNELFACTORS, LEGENDREALFDERIV.</pre>
 </div>
 <div class="entry" id="shLowLevel.shSynthesisGradientTensor">
 <h3><code>shLowLevel.shSynthesisGradientTensor(C, S, GM, R, latDeg, lonDeg, opts)</code></h3>
@@ -1756,7 +1762,7 @@ code itself.</p>
 <h3><code>shCoefficients.crossover(obj, opts)</code></h3>
 <p class="h1line">Signal-vs-formal-error crossover degree.</p>
 <b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td>required</td></tr></table>
-<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>N0</code></td><td>1 x 1</td><td>double</td><td>2</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Nmin</code></td><td>1 x 1</td><td>double</td><td>2</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
 <tr><td><code>nInterp</code></td><td>(1,1) double  interpolated crossing degree</td></tr>
 </table>
@@ -1777,7 +1783,7 @@ code itself.</p>
 <h3><code>shCoefficients.degreeRMS(obj, opts)</code></h3>
 <p class="h1line">Degree variance/RMS/amplitude spectrum (+ error spectrum).</p>
 <b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td>required</td></tr></table>
-<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>N0</code></td><td>1 x 1</td><td>double</td><td>0</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Nmin</code></td><td>1 x 1</td><td>double</td><td>0</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
 <tr><td><code>spec</code></td><td>(1,1) struct   the degree spectrum, including the formal-error curve, as returned by shLowLevel.shDegreeRMS</td></tr>
 </table>
@@ -2404,4 +2410,4 @@ code itself.</p>
 <tr><td><code>obj</code></td><td>(1 x 1) shClimatology   copy with the note appended to its history</td></tr>
 </table>
 </div>
-<p class="provenance">Developed by Matthias Weigelt with the help of Claude (Fable 5), 08-Sep-2026 (v3.34.1). Generated by tools - do not edit.</p></div></body></html>
+<p class="provenance">Developed by Matthias Weigelt with the help of Claude (Fable 5), 09-Sep-2026 (v4.0.0). Generated by tools - do not edit.</p></div></body></html>

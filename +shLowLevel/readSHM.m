@@ -48,9 +48,11 @@ function out = readSHM(filename, opts)
 %                          provenance is not lost on the way in
 %
 %   Error identifiers
+%     shLowLevel:readSHM:noFile        the file does not exist
 %     shLowLevel:readSHM:noHeaderEnd   no "# End of YAML header" line
 %     shLowLevel:readSHM:noRecords     header present but no data records
 %     shLowLevel:readSHM:mixedKinds    GRCOF2 and GRDOTA in one file
+%     shLowLevel:readSHM:badRecord     a data record does not parse
 %
 %   Example
 %     gia = shLowLevel.readSHM("GRAVIS-2B_..._GIA_ICE-6G_D_VM5a_0001.gz", ...

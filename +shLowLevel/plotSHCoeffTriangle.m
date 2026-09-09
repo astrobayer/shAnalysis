@@ -1,4 +1,4 @@
-function h = plotSHCoeffTriangle(C, S, varargin)
+function h = plotSHCoeffTriangle(C, S, opts)
 %PLOTSHCOEFFTRIANGLE Coefficient-triangle diagnostic plot.
 %
 %   PLOTSHCOEFFTRIANGLE(C, S) shows |Cnm| (left half) and |Snm| (right
@@ -12,13 +12,14 @@ function h = plotSHCoeffTriangle(C, S, varargin)
 %   imagesc cell renders square (v2.3.1).
 %
 %   Options
-%     'nmax'    max degree to display, default size(C,1)-1
-%     'clim'    [min max] log10(|value|) color limits; default auto
-%     'ax'      axes handle to plot into (default: current axes)
-%     'RefC', 'RefS'  reference coefficients (v2.4): plots the SIGNED
+%     Nmax (size(C,1)-1)  max degree to display
+%     CLim ([])   [min max] log10(|value|) colour limits; empty is auto
+%     Ax ([])     axes handle to plot into; empty uses the current axes
+%     RefC ([]), RefS ([])  reference coefficients: plot the SIGNED
 %               difference C-RefC / S-RefS on a linear divergent scale,
 %               symmetric about zero - the before/after diagnostic for
-%               filter comparisons (e.g. tvANS vs DDK3).
+%               filter comparisons (e.g. tvANS vs DDK3). RefC requires
+%               RefS.
 %
 %   Claude (Sonnet 4.6), 2026-07-11; merged into +shLowLevel: Claude (Fable 5), 2026-08-07.
 %   Outputs
@@ -26,30 +27,32 @@ function h = plotSHCoeffTriangle(C, S, varargin)
 %
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 
-p = inputParser;
-addParameter(p, 'nmax', size(C,1)-1);
-addParameter(p, 'clim', []);
-addParameter(p, 'ax', []);
-addParameter(p, 'RefC', []);
-addParameter(p, 'RefS', []);
-parse(p, varargin{:});
-nmax = p.Results.nmax;
-diffMode = ~isempty(p.Results.RefC);
+arguments
+    C double
+    S double
+    opts.Nmax = size(C,1)-1
+    opts.CLim = []
+    opts.Ax = []
+    opts.RefC = []
+    opts.RefS = []
+end
+nmax = opts.Nmax;
+diffMode = ~isempty(opts.RefC);
 if diffMode
-    assert(~isempty(p.Results.RefS), 'shLowLevel:plotSHCoeffTriangle:needRefS', ...
+    assert(~isempty(opts.RefS), 'shLowLevel:plotSHCoeffTriangle:needRefS', ...
         'RefC requires RefS.');
-    C = C - p.Results.RefC(1:size(C,1), 1:size(C,2));
-    S = S - p.Results.RefS(1:size(S,1), 1:size(S,2));
+    C = C - opts.RefC(1:size(C,1), 1:size(C,2));
+    S = S - opts.RefS(1:size(S,1), 1:size(S,2));
 end
 
-if isempty(p.Results.ax)
+if isempty(opts.Ax)
     % MATLAB convention (like plot/imagesc): render into the CURRENT axes,
     % creating a figure only if none exists. Unconditional 'figure' broke
     % subplot workflows: demo figure 2 prepared subplot(1,2,1), triangle
     % opened a fresh window, and the prepared axes stayed empty (v2.2.2).
     ax = gca;
 else
-    ax = p.Results.ax;
+    ax = opts.Ax;
 end
 
 if diffMode
@@ -93,8 +96,8 @@ else
     cb = colorbar(ax);
     cb.Label.String = 'log_{10}|coefficient|';
 end
-if ~isempty(p.Results.clim)
-    caxis(ax, p.Results.clim); %#ok<CAXIS>
+if ~isempty(opts.CLim)
+    caxis(ax, opts.CLim); %#ok<CAXIS>
 end
 xlabel(ax, '\leftarrow order m (S_{nm})      order m (C_{nm}) \rightarrow');
 ylabel(ax, 'degree n');

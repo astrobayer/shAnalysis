@@ -15,6 +15,12 @@ Rules, per the shAnalysis handoff spec:
       MATLAB:functionValidation:MismatchBetweenBlockAndLine at call time.
       Added 2026-08-18 after exactly this escaped to CI (rtsSmoother
       Lag option, PR #66): mlint_lite was green, every call red.
+  R6  an arguments block must be the FIRST executable statement of its
+      function; any statement before it is a parse error and every call
+      to the function fails. Added 2026-09-09 after exactly this escaped
+      to CI (plotSHSpectrum kept its "if ~iscell(specs)" guard above the
+      block WP1 put where inputParser had been): mlint_lite was green,
+      five tests red.
 Tokenizes away comments (%, %{..%}), char/string literals (transpose-aware),
 and folds ... line continuations. A tripwire, not a parser.
 Usage: python3 mlint_lite.py file1.m [file2.m ...]   (also reads .txt snippets)
@@ -314,11 +320,54 @@ def check_nv_before_expansion(name, txt):
     return bad
 
 
+def check_arguments_first(name, txt):
+    """R6: nothing may execute before a function's arguments block.
+
+    MATLAB requires the block to be the first statement. A guard left
+    above it parses as code, so the block is misplaced and every call to
+    the function raises - which is invisible to every other rule here.
+    """
+    bad = []
+    lines = txt.split("\n")
+    pending = None            # (declaration line index) awaiting its body
+    for i, ln in enumerate(lines):
+        s = ln.strip()
+        if not s:
+            continue
+        if re.match(r"\s*function\b", ln):
+            pending = i
+            continue
+        if pending is None:
+            continue
+        if re.match(r"\s*arguments\b", ln):
+            pending = None            # first statement, as required
+            continue
+        # any other statement closes the window: if this function has an
+        # arguments block further down, it is misplaced
+        depth, j = 0, i
+        while j < len(lines):
+            t = lines[j].strip()
+            if re.match(r"\s*function\b", lines[j]) and j != i:
+                break                 # next function, stop looking
+            if re.match(r"\s*arguments\b", lines[j]):
+                bad.append((name, j + 1,
+                            "arguments block is not the first statement of "
+                            "the function declared on line %d (line %d runs "
+                            "first) - MATLAB parse error, every call fails"
+                            % (pending + 1, i + 1)))
+                break
+            j += 1
+        pending = None
+        del depth
+    return bad
+
+
 def lint_text(name, src):
     txt = fold_continuations(strip_tokens(src))
     return (check_balance(name, txt) + check_dot_rules(name, txt)
             + check_arguments_blocks(name, txt)
-            + check_nv_before_expansion(name, txt))
+            + check_nv_before_expansion(name, txt)
+            + check_arguments_first(name, txt))
 
 
 def main(paths):

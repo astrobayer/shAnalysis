@@ -1,5 +1,103 @@
 # Changelog
 
+## [4.0.0] - 2026-09-09 - Every identifier owned, every option in house casing
+
+WP1. The last six v1-era functions leave `inputParser`, and every error
+identifier is owned by the function that raises it. Approved as a hard
+break with no deprecation shim.
+
+### BREAKING - what actually changes for a caller
+
+Read this list literally: it is shorter than the diff suggests, and the
+reason is measured rather than assumed.
+
+**Error identifiers.** Seventeen raise sites used an identifier
+belonging to another function. Any `catch`/`verifyError` on these must
+be updated:
+
+| was | now |
+|---|---|
+| `shSynthesis:badInput` (in shSynthesis) | `shLowLevel:shSynthesis:badInput` |
+| `shSynthesis:badP`, `:badMethod` | `shLowLevel:shSynthesis:*` |
+| `shSynthesis:missingLoveNumbers`, `:badQuantity`, `:heightInvalid` | `shLowLevel:kernelFactors:*` |
+| `shSynthesis:badInput` (in shSynthesisGradient) | `shLowLevel:shSynthesisGradient:badInput` |
+| `shSynthesis:missingLoveNumbers` (in seaLevelFingerprint) | `shLowLevel:seaLevelFingerprint:missingLoveNumbers` |
+| `shReadGFC:*` (4), `shEvalGFCT:*` (3) | `shLowLevel:<fn>:*` |
+| `shSpectralCrossover:missingField` | `shLowLevel:shSpectralCrossover:missingField` |
+| `shAnalysis:geoMapRequired` | `shLowLevel:requireGeoMap:geoMapRequired` |
+| `shCoefficients:toGrid:fullFieldAsMass` | `shLowLevel:gridHandover:fullFieldAsMass` |
+| `shLowLevel:writeAnimation:badExtension`, `:mp4Unsupported` | `shLowLevel:writeFrames:*` |
+
+Two of those were wrong in a way worth naming. `gridHandover` is called
+by BOTH `shCoefficients.toGrid` and `shSeries.toGrid`, so the old
+warning name misattributed it for every series user. `writeFrames`
+raised `shLowLevel:writeAnimation:badExtension` next to its own
+`shLowLevel:writeFrames:badSize` - inconsistent inside one function.
+
+**One option rename.** `n0` -> `Nmin` on `shDegreeRMS`, and `N0` ->
+`Nmin` on `shOrderRMS`, `shCoefficients.degreeRMS` and
+`shCoefficients.crossover`. Three spellings for "lowest degree
+included" are now one.
+
+**The other option renames break nothing.** `quantity` -> `Quantity`,
+`nmin`/`nmax` -> `Nmin`/`Nmax`, `method` -> `Method`, `minOrder` ->
+`MinOrder`, `sigmaC` -> `SigmaC`, `ax` -> `Ax` and the rest are
+case-only, and MATLAB matches Name-Value names case-insensitively -
+measured against R2026a and documented in `nv_casing_audit.py`. Old
+call sites keep working; a contract test pins that the old spelling
+returns the identical numbers, not merely that it runs.
+
+### Fixed - the gate that could not see the problem
+
+`nv_casing_audit.py` reads ARGUMENTS BLOCKS, so for these six functions
+it had nothing to look at: they parsed with `inputParser`, which is
+itself case-insensitive, and lowercase names survived v3.33.0's sweep
+unnoticed. It now rejects the construct outright, with the line number
+read from the real file.
+
+`plotSHSpectrum` was the one non-mechanical conversion: it used
+`p.UsingDefaults` to let a legacy `field` option override `Quantity`,
+and an arguments block has no equivalent. `Field` keeps its behaviour
+through an empty-string sentinel, documented as such.
+
+### Added - `tools/error_id_audit.py`
+
+Three rules, each fault-injected: ownership (no backlog - the sweep made
+it true everywhere), raised implies documented, documented implies
+raised. 61 files predate the "Error identifiers" convention and sit in a
+named backlog the gate reports every run and that only shrinks.
+
+It found three gaps in files this release never touched: `readSHM`
+documented 3 of the 5 identifiers it raises, `hydroExtremeIndex` 2 of 3.
+
+Its first version reported five ownership violations of which four were
+false - `tvANSFilter` COMPARES against another function's identifier in
+a catch, `fetchITSG*` pass their own name as a prefix to a helper. It
+now matches only the identifier argument of error/assert/warning, and
+both shapes are pinned in its self-test.
+
+### Fixed - the arguments block that was not first (found by CI)
+
+`plotSHSpectrum` normalises a single spectrum into a cell before doing
+anything else. WP1 put its `arguments` block where `inputParser` had
+been, which is BELOW that guard - and MATLAB requires the block to be
+the first statement. The function no longer parsed, so every call to it
+raised, and five tests went red on a green `mlint_lite`.
+
+`mlint_lite.py` gains **R6**: an arguments block must be the first
+executable statement of its function. It fires on the exact file CI
+rejected, stays silent when the same guard sits below the block, and is
+pinned by `tools/tests/test_mlint_lite.py` - the first self-test that
+tool has had.
+
+### Unchanged - the numerics
+
+No numerical line moved. Each conversion replaced the parsing preamble
+and kept the local variable names, so the body diffs to nothing: for
+`shGaussianWeights` and `shDestripe` the body is byte-identical from the
+first computed line onward, and for the rest the only body change is the
+option access itself. 301 -> 304 tests.
+
 ## [3.34.1] - 2026-09-08 - A public function nothing could see, and coverage by name
 
 Two instruments were measuring less than their silence suggested. No

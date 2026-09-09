@@ -20,9 +20,7 @@
             &quot;GSM&quot;, &quot;ITSG-Grace2018&quot;, 2008.29, 0, string.empty(0,1), 60, 0);
     b.FieldKind        % &quot;anomaly&quot;
 
-  See also SHCOEFFICIENTS/TOGRID, SHSERIES/TOGRID, KERNELFACTORS.
-
-  Claude (Opus 5), 2026-08-23 (v3.31.0).</code></pre></div></details><details class="example"><summary>Runnable (docs/apiExamples.json)</summary><div><pre><code>b = shLowLevel.gridHandover(Z, lat, lon, &quot;m&quot;, &quot;geodetic&quot;, &quot;ewh&quot;, &quot;GSM&quot;, &quot;ITSG&quot;, 2008.29, 0, string.empty(0,1), 60, 0);</code></pre></div></details>
+  See also SHCOEFFICIENTS/TOGRID, SHSERIES/TOGRID, KERNELFACTORS.</code></pre></div></details><details class="example"><summary>Runnable (docs/apiExamples.json)</summary><div><pre><code>b = shLowLevel.gridHandover(Z, lat, lon, &quot;m&quot;, &quot;geodetic&quot;, &quot;ewh&quot;, &quot;GSM&quot;, &quot;ITSG&quot;, 2008.29, 0, string.empty(0,1), 60, 0);</code></pre></div></details>
 <h2>Input Arguments</h2>
 <table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>Z</code></td><td>n x m</td><td>double</td><td><code>required</code></td><td class="desc">double  synthesized values</td></tr><tr><td><code>lat</code></td><td>1 x :</td><td>double</td><td><code>required</code></td><td class="desc">double [deg]   as given by the caller</td></tr><tr><td><code>lon</code></td><td>1 x :</td><td>double</td><td><code>required</code></td><td class="desc">double [deg]</td></tr><tr><td><code>units</code></td><td>1 x 1</td><td>string</td><td><code>required</code></td><td class="desc">string            from <a href="shLowLevel_kernelFactors.html"><code>shLowLevel.kernelFactors</code></a></td></tr><tr><td><code>latType</code></td><td>1 x 1</td><td>string</td><td><code>required</code></td><td class="desc">string            &quot;geodetic&quot; | &quot;geocentric&quot;</td></tr><tr><td><code>quantity</code></td><td>1 x 1</td><td>string</td><td><code>required</code></td><td class="desc">string</td></tr><tr><td><code>productType</code></td><td>1 x 1</td><td>string</td><td><code>required</code></td><td class="desc">string            e.g. &quot;GSM&quot;, &quot;GAD&quot;, &quot;unknown&quot;</td></tr><tr><td><code>name</code></td><td>1 x 1</td><td>string</td><td><code>required</code></td><td class="desc">string            model label, may be &quot;&quot;</td></tr><tr><td><code>epoch</code></td><td>: x 1</td><td>double</td><td><code>required</code></td><td class="desc">double            decimal year(s), NaN if unset</td></tr><tr><td><code>c00</code></td><td>: x 1</td><td>double</td><td><code>required</code></td><td class="desc">double            degree-0 coefficient per epoch</td></tr><tr><td><code>history</code></td><td>n x 1</td><td>string</td><td><code>required</code></td><td class="desc">string            processing history nmax, nmin  (1,1) double            degree range actually used</td></tr><tr><td><code>nmax</code></td><td>1 x 1</td><td>double</td><td><code>required</code></td><td class="desc">maximum spherical harmonic degree</td></tr><tr><td><code>nmin</code></td><td>1 x 1</td><td>double</td><td><code>required</code></td><td class="desc">minimum spherical harmonic degree</td></tr></table>
 <h2>Name-Value Arguments</h2>
@@ -30,12 +28,12 @@
 <h2>Output Arguments</h2>
 <table><tr><th>Name</th><th>Description</th></tr><tr><td><code>b</code></td><td class="desc">(1,1) struct  Z, lat (nlat x 1) double, lon (1 x nlon) double, Units, LatType, Quantity, ProductType, Name, Source, FieldKind (1,1) string, Epoch (: x 1) double, C00 (: x 1) double, Zmin, Zmax, Zmean (1,1) double, Nmax, Nmin (1,1) double, History (: x 1) string</td></tr></table>
 <h2>Error Identifiers</h2>
-<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<table><tr><th>Identifier</th><th>Raised when</th></tr><tr><td><code>shLowLevel:gridHandover:fullFieldAsMass</code></td><td class="desc">warning: a mass quantity was synthesized from a FULL field (C00 = 1), so the result is the static field expressed as mass</td></tr></table>
 <h2>Version History</h2>
 <p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
 <h2>See Also</h2>
 <ul class="seealso"><li><a href="shCoefficients_toGrid.html"><code>shCoefficients.toGrid</code></a></li><li><a href="shSeries_toGrid.html"><code>shSeries.toGrid</code></a></li></ul>
-<p class="prov">shAnalysis v3.34.1 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+<p class="prov">shAnalysis v4.0.0 (09-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
 </div>
 </body>
 </html>

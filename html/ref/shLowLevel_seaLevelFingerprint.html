@@ -24,12 +24,12 @@
 <h2>Output Arguments</h2>
 <table><tr><th>Name</th><th>Description</th></tr><tr><td><code>S</code></td><td class="desc">(Ngrid,1) double  relative sea-level change over the ocean [m per unit load], 0 on land</td></tr><tr><td><code>grid</code></td><td class="desc">(1,1) struct  the solver grid, as returned by <a href="shLowLevel_synthesisMatrix.html"><code>shLowLevel.synthesisMatrix</code></a> (latDeg/lonDeg rings)</td></tr><tr><td><code>info</code></td><td class="desc">(1,1) struct  fields iterations        (1,1) double   sweeps of the sea-level equation actually run dS                (1,1) double   last change in the solution converged         (1,1) logical  dS fell below the tolerance massResidual      (1,1) double   [kg/m^2 sphere mean] - the conservation check eustatic          (1,1) double   uniform equivalent rise [m] kappa             (1,1) double   the rotational feedback factor applied areaFractionOcean (1,1) double   ocean area / sphere area S2D               (nlat x nlon) double  the sea-level change field</td></tr></table>
 <h2>Error Identifiers</h2>
-<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<table><tr><th>Identifier</th><th>Raised when</th></tr><tr><td><code>shLowLevel:seaLevelFingerprint:badIndex</code></td><td class="desc">IDX must use Nmin = 0 - mass conservation needs degrees 0 and 1</td></tr><tr><td><code>shLowLevel:seaLevelFingerprint:badLoad</code></td><td class="desc">LOADREGION is not a function handle, polygon or Ngrid x 1 vector</td></tr><tr><td><code>shLowLevel:seaLevelFingerprint:missingLoveNumbers</code></td><td class="desc">the supplied Love numbers do not cover degrees 0..nmax</td></tr></table>
 <h2>Version History</h2>
 <p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
 <h2>See Also</h2>
 <p class="none">No other entity is named in this help block.</p>
-<p class="prov">shAnalysis v3.34.1 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+<p class="prov">shAnalysis v4.0.0 (09-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
 </div>
 </body>
 </html>

@@ -19,7 +19,7 @@ function spec = shOrderRMS(C, S, opts)
 %   Inputs
 %     C, S        (n1,n1) double
 %   Options
-%     R (6378136.3) [m], N0 (0)  zero degrees below n0 first,
+%     R (6378136.3) [m], Nmin (0)  zero degrees below it first,
 %     SigmaC, SigmaS ([])        formal errors
 %   Outputs
 %     spec  (1,1) struct  fields
@@ -41,13 +41,13 @@ arguments
     C double
     S double
     opts.R (1,1) double = 6378136.3
-    opts.N0 (1,1) double {mustBeInteger, mustBeNonnegative} = 0
+    opts.Nmin (1,1) double {mustBeInteger, mustBeNonnegative} = 0
     opts.SigmaC double = []
     opts.SigmaS double = []
 end
 nmax = size(C, 1) - 1;
-if opts.N0 > 0
-    C(1:opts.N0, :) = 0; S(1:opts.N0, :) = 0;
+if opts.Nmin > 0
+    C(1:opts.Nmin, :) = 0; S(1:opts.Nmin, :) = 0;
 end
 ordVariance = (sum(C.^2, 1) + sum(S.^2, 1))';
 spec.order = (0:nmax)';
@@ -62,8 +62,8 @@ spec.domain = 'order';
 if ~isempty(opts.SigmaC) && ~isempty(opts.SigmaS)
     sC = opts.SigmaC; sS = opts.SigmaS;
     sC(isnan(sC)) = 0; sS(isnan(sS)) = 0;
-    if opts.N0 > 0
-        sC(1:opts.N0, :) = 0; sS(1:opts.N0, :) = 0;
+    if opts.Nmin > 0
+        sC(1:opts.Nmin, :) = 0; sS(1:opts.Nmin, :) = 0;
     end
     ev = (sum(sC.^2, 1) + sum(sS.^2, 1))';
     spec.errVariance = ev;

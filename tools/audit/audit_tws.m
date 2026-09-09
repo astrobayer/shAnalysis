@@ -80,10 +80,10 @@ for k = 1:K
         for t = 1:T
             if isempty(Pl)
                 [E,~,~,Pl] = shLowLevel.shSynthesis(C3(:,:,t), S3(:,:,t), GM, R, ...
-                    latB, lonB, 'quantity','ewh','kn',kn,'nmin',0);
+                    latB, lonB, 'Quantity','ewh','kn',kn,'Nmin',0);
             else
                 E = shLowLevel.shSynthesis(C3(:,:,t), S3(:,:,t), GM, R, ...
-                    latB, lonB, 'quantity','ewh','kn',kn,'nmin',0,'P',Pl);
+                    latB, lonB, 'Quantity','ewh','kn',kn,'Nmin',0,'P',Pl);
             end
             s(t) = sum(E(mkB) .* wB(mkB)) / sum(wB(mkB)) * 100;
         end

@@ -114,10 +114,10 @@ for k = 1:T
     Ck = Cs(:,:,k) .* w; Sk = Ss(:,:,k) .* w;
     if isempty(P)
         [E(:,:,k), ~, ~, P] = shLowLevel.shSynthesis(Ck, Sk, GM, R, lat, lon, ...
-            'quantity','ewh','kn',kn,'nmin',0);
+            'Quantity','ewh','kn',kn,'Nmin',0);
     else
         E(:,:,k) = shLowLevel.shSynthesis(Ck, Sk, GM, R, lat, lon, ...
-            'quantity','ewh','kn',kn,'nmin',0,'P',P);
+            'Quantity','ewh','kn',kn,'Nmin',0,'P',P);
     end
 end
 % ---- pixel-wise fit: bias+trend+annual+semi

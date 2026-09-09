@@ -1,4 +1,4 @@
-function spec = shDegreeRMS(C, S, varargin)
+function spec = shDegreeRMS(C, S, opts)
 %SHDEGREERMS Spectral (degree-domain) analysis of spherical harmonic coefficients.
 %
 %   SPEC = SHDEGREERMS(C, S) computes, per degree n = 0..nmax:
@@ -10,14 +10,17 @@ function spec = shDegreeRMS(C, S, varargin)
 %   C, S are (nmax+1)x(nmax+1) coefficient matrices, C(n+1,m+1), fully
 %   normalized (4-pi / ICGEM convention), lower-triangular (m<=n).
 %
-%   SPEC = SHDEGREERMS(C, S, 'sigmaC', sigC, 'sigmaS', sigS) additionally
+%   SPEC = SHDEGREERMS(C, S, SigmaC=sigC, SigmaS=sigS) additionally
 %   computes the error degree amplitude .errAmplitude from formal errors,
 %   using the same degree-RMS formula applied to sigC, sigS.
 %
 %   Options
-%     'R'     reference radius [m], default 6378136.3
-%     'n0'    lowest degree to include (coefficients below n0 zeroed out
-%             before summation, e.g. n0=2 to drop degree 0/1), default 0
+%     R (6378136.3)  (1,1) double  reference radius [m]
+%     Nmin (0)       (1,1) double  lowest degree to include; coefficients
+%             below it are zeroed before summation (Nmin=2 drops degree
+%             0 and 1). Renamed from n0 in v4.0.0.
+%     SigmaC ([])    formal 1-sigma of C, same layout
+%     SigmaS ([])    formal 1-sigma of S, same layout
 %
 %   Claude (Sonnet 4.6), 2026-07-11; merged into +shLowLevel: Claude (Fable 5), 2026-08-07.
 %   Outputs
@@ -36,14 +39,16 @@ function spec = shDegreeRMS(C, S, varargin)
 %
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 
-p = inputParser;
-addParameter(p, 'R', 6378136.3);
-addParameter(p, 'n0', 0);
-addParameter(p, 'sigmaC', []);
-addParameter(p, 'sigmaS', []);
-parse(p, varargin{:});
-R = p.Results.R;
-n0 = p.Results.n0;
+arguments
+    C double
+    S double
+    opts.R (1,1) double = 6378136.3
+    opts.Nmin (1,1) double = 0
+    opts.SigmaC double = []
+    opts.SigmaS double = []
+end
+R = opts.R;
+n0 = opts.Nmin;
 
 nmax = size(C,1) - 1;
 if n0 > 0
@@ -67,8 +72,8 @@ spec.cumAmplitude = R .* spec.cumRMS;
 spec.R = R;
 spec.domain = 'degree';                              % v2.4.1
 
-if ~isempty(p.Results.sigmaC) && ~isempty(p.Results.sigmaS)
-    sC = p.Results.sigmaC; sS = p.Results.sigmaS;
+if ~isempty(opts.SigmaC) && ~isempty(opts.SigmaS)
+    sC = opts.SigmaC; sS = opts.SigmaS;
     sC(isnan(sC)) = 0; sS(isnan(sS)) = 0;
     if n0 > 0
         sC(1:n0,:) = 0; sS(1:n0,:) = 0;

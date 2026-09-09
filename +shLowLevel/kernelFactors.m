@@ -50,7 +50,7 @@ function [kernel, radialExp, units] = kernelFactors(quantity, nmax, GM, R, opts)
 %                    continued potential (2e-10 / 7e-7 = check's own
 %                    truncation). Surface quantities (ewh,
 %                    surface_density, bottom_pressure, deformation_up,
-%                    geoid) reject Height (shSynthesis:heightInvalid) -
+%                    geoid) reject Height (shLowLevel:kernelFactors:heightInvalid) -
 %                    they are surface concepts.
 %   Outputs
 %     kernel    (nmax+1,1) double  (zeros where the quantity carries no
@@ -68,6 +68,21 @@ function [kernel, radialExp, units] = kernelFactors(quantity, nmax, GM, R, opts)
 %               where the quantity is defined rather than restated in
 %               every bridge, plot label and export header. Consumed by
 %               shCoefficients.toGrid.
+%
+%   Error identifiers
+%     shLowLevel:kernelFactors:badQuantity
+%         QUANTITY is not one of the supported functionals
+%     shLowLevel:kernelFactors:heightInvalid
+%         Height was given for a quantity that has no radial law
+%     shLowLevel:kernelFactors:missingLoveNumbers
+%         a mass quantity was asked for without kn (or without hn for
+%         deformation_up); the toolbox never invents them
+%     shLowLevel:kernelFactors:knTooShort
+%         kn does not cover degrees 0..nmax
+%     shLowLevel:kernelFactors:hnTooShort
+%         hn does not cover degrees 0..nmax
+%     shLowLevel:kernelFactors:badLoveNumbers
+%         1+kn vanishes at some degree - the load kernel divides by it
 %
 %   Claude (Fable 5), 2026-08-07 (v2.3 same day); radialExp output
 %   Claude (Opus 5), 2026-08-22 (v3.30.0).
@@ -105,7 +120,7 @@ if ~isempty(opts.hn)
 end
 
 n = (0:nmax)';
-needKn = @(q) assert(~isempty(opts.kn), 'shSynthesis:missingLoveNumbers', ...
+needKn = @(q) assert(~isempty(opts.kn), 'shLowLevel:kernelFactors:missingLoveNumbers', ...
     ['%s requires degree-dependent load Love numbers k''_n.\n' ...
      'Pass them explicitly via ''kn'', e.g. from a validated ' ...
      'PREM/Wahr(1998) table.'], q);
@@ -145,13 +160,13 @@ switch lower(char(quantity))
         units = "Pa";
     case 'deformation_up'
         needKn('deformation_up');
-        assert(~isempty(opts.hn), 'shSynthesis:missingLoveNumbers', ...
+        assert(~isempty(opts.hn), 'shLowLevel:kernelFactors:missingLoveNumbers', ...
             ['deformation_up requires load Love numbers h''_n in ' ...
              'addition to k''_n. Pass them explicitly via ''hn''.']);
         kernel = R * opts.hn(1:nmax+1) ./ (1 + opts.kn(1:nmax+1));
         units = "m";
     otherwise
-        error('shSynthesis:badQuantity', 'Unknown quantity: %s', quantity);
+        error('shLowLevel:kernelFactors:badQuantity', 'Unknown quantity: %s', quantity);
 end
 
 % The radial law, stated ONCE. p_n is the exponent in
@@ -172,7 +187,7 @@ end
 if opts.Height > 0
     q = lower(char(quantity));
     if isempty(radialExp)
-        error('shSynthesis:heightInvalid', ...
+        error('shLowLevel:kernelFactors:heightInvalid', ...
             ['Height applies to potential-type quantities only ' ...
              '(potential, gravity_anomaly, gravity_disturbance, ' ...
              'gravity_gradient_rr); ''%s'' is a surface concept.'], q);

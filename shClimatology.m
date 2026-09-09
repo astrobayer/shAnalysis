@@ -253,7 +253,7 @@ methods
             error('shClimatology:badInput', ...
                 'which must be "annual", "semiannual" or an extra-period index.');
         end
-        args = {latVec, lonVec, 'quantity', opts.Quantity};
+        args = {latVec, lonVec, 'Quantity', opts.Quantity};
         if ~isempty(opts.kn), args = [args, {'kn', opts.kn}]; end
         [fc, lat, lon] = gc.synthesis(args{:});
         fs = gs.synthesis(args{:});

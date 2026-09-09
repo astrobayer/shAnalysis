@@ -440,8 +440,8 @@ methods
         end
         out = obj;
         [out.C, out.S] = shLowLevel.shDestripe(obj.C, obj.S, ...
-            'minOrder', opts.MinOrder, 'polyOrder', opts.PolyOrder, ...
-            'windowLength', opts.WindowLength);
+            'MinOrder', opts.MinOrder, 'PolyOrder', opts.PolyOrder, ...
+            'WindowLength', opts.WindowLength);
         if isempty(opts.WindowLength)
             out.history(end+1) = sprintf("destriped (MinOrder=%d, PolyOrder=%d)", ...
                 opts.MinOrder, opts.PolyOrder);
@@ -484,14 +484,15 @@ methods
         %                shLowLevel.shDegreeRMS
         %
         %   Options
-        %     N0 (0)  first degree included in the spectrum
+        %     Nmin (0)  first degree included in the spectrum
+        %             (renamed from N0 in v4.0.0)
         arguments
             obj
-            opts.N0 (1,1) double = 0
+            opts.Nmin (1,1) double = 0
         end
-        args = {'R', obj.R, 'n0', opts.N0};
+        args = {'R', obj.R, 'Nmin', opts.Nmin};
         if ~isempty(obj.sigmaC) && ~isempty(obj.sigmaS)
-            args = [args, {'sigmaC', obj.sigmaC, 'sigmaS', obj.sigmaS}];
+            args = [args, {'SigmaC', obj.sigmaC, 'SigmaS', obj.sigmaS}];
         end
         spec = shLowLevel.shDegreeRMS(obj.C, obj.S, args{:});
     end
@@ -503,16 +504,17 @@ methods
         %     nInterp  (1,1) double  interpolated crossing degree
         %
         %   Options
-        %     N0 (2)  first degree searched for the signal/error crossover
+        %     Nmin (2)  first degree searched for the signal/error crossover
+        %             (renamed from N0 in v4.0.0)
         arguments
             obj
-            opts.N0 (1,1) double = 2
+            opts.Nmin (1,1) double = 2
         end
         if isempty(obj.sigmaC) || isempty(obj.sigmaS)
             error('shCoefficients:noSigmas', ...
                 'crossover requires formal errors (sigmaC/sigmaS).');
         end
-        [n0, nInterp] = shLowLevel.shSpectralCrossover(obj.degreeRMS(N0 = opts.N0));
+        [n0, nInterp] = shLowLevel.shSpectralCrossover(obj.degreeRMS(Nmin = opts.Nmin));
     end
 
     function h = spectrum(obj, varargin)
@@ -594,9 +596,9 @@ methods
         end
         nmaxEff = opts.Nmax;
         if isnan(nmaxEff), nmaxEff = obj.nmax; end
-        args = {'quantity', char(opts.Quantity), 'nmin', opts.Nmin, ...
-            'nmax', nmaxEff, 'rho_ave', opts.rho_ave, ...
-            'rho_water', opts.rho_water, 'method', char(opts.Method), ...
+        args = {'Quantity', char(opts.Quantity), 'Nmin', opts.Nmin, ...
+            'Nmax', nmaxEff, 'rho_ave', opts.rho_ave, ...
+            'rho_water', opts.rho_water, 'Method', char(opts.Method), ...
             'MaxMemGB', opts.MaxMemGB, 'Height', opts.Height};
         if ~isempty(opts.kn), args = [args, {'kn', opts.kn}]; end
         if ~isempty(opts.hn), args = [args, {'hn', opts.hn}]; end
@@ -713,7 +715,7 @@ methods
         %   applies the same rule to its own elements.
         %
         %   Without geoMap on the path this raises
-        %   shAnalysis:geoMapRequired, whose message shows how to draw
+        %   shLowLevel:requireGeoMap:geoMapRequired, whose message shows how to draw
         %   the numbers yourself. g.toGrid needs no geoMap at all.
         %
         %   Inputs
@@ -979,7 +981,7 @@ methods
         %   the total mass and 0 for a residual - so "full" and "anomaly"
         %   are read off, and anything else is reported as "unknown"
         %   rather than decided. Synthesizing a MASS quantity from a full
-        %   field warns (shCoefficients:toGrid:fullFieldAsMass): it is the
+        %   field warns (shLowLevel:gridHandover:fullFieldAsMass): it is the
         %   static field expressed as water, not a mass change.
         %
         %   Handover into geoMap is then one line:

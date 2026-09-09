@@ -1,4 +1,4 @@
-function h = plotSHSpectrum(specs, varargin)
+function h = plotSHSpectrum(specs, opts)
 %PLOTSHSPECTRUM Log-log degree-amplitude spectrum plot.
 %
 %   PLOTSHSPECTRUM(SPEC) plots SPEC.degree vs SPEC.degAmplitude (from
@@ -9,23 +9,25 @@ function h = plotSHSpectrum(specs, varargin)
 %   or signal vs formal error).
 %
 %   Options
-%     'names'   cell array of legend labels
-%     'units'   'mm' (default) or 'm' for the y-axis
-%     'field'   which spec field to plot, default 'degAmplitude'
+%     Names ({})     cell array of legend labels
+%     Units ('mm')   'mm' or 'm' for the y-axis
+%     Field ('')     LEGACY override: plot this spec field directly and
+%               ignore Quantity. Empty means "not supplied" - the
+%               sentinel that replaces inputParser's UsingDefaults.
 %               (also accepts 'errAmplitude' to overlay error spectra)
-%     'ax'      axes handle to plot into (default: current axes)
-%     'Quantity' (v2.4.1) "amplitude" (default, [m]) | "rms" | "variance"
+%     Ax ([])        axes handle to plot into; empty uses the current axes
+%     Quantity ('amplitude')  "amplitude" ([m]) | "rms" | "variance"
 %               | "cumamplitude" | "cumrms" | "cumvariance" - which
 %               spectral quantity to draw; error overlays ride along
 %               when the spec carries the matching err* field
 %     Domain is inferred from spec.domain: pass shLowLevel.shOrderRMS output
 %               for order-domain plots (striping axis); mixing domains
 %               in one call errors. X-axis is LINEAR since v2.4.1.
-%     'Kaula'   scalar K (v2.4): overlay the Kaula-rule reference degree
+%     Kaula ([])     scalar K: overlay the Kaula-rule reference degree
 %               amplitude R*sqrt(2n+1)*K/n^2 (typical K ~ 1e-5) as a
 %               dashed grey line - the sanity yardstick for signal decay
-%     'MarkCrossover' true/false (v2.4): with exactly TWO spectra, mark
-%               the signal/error crossover degree found by
+%     MarkCrossover (false)  with exactly TWO spectra, mark the
+%               signal/error crossover degree found by
 %               shLowLevel.shSpectralCrossover with a vertical line
 %
 %   Claude (Sonnet 4.6), 2026-07-11; merged into +shLowLevel: Claude (Fable 5),
@@ -38,37 +40,42 @@ function h = plotSHSpectrum(specs, varargin)
 %
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 
+arguments
+    specs
+    opts.Names = {}
+    opts.Units = 'mm'
+    % '' is the sentinel for "not supplied": an arguments block has no
+    % equivalent of inputParser's UsingDefaults, and Field is a legacy
+    % override that only applies when the caller names it explicitly.
+    opts.Field = ''
+    opts.Ax = []
+    opts.Kaula = []
+    opts.MarkCrossover = false
+    opts.Quantity = 'amplitude'
+end
+% one spectrum or many: normalise AFTER the arguments block, which must
+% be the first statement in the function
 if ~iscell(specs)
     specs = {specs};
 end
+names = opts.Names;
+units = opts.Units;
+field = opts.Field;
 
-p = inputParser;
-addParameter(p, 'names', {});
-addParameter(p, 'units', 'mm');
-addParameter(p, 'field', 'degAmplitude');
-addParameter(p, 'ax', []);
-addParameter(p, 'Kaula', []);
-addParameter(p, 'MarkCrossover', false);
-addParameter(p, 'Quantity', 'amplitude');
-parse(p, varargin{:});
-names = p.Results.names;
-units = p.Results.units;
-field = p.Results.field;
-
-if isempty(p.Results.ax)
+if isempty(opts.Ax)
     % MATLAB convention (like plot/imagesc): render into the CURRENT axes,
     % creating a figure only if none exists. Unconditional 'figure' broke
     % subplot workflows: demo figure 2 prepared subplot(1,2,1), triangle
     % opened a fresh window, and the prepared axes stayed empty (v2.2.2).
     ax = gca;
 else
-    ax = p.Results.ax;
+    ax = opts.Ax;
 end
 
 % ---- quantity/domain resolution (v2.4.1)
 % back-compat: an explicit legacy 'field' wins over Quantity
-fieldExplicit = ~any(strcmp(p.UsingDefaults, 'field'));
-qty = lower(char(p.Results.Quantity));
+fieldExplicit = ~isempty(opts.Field);
+qty = lower(char(opts.Quantity));
 dom = 'degree';
 if isfield(specs{1}, 'domain'), dom = specs{1}.domain; end
 for k = 2:numel(specs)
@@ -96,7 +103,7 @@ switch qty
         error('shLowLevel:plotSHSpectrum:badQuantity', 'Unknown Quantity: %s', qty);
 end
 if fieldExplicit
-    field = p.Results.field;                 % legacy override
+    field = opts.Field;                      % legacy override
     ef = ''; isAmp = contains(lower(field), 'amplitude');
     ylab = [field ' [%s]'];
 end
@@ -141,19 +148,19 @@ set(ax, 'XScale', 'linear', 'YScale', 'log');   % linear x (v2.4.1)
 grid(ax, 'on');
 xlabel(ax, sprintf('Spherical harmonic %s', xf));
 ylabel(ax, sprintf(ylab, units));
-if ~isempty(p.Results.Kaula)
+if ~isempty(opts.Kaula)
     assert(strcmp(dom, 'degree') && isAmp && ~startsWith(field, 'cum'), ...
         'shLowLevel:plotSHSpectrum:kaulaDomain', ...
         'Kaula overlay applies to degree-domain amplitude plots only.');
     s1 = specs{1};
     nk = s1.degree(s1.degree >= 2);
     R = s1.R;
-    yk = R .* sqrt(2*nk + 1) .* p.Results.Kaula ./ nk.^2 * scale;
+    yk = R .* sqrt(2*nk + 1) .* opts.Kaula ./ nk.^2 * scale;
     hk = plot(ax, nk, yk, ':', 'Color', [0.45 0.45 0.45], 'LineWidth', 1);
     h(end+1) = hk;
-    names{end+1} = sprintf('Kaula K=%.0e', p.Results.Kaula);
+    names{end+1} = sprintf('Kaula K=%.0e', opts.Kaula);
 end
-if p.Results.MarkCrossover
+if opts.MarkCrossover
     % shSpectralCrossover takes ONE spec carrying degAmplitude AND
     % errAmplitude (shDegreeRMS with sigmaC/sigmaS); with two separate
     % spectra, fuse them (first = signal, second = error)

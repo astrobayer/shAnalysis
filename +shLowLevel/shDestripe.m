@@ -1,4 +1,4 @@
-function [Cf, Sf] = shDestripe(C, S, varargin)
+function [Cf, Sf] = shDestripe(C, S, opts)
 %SHDESTRIPE Remove correlated (north-south striping) noise from Stokes
 %   coefficients, following Swenson & Wahr (2006).
 %
@@ -9,20 +9,20 @@ function [Cf, Sf] = shDestripe(C, S, varargin)
 %   m < minOrder are passed through unchanged.
 %
 %   Options
-%     'minOrder'     lowest order to filter, default 6 (below this, real
-%                    signal dominates and destriping mostly removes signal;
-%                    value is somewhat model/application dependent -- verify
+%     MinOrder (6)   lowest order to filter (below this, real signal
+%                    dominates and destriping mostly removes signal; the
+%                    value is model/application dependent -- verify
 %                    against your own signal-to-noise spectrum, cf.
 %                    plotSHSpectrum's degree-amplitude vs. error-amplitude)
-%     'polyOrder'    polynomial order fit and removed per order/parity,
-%                    default 3 (classic Swenson & Wahr cubic fit)
-%     'windowLength' if empty (default), fit a single polynomial over the
+%     PolyOrder (3)  polynomial order fit and removed per order/parity
+%                    (the classic Swenson & Wahr cubic fit)
+%     WindowLength ([])  if empty, fit a single polynomial over the
 %                    full available degree range per order/parity (the
 %                    original Swenson & Wahr formulation). If set to an
-%                    odd integer >= polyOrder+2, use a centered moving
+%                    odd integer >= PolyOrder+2, use a centered moving
 %                    window instead (Duan et al. 2009 / "P3M6"-style
-%                    windowed variant, e.g. windowLength=6 with
-%                    polyOrder=3 is the commonly used "P3M6" filter).
+%                    windowed variant, e.g. WindowLength=6 with
+%                    PolyOrder=3 is the commonly used "P3M6" filter).
 %
 %   Claude (Sonnet 4.6), 2026-07-11; merged into +shLowLevel: Claude (Fable 5), 2026-08-07.
 %   Outputs
@@ -31,14 +31,16 @@ function [Cf, Sf] = shDestripe(C, S, varargin)
 %
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 
-p = inputParser;
-addParameter(p, 'minOrder', 6);
-addParameter(p, 'polyOrder', 3);
-addParameter(p, 'windowLength', []);
-parse(p, varargin{:});
-minOrder = p.Results.minOrder;
-polyOrder = p.Results.polyOrder;
-windowLength = p.Results.windowLength;
+arguments
+    C double
+    S double
+    opts.MinOrder (1,1) double = 6
+    opts.PolyOrder (1,1) double = 3
+    opts.WindowLength double = []
+end
+minOrder = opts.MinOrder;
+polyOrder = opts.PolyOrder;
+windowLength = opts.WindowLength;
 
 nmax = size(C,1) - 1;
 Cf = C;

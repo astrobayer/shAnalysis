@@ -27,7 +27,7 @@ piecewise <code class="inline">gfct</code> validity intervals (all pieces are st
 per-term [t0,&thinsp;t1) activity windows on <code class="inline">trnd/acos/asin</code> lines, explicit
 period columns, and yyyymmdd(.hhmm) epochs converted to decimal years
 (<code class="inline">shLowLevel.icgemDate2Year</code>). <code class="inline">shEvalGFCT</code> evaluates the correct
-piece per epoch and errors with <code class="inline">shEvalGFCT:epochOutside</code> beyond the covered
+piece per epoch and errors with <code class="inline">shLowLevel:shEvalGFCT:epochOutside</code> beyond the covered
 range. ICGEM 1.0 behavior is preserved; note one documented change: an 8-column
 <code class="inline">acos/asin</code> line is now read as EIGEN-style
 &ldquo;period in the last column&rdquo; (with the reference epoch taken from the matching

@@ -33,13 +33,21 @@ function [Ct, St] = shEvalGFCT(model, epoch)
 %     Ct  (nmax+1 x nmax+1) double  cosine coefficients at the epoch
 %     St  (nmax+1 x nmax+1) double  sine coefficients at the epoch
 %
+%   Error identifiers
+%     shLowLevel:shEvalGFCT:staticModel
+%         warning: MODEL carries no time-variable terms, so the static
+%         field is returned unchanged
+%     shLowLevel:shEvalGFCT:epochOutside
+%         the requested epoch lies outside every gfct validity interval
+%     shLowLevel:shEvalGFCT:unknownType
+%         a variable-term type in the file is not recognised
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 
 Ct = model.C;
 St = model.S;
 
 if isempty(model.variableTerms)
-    warning('shEvalGFCT:staticModel', ...
+    warning('shLowLevel:shEvalGFCT:staticModel', ...
         'MODEL has no time-variable terms (static gfc file) -- returning constant C, S.');
     return;
 end
@@ -52,7 +60,7 @@ if isV2
     % gfct piece whose validity interval [t0, t1) contains EPOCH is the
     % constant part; trnd/acos/asin terms apply only while EPOCH lies in
     % their own interval, referenced to their own t0. Requesting an epoch
-    % outside every piece raises shEvalGFCT:epochOutside.
+    % outside every piece raises shLowLevel:shEvalGFCT:epochOutside.
     isP = strcmp({vt.type}, 'gfct');
     pcs = vt(isP);
     keys = unique([[pcs.n]', [pcs.m]'], 'rows');
@@ -61,7 +69,7 @@ if isV2
         sel = pcs([pcs.n] == n & [pcs.m] == m);
         inIv = arrayfun(@(p) epoch >= p.t0 && epoch < p.t1, sel);
         if ~any(inIv)
-            error('shEvalGFCT:epochOutside', ...
+            error('shLowLevel:shEvalGFCT:epochOutside', ...
                 ['Epoch %.4f lies outside every gfct validity interval ' ...
                  'for (n=%d, m=%d).'], epoch, n, m);
         end
@@ -92,7 +100,7 @@ for k = 1:numel(vt)
             Ct(n+1,m+1) = Ct(n+1,m+1) + t.C * sin(2*pi*dt/period);
             St(n+1,m+1) = St(n+1,m+1) + t.S * sin(2*pi*dt/period);
         otherwise
-            warning('shEvalGFCT:unknownType', ...
+            warning('shLowLevel:shEvalGFCT:unknownType', ...
                 'Unrecognized variable term type ''%s'' at n=%d, m=%d -- skipped.', ...
                 t.type, n, m);
     end

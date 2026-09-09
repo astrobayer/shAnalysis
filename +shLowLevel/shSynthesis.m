@@ -1,4 +1,4 @@
-function [grid, lat, lon, P] = shSynthesis(C, S, GM, R, latVec, lonVec, varargin)
+function [grid, lat, lon, P] = shSynthesis(C, S, GM, R, latVec, lonVec, opts)
 %SHSYNTHESIS Spherical harmonic synthesis of a global/regional grid.
 %
 %   [GRID, LAT, LON] = SHSYNTHESIS(C, S, GM, R, LATVEC, LONVEC) synthesizes
@@ -9,20 +9,20 @@ function [grid, lat, lon, P] = shSynthesis(C, S, GM, R, latVec, lonVec, varargin
 %   [GRID, LAT, LON, P] = SHSYNTHESIS(...) also returns the precomputed
 %   Legendre function array P (as from LEGENDREALF). For batch processing
 %   a time series on the SAME grid and NMAX (e.g. monthly GRACE-FO
-%   solutions), pass it back in on subsequent calls via 'P', P to skip
+%   solutions), pass it back in on subsequent calls via P=P to skip
 %   the recursion entirely:
 %
 %       [grid1, lat, lon, P] = shSynthesis(C1, S1, GM, R, latVec, lonVec);
 %       for k = 2:nMonths
-%           gridK = shSynthesis(Ck, Sk, GM, R, latVec, lonVec, 'P', P);
+%           gridK = shSynthesis(Ck, Sk, GM, R, latVec, lonVec, P=P);
 %       end
 %
 %   Options
-%     'P'  precomputed Legendre array from a prior call/LEGENDREALF, for
+%     P ([])  precomputed Legendre array from a prior call/LEGENDREALF, for
 %          the identical latVec and nmax -- skips recomputing the
 %          recursion. No validation is done that latVec/nmax actually
 %          match; passing a mismatched P silently gives wrong results.
-%     'quantity'  one of ('none' = dimensionless passthrough, kernel 1,
+%     Quantity ("geoid")  one of ('none' = dimensionless passthrough, kernel 1,
 %                 no GM/R/kn enter - the clean way to synthesize raw
 %                 coefficient fields such as kernels or masks):
 %         'geoid'              N = R * sum Pbar_nm (Cnm cos m lon + Snm sin m lon)   [m]
@@ -30,22 +30,25 @@ function [grid, lat, lon, P] = shSynthesis(C, S, GM, R, latVec, lonVec, varargin
 %         'gravity_disturbance' dg = GM/R^2 * sum (n+1) Pbar_nm (...)                [m/s^2]
 %         'potential'          T  = GM/R * sum Pbar_nm (...)                        [m^2/s^2]
 %         'ewh'                equivalent water height using love numbers 'kn'      [m]
-%       default 'geoid'
-%     'nmin','nmax'  degree range to include (default 0, size(C,1)-1)
-%     'kn'           load Love number vector k_n (index 1 = degree 0), required
-%                    for 'ewh'; NOT supplied by default -- see note below.
-%     'rho_ave'      average Earth density, default 5517 kg/m^3 (used for 'ewh')
-%     'rho_water'    water density, default 1000 kg/m^3 (used for 'ewh')
-%     'method'  'auto' (default) / 'direct' / 'fft': FFT-along-longitude
+%     Nmin (0), Nmax (size(C,1)-1)  degree range to include. Renamed
+%                    from nmin/nmax in v4.0.0.
+%     kn ([])        load Love number vector k_n (index 1 = degree 0), required
+%                    for "ewh"; NOT supplied by default -- see note below.
+%     hn ([])        load Love numbers h'_n, for deformation quantities
+%     Height (0)     evaluation height above R [m]
+%     MaxMemGB (4)   Legendre-block memory budget before banding
+%     rho_ave (5517)   average Earth density [kg/m^3] (used for "ewh")
+%     rho_water (1000) water density [kg/m^3] (used for "ewh")
+%     Method ("auto")  "auto" / "direct" / "fft": FFT-along-longitude
 %               synthesis for uniform full-circle longitude grids (5-20x
 %               faster at 1 degree); 'auto' picks it whenever applicable.
 %               Symmetric latitude grids additionally reuse the Legendre
 %               recursion for +/-lat pairs via the parity relation.
 %
-%   NOTE on 'ewh': accurate mass-change conversion requires the degree-
+%   NOTE on "ewh": accurate mass-change conversion requires the degree-
 %   dependent load Love numbers k_n (e.g. from a PREM-based table, Wahr et
 %   al. 1998 / Han & Wahr). This function does NOT hardcode a Love number
-%   table to avoid silently using unvalidated constants -- pass 'kn'
+%   table to avoid silently using unvalidated constants -- pass kn
 %   explicitly. Without it, EWH synthesis will error.
 %
 %   Outputs
@@ -59,32 +62,48 @@ function [grid, lat, lon, P] = shSynthesis(C, S, GM, R, latVec, lonVec, varargin
 %           are streamed and discarded, so request the 4th output only
 %           with a memory budget that fits the full array.
 %
+%   Error identifiers
+%     shLowLevel:shSynthesis:badInput
+%         C and S are not square matrices of equal size, or Nmax exceeds
+%         the coefficients supplied
+%     shLowLevel:shSynthesis:badP
+%         a precomputed P does not match Nmax and the latitude vector
+%     shLowLevel:shSynthesis:badMethod
+%         Method="fft" on a longitude vector that is not uniform and
+%         full-circle
+%
 %   Claude (Sonnet 4.6), 2026-07-11; merged into +shLowLevel and FFT/parity
 %   fast paths added: Claude (Fable 5), 2026-08-07.
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 
-p = inputParser;
-addParameter(p, 'quantity', 'geoid');
-addParameter(p, 'nmin', 0);
-addParameter(p, 'nmax', size(C,1)-1);
-addParameter(p, 'kn', []);
-addParameter(p, 'rho_ave', 5517);
-addParameter(p, 'rho_water', 1000);
-addParameter(p, 'P', []);
-addParameter(p, 'method', 'auto');   % 'auto' | 'direct' | 'fft' (v2.1)
-addParameter(p, 'MaxMemGB', 4);      % Legendre-block memory budget (v2.2)
-addParameter(p, 'hn', []);           % load Love numbers h'_n (v2.3)
-addParameter(p, 'Height', 0);        % evaluation height above R [m] (v2.3)
-parse(p, varargin{:});
-quantity = lower(p.Results.quantity);
-nmin = p.Results.nmin;
-nmax = p.Results.nmax;
+arguments
+    C double
+    S double
+    GM double
+    R double
+    latVec double
+    lonVec double
+    opts.Quantity = 'geoid'
+    opts.Nmin = 0
+    opts.Nmax = size(C,1)-1
+    opts.kn = []
+    opts.rho_ave = 5517
+    opts.rho_water = 1000
+    opts.P = []
+    opts.Method = 'auto'    % 'auto' | 'direct' | 'fft' (v2.1)
+    opts.MaxMemGB = 4       % Legendre-block memory budget (v2.2)
+    opts.hn = []            % load Love numbers h'_n (v2.3)
+    opts.Height = 0         % evaluation height above R [m] (v2.3)
+end
+quantity = lower(opts.Quantity);
+nmin = opts.Nmin;
+nmax = opts.Nmax;
 
 if size(C,1) ~= size(C,2) || size(S,1) ~= size(S,2) || size(C,1) ~= size(S,1)
-    error('shSynthesis:badInput', 'C and S must be square matrices of equal size.');
+    error('shLowLevel:shSynthesis:badInput', 'C and S must be square matrices of equal size.');
 end
 if nmax > size(C,1)-1
-    error('shSynthesis:badInput', ...
+    error('shLowLevel:shSynthesis:badInput', ...
         'Requested nmax (%d) exceeds available coefficients (max %d).', nmax, size(C,1)-1);
 end
 
@@ -95,23 +114,23 @@ nlon = numel(lon);
 latRad = deg2rad(lat);
 lonRad = deg2rad(lon);
 
-if isempty(p.Results.P)
+if isempty(opts.P)
     % symmetric-latitude parity trick: Pbar_nm(-lat) = (-1)^(n+m) Pbar_nm(lat)
     % -> compute the recursion only for unique |lat| and mirror (validated:
     % exact identity), halving the Legendre cost for symmetric grids.
     banded = [];                                 % Legendre in memory bands
 else
-    P = p.Results.P;
+    P = opts.P;
     if size(P,1) < nmax+1 || size(P,3) ~= nlat
-        error('shSynthesis:badP', ...
+        error('shLowLevel:shSynthesis:badP', ...
             'Supplied P is incompatible with nmax/latVec (size %s).', mat2str(size(P)));
     end
     banded = false;
 end
 
-kernel = shLowLevel.kernelFactors(quantity, nmax, GM, R, kn = p.Results.kn, ...
-    hn = p.Results.hn, Height = p.Results.Height, ...
-    rho_ave = p.Results.rho_ave, rho_water = p.Results.rho_water);
+kernel = shLowLevel.kernelFactors(quantity, nmax, GM, R, kn = opts.kn, ...
+    hn = opts.hn, Height = opts.Height, ...
+    rho_ave = opts.rho_ave, rho_water = opts.rho_water);
 
 % degree-factor-scaled coefficient copies, nmin truncation via zero rows
 KC = kernel .* C(1:nmax+1, 1:nmax+1);
@@ -133,9 +152,9 @@ Am = zeros(nmax+1, nlat);
 Bm = zeros(nmax+1, nlat);
 if isempty(banded)
     needBytes = (nmax+1)^2 * nlat * 8;
-    banded = needBytes > p.Results.MaxMemGB * 2^30;
+    banded = needBytes > opts.MaxMemGB * 2^30;
 end
-if ~banded && isempty(p.Results.P)
+if ~banded && isempty(opts.P)
     [uab, ~, iu] = unique(abs(latRad));
     if numel(uab) < nlat
         Pu = shLowLevel.legendreALF(nmax, uab);
@@ -151,7 +170,7 @@ if banded
               % request the 4th output only with a fitting memory budget
     [uab, ~, iu] = unique(abs(latRad));
     parity = (-1).^((0:nmax)' + (0:nmax));
-    chunk = max(1, floor(p.Results.MaxMemGB * 2^30 / ((nmax+1)^2 * 8)));
+    chunk = max(1, floor(opts.MaxMemGB * 2^30 / ((nmax+1)^2 * 8)));
     for c0 = 1:chunk:numel(uab)
         cc = c0:min(c0+chunk-1, numel(uab));
         Pu = shLowLevel.legendreALF(nmax, uab(cc));
@@ -173,7 +192,7 @@ end
 % method resolution: FFT along longitude for uniform full-circle grids
 % (exact accumulation of aliased orders into mod(m, nlon) bins; validated
 % against the direct sum to 3e-13 in Python), else direct trig product.
-method = lower(p.Results.method);
+method = lower(opts.Method);
 if strcmp(method, 'auto')
     useFFT = false;
     if nlon >= 2
@@ -187,7 +206,7 @@ elseif strcmp(method, 'fft')
     dl = diff(lonRad);
     if nlon < 2 || any(abs(dl - dl(1)) >= 1e-12) || dl(1) <= 0 ...
             || abs(nlon*dl(1) - 2*pi) >= 1e-9
-        error('shSynthesis:badMethod', ...
+        error('shLowLevel:shSynthesis:badMethod', ...
             'method=''fft'' requires a uniform, full-circle longitude vector.');
     end
     useFFT = true;

@@ -37,9 +37,7 @@
   single-coefficient closed forms at 2e-16.
 
   See also SHSYNTHESIS, SHSYNTHESISDEFORMATION, SHSYNTHESISGRADIENTTENSOR,
-  KERNELFACTORS, LEGENDREALFDERIV.
-
-  Claude (Opus 5), 2026-08-22 (v3.30.0).</code></pre></div></details>
+  KERNELFACTORS, LEGENDREALFDERIV.</code></pre></div></details>
 <h2>Input Arguments</h2>
 <table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>C</code></td><td>n x m</td><td>double</td><td><code>required</code></td><td class="desc">cosine Stokes coefficients, C(n+1, m+1) indexing</td></tr><tr><td><code>S</code></td><td>n x m</td><td>double</td><td><code>required</code></td><td class="desc">sine Stokes coefficients, S(n+1, m+1) indexing</td></tr><tr><td><code>GM</code></td><td>1 x 1</td><td>double</td><td><code>required</code></td><td class="desc">double [m^3/s^2]</td></tr><tr><td><code>R</code></td><td>1 x 1</td><td>double</td><td><code>required</code></td><td class="desc">double [m]      reference radius</td></tr><tr><td><code>latDeg</code></td><td>1 x :</td><td>double</td><td><code>required</code></td><td class="desc">double [deg] GEOCENTRIC latitude</td></tr><tr><td><code>lonDeg</code></td><td>1 x :</td><td>double</td><td><code>required</code></td><td class="desc">double [deg] longitude</td></tr></table>
 <h2>Name-Value Arguments</h2>
@@ -47,12 +45,12 @@
 <h2>Output Arguments</h2>
 <table><tr><th>Name</th><th>Description</th></tr><tr><td><code>dq</code></td><td class="desc">(1,1) struct  each field is (nlat x nlon) double for Mode=&quot;grid&quot; or (npts x 1) double for &quot;points&quot;. Fields north  the north component of the gradient east   the east component. NaN where |lat| = 90 - the east direction does not exist at a pole, and the cos(phi) division there returns a finite, meaningless number if it is not caught up     the radial component; [] for surface quantities (see above)</td></tr><tr><td><code>info</code></td><td class="desc">(1,1) struct  fields quantity  (1,1) string   what was differentiated units     (1,1) string   the units of dq r         (1,1) double   evaluation radius [m] nmin, nmax  (1,1) double  the degree range used hasUp     (1,1) logical  whether dq.up is filled lat       (1 x nlat) double  latitudes actually used lon       (1 x nlon) double  longitudes actually used latType   (1,1) string   always &quot;geocentric&quot; here: this function has no ellipsoid. <a href="shCoefficients_gradient.html"><code>shCoefficients.gradient</code></a> overwrites lat and latType when it was handed geodetic input, so the convention travels with the numbers instead of being remembered by the caller</td></tr></table>
 <h2>Error Identifiers</h2>
-<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<table><tr><th>Identifier</th><th>Raised when</th></tr><tr><td><code>shLowLevel:shSynthesisGradient:badInput</code></td><td class="desc">C and S are not equally sized square matrices, Nmax exceeds the coefficients supplied, or Mode=&quot;points&quot; got LAT and LON of unequal length</td></tr></table>
 <h2>Version History</h2>
 <p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
 <h2>See Also</h2>
 <ul class="seealso"><li><a href="shLowLevel_shSynthesis.html"><code>shLowLevel.shSynthesis</code></a></li></ul>
-<p class="prov">shAnalysis v3.34.1 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+<p class="prov">shAnalysis v4.0.0 (09-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
 </div>
 </body>
 </html>

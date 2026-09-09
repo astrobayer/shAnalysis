@@ -129,10 +129,10 @@ clear functions %#ok<CLFUNC>
 rehash
 ck('geoMap is really gone', @() assertGone());
 ck('requireGeoMap raises geoMapRequired', ...
-    @() expectError(@() shLowLevel.requireGeoMap(), 'shAnalysis:geoMapRequired'));
+    @() expectError(@() shLowLevel.requireGeoMap(), 'shLowLevel:requireGeoMap:geoMapRequired'));
 ck('g.map raises geoMapRequired', ...
     @() expectError(@() g.map(lat, lon, Quantity = "geoid"), ...
-        'shAnalysis:geoMapRequired'));
+        'shLowLevel:requireGeoMap:geoMapRequired'));
 ck('writeAnimation refuses BEFORE writing', ...
     @() checkRefusal(ts, opts.OutDir));
 ck('toGrid still works without geoMap', @() checkBridge(g, kn, lat, lon));
@@ -246,7 +246,7 @@ end
 function note = checkRefusal(ts, outDir)
 tmp = fullfile(char(outDir), sprintf('shx_never_%d.avi', randi(1e9)));
 expectError(@() shLowLevel.writeAnimation(ts, tmp, Quantity = "geoid"), ...
-    'shAnalysis:geoMapRequired');
+    'shLowLevel:requireGeoMap:geoMapRequired');
 assert(~isfile(tmp), 'it wrote %s before refusing', tmp);
 note = "nothing written";
 end

@@ -332,9 +332,9 @@ L = 24;
 C = tril(randn(L+1)); S = tril(randn(L+1), -1);
 lat = -87.5:5:87.5; lon = 0:5:355;
 gD = shLowLevel.shSynthesis(C, S, 3.986004415e14, 6378136.3, lat, lon, ...
-    'quantity', 'geoid', 'method', 'direct');
+    'Quantity', 'geoid', 'Method', 'direct');
 gF = shLowLevel.shSynthesis(C, S, 3.986004415e14, 6378136.3, lat, lon, ...
-    'quantity', 'geoid', 'method', 'fft');
+    'Quantity', 'geoid', 'Method', 'fft');
 verifyEqual(testCase, gF, gD, 'AbsTol', 1e-9 * max(abs(gD(:))));
 end
 
@@ -343,8 +343,8 @@ function testFFTSynthesisNonZeroStartLon(testCase)
 rng(12);
 L = 10; C = tril(randn(L+1)); S = tril(randn(L+1), -1);
 lat = 10; lon0 = 17.5; lon = lon0 + (0:359);
-gD = shLowLevel.shSynthesis(C, S, 1, 1, lat, lon, 'method', 'direct');
-gF = shLowLevel.shSynthesis(C, S, 1, 1, lat, lon, 'method', 'fft');
+gD = shLowLevel.shSynthesis(C, S, 1, 1, lat, lon, 'Method', 'direct');
+gF = shLowLevel.shSynthesis(C, S, 1, 1, lat, lon, 'Method', 'fft');
 verifyEqual(testCase, gF, gD, 'AbsTol', 1e-10 * max(abs(gD(:))));
 end
 
@@ -368,7 +368,7 @@ rng(13);
 L = 12;
 C0 = tril(randn(L+1)); S0 = tril(randn(L+1), -1); S0(:,1) = 0;
 lat = linspace(-84, 84, 2*L+4); lon = (0:2*L+3) * 360/(2*L+4);
-g = shLowLevel.shSynthesis(C0, S0, 1, 1, lat, lon, 'method', 'direct');
+g = shLowLevel.shSynthesis(C0, S0, 1, 1, lat, lon, 'Method', 'direct');
 [C, S, info] = shLowLevel.shAnalysisGrid(g, lat, lon, L, GM = 1, R = 1);
 verifyEqual(testCase, C, C0, 'AbsTol', 1e-10);
 verifyEqual(testCase, S, S0, 'AbsTol', 1e-10);
@@ -385,7 +385,7 @@ Np = 500;
 latp = asind(2*rand(Np,1) - 1); lonp = 360*rand(Np,1);
 f = zeros(Np, 1);
 for k = 1:Np
-    f(k) = shLowLevel.shSynthesis(C0, S0, 1, 1, latp(k), lonp(k), 'method', 'direct');
+    f(k) = shLowLevel.shSynthesis(C0, S0, 1, 1, latp(k), lonp(k), 'Method', 'direct');
 end
 [C, S, info] = shLowLevel.shAnalysisGrid(f, latp, lonp, L, GM = 1, R = 1);
 verifyEqual(testCase, C, C0, 'AbsTol', 1e-9);
@@ -401,7 +401,7 @@ L = 10; GM = 3.986004415e14; R = 6378136.3;
 C0 = tril(randn(L+1)) * 1e-8; S0 = tril(randn(L+1), -1) * 1e-8; S0(:,1) = 0;
 C0(1:2, :) = 0; S0(1:2, :) = 0;                 % nothing below degree 2
 lat = linspace(-85, 85, 2*L+6); lon = (0:2*L+5) * 360/(2*L+6);
-g = shLowLevel.shSynthesis(C0, S0, GM, R, lat, lon, 'quantity', 'gravity_anomaly');
+g = shLowLevel.shSynthesis(C0, S0, GM, R, lat, lon, 'Quantity', 'gravity_anomaly');
 [C, S, info] = shLowLevel.shAnalysisGrid(g, lat, lon, L, ...
     Quantity = 'gravity_anomaly', GM = GM, R = R);
 verifyEqual(testCase, C, C0, 'AbsTol', 1e-16);
@@ -1026,11 +1026,11 @@ dH = shLowLevel.kernelFactors('gravity_disturbance', L, GM, R, Height = hgt);
 verifyEqual(testCase, dH, dis .* (R/r).^(n+2), 'RelTol', 1e-15);
 % error contracts
 verifyError(testCase, @() shLowLevel.kernelFactors('surface_density', L, GM, R), ...
-    'shSynthesis:missingLoveNumbers');
+    'shLowLevel:kernelFactors:missingLoveNumbers');
 verifyError(testCase, @() shLowLevel.kernelFactors('deformation_up', L, GM, R, ...
-    kn = kn), 'shSynthesis:missingLoveNumbers');
+    kn = kn), 'shLowLevel:kernelFactors:missingLoveNumbers');
 verifyError(testCase, @() shLowLevel.kernelFactors('ewh', L, GM, R, kn = kn, ...
-    Height = 1e5), 'shSynthesis:heightInvalid');
+    Height = 1e5), 'shLowLevel:kernelFactors:heightInvalid');
 end
 
 function testLegendreDerivativeIdentity(testCase)
@@ -1099,7 +1099,7 @@ lat = [37.2, -61.8]; lon = [211.0, 12.5];
 fUp = shLowLevel.shSynthesisDeformation(C, S, R, lat, lon, ...
     kn = kn, hn = hn, ln = ln, Nmin = 1);
 upK = shLowLevel.shSynthesis(C, S, 3.986004415e14, R, lat, lon, ...
-    'quantity', 'deformation_up', 'kn', kn, 'hn', hn, 'nmin', 1);
+    'Quantity', 'deformation_up', 'kn', kn, 'hn', hn, 'Nmin', 1);
 verifyEqual(testCase, fUp, upK, 'AbsTol', 1e-15);
 % horizontal vs finite differences of the fH-scaled scalar field
 fH = R * ln ./ (1 + kn); fH(1) = 0;
@@ -1107,16 +1107,16 @@ dphi = 1e-6;
 for i = 1:2
     for j = 1:2
         gp = shLowLevel.shSynthesis(fH .* C, fH .* S, 1, 1, lat(i) + rad2deg(dphi), lon(j), ...
-            'quantity', 'geoid');
+            'Quantity', 'geoid');
         gm_ = shLowLevel.shSynthesis(fH .* C, fH .* S, 1, 1, lat(i) - rad2deg(dphi), lon(j), ...
-            'quantity', 'geoid');
+            'Quantity', 'geoid');
         dN = (gp - gm_) / (2 * dphi);
         verifyEqual(testCase, north(i, j), dN, 'RelTol', 1e-4, ...
             sprintf('north at (%g, %g)', lat(i), lon(j)));
         gp = shLowLevel.shSynthesis(fH .* C, fH .* S, 1, 1, lat(i), lon(j) + rad2deg(dphi), ...
-            'quantity', 'geoid');
+            'Quantity', 'geoid');
         gm_ = shLowLevel.shSynthesis(fH .* C, fH .* S, 1, 1, lat(i), lon(j) - rad2deg(dphi), ...
-            'quantity', 'geoid');
+            'Quantity', 'geoid');
         dE = (gp - gm_) / (2 * dphi) / cosd(lat(i));
         verifyEqual(testCase, east(i, j), dE, 'RelTol', 1e-4, ...
             sprintf('east at (%g, %g)', lat(i), lon(j)));
@@ -1176,7 +1176,7 @@ lat = [41, -55.5]; lon = [100, 331];
 verifyLessThan(testCase, info.maxTraceResidual, 1e-12);
 % Guu == gravity_gradient_rr kernel route with Height
 guuK = shLowLevel.shSynthesis(C, S, GM, R, lat, lon, ...
-    'quantity', 'gravity_gradient_rr', 'Height', 250e3, 'nmin', 2);
+    'Quantity', 'gravity_gradient_rr', 'Height', 250e3, 'Nmin', 2);
 verifyEqual(testCase, G.uu, guuK, 'RelTol', 1e-12);
 % symmetry fields present and finite away from poles
 for f = ["nn", "ee", "un", "ue", "ne"]
@@ -1187,7 +1187,7 @@ fT = shLowLevel.kernelFactors('potential', L, GM, R, Height = 250e3);
 fT(1:2) = 0;
 h = 1e-4; r = R + 250e3;
 scal = @(la_, lo_) shLowLevel.shSynthesis(fT .* C, fT .* S, 1, 1, la_, lo_, ...
-    'quantity', 'geoid');
+    'Quantity', 'geoid');
 la = lat(1); lo = lon(1);
 Tpp = (scal(la + rad2deg(h), lo) - 2*scal(la, lo) + scal(la - rad2deg(h), lo)) / h^2;
 Gnn_num = Tpp / r^2 + gradTr(C, S, GM, R, L, la, lo, r) / r;
@@ -1198,7 +1198,7 @@ function Tr = gradTr(C, S, GM, R, L, la, lo, r)
 n = (0:L)';
 fTr = -(GM/R) * (n + 1) / r .* (R/r).^(n + 1);
 fTr(1:2) = 0;
-Tr = shLowLevel.shSynthesis(fTr .* C, fTr .* S, 1, 1, la, lo, 'quantity', 'geoid');
+Tr = shLowLevel.shSynthesis(fTr .* C, fTr .* S, 1, 1, la, lo, 'Quantity', 'geoid');
 end
 
 function testCombineCentersRecovery(testCase)
@@ -1365,7 +1365,7 @@ for k = 1:Nmc
     x = Lch * randn(idx.P, 1);
     [Cm, Sm] = shLowLevel.csFromVec(x, idx);
     vals(:, :, k) = shLowLevel.shSynthesis(Cm, Sm, 3.986004415e14, 6378136.3, ...
-        lat, lon, 'quantity', 'geoid');
+        lat, lon, 'Quantity', 'geoid');
 end
 sigMC = std(vals, 0, 3);
 verifyEqual(testCase, sig, sigMC, 'RelTol', 0.12);
@@ -1802,7 +1802,7 @@ rng(101);
 L = 20; n1 = L + 1;
 C = tril(randn(n1)) * 1e-8; S = tril(randn(n1), -1) * 1e-8; S(:, 1) = 0;
 sC = abs(C) * 0.1; sS = abs(S) * 0.1;
-sd = shLowLevel.shDegreeRMS(C, S, 'R', 6378136.3, 'sigmaC', sC, 'sigmaS', sS);
+sd = shLowLevel.shDegreeRMS(C, S, 'R', 6378136.3, 'SigmaC', sC, 'SigmaS', sS);
 so = shLowLevel.shOrderRMS(C, S, SigmaC = sC, SigmaS = sS);
 % degree/order marginals of the same total power
 verifyEqual(testCase, sum(so.ordVariance), sum(sd.degVariance), ...
@@ -1819,8 +1819,8 @@ verifyEqual(testCase, so.ordAmplitude, 6378136.3 * so.ordRMS, 'RelTol', 1e-15);
 verifyEqual(testCase, so.domain, 'order');
 verifyEqual(testCase, sd.domain, 'degree');
 % n0 zeroing consistent between domains
-sd2 = shLowLevel.shDegreeRMS(C, S, 'n0', 2);
-so2 = shLowLevel.shOrderRMS(C, S, N0 = 2);
+sd2 = shLowLevel.shDegreeRMS(C, S, 'Nmin', 2);
+so2 = shLowLevel.shOrderRMS(C, S, Nmin = 2);
 verifyEqual(testCase, sum(so2.ordVariance), sum(sd2.degVariance), 'RelTol', 1e-14);
 end
 
@@ -2543,7 +2543,7 @@ gOc = shCoefficients.analysis(double(ocean) * 0.10, lat, lon, nmax, ...
 wf = shLowLevel.shGaussianWeights(nmax, 445); wf = wf(:);
 w = cosd(LA);
 mm = @(C, S) localMaskMean(shLowLevel.shSynthesis(C .* wf, S .* wf, ...
-    GM, R, lat, lon, 'quantity', 'ewh', 'kn', kn, 'nmin', 0), w, ocean);
+    GM, R, lat, lon, 'Quantity', 'ewh', 'kn', kn, 'Nmin', 0), w, ocean);
 ref = mm(gOc.C, gOc.S);                        % ocean-only reference
 verifyEqual(testCase, ref, 0.10, RelTol = 0.15);
 leakRaw = mm(gOc.C + gLand.C, gOc.S + gLand.S) - ref;
@@ -2556,14 +2556,14 @@ Lc = zeros(nmax + 1); Ls = Lc; Oc = Lc; Os = Lc;
 for it = 1:5
     EL = shLowLevel.shSynthesis(gOc.C + gLand.C - Oc, ...
         gOc.S + gLand.S - Os, GM, R, lat, lon, ...
-        'quantity', 'ewh', 'kn', kn, 'nmin', 0);
+        'Quantity', 'ewh', 'kn', kn, 'Nmin', 0);
     EL(ocean) = 0;
     gLe = shCoefficients.analysis(EL, lat, lon, nmax, kn = kn, ...
         Quantity = "ewh");
     Lc = gLe.C; Ls = gLe.S;
     EO = shLowLevel.shSynthesis(gOc.C + gLand.C - Lc, ...
         gOc.S + gLand.S - Ls, GM, R, lat, lon, ...
-        'quantity', 'ewh', 'kn', kn, 'nmin', 0);
+        'Quantity', 'ewh', 'kn', kn, 'Nmin', 0);
     EO(~ocean) = 0;
     gOe = shCoefficients.analysis(EO, lat, lon, nmax, kn = kn, ...
         Quantity = "ewh");
@@ -2808,7 +2808,7 @@ m1 = shLowLevel.evalMask(idx, tri, oversample = 1);   % lowercase
 m2 = shLowLevel.evalMask(idx, tri, OverSample = 1);   % canonical
 verifyEqual(testCase, m1, m2);
 C = zeros(7); C(1, 1) = 1; S0 = zeros(7);
-g1 = shLowLevel.shSynthesis(C, S0, 1, 1, (0:5)', (0:5)', 'quantity', 'geoid');
+g1 = shLowLevel.shSynthesis(C, S0, 1, 1, (0:5)', (0:5)', 'Quantity', 'geoid');
 g2 = shLowLevel.shSynthesis(C, S0, 1, 1, (0:5)', (0:5)', 'Quantity', 'geoid');
 verifyEqual(testCase, g1, g2);
 end
@@ -2821,13 +2821,13 @@ function testQuantityNonePassthrough(testCase)
 C = zeros(7); C(1, 1) = 1; S0 = zeros(7);
 lat = (-60:30:60)'; lon = (0:60:300)';
 f = shLowLevel.shSynthesis(C, S0, 3.986e14, 6.378e6, lat, lon, ...
-    'quantity', 'none');
+    'Quantity', 'none');
 verifyEqual(testCase, f, ones(numel(lat), numel(lon)), AbsTol = 1e-12);
 k = shLowLevel.kernelFactors("none", 6, 3.986e14, 6.378e6);
 verifyEqual(testCase, k, ones(7, 1));
 % and no kn is required (would error for "ewh")
 verifyError(testCase, @() shLowLevel.kernelFactors("ewh", 6, 1, 1), ...
-    'shSynthesis:missingLoveNumbers');
+    'shLowLevel:kernelFactors:missingLoveNumbers');
 end
 
 function testHttpRetryDelaySchedule(testCase)
@@ -3646,7 +3646,7 @@ for q = ["none", "geoid", "potential", "gravity_anomaly", ...
     g = shLowLevel.shSynthesisGradient(C, S, GM, R, lat, lon, ...
         Quantity = q, kn = kn, Units = "perRadian");
     scal = @(la, lo) shLowLevel.shSynthesis(C, S, GM, R, la, lo, ...
-        'quantity', char(q), 'kn', kn);
+        'Quantity', char(q), 'kn', kn);
     d5 = @(f, x) (f(x - 2*rad2deg(h)) - 8*f(x - rad2deg(h)) ...
                 + 8*f(x + rad2deg(h)) - f(x + 2*rad2deg(h))) / (12*h);
     aN = 1e-8 * max(abs(g.north(:)));
@@ -3683,12 +3683,12 @@ for hgt = [0, 250e3]
     g = shLowLevel.shSynthesisGradient(C, S, GM, R, lat, lon, ...
         Quantity = "potential", Height = hgt);
     dg = shLowLevel.shSynthesis(C, S, GM, R, lat, lon, ...
-        'quantity', 'gravity_disturbance', 'Height', hgt);
+        'Quantity', 'gravity_disturbance', 'Height', hgt);
     verifyEqual(testCase, g.up, -dg, 'RelTol', 1e-12);
     g2 = shLowLevel.shSynthesisGradient(C, S, GM, R, lat, lon, ...
         Quantity = "gravity_disturbance", Height = hgt);
     trr = shLowLevel.shSynthesis(C, S, GM, R, lat, lon, ...
-        'quantity', 'gravity_gradient_rr', 'Height', hgt);
+        'Quantity', 'gravity_gradient_rr', 'Height', hgt);
     verifyEqual(testCase, g2.up, -trr, 'RelTol', 1e-12);
 end
 end
@@ -3965,7 +3965,7 @@ g = randomField(24);
 verifyEqual(testCase, Cf(:, 1:6), g.C(:, 1:6));
 verifyEqual(testCase, Sf(:, 1:6), g.S(:, 1:6));
 % and the boundary moves with the option
-[Cf2, Sf2] = shLowLevel.shDestripe(g.C, g.S, 'minOrder', 10);
+[Cf2, Sf2] = shLowLevel.shDestripe(g.C, g.S, 'MinOrder', 10);
 verifyEqual(testCase, Cf2(:, 1:10), g.C(:, 1:10));
 verifyEqual(testCase, Sf2(:, 1:10), g.S(:, 1:10));
 % the class method delegates here, so the two must agree bitwise
