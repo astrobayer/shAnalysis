@@ -55,16 +55,6 @@ HEADER = "machine,matlab,benchmark,median_s,min_s,samples,measured"
 # This list may only SHRINK. An entry here means the budget FILTERS rather
 # than asserts, so nothing is being guarded - it is debt, not a decision.
 NO_BASELINE = {
-    "legendre_n96": "awaiting the first A8 measurement",
-    "legendre_n360": "awaiting the first A8 measurement",
-    "legendre_n720": "awaiting the first A8 measurement",
-    "synthesis_direct_n60": "awaiting the first A8 measurement",
-    "synthesis_fft_n60": "awaiting the first A8 measurement",
-    "synthesis_points_n60": "awaiting the first A8 measurement",
-    "analysis_rings_n60": "awaiting the first A8 measurement",
-    "apply_ddk_n96": "awaiting the first A8 measurement",
-    "leakage_1iter_n24": "awaiting the first A8 measurement",
-    "kalman_step_p40": "awaiting the first A8 measurement",
 }
 
 _DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
