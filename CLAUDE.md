@@ -503,6 +503,23 @@ Original scope below.
 ## 6. Records
 
 ### 6.1 Decisions (append-only; date, decision, evidence)
+- 2026-09-09 — **The BETWEEN-run spread now exists, and it indicts one
+  benchmark rather than the factor.** Two A8 runs (`f6d5529` baseline,
+  `b70c947` second) give median ratios of **0.979-1.060 for the eight
+  workloads at 3 ms and above** — and **1.519 for `apply_ddk_n96`** at
+  1.8 ms. So 3x is not merely conservative for most of the set: a 1.3x
+  budget would already be safe for eight of ten, and would fail on
+  `apply_ddk_n96` for reasons that have nothing to do with the code.
+  The conclusion is NOT "tighten the factor" but "a 1.8 ms workload
+  cannot be budgeted": it must be enlarged until the timer stops
+  dominating, and its baseline re-measured. Two runs is still two
+  runs — this is a direction, not a settled number.
+- 2026-09-09 — **A queued self-hosted job is not an offline runner.**
+  `runAllTests (self-hosted)` sat QUEUED for 9 minutes at `b70c947`
+  while every earlier run that day started in seconds, and I reported
+  the runner as probably offline. It picked up at 09:45 and went green
+  at 09:50. A8 is a single-runner queue on someone's machine; latency
+  is normal. Do not retrigger, and do not diagnose from a wait.
 - 2026-09-09 — **A9 is DOWNGRADED, not closed, and the difference is
   the whole point.** The budgets assert now, which is real: a lost
   fast path or an accidental O(n^2) fails CI. But A9's own words are
@@ -827,7 +844,7 @@ Original scope below.
 | v5.0.0 (A21b) | ☑ 13 gates + mlint + make_demos + 11 self-test suites, 0 findings | ☑ **CI self-hosted (A8) at `631d524`, green — 305 runs, 301 passed, 0 failed, 4 filtered** (shared run with 5.0.1). **TWO red rounds first, both mine, both pin errors** — see the row below. | ☑ PR #99 | ◐ pending |
 | v5.0.1 (WP6 stage 3) | ☑ 13 gates + mlint + make_demos + 12 self-test suites, 0 findings; 50 hand-written pages -> 26, no entity lost COVERAGE | ☑ **CI self-hosted (A8) at `631d524`, green — 305 runs, 301 passed, 0 failed, 4 filtered**; the count prediction matched EXACTLY for the sixth release running. Round 1 (`2530e9f`) failed `testGravisChainsContract`: a pin mapped by call graph, not by which GUARD fires — `fromFolder` asserts `isfolder` (the temp folder EXISTS) then delegates to `read`. Round 2 (`f6481d7`) failed `testTN14IDs`: the pin-enumerating grep used `[A-Za-z]*` and `noC30` HAS DIGITS, so it was never rewritten — and the verification grep repeated the same character class. The new PINS rule closes the second shape. | ☑ PR #99 | ◐ pending |
 | v5.0.2 (WP2 step 1 harness) | ☑ 14 gates + mlint + make_demos + 13 self-test suites, 0 findings | ☑ **CI self-hosted (A8) at `f6d5529`, green — 315 runs, 301 passed, 0 failed, 14 filtered**; the prediction matched EXACTLY for the SEVENTH release running, per class as well as in total (Contract 74, Correctness 159, Performance 22, Robustness 53, Science 7), counts parsed from the 315-row results table. The 14 filtered were the 4 real-data fixtures plus all 10 budgets, exactly as designed — and this is the run that measured the baselines. First run, no red round. | ☑ PR #99 | ◐ pending |
-| v5.0.3 (WP2 step 1 baselines) | ☑ 14 gates + mlint + make_demos + 13 self-test suites, 0 findings; `NO_BASELINE` empty | ◐ pending — expect **315 runs, 301 passed, 4 filtered**: the budgets now ASSERT, so a filtered budget here would mean the machine label changed, and a FAILED one means either a real regression or a loaded runner. | ◐ pending | ◐ pending |
+| v5.0.3 (WP2 step 1 baselines) | ☑ 14 gates + mlint + make_demos + 13 self-test suites, 0 findings; `NO_BASELINE` empty | ☑ **CI self-hosted (A8) at `b70c947`, green — 315 runs, 311 passed, 0 failed, 4 filtered**; the EIGHTH exact count prediction running, per class as well as in total. All ten budgets PASSED (they filtered at `f6d5529`), and the only filtered are the four real-data fixtures. Triggered by `workflow_dispatch`, not a PR — #99 merged mid-session and `ci.yml` runs only on push-to-main, pull_request and workflow_dispatch. | ☐ no PR (#99 merged; not asked) | ☐ |
 
 **Tier A debt: DISCHARGED for all nine releases.** The local MATLAB
 bridge is gone, but the self-hosted runner A8 is not: `runAllTests
@@ -851,6 +868,12 @@ confirmation that the counter is right about a real run and not only
 about the source.
 
 ### 6.3 What the next session could be wrong for not reading
+- **The budget set has one member that cannot be budgeted.**
+  `apply_ddk_n96` runs in 1.8 ms and moved 1.519x between two runs of
+  the same commit on the same machine, while everything at 3 ms and
+  above stayed inside 0.979-1.060. Enlarge it (and re-measure its
+  baseline) before anyone reads its number as signal, and do not let
+  its noise set `BudgetFactor` for the other nine.
 - **A budget that asserts is not the same as a budget that catches
   what you care about.** The ten budgets are live (v5.0.3), and A9 is
   still open, because 3x does not catch A9's own 1.3x. Two different
@@ -1102,9 +1125,13 @@ committed and `NO_BASELINE` is empty. The budgets assert.
    the existing `testCorrectness` pins; acceptance is bitwise, or <= 4
    eps with the term named. B1 (packed Legendre) is the weaker candidate
    on this evidence — `legendre_n720` is 0.285 s.
-2. **Let two or three more A8 runs log their medians, then set
-   `BudgetFactor` from the between-run spread and close A9.** Nothing
-   needs to be built for this; it needs runs.
+2. **Two runs already point at the answer, and it is not the factor.**
+   Between-run medians: 0.979-1.060 for the eight workloads at 3 ms and
+   above, **1.519 for `apply_ddk_n96`** at 1.8 ms. So (a) enlarge
+   `apply_ddk_n96` until the timer stops dominating and re-measure its
+   baseline, then (b) with a couple more runs, a factor near 1.3 looks
+   defensible for the rest — which is the number A9 actually asks for.
+   Do NOT tighten while a 1.8 ms benchmark is in the set.
 3. **WP3/WP4/WP5/WP7 wait on Matthias's tick** (and, for some rows, on
    data — see above).
 
@@ -1134,5 +1161,8 @@ the first four releases green on A8 via CI — 4.0.0 at `5452938`:
 5.0.2 green on A8 at `f6d5529` via PR #99: 315 runs, 301 passed,
 0 failed, 14 filtered - the SEVENTH exact count prediction running,
 and the run that measured the ten speed baselines now committed in
-5.0.3. |
+5.0.3.
+5.0.3 green on A8 at `b70c947` by workflow_dispatch: 315 runs,
+311 passed, 0 failed, 4 filtered - the EIGHTH, and the first run in
+which all ten speed budgets ASSERT rather than filter. |
 Developed by Matthias Weigelt with the help of Claude.*
