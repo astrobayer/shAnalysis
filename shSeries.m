@@ -87,6 +87,15 @@ methods
         %     SigmaSs ([])  formal 1-sigma stack for Ss, same size
         %     History (string.empty(0,1))  initial processing history; every
         %         operation appends one line
+        %
+        %   Error identifiers
+        %     shSeries:badInput
+        %         the raw-stack form needs a square Cs, a matching Ss=, and one
+        %         Epochs= entry per layer
+        %     shSeries:constantsMismatch
+        %         GM or R differ between epochs of the series
+        %     shSeries:sizeMismatch
+        %         the epochs do not all share nmax - truncate first
         arguments
             in
             opts.Ss double = []
@@ -183,6 +192,10 @@ methods
         %
         %   Outputs
         %     g          (1 x 1) shCoefficients   month k with epoch and sigmas
+        %
+        %   Error identifiers
+        %     shSeries:badIndex
+        %         k exceeds nEpochs
         %
         arguments
             obj
@@ -287,6 +300,23 @@ methods
         %   Example
         %     gBase = ts.mean(Range = [2004 2010]);
         %     [gGap, info] = ts.mean(Range = [2015 2021], Estimator = "model");
+        %
+        %   Error identifiers
+        %     shSeries:badRange
+        %         Range= is not [t1 t2] with t2 > t1 (decimal years or datetime)
+        %     shSeries:emptyRange
+        %         no epoch falls inside Range=
+        %     shSeries:nanInSeries
+        %         Estimator="model" on stacks that carry NaN - fill or drop the gap
+        %         epochs first (raised by assertClean)
+        %     shSeries:noEpoch
+        %         Estimator="model" needs a finite epoch on every entry
+        %     shSeries:sparseWindow
+        %         warning - Estimator="model" and the window is less than half
+        %         covered by epochs
+        %     shSeries:tooFewEpochs
+        %         the window holds fewer than MinEpochs epochs, or fewer than the
+        %         deterministic model has parameters
         %
         %   See also select, climatology, at
         arguments
@@ -432,6 +462,15 @@ methods
         %     clim       (1 x 1) shClimatology   fitted bias/trend/annual/semiannual (+Periods=) with coefficient sigmas
         %     resid      (1 x 1) shSeries   residual series about the fit
         %
+        %   Error identifiers
+        %     shSeries:nanInSeries
+        %         the stacks carry NaN - fill or drop the gap epochs first (raised
+        %         by assertClean)
+        %     shSeries:noEpoch
+        %         climatology needs a finite epoch on every entry
+        %     shSeries:tooFewEpochs
+        %         fewer epochs than the climatology model has parameters
+        %
         arguments
             obj
             opts.Robust (1,1) logical = false
@@ -515,6 +554,10 @@ methods
         %                              p-value per cosine coefficient
         %          FS, pValueS         (n1 x n1) double  the same for the
         %                              sine coefficients
+        %
+        %   Error identifiers
+        %     shSeries:noBreaks
+        %         Breaks= is empty; trendBreaks needs at least one break epoch
         %
         arguments
             obj
@@ -699,6 +742,16 @@ methods
         %     ts = ts.removeAlias();                   % S2, 100 deg offset
         %     ts = ts.removeAlias(SplitEpoch = 2018.4);
         %
+        %   Error identifiers
+        %     shSeries:nanInSeries
+        %         the stacks carry NaN - fill or drop the gap epochs first (raised
+        %         by assertClean)
+        %     shSeries:noEpoch
+        %         removeAlias needs a finite epoch on every entry
+        %     shSeries:removeAlias:tooShort
+        %         the series is too short, too sparse or rank deficient to separate
+        %         the alias period from the seasonal terms
+        %
         %   See also shSeries.climatology, shLowLevel.standardChain.
         %
         %   Developed by Matthias Weigelt with the help of Claude
@@ -853,6 +906,13 @@ methods
         %   Outputs
         %     out        (1 x 1) shSeries   background model added back epoch-matched (e.g. GSM + GAD)
         %
+        %   Error identifiers
+        %     shSeries:epochMismatch
+        %         no GAX epoch lies within Tolerance of a series epoch and
+        %         AllowMissing is false
+        %     shSeries:sizeMismatch
+        %         nmax differs from the GAX field - truncate first
+        %
         arguments
             obj
             gax (1,1) shSeries
@@ -891,6 +951,14 @@ methods
         %     b  (1,1) shSeries or shCoefficients  subtrahend (epoch-wise for series)
         %   Outputs
         %     out        (1 x 1) shSeries   per-month difference (series or single field)
+        %
+        %   Error identifiers
+        %     shSeries:badInput
+        %         the right operand is neither an shCoefficients nor an shSeries
+        %     shSeries:epochMismatch
+        %         series minus series needs matching epoch sets
+        %     shSeries:sizeMismatch
+        %         the operands differ in nmax
         %
         if isa(b, 'shCoefficients')
             if a.nmax ~= b.nmax
@@ -935,6 +1003,11 @@ methods
         %         moving window instead (WindowLength=6 with PolyOrder=3 is
         %         the common "P3M6" variant)
         %
+        %   Error identifiers
+        %     shSeries:nanInSeries
+        %         the stacks carry NaN - fill or drop the gap epochs first (raised
+        %         by assertClean)
+        %
         arguments
             obj
             opts.MinOrder (1,1) double = 6
@@ -960,6 +1033,11 @@ methods
         %   Outputs
         %     out        (1 x 1) shSeries   Gaussian-smoothed per month
         %
+        %   Error identifiers
+        %     shSeries:nanInSeries
+        %         the stacks carry NaN - fill or drop the gap epochs first (raised
+        %         by assertClean)
+        %
         arguments
             obj
             radiusKm (1,1) double {mustBePositive}
@@ -983,6 +1061,10 @@ methods
         %     nmaxNew  (1,1) double  new maximum degree (must not exceed the current nmax)
         %   Outputs
         %     out        (1 x 1) shSeries   truncated per month
+        %
+        %   Error identifiers
+        %     shSeries:badTruncation
+        %         the requested nmax exceeds the series' own
         %
         arguments
             obj
@@ -1058,6 +1140,16 @@ methods
         %   Example
         %     tsFO = ts.select(ts.epochs > 2018.5);
         %     tsB  = ts.select(Range = [2004 2010]);
+        %
+        %   Error identifiers
+        %     shSeries:ambiguousRange
+        %         warning - a two-element WHICH was read as INDICES although both
+        %         values also fall inside the epoch span; pass Range= to mean years
+        %     shSeries:badInput
+        %         WHICH and Range= were both given, a logical mask has the wrong
+        %         length, indices are not integers in 1..nEpochs, or neither was given
+        %     shSeries:badRange
+        %         Range= is not [t1 t2] with t2 > t1 (decimal years or datetime)
         %
         %   See also mean, dropNaN
         arguments
@@ -1166,6 +1258,13 @@ methods
         %                diagnostics, as returned by
         %                shLowLevel.tvANSFilter
         %
+        %   Error identifiers
+        %     shSeries:nanInSeries
+        %         the stacks carry NaN - fill or drop the gap epochs first (raised
+        %         by assertClean)
+        %     shSeries:noEpoch
+        %         filter needs a finite epoch on every entry
+        %
         arguments
             obj
             method (1,1) string {mustBeMember(method, "tvANS")} %#ok<INUSA>
@@ -1256,6 +1355,12 @@ methods
         %     Ridge (0)  Tikhonov ridge added to the deconvolution normal
         %         matrix; raise it when the kernel matrix is ill-conditioned
         %         (out.condA reports the condition number)
+        %
+        %   Error identifiers
+        %     shSeries:badBasis
+        %         B is not P x K in shLowLevel.shIndex ordering for this nmax
+        %     shSeries:missingOp
+        %         Deconvolve=true without Op= from ts.filter("tvANS", ...)
         arguments
             obj
             B double
@@ -1331,6 +1436,13 @@ methods
         %   Example
         %     b = ts.toGrid(-89.5:89.5, 0.5:359.5, Quantity = "ewh", kn = kn);
         %     size(b.Z)        % [180 360 nEpochs]
+        %
+        %   Error identifiers
+        %     shSeries:toGrid:empty
+        %         the series has no epochs
+        %     shSeries:toGrid:tooLarge
+        %         the grid stack would exceed MaxMemGB; raise it or grid fewer
+        %         epochs
         arguments
             obj
             latDeg (1,:) double
@@ -1419,6 +1531,10 @@ methods (Static)
         %   Options
         %     Truncate (NaN)  truncate every field to this nmax while
         %         reading (NaN: keep the file resolution)
+        %
+        %   Error identifiers
+        %     shSeries:noFiles
+        %         the pattern matched no file, or matched only provenance sidecars
         arguments
             files
             opts.Truncate (1,1) double = NaN
@@ -1463,6 +1579,10 @@ methods (Static)
         %   solutions into tests/test_data/itsg_series on demand.
         %   Outputs
         %     obj        (1 x 1) shSeries   all gfc(.gz) files of a folder, epoch-sorted
+        %
+        %   Error identifiers
+        %     shSeries:noFiles
+        %         FOLDER is not a folder
         %
         arguments
             folder (1,1) string

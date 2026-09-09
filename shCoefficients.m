@@ -97,6 +97,11 @@ methods
         %     History (string.empty(0,1))  initial processing history; every
         %         operation appends one line
         %
+        %   Error identifiers
+        %     shCoefficients:badInput
+        %         C and S are not square matrices of equal size, or SigmaC=/SigmaS=
+        %         do not match the size of C/S
+        %
         arguments
             C double = 0
             S double = 0
@@ -151,6 +156,19 @@ methods
         %   Outputs
         %     out        (1 x 1) shCoefficients   sum; sigmas RSS; epochs must match
         %
+        %   Error identifiers
+        %     shCoefficients:badInput
+        %         the other operand is not an shCoefficients (raised by checkPair)
+        %     shCoefficients:constantsMismatch
+        %         the operands differ in GM or R - convert first with
+        %         toReference(GM=..., R=...) (checkPair)
+        %     shCoefficients:epochMismatch
+        %         the operand epochs differ by more than 0.02 yr (checkEpochs).
+        %         minus does NOT raise this: a difference has no single epoch, so it
+        %         sets epoch = NaN instead of checking
+        %     shCoefficients:sizeMismatch
+        %         the operands differ in nmax - truncate first (checkPair)
+        %
         [a, b] = shCoefficients.checkPair(a, b, 'plus');
         shCoefficients.checkEpochs(a, b, 0.02, 'plus');
         out = a.combine(b, +1, ...
@@ -165,6 +183,15 @@ methods
         %     a  (1,1) shCoefficients  left operand
         %   Outputs
         %     out        (1 x 1) shCoefficients   difference; sigmas RSS
+        %
+        %   Error identifiers
+        %     shCoefficients:badInput
+        %         the other operand is not an shCoefficients (raised by checkPair)
+        %     shCoefficients:constantsMismatch
+        %         the operands differ in GM or R - convert first with
+        %         toReference(GM=..., R=...) (checkPair)
+        %     shCoefficients:sizeMismatch
+        %         the operands differ in nmax - truncate first (checkPair)
         %
         [a, b] = shCoefficients.checkPair(a, b, 'minus');
         out = a.combine(b, -1, "difference");
@@ -192,6 +219,11 @@ methods
         %     b  (1,1) double or shCoefficients  scalar factor (either side) - fields cannot be multiplied
         %   Outputs
         %     out        (1 x 1) shCoefficients   scalar-scaled; sigmas scale by |a|
+        %
+        %   Error identifiers
+        %     shCoefficients:badInput
+        %         mtimes takes a scalar on one side and an shCoefficients on the
+        %         other; two coefficient fields cannot be multiplied
         %
         if isa(a, 'shCoefficients') && isnumeric(b) && isscalar(b)
             out = a; f = b;
@@ -236,6 +268,11 @@ methods
         %   Outputs
         %     out        (1 x 1) shCoefficients   elementwise-scaled coefficients
         %
+        %   Error identifiers
+        %     shCoefficients:badInput
+        %         times takes a numeric factor and an shCoefficients, and the factor
+        %         must be scalar or the size of C
+        %
         if isa(a, 'shCoefficients') && isnumeric(b)
             out = a; f = b;
         elseif isa(b, 'shCoefficients') && isnumeric(a)
@@ -268,6 +305,11 @@ methods
         %   Outputs
         %     out        (1 x 1) shCoefficients   truncated to the new nmax
         %
+        %   Error identifiers
+        %     shCoefficients:badTruncation
+        %         the requested nmax exceeds the field's own - truncate cannot invent
+        %         degrees
+        %
         arguments
             obj
             nmaxNew (1,1) double {mustBeInteger, mustBeNonnegative}
@@ -297,6 +339,10 @@ methods
         %     SigmaC (NaN)  formal 1-sigma for the coefficient being set
         %         (NaN leaves the existing sigma untouched)
         %     SigmaS (NaN)  same for the sine coefficient
+        %
+        %   Error identifiers
+        %     shCoefficients:badIndex
+        %         (n,m) lies outside the triangle: n > nmax, or m > n
         %
         arguments
             obj
@@ -338,6 +384,16 @@ methods
         %   non-NaN C30 for that month), "never", "always".
         %   Outputs
         %     out        (1 x 1) shCoefficients   C20 (and C30 when available) replaced by the SLR values, sigmas updated
+        %
+        %   Error identifiers
+        %     shCoefficients:epochNotInTable
+        %         no TN-14 entry lies within Tolerance of the object's epoch
+        %     shCoefficients:noC30
+        %         ReplaceC30="always" was asked for but TN-14 carries no C30 for
+        %         that month
+        %     shCoefficients:noEpoch
+        %         the object has no finite epoch; set one through read or the
+        %         constructor
         %
         arguments
             obj
@@ -387,6 +443,15 @@ methods
         %   Outputs  out  shCoefficients with degree 1 set
         %   Outputs
         %     out        (1 x 1) shCoefficients   degree-1 row set from the TN-13 record nearest to obj.epoch
+        %
+        %   Error identifiers
+        %     shCoefficients:badIndex
+        %         the model has nmax < 1 and cannot hold degree-1 coefficients
+        %     shCoefficients:epochNotInTable
+        %         no TN-13 entry lies within Tolerance of the object's epoch
+        %     shCoefficients:noEpoch
+        %         the object has no finite epoch; set one through read or the
+        %         constructor
         %
         arguments
             obj
@@ -506,6 +571,11 @@ methods
         %   Options
         %     Nmin (2)  first degree searched for the signal/error crossover
         %             (renamed from N0 in v4.0.0)
+        %
+        %   Error identifiers
+        %     shCoefficients:noSigmas
+        %         the field carries no formal errors (sigmaC/sigmaS), which the
+        %         crossover degree is defined against
         arguments
             obj
             opts.Nmin (1,1) double = 2
@@ -1126,6 +1196,10 @@ methods
         %VEC Pack into a coefficient vector in shLowLevel.shIndex ordering.
         %   Outputs
         %     x          (P x 1) double   coefficients in idx ordering
+        %
+        %   Error identifiers
+        %     shCoefficients:badIndex
+        %         idx.Lmax exceeds the field's nmax
         %
         arguments
             obj

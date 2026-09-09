@@ -17,9 +17,7 @@
 <p>G = ts.mean() averages every epoch and returns an <a href="shCoefficients.html"><code>shCoefficients</code></a> whose sigmas are the standard error of the temporal scatter, divided by the number of VALID epochs per coefficient (before v3.29.0 it divided by nEpochs, which understated the sigmas of any series holding NaN months).</p>
 <h2>Examples</h2>
 <details class="example"><summary>From the help block</summary><div><pre><code>    gBase = ts.mean(Range = [2004 2010]);
-    [gGap, info] = ts.mean(Range = [2015 2021], Estimator = &quot;model&quot;);
-
-  See also select, climatology, at</code></pre></div></details><details class="example"><summary>Runnable (docs/apiExamples.json)</summary><div><pre><code>gM = ts.mean;                          % NaN-month tolerant</code></pre></div></details>
+    [gGap, info] = ts.mean(Range = [2015 2021], Estimator = &quot;model&quot;);</code></pre></div></details><details class="example"><summary>Runnable (docs/apiExamples.json)</summary><div><pre><code>gM = ts.mean;                          % NaN-month tolerant</code></pre></div></details>
 <h2>Input Arguments</h2>
 <table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td><code>required</code></td><td class="desc">the object the method is called on</td></tr></table>
 <h2>Name-Value Arguments</h2>
@@ -27,12 +25,12 @@
 <h2>Output Arguments</h2>
 <table><tr><th>Name</th><th>Description</th></tr><tr><td><code>g</code></td><td class="desc">(1 x 1) <a href="shCoefficients.html"><code>shCoefficients</code></a>   mean field over the window, with sigmas (scatter-based for &quot;arithmetic&quot;, propagated through the fit for &quot;model&quot;)</td></tr><tr><td><code>info</code></td><td class="desc">(1,1) struct   fields estimator       (1,1) string   which estimator ran range           (1,2) double   the window requested nUsed           (1,1) double   epochs that contributed nTotal          (1,1) double   epochs in the series nDropped        (1,1) double   epochs dropped as empty span            (1,2) double   first and last epoch used coverage        (1,1) double   used*dt / window length, capped at 1; NaN below two epochs maxGapYears     (1,1) double   largest gap between two used epochs; NaN below two epochs centroidOffset  (1,1) double   mean(used) minus the window centre - how lopsided the sample is epoch           (1,1) double   the epoch stamped on the returned field attenuation     (K+2 x 2) double  [period factor]; Estimator=&quot;model&quot; only</td></tr></table>
 <h2>Error Identifiers</h2>
-<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<table><tr><th>Identifier</th><th>Raised when</th></tr><tr><td><code>shSeries:badRange</code></td><td class="desc">Range= is not [t1 t2] with t2 &gt; t1 (decimal years or datetime)</td></tr><tr><td><code>shSeries:emptyRange</code></td><td class="desc">no epoch falls inside Range=</td></tr><tr><td><code>shSeries:nanInSeries</code></td><td class="desc">Estimator=&quot;model&quot; on stacks that carry NaN - fill or drop the gap epochs first (raised by assertClean)</td></tr><tr><td><code>shSeries:noEpoch</code></td><td class="desc">Estimator=&quot;model&quot; needs a finite epoch on every entry</td></tr><tr><td><code>shSeries:sparseWindow</code></td><td class="desc">warning - Estimator=&quot;model&quot; and the window is less than half covered by epochs</td></tr><tr><td><code>shSeries:tooFewEpochs</code></td><td class="desc">the window holds fewer than MinEpochs epochs, or fewer than the deterministic model has parameters</td></tr></table>
 <h2>Version History</h2>
 <p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
 <h2>See Also</h2>
 <ul class="seealso"><li><a href="shCoefficients.html"><code>shCoefficients</code></a></li></ul>
-<p class="prov">shAnalysis v4.0.2 (09-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+<p class="prov">shAnalysis v4.0.3 (09-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
 </div>
 </body>
 </html>

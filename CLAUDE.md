@@ -26,7 +26,7 @@ says whether it was *read* or *inferred*.
 | Version | **4.0.0**, 09-Sep-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
 | Branches | `main` only; `claude/getframe-recapture` and `claude/readshm` are gone (merged/deleted) | `GET /branches` |
 | Public surface | 3 classes / 71 methods, 122 `+shLowLevel` functions (+4 private), 3 root functions | `tools/dev/api_extract.py` run in sandbox |
-| Tests | 5 classes, **303 methods / 304 runs**: Correctness 159, Contract 73, Robustness 53, Science 7, Performance 11 methods (12 runs, `nmaxP` x2). 4 filter out without the optional real-data fixtures. The counter has now matched the runner exactly on two consecutive releases. | `python3 tools/dev/count_tests.py` |
+| Tests | 5 classes, **304 methods / 305 runs**: Correctness 159, Contract 74, Robustness 53, Science 7, Performance 11 methods (12 runs, `nmaxP` x2). 4 filter out without the optional real-data fixtures. The counter has matched the runner EXACTLY on the last four green A8 runs (269, 301, 304, 304); the one time it did not was A16, before it existed. | `python3 tools/dev/count_tests.py` |
 | Python oracles | 16 `tools/dev/validate_*.py` + `tools/audit/*` | listing |
 | Docs | 50 hand-written `html/*.html` + **200 generated `html/ref/*.html`** (one per entity + index, `make_refpages.py`), one shared `html/shAnalysis.css`, `helptoc.xml`, `info.xml`, guide PDF, generated `html/apiReference.html`. `docs/` holds the PDF and `apiExamples.json` only - no HTML page lives outside `html/` (gated). | listing |
 | CI | `gates` job on ubuntu (help_audit, doc_sync_audit, no_map_renderer, toolbox_dependency_audit, nv_casing_audit, fixture_tag_audit, gate self-tests `tools/tests/`, `count_tests`, `name_coverage`, `error_id_audit`, `refpages_audit`, `make_demos --check`) + `runAllTests (self-hosted)` on A8/R2026a; fixtures from tag `fixtures-2026-08` | `.github/workflows/ci.yml` |
@@ -180,7 +180,8 @@ do not see; **L** = polish.
 | A18 | M | **CLOSED v3.34.1** — A10's blind spot was not only the package: **22 public class methods** were named by no test either — every operator (`plus`, `minus`, `uminus`, `mtimes`, `times`), `disp` on all three classes, `compare`, `fan`, `spectrum`, `triangle`, and eight `shClimatology` methods. Operators were deliberately NOT allowlisted: they are callable by name, and a test checking `plus(a,b)` against `a + b` is stronger than one checking either alone. | `python3 tools/dev/name_coverage.py` |
 | A19 | M | **CLOSED v4.0.1** — `tools/dev/option_values_audit.py` reads `api_data.py`, where each option already carries its OWN `allowed` set and its OWN help row, so the scoping problem that made the grep useless disappears. The rule is deliberately narrow: only a row's LEADING ALTERNATIVES RUN (pipe-separated quoted values, the house way of writing the choices) is compared against `mustBeMember`; a row without one documents prose and is not checked. 42 of the 61 restricted options carry such a run. Verified against the historical defect: fed `opApply`'s pre-v3.34.1 row it fires, fed the fixed row it is silent, and it stays silent on the three shapes that made the naive version lie — another option's value quoted in prose, a parenthetical inside the run, and a numeric member list. **A false finding was nearly recorded here**: a probe of mine reported `readLoveNumbers`' allowed set as `[', ']`, which looked like an extractor bug; it was my own regex matching the gap between `""` and `"CE"`. The stored value was correct all along. Original finding: | `opApply`'s help offered `mode` values `'apply' | 'applyT'` that the arguments block rejects (`'forward' | 'transp'`) — the same help block's syntax lines had it right. Fixed and pinned in v3.34.1, found while writing the A10 test, not by any gate. **The general check is not built**: a crude scan (any quoted word on a comment line naming the option) produced 25 hits of which 24 were false positives — output-field docs, prose, and the wrong method's options in a class file. A correct gate must scope each help row to its OWN arguments block; `api_data.py` already carries exactly that pairing (`args[].validators` + `args[].desc`), so the instrument is cheap — it just has to be written against the scoped data, not by grepping. | `grep -n "mustBeMember" +shLowLevel/*.m` |
 | A20 | M | **CLOSED v4.0.2** — and the recorded count was wrong: the backlog held **208** identifiers, not 165; nobody had measured it. All 61 files carry an `Error identifiers` block written against the raise site and its guard, the writer refusing any file whose documented set was not exactly the set the file raises. `UNDOCUMENTED` is drained to empty, so the DOCUMENTED rule holds with no exemption, and the gate now reads the root functions too. Two things surfaced that the finding did not name: `demo_shAnalysis` raises `demo:unknownCase` as well as `demo:casesFailed` (both now `shAnalysis:demo:*`, a PATCH — neither was documented anywhere), and `setup_shAnalysis` BUILDS five identifiers at runtime (`"shAnalysis:setup:no" + locs(li,1)`) that no scan of the file can name. Read as a literal that invents `shAnalysis:setup:no`, which nothing raises — which is exactly what the extended gate reported first. A concatenated literal is now a PREFIX: the help must document at least one identifier under it, because the gate cannot enumerate them. | `python3 tools/error_id_audit.py` |
-| A21 | M | **OPEN, measured.** The three CLASS files are outside every gate: `shCoefficients`, `shSeries` and `shClimatology` raise **32** identifiers between them and carry **no** `Error identifiers` section at all. Worse than the count: **29 of the 32 are two-part** (`shSeries:badInput`, `shCoefficients:sizeMismatch`), so a caller cannot tell which of the 35 methods raised — only three (`shSeries:removeAlias:tooShort`, `shSeries:toGrid:empty`, `shSeries:toGrid:tooLarge`) name their method. `error_id_audit.py` does not read them and SAYS SO in its own last line rather than implying a reach it does not have. Closing this needs a per-method owner rule — a different instrument, not a wider loop — and renaming 29 documented-by-test identifiers is a MAJOR change. | `python3 -c` over the three class files, 2026-09-09 |
+| A21a | M | **CLOSED v4.0.3** — 31 public methods across the three classes document every identifier they can raise. A class needed a different instrument, not a wider loop: identifiers belong to METHODS, and four of them are raised by PRIVATE helpers (`checkPair`, `checkEpochs`, `assertClean`, `rangeToYears`) where `help` cannot reach. The rule follows REACHABILITY, one hop — a public method documents what it raises plus what the private helpers it calls raise — and the one-hop depth is CHECKED, not assumed: a private helper calling another makes the gate say the rule has gone too shallow. The map caught a distinction prose would have blurred: `plus` calls `checkEpochs`, `minus` does not (a difference has no single epoch, so it sets `epoch = NaN`). Nine fault injections, both directions. | `python3 tools/error_id_audit.py` |
+| A21b | M | **OPEN, backlogged.** 29 of the 32 class identifiers are two-part (`shSeries:badInput`), so a caller cannot tell which of the 35 methods raised; only `shSeries:removeAlias:tooShort`, `shSeries:toGrid:empty` and `shSeries:toGrid:tooLarge` name their method. Making the rest three-part is MAJOR — `testContract` pins the current names — so they sit in `TWO_PART_OK`, a set that may only shrink and whose size the gate prints every run. A two-part identifier NOT in that set is a new defect and fails. This is the A20 pattern: a named, measured, shrinking list beats a paragraph saying 'someday'. | `python3 tools/error_id_audit.py --list` |
 | A15 | M | **CLOSED v4.0.0** with A3 — `kernelFactors`, `shSynthesisGradient` and `seaLevelFingerprint` now own their identifiers, and the tests that pinned the old names were remapped per raising file (the same old id mapped to two different owners, so a global replace would have been wrong). Original finding: A3 is **wider than the audit's 12**: `kernelFactors` (`shSynthesis:missingLoveNumbers`, `:badQuantity`, `:heightInvalid`), `shSynthesisGradient` (`shSynthesis:badInput`) and `seaLevelFingerprint` (`shSynthesis:missingLoveNumbers`) also raise identifiers they do not own. Unlike `shSynthesisDeformation`'s, these ARE documented and pinned by `testContract`/`testCorrectness`, so renaming them is a MAJOR change. Belongs in WP1's identifier sweep, not in a patch. | `grep -rn "shSynthesis:" --include=*.m` |
 | A14 | M | **CLOSED v3.33.1** — the three gate self-tests in `tools/tests/` (committed in v3.32/v3.33) were **never run by CI**, and `test_legacy_name_tolerated` had been broken since the v3.33.0 sweep drained `LEGACY` to empty — an untested instrument, silently. CI now runs `tools/tests/`; the stale test asserts the mechanism with a temporary entry instead of pinning a member name. | `.github/workflows/ci.yml` before/after |
 | A13 | L | **CLOSED v3.34.0** — the km conversion is the `RadiusKm` option, default unchanged at 6371 so no number moves, documented as the MEAN radius (deliberately not the coefficients' reference radius 6378.1363 km) and overridable. Pinned by `testResolutionMapRadiusIsAChoice`, a metamorphic test: the angular half-widths are radius-invariant, every km figure scales exactly with it, and `anisotropy` — a ratio — does not. That test also removes `resolutionMap` from A10's never-named list. | `+shLowLevel/resolutionMap.m` |
@@ -461,6 +462,30 @@ Original scope below.
 ## 6. Records
 
 ### 6.1 Decisions (append-only; date, decision, evidence)
+- 2026-09-09 — **A21 was split, and only the documentation half shipped.**
+  A21a (document what the classes raise, per method) is a PATCH and is
+  done. A21b (make the 29 two-part identifiers three-part) is MAJOR
+  because `testContract` pins the current names, so it is a backlog with
+  a gate behind it, not a promise: `TWO_PART_OK` may only shrink, and a
+  two-part identifier outside it fails the gate today.
+- 2026-09-09 — **The class rule follows REACHABILITY, not the raise
+  site.** Documenting `shSeries:nanInSeries` only in `assertClean` would
+  put it where `help` cannot reach — the helper is private. So each
+  public method documents what it raises plus what the private helpers it
+  calls raise, one hop. One hop is enough for this repository and the
+  gate CHECKS that rather than assuming it: a private helper calling
+  another private helper is reported as "the rule has become too
+  shallow". An instrument that states the limit of its own rule is worth
+  more than one that happens to be right.
+- 2026-09-09 — **`minus` does not check epochs, and now says so.**
+  Deriving the reachability map from the source turned up a real
+  behavioural distinction: `shCoefficients.plus` calls `checkEpochs`,
+  `minus` deliberately does not, because a difference between two months
+  has no single epoch (it sets `epoch = NaN`). `testPairCheckIDs` pinned
+  the `plus` half only, so a stray `checkEpochs` call added to `minus`
+  would have passed every test. Both halves are pinned now. A derived map
+  is worth more than a hand-written list precisely because it finds the
+  asymmetries a human would smooth over.
 - 2026-09-09 — **The writer put twelve blocks in the wrong place and no
   gate saw it.** The first anchor was the FIRST provenance line, but
   `readDDK` and eleven others carry a `Claude (...)` credit line in the
@@ -646,6 +671,7 @@ Original scope below.
 | v3.34.1 (A10, A17, A18, A19-partial) | ☑ 13 gates + 8 self-test suites + mlint, 0 findings | ☑ **CI self-hosted (A8) at `7c8cb4c`, green — 301 runs, 297 passed, 0 failed, 4 filtered**; the `count_tests.py` prediction matched EXACTLY, and all 32 new tests pass. First run (`0ab29b5`) also executed 301 but had 1 failure — `testCompareDelegatesToCompareSolutions` gave `compareSeries` 8 epochs where it needs >= 12 common ones. | ☑ PR #95 | ☑ 2026-09-09 |
 | v4.0.1 (A19) | ☑ 13 gates + mlint + make_demos + 11 self-test suites, 0 findings | ☑ **CI self-hosted (A8) at `0b4fb3b`, green — 304 runs, 300 passed, 0 failed, 4 filtered** (shared run with 4.0.2; both releases are on the one head) | ☑ PR #97 | ◐ pending |
 | v4.0.2 (A20; A21 opened) | ☑ 13 gates + mlint + make_demos + 11 self-test suites, 0 findings; `count_tests.py` predicts 303 methods / 304 runs, unchanged (the two `testContract` pins changed an identifier STRING, not a method count) | ☑ **CI self-hosted (A8) at `0b4fb3b`, green — 304 runs, 300 passed, 0 failed, 4 filtered**; the prediction matched EXACTLY for the fourth release running, per class as well as in total (Contract 73, Correctness 159, Performance 12 runs, Robustness 53, Science 7). First run, no red round. | ☑ PR #97 | ◐ pending |
+| v4.0.3 (A21a; A21b opened) | ☑ 13 gates + mlint + make_demos + 11 self-test suites, 0 findings | ◐ awaiting the A8 run | ◐ no PR yet | ◐ pending |
 
 **Tier A debt: DISCHARGED for all six releases.** The local MATLAB
 bridge is gone, but the self-hosted runner A8 is not: `runAllTests
@@ -666,6 +692,18 @@ confirmation that the counter is right about a real run and not only
 about the source.
 
 ### 6.3 What the next session could be wrong for not reading
+- **One constant must answer one question.** `CLASS_FILES` was both the
+  list the CLASS pass reads AND the skip-list keeping class files out of
+  the root-function pass. A self-test that emptied it to focus on the
+  package silently re-admitted `shSeries.m` as a ROOT function owning
+  `shAnalysis:shSeries:*`, and the suite went red for a reason unrelated
+  to what it tested. Same shape as A17. When a name serves two purposes,
+  split it before the two purposes drift.
+- **Pin the half that is NOT true as well as the half that is.**
+  `testPairCheckIDs` proved `plus` raises `epochMismatch`; nothing proved
+  `minus` does not, so adding an epoch check to `minus` would have been
+  invisible. When documenting a deliberate asymmetry, test both sides of
+  it.
 - **An identifier can be BUILT, and then no scan can name it.**
   `setup_shAnalysis` raises `"shAnalysis:setup:no" + locs(li, 1)` for
   five option names. Every static instrument here — grep, the gate, the
@@ -786,17 +824,16 @@ Done and on PR #95: WP0, WP6 stages 1-2, and findings A1, A3 (partial),
 A4, A5, A6, A7, A8, A10, A11, A12, A13, A14, A16, A17, A18 closed;
 A19 partially.
 
-**Four releases are merged to `main` (PR #95 and #96); 4.0.1 and 4.0.2
-are on the branch and not yet on a PR.** Seventeen of the twenty-one
-audit findings are closed (A19 in 4.0.1, A20 in 4.0.2; A21 is new and
-open). Remaining Tier-B work:
+**Six releases are merged to `main` (PR #95, #96, #97); 4.0.3 is on the
+branch and not yet on a PR.** Eighteen of the twenty-two audit findings
+are closed (A19 in 4.0.1, A20 in 4.0.2, A21a in 4.0.3). Remaining
+Tier-B work:
 
-1. **A21** — the three class files. 32 identifiers, no `Error
-   identifiers` section, 29 of them two-part so the raising method
-   cannot be recovered from the identifier. Needs a per-METHOD owner
-   rule in `error_id_audit.py`, and the rename half is MAJOR because
-   `testContract` pins the current names — so it is two rows, not one:
-   the documentation sweep is a PATCH and can go first.
+1. **A21b** — make the 29 two-part class identifiers three-part
+   (`shSeries:badInput` -> `shSeries:select:badInput`). MAJOR, because
+   `testContract` pins the current names; the gate already refuses any
+   NEW two-part identifier, so the backlog can only shrink. Needs a
+   version decision (5.0.0) before it starts.
 2. **WP6 stage 3** — retiring the narrative pages a generated page
    supersedes; needs a decision on what `doc_sync_audit`'s COVERAGE check
    should mean afterwards. (Note A17 made this sharper: `gridHandover` is
@@ -809,10 +846,8 @@ Python oracle, and CI runs exactly that. They wait on approval only.
 WP2 step 1 (the budget harness and A8 baselines) is likewise reachable
 through CI; only its two-machine calibration needs the bridge.
 
-**PR #97 carries both releases** (opened 2026-09-09 at `0b4fb3b`) and is
-GREEN on both jobs: `gates` and `runAllTests (self-hosted)` — 304 runs,
-300 passed, 0 failed, 4 filtered, first try. Tier A debt discharged for
-4.0.1 and 4.0.2; only the merge is outstanding, which is Matthias's.
+**4.0.3 has no PR, so CI has not run on it.** The prediction to check
+against the runner is **304 methods / 305 runs**.
 
 To re-run the gates and the prediction from a fresh sandbox:
 ```
@@ -825,11 +860,12 @@ pip install reportlab matplotlib && \
 ---
 *shAnalysis v3.33.0 audited | 2026-09-08 18:30 UTC | Claude Fable 5.1 |
 WP0 (v3.33.1), A7/A8/A12/A13/A14/A16 + WP6.1-2 (v3.34.0),
-A10/A17/A18 (v3.34.1), WP1/A2/A3/A15 (v4.0.0), A19 (v4.0.1)
-and A20 (v4.0.2, A21 opened) |
+A10/A17/A18 (v3.34.1), WP1/A2/A3/A15 (v4.0.0), A19 (v4.0.1),
+A20 (v4.0.2) and A21a (v4.0.3, A21b backlogged) |
 2026-09-08..09 | Claude Opus 5 |
 the first four releases green on A8 via CI — 4.0.0 at `5452938`:
 304 runs, 300 passed, 0 failed, 4 filtered.
 4.0.1 and 4.0.2 green on A8 at `0b4fb3b` via PR #97: 304 runs,
-300 passed, 0 failed, 4 filtered, no red round. |
+300 passed, 0 failed, 4 filtered, no red round.
+4.0.3 is static-gate green only; no PR, so no CI run yet. |
 Developed by Matthias Weigelt with the help of Claude.*

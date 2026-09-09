@@ -204,6 +204,10 @@ methods
         %     gc         (1 x 1) shCoefficients   cosine component of the k-th extra period
         %     gs         (1 x 1) shCoefficients   sine component
         %
+        %   Error identifiers
+        %     shClimatology:badIndex
+        %         k exceeds the number of stored extra periods
+        %
         arguments
             obj
             k (1,1) double {mustBeInteger, mustBePositive}
@@ -234,6 +238,10 @@ methods
         %     lat        (1 x nlat) double   latitudes
         %     lon        (1 x nlon) double   longitudes
         %     phase      (nlat x nlon) double   phase [rad] of the harmonic
+        %
+        %   Error identifiers
+        %     shClimatology:badInput
+        %         WHICH is not "annual", "semiannual" or an extra-period index
         %
         arguments
             obj
@@ -304,6 +312,10 @@ methods (Static)
     %
     %   Outputs
         %     obj        (1 x 1) shClimatology   rebuilt from a coefficient table with the series' layout
+        %
+        %   Error identifiers
+        %     shClimatology:badInput
+        %         coef does not have 6 + 2*numel(Periods) rows
         %
         arguments
             coef double
