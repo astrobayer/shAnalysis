@@ -152,6 +152,38 @@ method they exercise. `noFiles` is the only reason raised by two
 functions that a test reaches through a delegation, so this was the one
 instance of the shape rather than the first of several.
 
+**A second pin was wrong too, and the enumeration is why.** The grep that
+listed the pins to rewrite used `[A-Za-z]*` for the reason segment, and
+`shCoefficients:noC30` **has digits in it** - so it was never listed, was
+never rewritten, and `testTN14IDs` went red on the next run. The
+verification grep repeated the same character class and repeated the same
+blind spot.
+
+### Added - `error_id_audit.py` PINS: tests may only name real identifiers
+
+Nothing read `tests/` before. The rule collects every identifier the
+toolbox can raise - including the prefixes handed to
+`+shLowLevel/private/normalizeMonthList`, and the few identifiers test
+helpers raise themselves - and reports any pin outside that set. 184 pins
+checked.
+
+Its reach is stated in its own docstring because it is narrower than it
+sounds: it catches a pin naming an identifier that exists NOWHERE (the
+`noC30` case), and **not** a pin naming a real identifier the call under
+test cannot reach (the `fromFolder`/`read` case), which needs per-call
+guard analysis. One of the two red rounds is preventable here; the other
+is not.
+
+The first version reported three findings, all false - `rmIfFolder`
+*raises* its identifier rather than pinning it, and two are built by a
+private helper from a prefix its callers pass. Narrowed rather than
+"fixing" the tests. Then fault injection found a worse bug: harvesting
+prefix literals from `tests/` as well let the bad pin be read as its own
+prefix, so the rule went quiet on the very defect it was written for.
+Prefix literals now come from the toolbox only, and a prefix covers only
+what sits below it (`shSeries:read` does not validate `shSeries:readFoo`).
+Six self-tests, one of which pins the stated limit.
+
 ## [4.0.3] - 2026-09-09 - The class surface joins the identifier gate (A21a)
 
 A21's documentation half. The three class files raised **32** error

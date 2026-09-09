@@ -98,12 +98,13 @@ def _run_on_tree(source, root=False):
         # exercised separately by _run_class. A class file missing from the
         # REAL tree stays a hard error, which is why this is patched here
         # rather than made tolerant in the gate.
-        keep = (eia.PKG, eia.ROOT, eia.CLASS_FILES)
+        keep = (eia.PKG, eia.ROOT, eia.CLASS_FILES, eia.TEST_DIR)
         try:
             eia.PKG, eia.ROOT, eia.CLASS_FILES = pkg, d, ()
+            eia.TEST_DIR = os.path.join(d, "tests")   # absent: no pins
             return eia.main([])
         finally:
-            eia.PKG, eia.ROOT, eia.CLASS_FILES = keep
+            eia.PKG, eia.ROOT, eia.CLASS_FILES, eia.TEST_DIR = keep
 
 
 class TestDocumentation(unittest.TestCase):
@@ -315,7 +316,7 @@ class TestClassPass(unittest.TestCase):
             "    function assertClean(obj, opname)\n"
             "        if any(isnan(obj.Cs(:)))",
             "    function inner(obj)\n"
-            "        error('shSeries:nanInSeries', 'x');\n"
+            "        error('shSeries:stack:nanInSeries', 'x');\n"
             "    end\n\n"
             "    function assertClean(obj, opname)\n"
             "        obj.inner();\n"
@@ -344,6 +345,77 @@ class TestRealClassFiles(unittest.TestCase):
         # both operators DO reach the rest of the shared operand check, so
         # the `operands` segment does not flatten the distinction away
         self.assertIn("shCoefficients:operands:sizeMismatch", need["minus"])
+
+
+class TestPins(unittest.TestCase):
+    """PINS (v5.0.1): a test may only name an identifier something raises."""
+
+    def _tree(self, test_src, pkg_src="function f()\n%F T.\n"
+              "%   Error identifiers\n%     shLowLevel:f:bad\n"
+              "%         why\n%\n%   Developed by M W.\n"
+              "error('shLowLevel:f:bad', 'x');\n"):
+        with tempfile.TemporaryDirectory() as d:
+            pkg = os.path.join(d, "+shLowLevel")
+            tests = os.path.join(d, "tests")
+            os.makedirs(pkg)
+            os.makedirs(tests)
+            with open(os.path.join(pkg, "f.m"), "w", encoding="utf-8") as fh:
+                fh.write(pkg_src)
+            with open(os.path.join(tests, "testX.m"), "w", encoding="utf-8") as fh:
+                fh.write(test_src)
+            keep = (eia.PKG, eia.ROOT, eia.CLASS_FILES, eia.TEST_DIR)
+            try:
+                eia.PKG, eia.ROOT, eia.CLASS_FILES, eia.TEST_DIR = \
+                    pkg, d, (), tests
+                return eia.check_pins()
+            finally:
+                eia.PKG, eia.ROOT, eia.CLASS_FILES, eia.TEST_DIR = keep
+
+    def test_a_pin_on_a_real_identifier_passes(self):
+        probs, n = self._tree("verifyError(t, @() f(), 'shLowLevel:f:bad');\n")
+        self.assertEqual(probs, [])
+        self.assertEqual(n, 1)
+
+    def test_a_pin_on_an_identifier_nothing_raises_is_a_finding(self):
+        probs, _ = self._tree("verifyError(t, @() f(), 'shLowLevel:f:ghost');\n")
+        self.assertTrue(any("shLowLevel:f:ghost" in p for p in probs), probs)
+
+    def test_a_pin_cannot_validate_itself(self):
+        """The bug the first version had: harvesting prefix literals from
+        tests/ too let the bad pin be read as its own prefix."""
+        probs, _ = self._tree("verifyError(t, @() f(), 'shLowLevel:ghost');\n"
+                              "x = 'shLowLevel:ghost';\n")
+        self.assertTrue(any("shLowLevel:ghost" in p for p in probs), probs)
+
+    def test_a_prefix_covers_only_what_sits_below_it(self):
+        # `shLowLevel:f:pre` is handed to a helper that appends a reason,
+        # exactly as normalizeMonthList is used; it is never raised whole.
+        pkg = ("function f()\n%F T.\n"
+               "%   Error identifiers\n%     shLowLevel:f:bad\n"
+               "%         why\n%\n%   Developed by M W.\n"
+               "g(months, 'shLowLevel:f:pre');\n"
+               "error('shLowLevel:f:bad', 'x');\n")
+        ok, _ = self._tree("verifyError(t, @() f(), 'shLowLevel:f:pre:sub');\n",
+                           pkg_src=pkg)
+        self.assertEqual(ok, [])
+        bad, _ = self._tree("verifyError(t, @() f(), 'shLowLevel:f:preFoo');\n",
+                            pkg_src=pkg)
+        self.assertTrue(any("shLowLevel:f:preFoo" in p for p in bad), bad)
+
+    def test_an_identifier_a_test_helper_RAISES_is_not_a_pin(self):
+        """tests/rmIfFolder.m warns shAnalysis:test:cleanupFailed."""
+        probs, _ = self._tree(
+            "warning('shAnalysis:helper:cleanupFailed', 'x');\n")
+        self.assertEqual(probs, [])
+
+    def test_the_limit_is_real_and_stated(self):
+        """A pin naming a REAL identifier the call cannot reach is NOT
+        caught - that needs per-call guard analysis. A21b's first red
+        round was exactly this shape, and the docstring says so."""
+        probs, _ = self._tree("verifyError(t, @() g(), 'shLowLevel:f:bad');\n")
+        self.assertEqual(probs, [])
+        self.assertIn("NOT catch a pin naming a real identifier",
+                      " ".join(eia.__doc__.split()))
 
 
 if __name__ == "__main__":

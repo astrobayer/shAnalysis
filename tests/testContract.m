@@ -93,7 +93,7 @@ g1 = randomField(10, 2035.0);       % far outside table
 verifyError(tc, @() g1.applyTN14(tnFile), 'shCoefficients:applyTN14:epochNotInTable');
 g2 = randomField(10, 2020.13);      % nearest row has NaN C30
 verifyError(tc, @() g2.applyTN14(tnFile, ReplaceC30 = "always"), ...
-    'shCoefficients:noC30');
+    'shCoefficients:applyTN14:noC30');
 verifyError(tc, @() shLowLevel.readTN14('no_such_file.txt'), ...
     'shLowLevel:readTN14:fileNotFound');
 end
