@@ -71,12 +71,45 @@ class TestCounting(unittest.TestCase):
         self.assertEqual(c["params"], {"nmaxP": 2})
         self.assertEqual(c["runs"], 3)      # benchThing x2 + testPlain
 
+    def test_a_char_valued_parameter_counts_its_fields_not_its_literals(self):
+        """The v5.0.2 regression: values that are char vectors.
+
+        The old rule counted every quoted word followed by a comma, so a
+        parameter whose VALUES are also quoted counted roughly twice.
+        testPerformance's budgetCase read 19 where the runner runs 10 -
+        which --executed would have caught only on the runner, a full CI
+        round later (A16 again).
+        """
+        src = CLASS_SUITE.replace(
+            "    nmaxP = struct('n60', 60, 'n120', 120);",
+            "    nmaxP = struct('n60', 60, 'n120', 120);\n"
+            "    caseP = struct( ...\n"
+            "        'alpha', 'alpha', ...\n"
+            "        'beta',  'beta', ...\n"
+            "        'gamma', 'gamma');").replace(
+            "    function testPlain(tc)",
+            "    function testCase(tc, caseP)\n    end\n"
+            "    function testPlain(tc)")
+        c = self.count("testPerf.m", src)
+        self.assertEqual(c["params"]["caseP"], 3)
+        self.assertEqual(c["params"]["nmaxP"], 2)
+        self.assertEqual(c["runs"], 2 + 3 + 1)
+
+    def test_a_nested_call_in_a_value_is_not_a_field(self):
+        # struct('a', string(datetime('now','Format','x')), 'b', 2) is two
+        # fields; the shared splitter skips anything below depth 0
+        src = CLASS_SUITE.replace(
+            "    nmaxP = struct('n60', 60, 'n120', 120);",
+            "    nmaxP = struct('n60', func('x', 'y'), 'n120', 120);")
+        c = self.count("testPerf.m", src)
+        self.assertEqual(c["params"]["nmaxP"], 2)
+
     def test_unparameterised_runs_equal_methods(self):
         c = self.count("testThing.m", SCRIPT_SUITE)
         self.assertEqual(c["runs"], c["methods"])
 
 
-EXPECTED_RUNS = 305          # v4.0.3: 304 + testMinusDoesNotEnforceEpochAgreement
+EXPECTED_RUNS = 315          # v5.0.2: 305 + testSpeedBudget x 10 budgetCase
 
 
 class TestRepository(unittest.TestCase):

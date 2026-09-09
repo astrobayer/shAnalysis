@@ -20,7 +20,7 @@ Pbar_nm(sin&phi;) [Cnm cos(m&lambda;) + Snm sin(m&lambda;)], with a quantity-dep
 <tr><td>ewh</td><td>(R&middot;&rho;_ave)/(3&rho;_water) &middot; (2n+1)/(1+k_n)</td><td>m (water equiv.)</td></tr>
 <tr><td>surface_density <i>(v2.3)</i></td><td>(R&middot;&rho;_ave)/3 &middot; (2n+1)/(1+k_n)</td><td>kg/m&sup2;</td></tr>
 <tr><td>bottom_pressure <i>(v2.3)</i></td><td>g&#8320; &middot; surface_density kernel, g&#8320; = GM/R&sup2;</td><td>Pa</td></tr>
-<tr><td>deformation_up <i>(v2.3)</i></td><td>R &middot; h'_n/(1+k'_n) &mdash; elastic vertical load deformation (horizontals: <a href="shSynthesisDeformation.html">shSynthesisDeformation</a>)</td><td>m</td></tr>
+<tr><td>deformation_up <i>(v2.3)</i></td><td>R &middot; h'_n/(1+k'_n) &mdash; elastic vertical load deformation (horizontals: <a href="ref/shLowLevel_shSynthesisDeformation.html">shSynthesisDeformation</a>)</td><td>m</td></tr>
 <tr><td>gravity_gradient_rr <i>(v2.3)</i></td><td>(GM/R&sup3;)(n+1)(n+2) &mdash; T_rr; 1 E&ouml;tv&ouml;s = 1e-9 s&#8315;&sup2;</td><td>1/s&sup2;</td></tr>
 </table>
 
@@ -65,10 +65,10 @@ grid cannot express:</p>
 <p><code class="inline">Nmin</code> defaults to 2; set it to 0 to evaluate the full field
 including the central term. Latitudes are geocentric and coefficients fully normalized in the
 C(n+1,m+1) layout, as everywhere in the toolbox &mdash; convert with
-<a href="geodetic2geocentric.html">geodetic2geocentric</a> if your points are geodetic. The radial
+<a href="ref/shLowLevel_geodetic2geocentric.html">geodetic2geocentric</a> if your points are geodetic. The radial
 derivative identity &delta;g = &minus;dT/dr is pinned to 3e-10 by the test suite.</p>
 
 <h2>See Also</h2>
-<p class="seealso"><a href='legendreALF.html'>legendreALF</a> <a href='shGaussianFilter.html'>shGaussianFilter</a> <a href='shDestripe.html'>shDestripe</a> <a href='gradientTensor.html'>gradient tensor</a> <a href='geodetic2geocentric.html'>latitude conversions</a></p>
+<p class="seealso"><a href='legendreALF.html'>legendreALF</a> <a href='ref/shLowLevel_shGaussianFilter.html'>shGaussianFilter</a> <a href='ref/shLowLevel_shDestripe.html'>shDestripe</a> <a href='gradientTensor.html'>gradient tensor</a> <a href='ref/shLowLevel_geodetic2geocentric.html'>latitude conversions</a></p>
 </div><p class="provenance">Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
 </body></html>

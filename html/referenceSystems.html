@@ -9,7 +9,7 @@
 <h2>shLowLevel.rescaleGMR / g.toReference</h2>
 <pre>g2 = g.toReference(GM=3.986004418e14, R=6378137.0);
 % C2_nm = C_nm (GM1/GM2)(R1/R2)^n - the physical field is invariant</pre>
-<p>Needed whenever conventions meet: the WGS84 GM (3.986004418e14) and a (6378137.0) DIFFER from the ICGEM values (3.986004415e14, 6378136.3); coefficient-wise mixing without rescaling costs millimetres. The arithmetic operators guard against it (<code class="inline">shCoefficients:constantsMismatch</code>).</p>
+<p>Needed whenever conventions meet: the WGS84 GM (3.986004418e14) and a (6378137.0) DIFFER from the ICGEM values (3.986004415e14, 6378136.3); coefficient-wise mixing without rescaling costs millimetres. The arithmetic operators guard against it (<code class="inline">shCoefficients:operands:constantsMismatch</code>).</p>
 <h2>shLowLevel.normalFieldCS / g.subtractNormalField</h2>
 <pre>T = g.subtractNormalField();          % WGS84 (default) | System="GRS80"
 T.map(lat, lon, Quantity="geoid")    % proper +-100 m undulations, drawn by geoMap</pre>
@@ -37,7 +37,7 @@ B&rarr;A, both pinned by tests.</p>
 centers. The correction is small in absolute terms and almost entirely a trend, which is precisely
 what makes it dangerous for the quantity most people are after.</div>
 
-<h2>See Also</h2><p class="seealso"><a href="shSynthesis.html">shSynthesis</a> <a href="shReadGFC.html">shReadGFC</a> <a href="apiReference.html">API reference</a></p>
+<h2>See Also</h2><p class="seealso"><a href="shSynthesis.html">shSynthesis</a> <a href="ref/shLowLevel_shReadGFC.html">shReadGFC</a> <a href="apiReference.html">API reference</a></p>
 <p style="color:#999;font-size:11px;margin-top:40px;">shAnalysis v2.4 &mdash; Claude (Fable 5), 2026-08-07</p>
 </div><p class="provenance">Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
 </body></html>

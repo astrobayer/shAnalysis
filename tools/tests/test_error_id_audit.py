@@ -98,12 +98,13 @@ def _run_on_tree(source, root=False):
         # exercised separately by _run_class. A class file missing from the
         # REAL tree stays a hard error, which is why this is patched here
         # rather than made tolerant in the gate.
-        keep = (eia.PKG, eia.ROOT, eia.CLASS_FILES)
+        keep = (eia.PKG, eia.ROOT, eia.CLASS_FILES, eia.TEST_DIR)
         try:
             eia.PKG, eia.ROOT, eia.CLASS_FILES = pkg, d, ()
+            eia.TEST_DIR = os.path.join(d, "tests")   # absent: no pins
             return eia.main([])
         finally:
-            eia.PKG, eia.ROOT, eia.CLASS_FILES = keep
+            eia.PKG, eia.ROOT, eia.CLASS_FILES, eia.TEST_DIR = keep
 
 
 class TestDocumentation(unittest.TestCase):
@@ -129,6 +130,10 @@ class TestRealRepository(unittest.TestCase):
     def test_the_backlog_is_empty(self):
         """A20: the finding is closed, not merely tracked."""
         self.assertEqual(eia.UNDOCUMENTED, set())
+
+    def test_the_two_part_backlog_is_empty(self):
+        """A21b: likewise closed, not tracked."""
+        self.assertEqual(eia.TWO_PART_OK, set())
 
     def test_the_backlog_mechanism_still_works_while_empty(self):
         """A14's lesson: a drained list makes a membership test vacuous.
@@ -177,11 +182,11 @@ methods
         %AT One epoch.
         %
         %   Error identifiers
-        %     shSeries:badIndex
+        %     shSeries:at:badIndex
         %         k exceeds nEpochs
         %
         if k > obj.nEpochs
-            error('shSeries:badIndex', 'k=%d too big.', k);
+            error('shSeries:at:badIndex', 'k=%d too big.', k);
         end
     end
 
@@ -189,8 +194,8 @@ methods
         %FILTER Filter the series.
         %
         %   Error identifiers
-        %     shSeries:nanInSeries
-        %         the stacks carry NaN (raised by assertClean)
+        %     shSeries:stack:nanInSeries
+        %         the stacks carry NaN (the shared stack check)
         %
         obj.assertClean('filter');
         out = obj;
@@ -199,7 +204,7 @@ end
 methods (Access = private)
     function assertClean(obj, opname)
         if any(isnan(obj.Cs(:)))
-            error('shSeries:nanInSeries', '%s needs clean stacks.', opname);
+            error('shSeries:stack:nanInSeries', '%s needs clean stacks.', opname);
         end
     end
 end
@@ -246,49 +251,64 @@ class TestClassPass(unittest.TestCase):
     def test_a_private_helpers_id_must_be_documented_by_its_caller(self):
         """The rule that makes the pass worth having."""
         broken = CLASS_OK.replace(
-            "        %     shSeries:nanInSeries\n"
-            "        %         the stacks carry NaN (raised by assertClean)\n", "")
+            "        %     shSeries:stack:nanInSeries\n"
+            "        %         the stacks carry NaN (the shared stack check)\n", "")
         probs, _, _ = _run_class(broken)
-        self.assertTrue(any("filter can raise shSeries:nanInSeries" in p
+        self.assertTrue(any("filter can raise shSeries:stack:nanInSeries" in p
                             for p in probs), probs)
 
     def test_a_documented_id_the_method_cannot_reach_is_a_finding(self):
         broken = CLASS_OK.replace(
-            "        %     shSeries:badIndex",
-            "        %     shSeries:noSuchThing\n"
-            "        %         invented\n        %     shSeries:badIndex")
+            "        %     shSeries:at:badIndex",
+            "        %     shSeries:at:noSuchThing\n"
+            "        %         invented\n        %     shSeries:at:badIndex")
         probs, _, _ = _run_class(broken)
-        self.assertTrue(any("documents shSeries:noSuchThing" in p
+        self.assertTrue(any("documents shSeries:at:noSuchThing" in p
                             for p in probs), probs)
 
     def test_a_missing_section_is_a_finding(self):
         broken = CLASS_OK.replace("        %   Error identifiers\n"
-                                  "        %     shSeries:badIndex\n"
+                                  "        %     shSeries:at:badIndex\n"
                                   "        %         k exceeds nEpochs\n", "")
         probs, _, _ = _run_class(broken)
         self.assertTrue(any("has no 'Error identifiers' section" in p
                             for p in probs), probs)
 
     def test_a_foreign_identifier_is_a_finding(self):
-        broken = CLASS_OK.replace("error('shSeries:badIndex'",
-                                  "error('shCoefficients:badIndex'")
+        broken = CLASS_OK.replace("error('shSeries:at:badIndex'",
+                                  "error('shCoefficients:at:badIndex'")
         probs, _, _ = _run_class(broken)
         self.assertTrue(any("the class owns shSeries:* only" in p
                             for p in probs), probs)
 
-    def test_a_new_two_part_identifier_is_a_finding(self):
-        """A21b is a backlog, not a licence: an id outside it is a defect."""
-        probs, backlog, _ = _run_class(CLASS_OK, extra_two_part=set())
+    def test_a_two_part_identifier_is_a_finding(self):
+        """A21b, v5.0.0: two-part is a defect, not a backlog entry."""
+        two = CLASS_OK.replace("shSeries:at:badIndex", "shSeries:badIndex")
+        probs, backlog, _ = _run_class(two)
         self.assertTrue(any("two-part shSeries:badIndex" in p
                             for p in probs), probs)
         self.assertEqual(backlog, [])
 
-    def test_the_listed_two_part_ids_are_a_backlog_not_a_finding(self):
-        probs, backlog, _ = _run_class(
-            CLASS_OK, extra_two_part={"shSeries:badIndex",
-                                      "shSeries:nanInSeries"})
+    def test_the_drained_backlog_mechanism_still_works(self):
+        """A14 again: a loop over an empty set cannot fail, so assert the
+        MECHANISM with a temporary entry instead of a member name."""
+        two = CLASS_OK.replace("shSeries:at:badIndex", "shSeries:badIndex")
+        probs, backlog, _ = _run_class(two,
+                                       extra_two_part={"shSeries:badIndex"})
         self.assertEqual(probs, [])
-        self.assertEqual(backlog, ["shSeries:badIndex", "shSeries:nanInSeries"])
+        self.assertEqual(backlog, ["shSeries:badIndex"])
+
+    def test_a_middle_segment_that_names_no_method_is_a_finding(self):
+        """The rule that makes three-part mean something."""
+        typo = CLASS_OK.replace("shSeries:at:badIndex", "shSeries:att:badIndex")
+        probs, _, _ = _run_class(typo)
+        self.assertTrue(any("names neither a method of this class" in p
+                            for p in probs), probs)
+
+    def test_a_declared_shared_check_is_accepted(self):
+        """`stack` is not a method, and must still pass."""
+        probs, _, _ = _run_class(CLASS_OK)
+        self.assertEqual(probs, [])
 
     def test_a_second_private_hop_is_reported_not_missed(self):
         """One hop is checked, not assumed - the depth guard must fire."""
@@ -296,7 +316,7 @@ class TestClassPass(unittest.TestCase):
             "    function assertClean(obj, opname)\n"
             "        if any(isnan(obj.Cs(:)))",
             "    function inner(obj)\n"
-            "        error('shSeries:nanInSeries', 'x');\n"
+            "        error('shSeries:stack:nanInSeries', 'x');\n"
             "    end\n\n"
             "    function assertClean(obj, opname)\n"
             "        obj.inner();\n"
@@ -312,7 +332,7 @@ class TestRealClassFiles(unittest.TestCase):
         probs, backlog, checked = eia.check_classes()
         self.assertEqual(probs, [])
         self.assertEqual(checked, 31)
-        self.assertEqual(len(backlog), 29)
+        self.assertEqual(backlog, [])
 
     def test_minus_does_not_claim_the_epoch_check_plus_does(self):
         """shCoefficients.plus calls checkEpochs; minus deliberately does
@@ -320,8 +340,82 @@ class TestRealClassFiles(unittest.TestCase):
         keep them apart, or the help would promise a wrong catch."""
         funs = eia.parse_class(os.path.join(eia.ROOT, "shCoefficients.m"))
         need, _ = eia.class_requirements(funs)
-        self.assertIn("shCoefficients:epochMismatch", need["plus"])
-        self.assertNotIn("shCoefficients:epochMismatch", need["minus"])
+        self.assertIn("shCoefficients:operands:epochMismatch", need["plus"])
+        self.assertNotIn("shCoefficients:operands:epochMismatch", need["minus"])
+        # both operators DO reach the rest of the shared operand check, so
+        # the `operands` segment does not flatten the distinction away
+        self.assertIn("shCoefficients:operands:sizeMismatch", need["minus"])
+
+
+class TestPins(unittest.TestCase):
+    """PINS (v5.0.1): a test may only name an identifier something raises."""
+
+    def _tree(self, test_src, pkg_src="function f()\n%F T.\n"
+              "%   Error identifiers\n%     shLowLevel:f:bad\n"
+              "%         why\n%\n%   Developed by M W.\n"
+              "error('shLowLevel:f:bad', 'x');\n"):
+        with tempfile.TemporaryDirectory() as d:
+            pkg = os.path.join(d, "+shLowLevel")
+            tests = os.path.join(d, "tests")
+            os.makedirs(pkg)
+            os.makedirs(tests)
+            with open(os.path.join(pkg, "f.m"), "w", encoding="utf-8") as fh:
+                fh.write(pkg_src)
+            with open(os.path.join(tests, "testX.m"), "w", encoding="utf-8") as fh:
+                fh.write(test_src)
+            keep = (eia.PKG, eia.ROOT, eia.CLASS_FILES, eia.TEST_DIR)
+            try:
+                eia.PKG, eia.ROOT, eia.CLASS_FILES, eia.TEST_DIR = \
+                    pkg, d, (), tests
+                return eia.check_pins()
+            finally:
+                eia.PKG, eia.ROOT, eia.CLASS_FILES, eia.TEST_DIR = keep
+
+    def test_a_pin_on_a_real_identifier_passes(self):
+        probs, n = self._tree("verifyError(t, @() f(), 'shLowLevel:f:bad');\n")
+        self.assertEqual(probs, [])
+        self.assertEqual(n, 1)
+
+    def test_a_pin_on_an_identifier_nothing_raises_is_a_finding(self):
+        probs, _ = self._tree("verifyError(t, @() f(), 'shLowLevel:f:ghost');\n")
+        self.assertTrue(any("shLowLevel:f:ghost" in p for p in probs), probs)
+
+    def test_a_pin_cannot_validate_itself(self):
+        """The bug the first version had: harvesting prefix literals from
+        tests/ too let the bad pin be read as its own prefix."""
+        probs, _ = self._tree("verifyError(t, @() f(), 'shLowLevel:ghost');\n"
+                              "x = 'shLowLevel:ghost';\n")
+        self.assertTrue(any("shLowLevel:ghost" in p for p in probs), probs)
+
+    def test_a_prefix_covers_only_what_sits_below_it(self):
+        # `shLowLevel:f:pre` is handed to a helper that appends a reason,
+        # exactly as normalizeMonthList is used; it is never raised whole.
+        pkg = ("function f()\n%F T.\n"
+               "%   Error identifiers\n%     shLowLevel:f:bad\n"
+               "%         why\n%\n%   Developed by M W.\n"
+               "g(months, 'shLowLevel:f:pre');\n"
+               "error('shLowLevel:f:bad', 'x');\n")
+        ok, _ = self._tree("verifyError(t, @() f(), 'shLowLevel:f:pre:sub');\n",
+                           pkg_src=pkg)
+        self.assertEqual(ok, [])
+        bad, _ = self._tree("verifyError(t, @() f(), 'shLowLevel:f:preFoo');\n",
+                            pkg_src=pkg)
+        self.assertTrue(any("shLowLevel:f:preFoo" in p for p in bad), bad)
+
+    def test_an_identifier_a_test_helper_RAISES_is_not_a_pin(self):
+        """tests/rmIfFolder.m warns shAnalysis:test:cleanupFailed."""
+        probs, _ = self._tree(
+            "warning('shAnalysis:helper:cleanupFailed', 'x');\n")
+        self.assertEqual(probs, [])
+
+    def test_the_limit_is_real_and_stated(self):
+        """A pin naming a REAL identifier the call cannot reach is NOT
+        caught - that needs per-call guard analysis. A21b's first red
+        round was exactly this shape, and the docstring says so."""
+        probs, _ = self._tree("verifyError(t, @() g(), 'shLowLevel:f:bad');\n")
+        self.assertEqual(probs, [])
+        self.assertIn("NOT catch a pin naming a real identifier",
+                      " ".join(eia.__doc__.split()))
 
 
 if __name__ == "__main__":

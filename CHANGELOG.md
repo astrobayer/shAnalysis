@@ -1,5 +1,273 @@
 # Changelog
 
+## [5.0.2] - 2026-09-09 - WP2 step 1: speed becomes measurable
+
+A9 recorded that the toolbox has no speed budget, so a 1.3x regression in
+`legendreALF`, `shSynthesis`, `shAnalysisGrid`, `applyDDK`,
+`leakageCorrect` or the Kalman step ships unnoticed. WP2 says: make speed
+measurable first, and build only what the measurement justifies. This is
+the measuring half. **No numerical behaviour changes and no public call
+changes** - the release is a PATCH.
+
+### Ten budgets, one harness
+
+`testPerformance` gains `testSpeedBudget`, a parameterised method with one
+run per workload:
+
+| benchmark | what it bounds |
+|---|---|
+| `legendre_n96` / `_n360` / `_n720` | the Holmes-Featherstone recursion at 181 / 91 / 31 rings |
+| `synthesis_direct_n60` | the reduction only - the Legendre cache is primed first |
+| `synthesis_fft_n60` | the FFT-along-longitude path |
+| `synthesis_points_n60` | 2000 scattered points |
+| `analysis_rings_n60` | exact per-order ring analysis |
+| `apply_ddk_n96` | order-block filter application |
+| `leakage_1iter_n24` | one `leakageCorrect` step |
+| `kalman_step_p40` | a 12-epoch VAR(1) filter chain |
+
+Each is timed 15 times after one untimed warm-up, and the MEDIAN is
+compared against `BudgetFactor` (3) times the baseline for this machine
+in the new, committed `tests/perf_baseline.csv`.
+
+### A budget cannot be asserted before it has been measured
+
+So it is not. A machine with no baseline row FILTERS the budget rather
+than failing it, and prints a `PERFBASE,...` line that is already a
+`perf_baseline.csv` row. That is how a machine is adopted: run once, paste
+the lines, and the budgets go live on the next run. All ten sit in the
+gate's `NO_BASELINE` backlog today, which is honest debt - a filtered
+budget guards nothing.
+
+Baselines are per machine rather than ratios against a calibration
+workload. A ratio is machine-independent only when the calibration scales
+like the workload, and no one calibration tracks both a BLAS-bound
+reduction and a memory-bound recursion.
+
+The factor 3 is WP2's specification, not a measured spread - there was no
+baseline to measure a spread against, which is precisely what A9 records.
+Every run logs the median AND the min, so the choice can be replaced with
+the observed spread rather than inherited.
+
+### The bookkeeping is gated
+
+`tools/dev/perf_baseline_audit.py` (new, in `ci.yml`) checks that the CSV,
+the `budgetCase` parameter and the `workload()` switch agree: row shape and
+uniqueness, no orphan baselines, field names equal their values, **every
+declared case has a case arm**, and the backlog holds neither a stale entry
+nor a case that already has a baseline. The arm rule is the one that earns
+its place - a case without an arm passes every other static check here and
+then fails on the runner with `unknownCase`. 24 self-tests, every rule
+fault-injected in both directions; the backlog rule is asserted with a
+TEMPORARY entry, per A14.
+
+### Fixed: `count_tests.py` counted a char-valued parameter twice
+
+Adding `budgetCase` made the counter say 19 where the runner runs 10. Its
+rule was "count every quoted word followed by a comma", which is right only
+while the parameter's VALUES are not themselves quoted. It now counts
+struct FIELDS through `help_audit.struct_field_names` - the one authority
+in this repository for that question - instead of a second, weaker parser
+of the same fact. That is A17's lesson: the failure would otherwise have
+surfaced as a red `--executed` check on the runner, a full CI round later.
+
+### Files
+
+- `tests/testPerformance.m` - `testSpeedBudget`, `workload`, the two
+  fixtures, `machineId`, `baselineFor`, `appendPerfLog`
+- `tests/perf_baseline.csv` - new, committed (the machine-local
+  `perf_log.csv` stays git-ignored)
+- `tools/dev/perf_baseline_audit.py`,
+  `tools/tests/test_perf_baseline_audit.py` - new
+- `tools/dev/count_tests.py`, `tools/tests/test_count_tests.py` - the
+  cardinality fix and its regression tests
+- `.github/workflows/ci.yml` - the new gate step
+
+Test count: 305 methods / **315 runs** (305 + `testSpeedBudget` x 10).
+
+## [5.0.1] - 2026-09-09 - WP6 stage 3: 24 duplicate pages retired
+
+The hand-written page per package function existed because
+`doc_sync_audit`'s COVERAGE check demanded a NARRATIVE mention of every
+entity, and before WP6 there was nowhere else to put one. There is now:
+`html/ref/` carries a generated page per entity. 24 of the 50
+hand-written pages were restating theirs.
+
+### Chosen by measurement, not by file name
+
+A17 left a warning: a narrative page can be the only mention of an
+entity, so deleting by name drops entities out of COVERAGE silently. So
+the set was computed - retire a page only if every entity stays covered
+afterwards. That is true of **30**; the other 6 are the last narrative
+mention of 11 entities (`fetchITSG.html` for `listITSG`,
+`shCoefficients.html` for six of its own methods, ...) and stay.
+
+Of the 30, six read as narrative rather than reference and were kept by
+the WP's own rule ("keep narrative pages (chains, theory)"):
+`standardChain` is a chain, `shSeries` a class overview, and
+`legendreALF`, `seaLevelFingerprint`, `eofAnalysis` and `slepianBasis`
+carry theory. **24 were retired.**
+
+COVERAGE therefore keeps its current meaning untouched - the question of
+what it should become does not arise, because nothing it guarantees was
+given up.
+
+### Retired, not deleted
+
+Every inbound link and every `helptoc.xml` target was REPOINTED at
+`html/ref/<entity>.html` before the files were removed, so nothing a
+reader could reach became unreachable. Four category headers pointed at
+a page in their own group that is now gone
+(`Reading and writing` -> `readSINEX`, `Filtering` -> `tvANS`,
+`Spectra and diagnostics` -> `comparison`,
+`Regional and geophysical analysis` -> `leakage`).
+
+Two link rewrites nearly escaped: the See-also lines of `shSynthesis` and
+`legendreALF` use `href='...'` with single quotes, and the first pass
+only matched double ones. Checking both quotings found them.
+
+`removeGIA.html` was the one page whose short name matched two entities
+(`shSeries.removeGIA` and `shClimatology.removeGIA`) - a `setdefault`
+picked one by accident. Reading the page settled it: it documents both
+routes with `ts.removeGIA(gia)` first, so it points at
+`ref/shSeries_removeGIA.html` by decision now rather than by luck.
+
+50 hand-written pages -> 26. No entity lost coverage; the test count is
+unchanged.
+
+## [5.0.0] - 2026-09-09 - Every class identifier names its method (A21b)
+
+**BREAKING.** The 29 two-part identifiers the three classes raised are
+now three-part. A caller could not tell which of the 35 methods raised
+`shSeries:badInput`; now they can.
+
+### BREAKING - what changes for a caller
+
+Any `catch`, `verifyError` or `warning('off', ...)` naming one of these
+must be updated. **One old identifier maps to several new ones** - that
+is the point of the change, and it is why a repo-wide replace would have
+been wrong (the A15 lesson, applied per raise site rather than per file):
+
+| was | now |
+|---|---|
+| `shClimatology:badIndex` | `shClimatology:periodic:badIndex` |
+| `shClimatology:badInput` | `shClimatology:amplitudeMap:badInput`<br>`shClimatology:fromCoef:badInput` |
+| `shCoefficients:badIndex` | `shCoefficients:addDegree1:badIndex`<br>`shCoefficients:setCoefficient:badIndex`<br>`shCoefficients:vec:badIndex` |
+| `shCoefficients:badInput` | `shCoefficients:mtimes:badInput`<br>`shCoefficients:operands:badInput`<br>`shCoefficients:shCoefficients:badInput`<br>`shCoefficients:times:badInput` |
+| `shCoefficients:badTruncation` | `shCoefficients:truncate:badTruncation` |
+| `shCoefficients:constantsMismatch` | `shCoefficients:operands:constantsMismatch` |
+| `shCoefficients:epochMismatch` | `shCoefficients:operands:epochMismatch` |
+| `shCoefficients:epochNotInTable` | `shCoefficients:addDegree1:epochNotInTable`<br>`shCoefficients:applyTN14:epochNotInTable` |
+| `shCoefficients:noC30` | `shCoefficients:applyTN14:noC30` |
+| `shCoefficients:noEpoch` | `shCoefficients:addDegree1:noEpoch`<br>`shCoefficients:applyTN14:noEpoch` |
+| `shCoefficients:noSigmas` | `shCoefficients:crossover:noSigmas` |
+| `shCoefficients:sizeMismatch` | `shCoefficients:operands:sizeMismatch` |
+| `shSeries:ambiguousRange` | `shSeries:select:ambiguousRange` |
+| `shSeries:badBasis` | `shSeries:basinAverage:badBasis` |
+| `shSeries:badIndex` | `shSeries:at:badIndex` |
+| `shSeries:badInput` | `shSeries:minus:badInput`<br>`shSeries:select:badInput`<br>`shSeries:shSeries:badInput` |
+| `shSeries:badRange` | `shSeries:range:badRange` |
+| `shSeries:badTruncation` | `shSeries:truncate:badTruncation` |
+| `shSeries:constantsMismatch` | `shSeries:shSeries:constantsMismatch` |
+| `shSeries:emptyRange` | `shSeries:mean:emptyRange` |
+| `shSeries:epochMismatch` | `shSeries:minus:epochMismatch`<br>`shSeries:restore:epochMismatch` |
+| `shSeries:missingOp` | `shSeries:basinAverage:missingOp` |
+| `shSeries:nanInSeries` | `shSeries:stack:nanInSeries` |
+| `shSeries:noBreaks` | `shSeries:trendBreaks:noBreaks` |
+| `shSeries:noEpoch` | `shSeries:climatology:noEpoch`<br>`shSeries:filter:noEpoch`<br>`shSeries:mean:noEpoch` |
+| `shSeries:noFiles` | `shSeries:fromFolder:noFiles`<br>`shSeries:read:noFiles` |
+| `shSeries:sizeMismatch` | `shSeries:minus:sizeMismatch`<br>`shSeries:restore:sizeMismatch`<br>`shSeries:shSeries:sizeMismatch` |
+| `shSeries:sparseWindow` | `shSeries:mean:sparseWindow` |
+| `shSeries:tooFewEpochs` | `shSeries:climatology:tooFewEpochs`<br>`shSeries:mean:tooFewEpochs` |
+
+Three identifiers were already three-part and are unchanged:
+`shSeries:removeAlias:tooShort`, `shSeries:toGrid:empty`,
+`shSeries:toGrid:tooLarge`.
+
+### The middle segment: a method, or a named shared check
+
+Normally it is the raising **public method**, the constructor included
+(`shCoefficients:shCoefficients:badInput`) so the rule has no exception
+to remember.
+
+The four private helpers are the deliberate exception. `checkPair` and
+`checkEpochs` guard the operand pair for the binary operators;
+`assertClean` guards the stacks for six methods; `rangeToYears` parses a
+`Range=`. Naming *them* in the identifier would make renaming a private
+function a breaking change, so they carry a stable CONCEPT segment
+instead - `operands`, `stack`, `range` - and the help says so rather
+than naming the helper.
+
+The distinction that matters survives it: `plus` reaches
+`shCoefficients:operands:epochMismatch`, `minus` does not, because
+`minus` calls only `checkPair`. A test pins both halves.
+
+### The gate now proves the middle segment
+
+Three-part alone would be a spelling convention. `error_id_audit.py`
+checks that the middle segment names either a method of that class or one
+of the three declared shared checks, so `shSeries:att:badIndex` fails.
+`TWO_PART_OK` is drained to empty and, per A14, its self-test asserts the
+MECHANISM with a temporary entry rather than looping over a set that can
+no longer fail.
+
+### Verification
+
+47 raise sites rewritten, scoped to the function each sits in; 58 source
+lines and 58 help rows. 47 test pins were remapped **by line**, each to
+the method the call under test actually reaches - `ts.mean(Range=...)`
+raising a bad range goes to `shSeries:range:badRange` (the shared parser)
+while the empty-window case goes to `shSeries:mean:emptyRange`. Three
+`html/` references and one line of `make_guide.py` followed.
+
+No numerical behaviour changed; no signature changed; the test count is
+unchanged at 304 methods / 305 runs.
+
+**One pin was wrong and CI caught it** (`testGravisChainsContract`, first
+run of PR #99). The two chain pins were mapped to
+`shSeries:fromFolder:noFiles` by tracing the call graph -
+`twsChain` -> `gravisL2B` -> `fromFolder` - but `fromFolder` asserts
+`isfolder` and then DELEGATES to `shSeries.read`: the temp folder EXISTS,
+so that guard passes and the empty folder is caught by `read`'s pattern
+check. Corrected to `shSeries:read:noFiles`. Which guard fires depends on
+the input, not only on which function is called.
+
+The other 45 pins were then re-verified against the guard ORDER of every
+method they exercise. `noFiles` is the only reason raised by two
+functions that a test reaches through a delegation, so this was the one
+instance of the shape rather than the first of several.
+
+**A second pin was wrong too, and the enumeration is why.** The grep that
+listed the pins to rewrite used `[A-Za-z]*` for the reason segment, and
+`shCoefficients:noC30` **has digits in it** - so it was never listed, was
+never rewritten, and `testTN14IDs` went red on the next run. The
+verification grep repeated the same character class and repeated the same
+blind spot.
+
+### Added - `error_id_audit.py` PINS: tests may only name real identifiers
+
+Nothing read `tests/` before. The rule collects every identifier the
+toolbox can raise - including the prefixes handed to
+`+shLowLevel/private/normalizeMonthList`, and the few identifiers test
+helpers raise themselves - and reports any pin outside that set. 184 pins
+checked.
+
+Its reach is stated in its own docstring because it is narrower than it
+sounds: it catches a pin naming an identifier that exists NOWHERE (the
+`noC30` case), and **not** a pin naming a real identifier the call under
+test cannot reach (the `fromFolder`/`read` case), which needs per-call
+guard analysis. One of the two red rounds is preventable here; the other
+is not.
+
+The first version reported three findings, all false - `rmIfFolder`
+*raises* its identifier rather than pinning it, and two are built by a
+private helper from a prefix its callers pass. Narrowed rather than
+"fixing" the tests. Then fault injection found a worse bug: harvesting
+prefix literals from `tests/` as well let the bad pin be read as its own
+prefix, so the rule went quiet on the very defect it was written for.
+Prefix literals now come from the toolbox only, and a prefix covers only
+what sits below it (`shSeries:read` does not validate `shSeries:readFoo`).
+Six self-tests, one of which pins the stated limit.
+
 ## [4.0.3] - 2026-09-09 - The class surface joins the identifier gate (A21a)
 
 A21's documentation half. The three class files raised **32** error

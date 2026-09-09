@@ -4,7 +4,7 @@
 
   <tocitem target="setup.html">Getting started: setup_shAnalysis</tocitem>
   <tocitem target="tutorials.html">Tutorials (Live Scripts)</tocitem>
-  <tocitem target="version.html">shLowLevel.version - toolbox metadata</tocitem>
+  <tocitem target="ref/shLowLevel_version.html">shLowLevel.version - toolbox metadata</tocitem>
   <tocitem target="apiReference.html">API reference (generated from the source)</tocitem>
   <tocitem target="ref/index.html">Reference pages (one per entity)</tocitem>
 
@@ -14,14 +14,14 @@
     <tocitem target="shClimatology.html">shClimatology class</tocitem>
   </tocitem>
 
-  <tocitem target="shReadGFC.html">Reading and writing
-    <tocitem target="shReadGFC.html">shReadGFC (ICGEM gfc reader)</tocitem>
-    <tocitem target="shEvalGFCT.html">shEvalGFCT (ICGEM 2.0 gfct evaluation)</tocitem>
+  <tocitem target="readSINEX.html">Reading and writing
+    <tocitem target="ref/shLowLevel_shReadGFC.html">shReadGFC (ICGEM gfc reader)</tocitem>
+    <tocitem target="ref/shLowLevel_shEvalGFCT.html">shEvalGFCT (ICGEM 2.0 gfct evaluation)</tocitem>
     <tocitem target="readSINEX.html">readSINEX (covariances and NEQs)</tocitem>
     <tocitem target="readTN13.html">readTN13 / readTN14 (degree-1, C20/C30)</tocitem>
     <tocitem target="readLoveNumbers.html">readLoveNumbers / fetchLoveNumbers</tocitem>
-    <tocitem target="readMascon.html">readMascon (mascon netCDF)</tocitem>
-    <tocitem target="writeGrid.html">Export: writeGrid / writeGFC</tocitem>
+    <tocitem target="ref/shLowLevel_readMascon.html">readMascon (mascon netCDF)</tocitem>
+    <tocitem target="ref/shLowLevel_writeGrid.html">Export: writeGrid / writeGFC</tocitem>
   </tocitem>
 
   <tocitem target="dataManagement.html">Data management and downloads
@@ -33,53 +33,53 @@
   <tocitem target="standardChain.html">Processing chains
     <tocitem target="standardChain.html">standardChain (the canonical chain)</tocitem>
     <tocitem target="kalman.html">kalmanChain (Kalman/VAR temporal smoothing)</tocitem>
-    <tocitem target="designFilter.html">designFilter (custom anisotropic filters)</tocitem>
+    <tocitem target="ref/shLowLevel_designFilter.html">designFilter (custom anisotropic filters)</tocitem>
   </tocitem>
 
   <tocitem target="shSynthesis.html">Synthesis and analysis
     <tocitem target="shSynthesis.html">shSynthesis (grid and point synthesis)</tocitem>
-    <tocitem target="shAnalysisGrid.html">shAnalysisGrid (SH analysis)</tocitem>
+    <tocitem target="ref/shLowLevel_shAnalysisGrid.html">shAnalysisGrid (SH analysis)</tocitem>
     <tocitem target="legendreALF.html">legendreALF / legendreALFDeriv</tocitem>
-    <tocitem target="shSynthesisDeformation.html">Load deformation (up/north/east)</tocitem>
-    <tocitem target="shSynthesisGradient.html">NEU gradient of a quantity</tocitem>
+    <tocitem target="ref/shLowLevel_shSynthesisDeformation.html">Load deformation (up/north/east)</tocitem>
+    <tocitem target="ref/shLowLevel_shSynthesisGradient.html">NEU gradient of a quantity</tocitem>
     <tocitem target="mapBridge.html">Handover to a map toolbox (toGrid)</tocitem>
     <tocitem target="gradientTensor.html">Gravity gradient tensor</tocitem>
     <tocitem target="referenceSystems.html">Normal field and GM/R rescaling</tocitem>
-    <tocitem target="geodetic2geocentric.html">Latitude conversions</tocitem>
+    <tocitem target="ref/shLowLevel_geodetic2geocentric.html">Latitude conversions</tocitem>
   </tocitem>
 
-  <tocitem target="shGaussianFilter.html">Filtering
-    <tocitem target="shGaussianFilter.html">shGaussianFilter / shFanFilter</tocitem>
-    <tocitem target="shGaussianWeights.html">shGaussianWeights (Jekeli recursion)</tocitem>
-    <tocitem target="shDestripe.html">shDestripe (Swenson-Wahr destriping)</tocitem>
-    <tocitem target="readDDK.html">DDK filters (readDDK / applyDDK)</tocitem>
-    <tocitem target="designFilter.html">designFilter (build your own)</tocitem>
+  <tocitem target="tvANS.html">Filtering
+    <tocitem target="ref/shLowLevel_shGaussianFilter.html">shGaussianFilter / shFanFilter</tocitem>
+    <tocitem target="ref/shLowLevel_shGaussianWeights.html">shGaussianWeights (Jekeli recursion)</tocitem>
+    <tocitem target="ref/shLowLevel_shDestripe.html">shDestripe (Swenson-Wahr destriping)</tocitem>
+    <tocitem target="ref/shLowLevel_readDDK.html">DDK filters (readDDK / applyDDK)</tocitem>
+    <tocitem target="ref/shLowLevel_designFilter.html">designFilter (build your own)</tocitem>
     <tocitem target="tvANS.html">tvANS filter</tocitem>
   </tocitem>
 
-  <tocitem target="shDegreeRMS.html">Spectra and diagnostics
-    <tocitem target="shDegreeRMS.html">shDegreeRMS / shOrderRMS</tocitem>
-    <tocitem target="shSpectralCrossover.html">shSpectralCrossover</tocitem>
-    <tocitem target="errorMap.html">Analytic error maps</tocitem>
-    <tocitem target="mcPropagate.html">mcPropagate (Monte-Carlo sigmas)</tocitem>
+  <tocitem target="comparison.html">Spectra and diagnostics
+    <tocitem target="ref/shLowLevel_shDegreeRMS.html">shDegreeRMS / shOrderRMS</tocitem>
+    <tocitem target="ref/shLowLevel_shSpectralCrossover.html">shSpectralCrossover</tocitem>
+    <tocitem target="ref/shLowLevel_errorMap.html">Analytic error maps</tocitem>
+    <tocitem target="ref/shLowLevel_mcPropagate.html">mcPropagate (Monte-Carlo sigmas)</tocitem>
     <tocitem target="comparison.html">Comparison suite</tocitem>
   </tocitem>
 
-  <tocitem target="basinKernel.html">Regional and geophysical analysis
-    <tocitem target="basinKernel.html">basinKernel (regional kernels)</tocitem>
-    <tocitem target="basinScaling.html">Basin scaling factors</tocitem>
+  <tocitem target="leakage.html">Regional and geophysical analysis
+    <tocitem target="ref/shLowLevel_basinKernel.html">basinKernel (regional kernels)</tocitem>
+    <tocitem target="ref/shLowLevel_basinScaling.html">Basin scaling factors</tocitem>
     <tocitem target="leakage.html">Leakage correction (forward modelling, gridded k)</tocitem>
     <tocitem target="slepianBasis.html">slepianBasis (Slepian localization)</tocitem>
-    <tocitem target="removeGIA.html">GIA correction (removeGIA)</tocitem>
+    <tocitem target="ref/shSeries_removeGIA.html">GIA correction (removeGIA)</tocitem>
     <tocitem target="eofAnalysis.html">EOF analysis</tocitem>
-    <tocitem target="combineCenters.html">Multi-center combination</tocitem>
+    <tocitem target="ref/shLowLevel_combineCenters.html">Multi-center combination</tocitem>
     <tocitem target="seaLevelFingerprint.html">Sea-level fingerprints</tocitem>
   </tocitem>
 
   <tocitem target="mapBridge.html">Visualization
     <tocitem target="mapBridge.html">Maps: geoMap draws them (toGrid, g.map)</tocitem>
-    <tocitem target="plotSHSpectrum.html">plotSHSpectrum</tocitem>
-    <tocitem target="plotSHCoeffTriangle.html">plotSHCoeffTriangle</tocitem>
+    <tocitem target="ref/shLowLevel_plotSHSpectrum.html">plotSHSpectrum</tocitem>
+    <tocitem target="ref/shLowLevel_plotSHCoeffTriangle.html">plotSHCoeffTriangle</tocitem>
   </tocitem>
 
 </tocitem>

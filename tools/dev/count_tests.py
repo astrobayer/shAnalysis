@@ -25,6 +25,10 @@ import os
 import re
 import sys
 
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(
+    os.path.abspath(__file__)))))                       # tools/
+from help_audit import struct_field_names               # noqa: E402
+
 METHOD = re.compile(r"^\s*function\s+(?:\[[^\]]*\]\s*=\s*)?(test|bench)\w*\s*"
                     r"\(([^)]*)\)", re.M)
 ENTRY = re.compile(r"^function\s+tests\s*=\s*\w+", re.M)
@@ -34,11 +38,22 @@ PARAM_DEF = re.compile(r"^\s*(\w+)\s*=\s*struct\((.*?)\);", re.M | re.S)
 
 
 def parameters(src):
-    """{name: cardinality} from a properties (TestParameter) block"""
+    """{name: cardinality} from a properties (TestParameter) block
+
+    Cardinality is the number of struct FIELDS, counted by
+    help_audit.struct_field_names - the one authority in this repository
+    for what a struct() call's field names are. The rule this replaced
+    counted every quoted word before a comma, which is right only while
+    the VALUES are not quoted: budgetCase = struct('alpha','alpha',...)
+    counted 19 where the runner runs 10. That is the A16 failure again -
+    a hand-rolled second parser of a fact another instrument already
+    parses correctly - and it would have been discovered by a red CI run
+    on --executed, not here (v5.0.2).
+    """
     out = {}
     for blk in PARAM_BLOCK.findall(src):
         for name, body in PARAM_DEF.findall(blk):
-            out[name] = len(re.findall(r"['\"]\w+['\"]\s*,", body))
+            out[name] = len(struct_field_names(body))
     return out
 
 

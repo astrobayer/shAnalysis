@@ -98,7 +98,7 @@ methods
         %         operation appends one line
         %
         %   Error identifiers
-        %     shCoefficients:badInput
+        %     shCoefficients:shCoefficients:badInput
         %         C and S are not square matrices of equal size, or SigmaC=/SigmaS=
         %         do not match the size of C/S
         %
@@ -118,14 +118,14 @@ methods
             opts.History string = string.empty(0,1)
         end
         if ~isequal(size(C), size(S)) || size(C,1) ~= size(C,2)
-            error('shCoefficients:badInput', ...
+            error('shCoefficients:shCoefficients:badInput', ...
                 'C and S must be square matrices of equal size.');
         end
         if ~isempty(opts.SigmaC) && ~isequal(size(opts.SigmaC), size(C))
-            error('shCoefficients:badInput', 'sigmaC must match size(C).');
+            error('shCoefficients:shCoefficients:badInput', 'sigmaC must match size(C).');
         end
         if ~isempty(opts.SigmaS) && ~isequal(size(opts.SigmaS), size(S))
-            error('shCoefficients:badInput', 'sigmaS must match size(S).');
+            error('shCoefficients:shCoefficients:badInput', 'sigmaS must match size(S).');
         end
         obj.C = C; obj.S = S;
         obj.sigmaC = opts.SigmaC; obj.sigmaS = opts.SigmaS;
@@ -157,17 +157,19 @@ methods
         %     out        (1 x 1) shCoefficients   sum; sigmas RSS; epochs must match
         %
         %   Error identifiers
-        %     shCoefficients:badInput
-        %         the other operand is not an shCoefficients (raised by checkPair)
-        %     shCoefficients:constantsMismatch
+        %     shCoefficients:operands:badInput
+        %         the other operand is not an shCoefficients. The `operands`
+%         segment marks a check shared by the binary operators, so it
+%         stays stable if the private helper behind it is renamed
+        %     shCoefficients:operands:constantsMismatch
         %         the operands differ in GM or R - convert first with
-        %         toReference(GM=..., R=...) (checkPair)
-        %     shCoefficients:epochMismatch
-        %         the operand epochs differ by more than 0.02 yr (checkEpochs).
+        %         toReference(GM=..., R=...)
+        %     shCoefficients:operands:epochMismatch
+        %         the operand epochs differ by more than 0.02 yr.
         %         minus does NOT raise this: a difference has no single epoch, so it
         %         sets epoch = NaN instead of checking
-        %     shCoefficients:sizeMismatch
-        %         the operands differ in nmax - truncate first (checkPair)
+        %     shCoefficients:operands:sizeMismatch
+        %         the operands differ in nmax - truncate first
         %
         [a, b] = shCoefficients.checkPair(a, b, 'plus');
         shCoefficients.checkEpochs(a, b, 0.02, 'plus');
@@ -185,13 +187,15 @@ methods
         %     out        (1 x 1) shCoefficients   difference; sigmas RSS
         %
         %   Error identifiers
-        %     shCoefficients:badInput
-        %         the other operand is not an shCoefficients (raised by checkPair)
-        %     shCoefficients:constantsMismatch
+        %     shCoefficients:operands:badInput
+        %         the other operand is not an shCoefficients. The `operands`
+%         segment marks a check shared by the binary operators, so it
+%         stays stable if the private helper behind it is renamed
+        %     shCoefficients:operands:constantsMismatch
         %         the operands differ in GM or R - convert first with
-        %         toReference(GM=..., R=...) (checkPair)
-        %     shCoefficients:sizeMismatch
-        %         the operands differ in nmax - truncate first (checkPair)
+        %         toReference(GM=..., R=...)
+        %     shCoefficients:operands:sizeMismatch
+        %         the operands differ in nmax - truncate first
         %
         [a, b] = shCoefficients.checkPair(a, b, 'minus');
         out = a.combine(b, -1, "difference");
@@ -221,7 +225,7 @@ methods
         %     out        (1 x 1) shCoefficients   scalar-scaled; sigmas scale by |a|
         %
         %   Error identifiers
-        %     shCoefficients:badInput
+        %     shCoefficients:mtimes:badInput
         %         mtimes takes a scalar on one side and an shCoefficients on the
         %         other; two coefficient fields cannot be multiplied
         %
@@ -230,7 +234,7 @@ methods
         elseif isa(b, 'shCoefficients') && isnumeric(a) && isscalar(a)
             out = b; f = a;
         else
-            error('shCoefficients:badInput', ...
+            error('shCoefficients:mtimes:badInput', ...
                 'mtimes supports scalar * shCoefficients only.');
         end
         out.C = out.C * f; out.S = out.S * f;
@@ -269,7 +273,7 @@ methods
         %     out        (1 x 1) shCoefficients   elementwise-scaled coefficients
         %
         %   Error identifiers
-        %     shCoefficients:badInput
+        %     shCoefficients:times:badInput
         %         times takes a numeric factor and an shCoefficients, and the factor
         %         must be scalar or the size of C
         %
@@ -278,7 +282,7 @@ methods
         elseif isa(b, 'shCoefficients') && isnumeric(a)
             out = b; f = a;
         else
-            error('shCoefficients:badInput', ...
+            error('shCoefficients:times:badInput', ...
                 'times supports numeric .* shCoefficients only.');
         end
         if isscalar(f)
@@ -286,7 +290,7 @@ methods
             return
         end
         if ~isequal(size(f), size(out.C))
-            error('shCoefficients:badInput', ...
+            error('shCoefficients:times:badInput', ...
                 'times factor must be scalar or %d x %d.', ...
                 size(out.C, 1), size(out.C, 2));
         end
@@ -306,7 +310,7 @@ methods
         %     out        (1 x 1) shCoefficients   truncated to the new nmax
         %
         %   Error identifiers
-        %     shCoefficients:badTruncation
+        %     shCoefficients:truncate:badTruncation
         %         the requested nmax exceeds the field's own - truncate cannot invent
         %         degrees
         %
@@ -315,7 +319,7 @@ methods
             nmaxNew (1,1) double {mustBeInteger, mustBeNonnegative}
         end
         if nmaxNew > obj.nmax
-            error('shCoefficients:badTruncation', ...
+            error('shCoefficients:truncate:badTruncation', ...
                 'Requested nmax %d exceeds available %d.', nmaxNew, obj.nmax);
         end
         out = obj;
@@ -341,7 +345,7 @@ methods
         %     SigmaS (NaN)  same for the sine coefficient
         %
         %   Error identifiers
-        %     shCoefficients:badIndex
+        %     shCoefficients:setCoefficient:badIndex
         %         (n,m) lies outside the triangle: n > nmax, or m > n
         %
         arguments
@@ -354,7 +358,7 @@ methods
             opts.SigmaS (1,1) double = NaN
         end
         if n > obj.nmax || m > n
-            error('shCoefficients:badIndex', ...
+            error('shCoefficients:setCoefficient:badIndex', ...
                 'Invalid (n,m) = (%d,%d) for nmax=%d.', n, m, obj.nmax);
         end
         out = obj;
@@ -386,12 +390,12 @@ methods
         %     out        (1 x 1) shCoefficients   C20 (and C30 when available) replaced by the SLR values, sigmas updated
         %
         %   Error identifiers
-        %     shCoefficients:epochNotInTable
+        %     shCoefficients:applyTN14:epochNotInTable
         %         no TN-14 entry lies within Tolerance of the object's epoch
-        %     shCoefficients:noC30
+        %     shCoefficients:applyTN14:noC30
         %         ReplaceC30="always" was asked for but TN-14 carries no C30 for
         %         that month
-        %     shCoefficients:noEpoch
+        %     shCoefficients:applyTN14:noEpoch
         %         the object has no finite epoch; set one through read or the
         %         constructor
         %
@@ -404,12 +408,12 @@ methods
         end
         if ischar(tn) || isstring(tn), tn = shLowLevel.readTN14(tn); end
         if ~isfinite(obj.epoch)
-            error('shCoefficients:noEpoch', ...
+            error('shCoefficients:applyTN14:noEpoch', ...
                 'applyTN14 requires a finite epoch (set via read/constructor).');
         end
         [dmin, k] = min(abs(tn.epoch - obj.epoch));
         if dmin > opts.Tolerance
-            error('shCoefficients:epochNotInTable', ...
+            error('shCoefficients:applyTN14:epochNotInTable', ...
                 'No TN-14 entry within %.3f yr of epoch %.4f.', ...
                 opts.Tolerance, obj.epoch);
         end
@@ -419,7 +423,7 @@ methods
                   (opts.ReplaceC30 == "auto" && ~isnan(tn.C30(k)));
         if wantC30 && obj.nmax >= 3
             if isnan(tn.C30(k))
-                error('shCoefficients:noC30', ...
+                error('shCoefficients:applyTN14:noC30', ...
                     'ReplaceC30="always" but TN-14 has no C30 for this month.');
             end
             out = out.setCoefficient(3, 0, tn.C30(k), NaN, SigmaC = tn.sigmaC30(k));
@@ -445,11 +449,11 @@ methods
         %     out        (1 x 1) shCoefficients   degree-1 row set from the TN-13 record nearest to obj.epoch
         %
         %   Error identifiers
-        %     shCoefficients:badIndex
+        %     shCoefficients:addDegree1:badIndex
         %         the model has nmax < 1 and cannot hold degree-1 coefficients
-        %     shCoefficients:epochNotInTable
+        %     shCoefficients:addDegree1:epochNotInTable
         %         no TN-13 entry lies within Tolerance of the object's epoch
-        %     shCoefficients:noEpoch
+        %     shCoefficients:addDegree1:noEpoch
         %         the object has no finite epoch; set one through read or the
         %         constructor
         %
@@ -460,16 +464,16 @@ methods
         end
         if ischar(tn) || isstring(tn), tn = shLowLevel.readTN13(tn); end
         if ~isfinite(obj.epoch)
-            error('shCoefficients:noEpoch', ...
+            error('shCoefficients:addDegree1:noEpoch', ...
                 'addDegree1 requires a finite epoch (set via read/constructor).');
         end
         if obj.nmax < 1
-            error('shCoefficients:badIndex', ...
+            error('shCoefficients:addDegree1:badIndex', ...
                 'Model has nmax < 1; cannot hold degree-1 coefficients.');
         end
         [dmin, k] = min(abs(tn.epoch - obj.epoch));
         if dmin > opts.Tolerance
-            error('shCoefficients:epochNotInTable', ...
+            error('shCoefficients:addDegree1:epochNotInTable', ...
                 'No TN-13 entry within %.3f yr of epoch %.4f.', ...
                 opts.Tolerance, obj.epoch);
         end
@@ -573,7 +577,7 @@ methods
         %             (renamed from N0 in v4.0.0)
         %
         %   Error identifiers
-        %     shCoefficients:noSigmas
+        %     shCoefficients:crossover:noSigmas
         %         the field carries no formal errors (sigmaC/sigmaS), which the
         %         crossover degree is defined against
         arguments
@@ -581,7 +585,7 @@ methods
             opts.Nmin (1,1) double = 2
         end
         if isempty(obj.sigmaC) || isempty(obj.sigmaS)
-            error('shCoefficients:noSigmas', ...
+            error('shCoefficients:crossover:noSigmas', ...
                 'crossover requires formal errors (sigmaC/sigmaS).');
         end
         [n0, nInterp] = shLowLevel.shSpectralCrossover(obj.degreeRMS(Nmin = opts.Nmin));
@@ -1198,7 +1202,7 @@ methods
         %     x          (P x 1) double   coefficients in idx ordering
         %
         %   Error identifiers
-        %     shCoefficients:badIndex
+        %     shCoefficients:vec:badIndex
         %         idx.Lmax exceeds the field's nmax
         %
         arguments
@@ -1206,7 +1210,7 @@ methods
             idx (1,1) struct
         end
         if idx.Lmax > obj.nmax
-            error('shCoefficients:badIndex', ...
+            error('shCoefficients:vec:badIndex', ...
                 'idx.Lmax=%d exceeds nmax=%d.', idx.Lmax, obj.nmax);
         end
         x = shLowLevel.vecFromCS(obj.C, obj.S, idx);
@@ -1393,16 +1397,16 @@ end
 methods (Static, Access = private)
     function [a, b] = checkPair(a, b, opname)
         if ~isa(a, 'shCoefficients') || ~isa(b, 'shCoefficients')
-            error('shCoefficients:badInput', ...
+            error('shCoefficients:operands:badInput', ...
                 '%s requires two shCoefficients objects.', opname);
         end
         if a.nmax ~= b.nmax
-            error('shCoefficients:sizeMismatch', ...
+            error('shCoefficients:operands:sizeMismatch', ...
                 'nmax differs (%d vs %d) - use truncate() first.', ...
                 a.nmax, b.nmax);
         end
         if abs(a.GM - b.GM) > 1e-9 * a.GM || abs(a.R - b.R) > 1e-9 * a.R
-            error('shCoefficients:constantsMismatch', ...
+            error('shCoefficients:operands:constantsMismatch', ...
                 ['GM/R differ between operands - convert first with ' ...
                  'toReference(GM=..., R=...) (exact spectral rescaling).']);
         end
@@ -1410,7 +1414,7 @@ methods (Static, Access = private)
 
     function checkEpochs(a, b, tol, opname)
         if isfinite(a.epoch) && isfinite(b.epoch) && abs(a.epoch - b.epoch) > tol
-            error('shCoefficients:epochMismatch', ...
+            error('shCoefficients:operands:epochMismatch', ...
                 '%s: epochs %.4f and %.4f differ by more than %.3f yr.', ...
                 opname, a.epoch, b.epoch, tol);
         end

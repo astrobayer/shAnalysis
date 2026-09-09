@@ -19,6 +19,18 @@ Three checks:
               convention and sat in UNDOCUMENTED, a list that only ever
               shrinks; A20 drained it in v4.0.2, so this rule now holds
               with no exemption at all.
+  PINS        every toolbox identifier a TEST names is one some file
+              actually raises. Nothing read tests/ before v5.0.1.
+              REACH, stated because it is narrower than it sounds: this
+              catches a pin naming an identifier that EXISTS NOWHERE
+              (A21b's `shCoefficients:noC30`, missed by an enumerating
+              grep whose [A-Za-z]* could not match the digits). It does
+              NOT catch a pin naming a real identifier that the call
+              under test cannot reach (`shSeries:fromFolder:noFiles`
+              where the empty folder is caught by `read`) - that needs
+              per-call guard analysis, and only MATLAB has it. One of
+              A21b's two red rounds is preventable here; the other is
+              not, and saying so is the point.
   GHOSTS      every identifier the help documents is actually raised.
               A12's lesson: documentation drifts in BOTH directions.
 
@@ -50,26 +62,22 @@ CLASS_FILES = ("shCoefficients.m", "shSeries.m", "shClimatology.m")
 # owning `shAnalysis:shSeries:*`. Same trap as A17 - one name, two jobs.
 _IS_CLASS = frozenset(CLASS_FILES)
 
-# A21b: 29 of the class identifiers are TWO-part (shSeries:badInput), so a
-# caller cannot tell which of the 35 methods raised. Making them three-part
-# is a MAJOR change - testContract pins the current names - so it is a
-# backlog, not a rule: this set may only shrink, and the gate prints its
-# size every run. A two-part identifier NOT listed here is a new defect.
-TWO_PART_OK = {
-    "shClimatology:badIndex", "shClimatology:badInput",
-    "shCoefficients:badIndex", "shCoefficients:badInput",
-    "shCoefficients:badTruncation", "shCoefficients:constantsMismatch",
-    "shCoefficients:epochMismatch", "shCoefficients:epochNotInTable",
-    "shCoefficients:noC30", "shCoefficients:noEpoch",
-    "shCoefficients:noSigmas", "shCoefficients:sizeMismatch",
-    "shSeries:ambiguousRange", "shSeries:badBasis", "shSeries:badIndex",
-    "shSeries:badInput", "shSeries:badRange", "shSeries:badTruncation",
-    "shSeries:constantsMismatch", "shSeries:emptyRange",
-    "shSeries:epochMismatch", "shSeries:missingOp", "shSeries:nanInSeries",
-    "shSeries:noBreaks", "shSeries:noEpoch", "shSeries:noFiles",
-    "shSeries:sizeMismatch", "shSeries:sparseWindow",
-    "shSeries:tooFewEpochs",
-}
+# A21b: DRAINED in v5.0.0. Every class identifier is now three-part, so
+# this set is empty and the rule holds with no exemption. It stays as the
+# mechanism - a new file could earn a temporary entry with a dated reason
+# - and, as in A20, the self-test asserts that mechanism with a TEMPORARY
+# entry rather than pinning a member name, because a loop over an empty
+# set cannot fail (A14).
+TWO_PART_OK = set()
+
+# The middle segment of a class identifier. Normally the raising PUBLIC
+# method, so a caller can tell what they called. The exceptions are the
+# shared private checks: `shCoefficients.checkPair` guards the operand
+# pair for both binary operators, `shSeries.assertClean` guards the
+# stacks for six methods. Those get a stable CONCEPT name rather than the
+# helper's own, so renaming a private function is not a breaking change -
+# which is the whole reason this list is short and hand-written.
+SHARED_CHECKS = {"operands", "stack", "range"}
 
 # error('id', ...) / warning('id', ...) -> identifier is argument 1.
 # assert(cond, 'id', ...)               -> identifier is argument 2.
@@ -224,6 +232,92 @@ def class_requirements(funs):
     return need, priv
 
 
+TEST_DIR = os.path.join(ROOT, "tests")
+# Toolbox-owned roots. A test may legitimately name MATLAB's own
+# identifiers (MATLAB:*) or a third party's; those are not ours to check.
+OWNED = ("shLowLevel:", "shAnalysis:", "shCoefficients:", "shSeries:",
+         "shClimatology:")
+_OWNED_RE = "|".join(re.escape(o) for o in OWNED)
+# NOTE the digits: `shCoefficients:applyTN14:noC30` and `readTN13` carry
+# them, and a letters-only class is exactly how the noC30 pin escaped.
+PIN = re.compile(r"['\"]((?:%s)[\w:]+)['\"]" % _OWNED_RE)
+
+
+# An owned-looking literal that is NOT itself a raised identifier is a
+# PREFIX handed to a helper: +shLowLevel/private/normalizeMonthList.m
+# raises `errId + ":badMonth"` and its callers pass
+# "shLowLevel:fetchITSGSINEX". The first version of the PINS rule reported
+# those two real identifiers as raised by nothing - a new checker lies
+# before it tells the truth (A12), so it was narrowed rather than the
+# tests "fixed".
+LITERAL = re.compile(r"['\"]((?:%s)[\w:]+)['\"]" % _OWNED_RE)
+
+
+def raisable():
+    """(identifiers raised, prefixes under which more may be raised)."""
+    ids, prefixes = set(), set()
+    sources = [p for p, _s, _o in surface()]
+    sources += [os.path.join(ROOT, f) for f in CLASS_FILES]
+    priv = os.path.join(PKG, "private")
+    if os.path.isdir(priv):
+        sources += [os.path.join(priv, f) for f in sorted(os.listdir(priv))
+                    if f.endswith(".m")]
+    # tests raise a few identifiers of their own (tests/rmIfFolder.m warns
+    # shAnalysis:test:cleanupFailed); those are raises, not pins.
+    if os.path.isdir(TEST_DIR):
+        sources += [os.path.join(TEST_DIR, f)
+                    for f in sorted(os.listdir(TEST_DIR)) if f.endswith(".m")]
+    lits = set()
+    for path in sources:
+        if not os.path.isfile(path):
+            continue
+        src, code = code_of(path)
+        i, p = raised_in(code)
+        ids |= i
+        prefixes |= p
+        # Prefix literals come from the TOOLBOX only. Harvesting them from
+        # tests/ too let a pin validate itself: the bad `shCoefficients:noC30`
+        # pin was read as its own prefix and the rule went quiet. Tests
+        # contribute their RAISES (rmIfFolder warns) and nothing else.
+        if not path.startswith(TEST_DIR + os.sep):
+            lits |= set(LITERAL.findall(code))
+    for f in CLASS_FILES:
+        path = os.path.join(ROOT, f)
+        if os.path.isfile(path):
+            for fn in parse_class(path):
+                ids |= fn["raises"]
+    prefixes |= (lits - ids)
+    return ids, prefixes
+
+
+def check_pins():
+    """PINS: a test may only name an identifier something raises."""
+    probs, checked = [], 0
+    if not os.path.isdir(TEST_DIR):
+        return probs, checked
+    ids, prefixes = raisable()
+    for f in sorted(os.listdir(TEST_DIR)):
+        if not f.endswith(".m"):
+            continue
+        src = open(os.path.join(TEST_DIR, f), encoding="utf-8",
+                   errors="replace").read()
+        for k, line in enumerate(src.split("\n"), 1):
+            if line.lstrip().startswith("%"):
+                continue
+            for m in PIN.finditer(line):
+                pin = m.group(1)
+                checked += 1
+                if pin in ids:
+                    continue
+                # a prefix only covers what sits BELOW it: "shSeries:read"
+                # must not validate "shSeries:readFoo"
+                if any(pin.startswith(pre + ":") for pre in prefixes):
+                    continue
+                probs.append("%s:%d pins %s, which no file raises"
+                             % (f, k, pin))
+    return probs, checked
+
+
 def check_classes():
     probs, backlog, checked = [], [], 0
     for f in CLASS_FILES:
@@ -234,6 +328,7 @@ def check_classes():
                          "renamed or deleted?" % f)
             continue
         funs = parse_class(path)
+        names = {x["name"] for x in funs}
         need, priv = class_requirements(funs)
         # a private helper calling another private helper would make one hop
         # too few; the rule says so out loud instead of hoping
@@ -258,6 +353,14 @@ def check_classes():
                             "%s.%s raises the two-part %s, which does not name "
                             "its method - use %s:%s:<reason> (A21b)"
                             % (cls, fn["name"], i, cls, fn["name"]))
+                else:
+                    mid = i.split(":")[1]
+                    if mid not in names and mid not in SHARED_CHECKS:
+                        probs.append(
+                            "%s.%s raises %s, whose middle segment names "
+                            "neither a method of this class nor a declared "
+                            "shared check %s" % (cls, fn["name"], i,
+                                                 sorted(SHARED_CHECKS)))
         for meth, ids in sorted(need.items()):
             fn = next(x for x in funs if x["name"] == meth)
             doc = set(DOC_ID_ANY.findall(fn["help"]))
@@ -321,6 +424,8 @@ def main(argv=None):
 
     cprobs, cbacklog, cchecked = check_classes()
     probs += cprobs
+    pprobs, pchecked = check_pins()
+    probs += pprobs
 
     if "--list" in argv:
         for s in sorted(backlog):
@@ -337,10 +442,13 @@ def main(argv=None):
     print("error_id_audit: 0 findings - %d files raise identifiers, every one "
           "owned by the file that raises it; %d document them, %s. Classes: "
           "%d public methods document every identifier they can raise, their "
-          "private helpers' included; %d identifiers are still two-part and "
-          "sit in the A21b backlog. Reach: +shLowLevel, the root functions "
-          "and the three class files - nothing else."
-          % (checked, checked - len(backlog), tail, cchecked, len(cbacklog)))
+          "private helpers' included, and every identifier is three-part (%s). "
+          "%d test pins name an identifier something raises. Reach: "
+          "+shLowLevel, the root functions, the three class files and "
+          "tests/ - nothing else."
+          % (checked, checked - len(backlog), tail, cchecked,
+             "A21b drained its backlog in v5.0.0" if not cbacklog
+             else "%d still in the A21b backlog" % len(cbacklog), pchecked))
     return 0
 
 

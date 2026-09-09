@@ -1,0 +1,20 @@
+# shAnalysis speed budgets (WP2 step 1) - one row per machine and benchmark.
+#
+# tests/testPerformance.m::testSpeedBudget compares the MEDIAN of Repeats
+# timings against BudgetFactor x median_s of the row matching this machine.
+# A benchmark with no row for the running machine is FILTERED, not failed:
+# a budget cannot be asserted before it has been measured.
+#
+# How a machine gets a row: run the suite once, take the PERFBASE lines it
+# prints (they are already in this format) and paste them below. The machine
+# label comes from SHANALYSIS_PERF_MACHINE, else COMPUTERNAME, else
+# `hostname`, with anything outside [A-Za-z0-9_.-] replaced by "_".
+#
+# min_s is recorded but NOT asserted: it is the statistic to tighten
+# BudgetFactor with once a spread has been observed across runs.
+#
+# Baselines are per machine, not ratios against a calibration workload: a
+# ratio is only machine-independent when the calibration scales like the
+# workload, and no single calibration tracks both a BLAS-bound reduction and
+# a memory-bound recursion.
+machine,matlab,benchmark,median_s,min_s,samples,measured
