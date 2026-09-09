@@ -136,7 +136,16 @@ properties (Constant)
     BudgetFactor = 3;           % everything not listed below
     TightFactor = 1.5;          % <= 1.1 observed over 15 runs, 2 machines
     TightBudgets = ["legendre_n360", "legendre_n720", ...
-                    "analysis_rings_n60", "apply_ddk_n300"];
+                    "analysis_rings_n60"];
+    % apply_ddk_n300 is the obvious fourth and is deliberately NOT here.
+    % The criterion says "worst observed over fifteen runs on BOTH
+    % machines"; A8 has run it once (23.0 ms at 2a38d25), so it has no
+    % A8 spread at all. It was in this list for one round on
+    % MATTHIASPC evidence alone, and the A8 number is what argued it
+    % out: at 23 ms it is the same size as leakage_1iter_n24, which
+    % swings 1.306 on A8. Granting tight status on one machine's
+    % evidence would have been applying the rule to the data that
+    % happened to exist. Promote it when A8 has measured it twice.
     Repeats = 15;               % WP2: 15 repeats, median of the samples
 end
 

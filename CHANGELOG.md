@@ -74,10 +74,17 @@ the set.
 
 So the factor is now **per benchmark against a stated criterion** - worst
 observed ratio <= 1.1 earns `TightFactor = 1.5`, everything else keeps
-`BudgetFactor = 3`. Four qualify: `legendre_n360`, `legendre_n720`,
-`analysis_rings_n60`, `apply_ddk_n300`. That covers three of the six lanes
-A9 names (`legendreALF`, `shAnalysisGrid`, `applyDDK`), which is most of
-what the finding was worried about.
+`BudgetFactor = 3`. Three qualify: `legendre_n360`, `legendre_n720` and
+`analysis_rings_n60` - two of the six lanes A9 names (`legendreALF`,
+`shAnalysisGrid`).
+
+`apply_ddk_n300` is the obvious fourth and is deliberately held back. It
+was in the tight list on MATTHIASPC evidence alone, and A8's first
+measurement of it (23.0 ms) argued it out: that is the same size as
+`leakage_1iter_n24`, which swings 1.306 on A8, and one run gives no spread
+at all. Promote it when A8 has measured it twice. Applying the criterion
+only to the data that happens to exist is how a criterion becomes a
+rationalisation.
 
 **A9 stays open**, and what it waits for is now specific rather than "more
 runs": `leakageCorrect` and the Kalman step are still at 3x, and closing A9
@@ -110,9 +117,13 @@ that nobody reads back is not a measurement. The gate now also says what an
 empty backlog does NOT mean: `apply_ddk_n300` is baselined here only, so on
 A8 it still filters until that runner measures it.
 
-The `n50` pair also settles the crossover from below on the SECOND machine:
-A8 measured direct 3.80 ms against clenshaw 1.07 ms at 50 points, and 15.53
-against 3.37 ms at 200. Both machines, independently, say the same thing.
+The `n50` pair also settles the crossover from below on the SECOND machine.
+In one A8 run (`b65f9a2`): direct 3.80 ms against clenshaw 1.07 ms at 50
+points (3.56x), and 14.94 against 2.14 ms at 200 (6.99x). The run before it
+put the 200-point pair at 4.61x - these are 1-15 ms budgets and their
+between-run spread is exactly what the A9 section is about, so read the
+direction as reproducible and the factor as not. Both machines, and every
+run, agree on the direction.
 
 ### A23 (new): one machine, two labels, silently unguarded budgets
 
