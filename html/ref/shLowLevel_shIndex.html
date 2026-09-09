@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shLowLevel.shIndex &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shLowLevel.shIndex</nav>
+<h1>shLowLevel.shIndex</h1>
+<p class="h1line">Canonical order-major index for SH coefficient vectors.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>idx = shLowLevel.shIndex(Lmax)</code><code>idx = shLowLevel.shIndex(Lmax, Nmin=2)</code></div>
+<h2>Description</h2>
+<p>idx = shLowLevel.shIndex(Lmax) builds the index table used by all shLowLevel functions: order-major ordering, C before S per (n,m), degrees n = Nmin..Lmax (default Nmin = 2; degree 0/1 and the SLR-C20 replacement are assumed to be handled upstream).</p>
+<h2>Examples</h2>
+<details class="example"><summary>Runnable (docs/apiExamples.json)</summary><div><pre><code>idx = shLowLevel.shIndex(60);                % Nmin = 2 default</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>Lmax</code></td><td>1 x 1</td><td>double</td><td><code>required</code></td><td class="desc">maximum spherical-harmonic degree of the index</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>Nmin</code></td><td>1 x 1</td><td>double</td><td><code>2</code></td><td class="desc">minimum spherical harmonic degree</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>idx</code></td><td class="desc">(1,1) struct  the canonical vector ordering of the toolbox, fields n, m, cs   (P x 1) double  degree, order and 0=cosine/1=sine of every element, in vector order P          (1,1) double    number of elements Lmax       (1,1) double    maximum degree (the LMAX argument) minDegree  (1,1) double    first degree included (the Nmin option; the FIELD keeps the older spelling) pos        (Lmax+1 x Lmax+1 x 2) double  reverse map, the vector position of (n, m, cs) or 0 when absent</td></tr></table>
+<h2>Error Identifiers</h2>
+<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<p class="none">No other entity is named in this help block.</p>
+<p class="prov">shAnalysis v3.34.1 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

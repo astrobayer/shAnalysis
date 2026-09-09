@@ -50,13 +50,16 @@ function [k, info] = gridScaling(model, latDeg, lonDeg, opts)
 %   Outputs
 %     k          (nLat x nLon) double  scaling factors; NaN where the
 %                model carries too little signal to define one
-%     info       (1,1) struct  fields: covered (1,1 double, fraction of
-%                the grid with a finite k), kMedian / kMin / kMax (1,1
-%                double, over the pixels the MODEL gives mass to - not
-%                over all finite pixels, where pure-leakage k = 0 would
-%                dominate), onSignal (1,1 double, how many those are),
-%                clipped (1,1 double, number of clamped pixels), nmax
-%                (1,1 double), filter (1,1 string), epochs (1,1 double)
+%     info  (1,1) struct  fields
+%           covered   (1,1) double  fraction of the grid with a finite k
+%           kMedian, kMin, kMax  (1,1) double  over the pixels the MODEL
+%                     gives mass to - deliberately NOT over all finite
+%                     pixels, where pure-leakage k = 0 would dominate
+%           onSignal  (1,1) double  how many pixels those are
+%           clipped   (1,1) double  pixels whose k was clamped
+%           nmax      (1,1) double  degree the scaling was built at
+%           filter    (1,1) string  the filter it was built for
+%           epochs    (1,1) double  epochs that entered the regression
 %
 %   Python-validated in tools/dev/validate_leakage.py: amplitude
 %   invariance (k depends on the pattern, not the model's scale, to

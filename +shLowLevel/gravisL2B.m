@@ -46,8 +46,14 @@ function [ts, rep] = gravisL2B(folder, gravisFolder, opts)
 %
 %   Outputs
 %     ts   (1,1) shSeries  corrected anomaly series (nmax = Nmax)
-%     rep  (1,1) struct    steps (1,K string), epochs (T,1), nDropped,
-%          begins (T,1), files, nmax, version, created
+%     rep  (1,1) struct  fields
+%          steps     (1,K) string  the stages applied, with parameters
+%          epochs    (T,1) double  the epoch grid [decimal years]
+%          begins    (T,1) double  each month's interval start
+%          nDropped  (1,1) double  epochs dropped for lack of coverage
+%          nmax      (1,1) double  the degree read
+%          version   (1,1) string  shLowLevel.version at run time
+%          created   (1,1) string  when the run happened
 %
 %   Example
 %     [ts, rep] = shLowLevel.gravisL2B("E:/series/COSTG", ...   % shipped aux data

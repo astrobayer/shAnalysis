@@ -30,7 +30,17 @@ function [Cn, info] = normalFieldCS(nmax, opts)
 %           Cn(1) = 1 represents the central GM/r term - subtract it
 %           ONLY together with a matching degree-0 of the model, see
 %           subtractNormalField)
-%     info  struct: GM, a, f, omega, J2, e2, m, q0, system
+%     info  (1,1) struct  the defining constants actually used, fields
+%           GM      (1,1) double  geocentric gravitational constant
+%           a       (1,1) double  semi-major axis [m]
+%           f       (1,1) double  flattening
+%           omega   (1,1) double  angular velocity [rad/s]
+%           J2      (1,1) double  dynamic form factor, COMPUTED from the
+%                   four above, not tabulated
+%           e2      (1,1) double  first eccentricity squared
+%           m       (1,1) double  omega^2 a^2 b / GM
+%           q0      (1,1) double  the auxiliary Somigliana quantity
+%           system  (1,1) string  "WGS84" | "GRS80"
 %
 %   The normal field is w.r.t. ITS OWN (GM, a): rescale before mixing
 %   with model coefficients (shLowLevel.rescaleGMR does; g.subtractNormalField

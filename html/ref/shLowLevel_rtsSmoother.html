@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shLowLevel.rtsSmoother &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shLowLevel.rtsSmoother</nav>
+<h1>shLowLevel.rtsSmoother</h1>
+<p class="h1line">Rauch-Tung-Striebel backward pass for kalmanFilter output.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>smo = shLowLevel.rtsSmoother(filt)</code><code>smo = shLowLevel.rtsSmoother(filt, Lag=Inf)</code></div>
+<h2>Description</h2>
+<p>SMO = shLowLevel.rtsSmoother(FILT) runs the fixed-interval RTS smoother (Kurtenbach 2012, Sec. 3.3.3) over the forward-filter result of <a href="shLowLevel_kalmanFilter.html"><code>shLowLevel.kalmanFilter</code></a>: G_t  = Pf_t B&#x27; Pp_{t+1}^-1 xs_t = xf_t + G_t (xs_{t+1} - xp_{t+1}) Ps_t = Pf_t + G_t (Ps_{t+1} - Pp_{t+1}) G_t&#x27; so the estimate at epoch t uses ALL observations, past and future. With the stationary initialization of kalmanFilter this reproduces the joint least-squares adjustment over all epochs exactly (Kvas 2019, Sec. 2.3; unit-tested to machine precision), i.e. the forward-backward pass is an exact solver for the block-tridiagonal joint normal-equation system - never build that system explicitly.</p>
+<h2>Examples</h2>
+<details class="example"><summary>From the help block</summary><div><pre><code>    filt = shLowLevel.kalmanFilter(model, obs);   % StoreCov=&quot;full&quot;
+    smo  = shLowLevel.rtsSmoother(filt);
+    plot(ep, smo.xs(1, :))                        % first coefficient
+
+  Reference: Rauch, Tung &amp; Striebel (1965); Kurtenbach, DGK C-683
+  (2012), Sec. 3.3.3; Kvas, TU Graz PhD thesis (2019), Sec. 2.3.
+  Numerics pre-validated in Python (tools/dev/validate_kalman.py).</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>filt</code></td><td>1 x 1</td><td>struct</td><td><code>required</code></td><td class="desc">struct  from <a href="shLowLevel_kalmanFilter.html"><code>shLowLevel.kalmanFilter</code></a> with</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>Lag</code></td><td>1 x 1</td><td>double</td><td><code>Inf</code></td><td class="desc">(1 x 1) double  smoothing window in epochs: the estimate at t uses data up to t+Lag; 0 returns the pure filter estimates, Inf the full RTS pass. The filt requirement below applies to both.</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>smo</code></td><td class="desc">(1,1) struct  smoothed results, PHYSICAL block only. Fields xs      (P x T) double  smoothed states sig     (P x T) double  formal 1-sigma per coefficient, the square root of the smoothed covariance diagonal PsLast  (P x P) double  the full smoothed covariance of the LAST epoch, which equals the filtered one there P       (1,1) double  block size order   (1,1) double  the VAR order</td></tr></table>
+<h2>Error Identifiers</h2>
+<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<ul class="seealso"><li><a href="shLowLevel_kalmanFilter.html"><code>shLowLevel.kalmanFilter</code></a></li></ul>
+<p class="prov">shAnalysis v3.34.1 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

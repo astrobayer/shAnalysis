@@ -105,9 +105,12 @@ shAnalysis/
   demo_shAnalysis.m  16 selectable demonstration cases
   tests/             correctness / contract / robustness / science /
                      performance (fixtures live OUTSIDE the repo: CI
-                     pulls the orphan branch 'testdata'; local machines
-                     point setup_shAnalysis(TestDataFolder=...) at a
-                     copy - CC-BY-4.0 contents, see NOTICE)
+                     checks out the pinned tag 'fixtures-YYYY-MM' of the
+                     orphan branch 'testdata' - see .github/workflows/
+                     ci.yml, which tools/fixture_tag_audit.py keeps on
+                     the newest tag; local machines point
+                     setup_shAnalysis(TestDataFolder=...) at a copy -
+                     CC-BY-4.0 contents, see NOTICE)
   html/              doc pages for MATLAB's `doc` browser
   tools/             CI gates; tools/dev/ the doc generators (see its README)
 ```

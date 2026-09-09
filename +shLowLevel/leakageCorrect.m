@@ -113,22 +113,26 @@ function [mCorr, info] = leakageCorrect(grid, latDeg, lonDeg, opts)
 %   Outputs
 %     mCorr      (nLat x nLon) double   leakage-corrected field, same
 %                units and grid as GRID
-%     info       (1,1) struct  fields: iterations (1,1 double),
-%                residual (1,1 double, final relative residual - with a
-%                mask this floors above Tol and that is correct),
-%                history (1,K double, the residual per iteration - plot
-%                it, a rising curve means Gain is too large),
-%                step (1,K double, the relative change of the solution
-%                per iteration; this is what Tol tests),
-%                stoppedBy (1,1 string: "discrepancy" | "step" |
-%                "maxIter" | "zeroField" - always check this, it says
-%                whether the result was regularised),
-%                residualRMS (1,1 double, over ResidualRegion),
-%                residualRMSGlobal (1,1 double, over the whole grid - a
-%                large gap between the two means unmodelled signal
-%                elsewhere) and noiseLevel (1,1 double, as given),
-%                converged (1,1 logical), nmax (1,1 double),
-%                filter (1,1 string), masked (1,1 logical)
+%     info  (1,1) struct  fields
+%           iterations   (1,1) double  iterations actually run
+%           residual     (1,1) double  final relative residual; with a
+%                        mask this floors above Tol, and that is correct
+%           history      (1,K) double  the residual per iteration - plot
+%                        it, a rising curve means Gain is too large
+%           step         (1,K) double  the relative change of the
+%                        solution per iteration; this is what Tol tests
+%           stoppedBy    (1,1) string  "discrepancy" | "step" |
+%                        "maxIter" | "zeroField". ALWAYS check this: it
+%                        says whether the result was regularised
+%           residualRMS  (1,1) double  over ResidualRegion
+%           residualRMSGlobal  (1,1) double  over the whole grid; a large
+%                        gap between the two means unmodelled signal
+%                        elsewhere
+%           noiseLevel   (1,1) double  as given
+%           converged    (1,1) logical  whether the criterion was met
+%           nmax         (1,1) double  the degree it worked at
+%           filter       (1,1) string  the filter it inverted
+%           masked       (1,1) logical  whether a mask was in play
 %
 %   The correction is only as good as the filter description and the
 %   mask. With an exact mask on a synthetic disc it recovers the truth

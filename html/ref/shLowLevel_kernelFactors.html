@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shLowLevel.kernelFactors &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shLowLevel.kernelFactors</nav>
+<h1>shLowLevel.kernelFactors</h1>
+<p class="h1line">Degree-dependent spectral factors for SH synthesis/analysis.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>[kernel, radialExp, units] = shLowLevel.kernelFactors(quantity, nmax, GM, R)</code><code>[kernel, radialExp, units] = shLowLevel.kernelFactors(quantity, nmax, GM, R, kn=[], hn=[], rho_ave=5517, ...)</code></div>
+<h2>Description</h2>
+<p>KERNEL = shLowLevel.kernelFactors(QUANTITY, NMAX, GM, R, kn ([])=..., ...) returns the (NMAX+1)x1 factor f_n such that a field of QUANTITY is q(lat,lon) = sum_n f_n * sum_m Pbar_nm (C_nm cos + S_nm sin). Shared by <a href="shLowLevel_shSynthesis.html"><code>shLowLevel.shSynthesis</code></a> (multiply) and <a href="shLowLevel_shAnalysisGrid.html"><code>shLowLevel.shAnalysisGrid</code></a> (divide); the single source of truth for the quantity definitions.</p>
+<h2>Examples</h2>
+<details class="example"><summary>Runnable (docs/apiExamples.json)</summary><div><pre><code>kf = shLowLevel.kernelFactors(&quot;ewh&quot;, 60, GM, R, kn = kn);</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>quantity</code></td><td>n x m</td><td>-</td><td><code>required</code></td><td class="desc">char/string  see above</td></tr><tr><td><code>nmax</code></td><td>1 x 1</td><td>double</td><td><code>required</code></td><td class="desc">double GM, R     (1,1) double [m^3/s^2], [m]</td></tr><tr><td><code>GM</code></td><td>1 x 1</td><td>double</td><td><code>required</code></td><td class="desc">gravitational constant times Earth mass [m^3/s^2] (default 3.986004415e14, overridable)</td></tr><tr><td><code>R</code></td><td>1 x 1</td><td>double</td><td><code>required</code></td><td class="desc">reference radius [m] (default 6378136.3, overridable)</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>kn</code></td><td>n x m</td><td>double</td><td><code>[]</code></td><td class="desc">double  load Love numbers k&#x27;_n (NEVER hardcoded - user-supplied)</td></tr><tr><td><code>hn</code></td><td>n x m</td><td>double</td><td><code>[]</code></td><td class="desc">double  load Love numbers h&#x27;_n (deformation_up only; user-supplied)</td></tr><tr><td><code>rho_ave</code></td><td>1 x 1</td><td>double</td><td><code>5517</code></td><td class="desc">double = 5517   [kg/m^3]</td></tr><tr><td><code>rho_water</code></td><td>1 x 1</td><td>double</td><td><code>1000</code></td><td class="desc">double = 1000   [kg/m^3]</td></tr><tr><td><code>Height</code></td><td>1 x 1</td><td>double</td><td><code>0</code></td><td class="desc">double = 0      [m] evaluation height above R: multiplies the potential-type kernels by the upward- continuation attenuation (R/r)^p with r = R+Height (p = n+1 potential/geoid-as-potential-ratio... see below; p = n+2 anomaly/disturbance; p = n+3 T_rr). Python-validated against -d/dr and d2/dr2 of the continued potential (2e-10 / 7e-7 = check&#x27;s own truncation). Surface quantities (ewh, surface_density, bottom_pressure, deformation_up, geoid) reject Height (shSynthesis:heightInvalid) - they are surface concepts.</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>kernel</code></td><td class="desc">(nmax+1,1) double  (zeros where the quantity carries no information, e.g. n=1 for gravity_anomaly) radialExp (nmax+1,1) double  the upward-continuation exponent p_n in f_n(r) = kernel_n (R/r)^p_n, or EMPTY for a quantity that has no radial law (a surface concept). This is the same p_n the Height branch below applies, returned rather than restated: <a href="shLowLevel_shSynthesisGradient.html"><code>shLowLevel.shSynthesisGradient</code></a> needs it for d/dr = -(p_n/r) f_n, and a second copy of these exponents would be a fact written twice.</td></tr><tr><td><code>units</code></td><td class="desc">(1,1) string  the SI unit of the quantity (&quot;&quot; for the dimensionless passthrough). Same reason as radialExp: the unit belongs to the quantity, so it is returned from where the quantity is defined rather than restated in every bridge, plot label and export header. Consumed by <a href="shCoefficients_toGrid.html"><code>shCoefficients.toGrid</code></a>.</td></tr></table>
+<h2>Error Identifiers</h2>
+<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<ul class="seealso"><li><a href="shLowLevel_shSynthesis.html"><code>shLowLevel.shSynthesis</code></a></li><li><a href="shLowLevel_shAnalysisGrid.html"><code>shLowLevel.shAnalysisGrid</code></a></li></ul>
+<p class="prov">shAnalysis v3.34.1 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

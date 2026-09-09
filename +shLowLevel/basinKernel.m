@@ -25,8 +25,12 @@ function [b, info] = basinKernel(idx, region, opts)
 %                    area error at factor 1 and Lmax 20, ~5% at factor 2)
 %   Outputs
 %     b     (P,1) double     kernel in IDX ordering
-%     info  struct: areaFraction (quadrature area of the mask / 4pi),
-%           nGridPoints, buffered/tapered flags
+%     info  (1,1) struct  fields
+%           areaFraction  (1,1) double   quadrature area of the mask / 4pi
+%           nGridPoints   (1,1) double   grid points the mask was
+%                         evaluated on
+%           buffered      (1,1) logical  BufferKm was non-zero
+%           tapered       (1,1) logical  TaperKm was positive
 %
 %   Note: with Nmin > 0 in IDX the kernel misses the low degrees of
 %   the indicator (incl. its mean); basinAverage's (B'B) normalization

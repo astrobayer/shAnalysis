@@ -19,24 +19,29 @@ function [N, info] = buildNoiseCov(Xres, idx, opts)
 %       opts.FullCov ([]), already reordered to idx ordering. Returned as-is
 %       (symmetrized). Combine with shLowLevel.vceRescale for monthly scaling.
 %
-%   Options:
-%     Mode       ('empirical') | 'full'
-%     FullCov    ([])   P x P matrix for mode 'full'
-%     Shrinkage  (0.1)  gamma in C <- (1-g)*C + g*diag(diag(C))
-%
-%   info: struct with block bookkeeping.
 %   Inputs
-%     Xres (P x T) residual coefficient vectors (shIndex ordering)
+%     Xres (P x T) double  residual coefficient vectors (shIndex ordering)
+%     idx  (1,1) struct    shLowLevel.shIndex matching Xres
 %   Options
-%     Mode ("empirical")  ("empirical" | "full") estimate from Xres or
-%         wrap a user-supplied dense covariance
-%     FullCov ([])     (P x P) dense covariance for Mode="full"
-%     Shrinkage (0.1)  (1 x 1) shrink toward the diagonal, 0..1
-%     Assemble ("full") ("full" | "blocks") container layout
+%     Mode ('empirical')  'empirical' | 'full'  estimate from Xres, or
+%         wrap the user-supplied dense covariance in FullCov
+%     FullCov ([])     (P x P) double  dense covariance for Mode='full'
+%     Shrinkage (0.1)  (1 x 1) double  gamma in
+%         C <- (1-gamma)*C + gamma*diag(diag(C)); Mode='empirical' only
+%     Assemble ('full')  'full' | 'blocks'  container layout of N
 %
 %   Outputs
-%     N          (P x P) double or block struct   noise covariance (order/parity block-diagonal for Assemble ('full')='blocks')
-%     info       struct: mode, shrinkage, blocks metadata
+%     N     (P x P) double for Assemble='full'; for Assemble='blocks' a
+%           (1,1) struct with fields layout ('blocks'), blocks (cell of
+%           row index vectors), mats (cell of the dense blocks), diagN
+%           (P x 1 double) and P (1,1 double)
+%     info  (1,1) struct  which fields are present depends on the path
+%           taken, fields
+%           mode       (1,:) char  'empirical' | 'full' | 'full-blocks'
+%           nBlocks    (1,1) double  number of (order, C/S, parity)
+%                      blocks; absent for mode 'full'
+%           T          (1,1) double  epochs used; mode 'empirical' only
+%           shrinkage  (1,1) double  the gamma applied; 'empirical' only
 %
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 

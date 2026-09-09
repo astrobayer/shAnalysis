@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shLowLevel.httpRetryDelay &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shLowLevel.httpRetryDelay</nav>
+<h1>shLowLevel.httpRetryDelay</h1>
+<p class="h1line">Wait time for a retry: server hint first, else backoff.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>w = shLowLevel.httpRetryDelay(attempt, retryAfter)</code><code>w = shLowLevel.httpRetryDelay(attempt, retryAfter, BaseDelay=2, MaxDelay=60, Jitter=0.25)</code></div>
+<h2>Description</h2>
+<p>W = shLowLevel.httpRetryDelay(ATTEMPT, RETRYAFTER) returns the wait [s] before retry number ATTEMPT: when the server sent a finite Retry-After value that value wins (capped at MaxDelay); otherwise exponential backoff BaseDelay * 2^(ATTEMPT-1) with up to 25% uniform jitter, capped at MaxDelay. Pure function - the testable half of <a href="shLowLevel_httpFetch.html"><code>shLowLevel.httpFetch</code></a>.</p>
+<h2>Examples</h2>
+<details class="example"><summary>From the help block</summary><div><pre><code>    w = shLowLevel.httpRetryDelay(3, NaN)        % ~8 s (+jitter)
+    w = shLowLevel.httpRetryDelay(1, 30)         % 30 s (server wins)</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>attempt</code></td><td>1 x 1</td><td>double</td><td><code>required</code></td><td class="desc">double  1-based attempt counter</td></tr><tr><td><code>retryAfter</code></td><td>1 x 1</td><td>double</td><td><code>required</code></td><td class="desc">double  server Retry-After [s], NaN if absent</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>BaseDelay</code></td><td>1 x 1</td><td>double</td><td><code>2</code></td><td class="desc">(1 x 1) first backoff delay [s]</td></tr><tr><td><code>MaxDelay</code></td><td>1 x 1</td><td>double</td><td><code>60</code></td><td class="desc">(1 x 1) cap on the returned wait [s]</td></tr><tr><td><code>Jitter</code></td><td>1 x 1</td><td>double</td><td><code>0.25</code></td><td class="desc">(1 x 1) relative jitter range, 0 disables</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>w</code></td><td class="desc">(1 x 1) double  wait before this retry [s]</td></tr></table>
+<h2>Error Identifiers</h2>
+<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<ul class="seealso"><li><a href="shLowLevel_httpFetch.html"><code>shLowLevel.httpFetch</code></a></li></ul>
+<p class="prov">shAnalysis v3.34.1 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

@@ -11,7 +11,7 @@ function h = plotSHCoeffTriangle(C, S, varargin)
 %   axes box is 2:1 (x spans 2*nmax+1 units, y spans nmax+1) and every
 %   imagesc cell renders square (v2.3.1).
 %
-%   Name/value options:
+%   Options
 %     'nmax'    max degree to display, default size(C,1)-1
 %     'clim'    [min max] log10(|value|) color limits; default auto
 %     'ax'      axes handle to plot into (default: current axes)

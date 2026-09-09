@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shLowLevel.estimateVAR &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shLowLevel.estimateVAR</nav>
+<h1>shLowLevel.estimateVAR</h1>
+<p class="h1line">Empirical VAR(p) process model from an SH state series.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>model = shLowLevel.estimateVAR(X)</code><code>model = shLowLevel.estimateVAR(X, Order=1, Shrink=0, CondFun=[], ...)</code></div>
+<h2>Description</h2>
+<p>MODEL = shLowLevel.estimateVAR(X) estimates the stochastic process model of Kurtenbach et al. (2012) from a centred state realization: the vector autoregressive model x_t = Phi_1 x_{t-1} + ... + Phi_p x_{t-p} + w,  w ~ N(0, Q) determined by the Yule-Walker equations from the empirical (cross-)covariances Sigma(h) = 1/(T-h) sum x_i x_{i-h}&#x27; of the series (Kvas 2019, Sec. 2.4). For Order = 1 this is EXACTLY the closed form of Kurtenbach (2012), eqs. (3.84)-(3.85): B = Sigma(1) Sigma(0)^-1,  Q = Sigma(0) - B Sigma(0) B&#x27; (unit-tested against it). The realization X is typically a geophysical model series (AOD1B/GAX, ESA ESM, hydrology) reduced by mean, trend and (semi-)annual cycle - <a href="shSeries_climatology.html"><code>shSeries.climatology</code></a> does that reduction; the state ordering is <a href="shLowLevel_shIndex.html"><code>shLowLevel.shIndex</code></a>.</p>
+<h2>Examples</h2>
+<details class="example"><summary>From the help block</summary><div><pre><code>    [~, resid] = tsModel.climatology;              % reduce long-term parts
+    idx = shLowLevel.shIndex(tsModel.nmax);
+    X = zeros(idx.P, resid.nEpochs);
+    for k = 1:resid.nEpochs
+        g = resid.at(k);
+        X(:, k) = shLowLevel.vecFromCS(g.C, g.S, idx);
+    end
+    model = shLowLevel.estimateVAR(X, Order=1);
+
+  Reference: Kurtenbach, DGK C-683 (2012), Sec. 3.2; Kvas, TU Graz
+  PhD thesis (2019), Secs. 2.3-2.4; Luetkepohl (2005).
+  Numerics pre-validated in Python (tools/dev/validate_kalman.py).</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>X</code></td><td>: x :</td><td>double</td><td><code>required</code></td><td class="desc">double  centred state realization, one shIndex-ordered</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>Order</code></td><td>1 x 1</td><td>double</td><td><code>1</code></td><td class="desc">(1 x 1) VAR order p &gt;= 1. Kurtenbach: 1. Higher orders capture longer temporal correlation (Kvas) at p-fold state dimension in the filter.</td></tr><tr><td><code>Shrink</code></td><td>1 x 1</td><td>double</td><td><code>0</code></td><td class="desc">(1 x 1) diagonal loading factor: Sigma(0) + Shrink * trace(Sigma(0))/P * I. Stabilizes the Yule-Walker solve when T is not &gt;&gt; P.</td></tr><tr><td><code>CondFun</code></td><td>n x m</td><td>-</td><td><code>[]</code></td><td class="desc">function handle C -&gt; C applied to every Sigma(h) before the solve, for covariance conditioning a la Kvas Sec. 2.4: land/ocean block masking and the distance-dependent correlation taper exp(-psi/psi0) (his eq. 2.120), built by the caller in the spatial domain. [] leaves the covariances untouched.</td></tr><tr><td><code>Structure</code></td><td>1 x 1</td><td>string</td><td><code>&quot;full&quot;</code></td><td class="desc">coupling structure of the estimate: &quot;full&quot;       dense Yule-Walker solve (Kurtenbach/Kvas) - needs T &gt;&gt; P; the right choice for daily sampling with conditioned covariances &quot;diagonal&quot;   independent per-coefficient AR(p): Phi_k and Q diagonal - no tuning, immune to short samples &quot;orderblock&quot; block-diagonal per (order m, C/S) block: couples coefficients within an order, none across - the structured middle ground; requires Blocks MEASURED on the live ITSG monthly series through THIS estimator (n40, T = 257, 36-month holdout, one-step RMS, 2026-08-18): climatology-only 4.245e-12; &quot;full&quot; at weak shrink WORSE (4.613e-12 - overfit at T ~ 0.13 P); &quot;diagonal&quot; 3.348e-12 (radius 0.93); &quot;orderblock&quot; with Shrink=1e-2 best at 3.268e-12 (radius 0.96). For monthly series prefer &quot;orderblock&quot; (blocks per (m, C/S) from shIndex) or &quot;diagonal&quot;; &quot;full&quot; remains the default for the daily regime the Kalman module targets.</td></tr><tr><td><code>Blocks</code></td><td>n x 1</td><td>cell</td><td><code>{}</code></td><td class="desc">cell of index vectors partitioning 1:P, required for Structure=&quot;orderblock&quot; - e.g. from shIndex: one block per (m, C/S) pair</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>model</code></td><td class="desc">(1,1) struct  the process model, fields Phi     (1 x p) cell of (P x P) double  coefficient matrices Q       (P x P) double  symmetric PSD process-noise covariance Sigma0  (P x P) double  empirical auto-covariance Sigma(0): the stationary state covariance, and the filter&#x27;s initial covariance order   (1,1) double   the VAR order p P       (1,1) double   state dimension specRadius (1,1) double  spectral radius of the companion matrix; &lt; 1 is stable, and anything else raises a warning because filtering an unstable model diverges over long gaps</td></tr></table>
+<h2>Error Identifiers</h2>
+<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<ul class="seealso"><li><a href="shSeries_climatology.html"><code>shSeries.climatology</code></a></li><li><a href="shLowLevel_shIndex.html"><code>shLowLevel.shIndex</code></a></li></ul>
+<p class="prov">shAnalysis v3.34.1 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

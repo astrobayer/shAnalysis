@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shCoefficients.gradient &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shCoefficients.gradient</nav>
+<h1>shCoefficients.gradient</h1>
+<p class="h1line">North/east/up gradient of a synthesized quantity.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>[dq, info] = shCoefficients.gradient(obj, latDeg, lonDeg)</code><code>[dq, info] = shCoefficients.gradient(obj, latDeg, lonDeg, Quantity=&quot;geoid&quot;, kn=[], hn=[], ...)</code></div>
+<h2>Description</h2>
+<p>[DQ, INFO] = g.gradient(LAT, LON, Quantity (&quot;geoid&quot;)=..., Units (&quot;perMeter&quot;)=..., Mode (&quot;grid&quot;)=...) is the exact spatial derivative of what g.synthesis would return under the SAME options - the vector field to draw over a scalar map, or to advect tracers through. DQ.up is EMPTY for surface quantities (ewh, geoid, surface_density, bottom_pressure, deformation_up, none), which have no radial law; INFO.hasUp says so. See <a href="shLowLevel_shSynthesisGradient.html"><code>shLowLevel.shSynthesisGradient</code></a> for the formulas, the validation, and why this is NOT g.deformation&#x27;s horizontal pair (those carry l&#x27;_n, these carry the quantity&#x27;s own kernel).</p>
+<h2>Examples</h2>
+<details class="example"><summary>From the help block</summary><div><pre><code>    lat = -89:2:89; lon = 0:2:358;
+    [dq, info] = g.gradient(lat, lon, Quantity = &quot;ewh&quot;, kn = kn);
+    info.hasUp        % false - EWH is a surface quantity</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td><code>required</code></td><td class="desc">the object the method is called on</td></tr><tr><td><code>latDeg</code></td><td>1 x :</td><td>double</td><td><code>required</code></td><td class="desc">double  latitudes [deg]</td></tr><tr><td><code>lonDeg</code></td><td>1 x :</td><td>double</td><td><code>required</code></td><td class="desc">double  longitudes [deg]</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>Quantity</code></td><td>1 x 1</td><td>string</td><td><code>&quot;geoid&quot;</code></td><td class="desc">any kernelFactors quantity</td></tr><tr><td><code>kn</code></td><td>n x m</td><td>double</td><td><code>[]</code></td><td class="desc">load Love numbers k&#x27;_n (mass quantities; never hardcoded)</td></tr><tr><td><code>hn</code></td><td>n x m</td><td>double</td><td><code>[]</code></td><td class="desc">load Love numbers h&#x27;_n (deformation_up only)</td></tr><tr><td><code>Nmin</code></td><td>1 x 1</td><td>double</td><td><code>0</code></td><td class="desc">degrees below nmin are zeroed</td></tr><tr><td><code>Nmax</code></td><td>1 x 1</td><td>double</td><td><code>NaN</code></td><td class="desc">truncation degree; NaN uses the object&#x27;s nmax</td></tr><tr><td><code>Height</code></td><td>1 x 1</td><td>double</td><td><code>0</code></td><td class="desc">evaluation height above R [m]; surface quantities reject it</td></tr><tr><td><code>rho_ave</code></td><td>1 x 1</td><td>double</td><td><code>5517</code></td><td class="desc">mean Earth density [kg/m^3]</td></tr><tr><td><code>rho_water</code></td><td>1 x 1</td><td>double</td><td><code>1000</code></td><td class="desc">water density [kg/m^3]</td></tr><tr><td><code>Mode</code></td><td>1 x 1</td><td>string</td><td><code>&quot;grid&quot;</code></td><td class="desc">&quot;grid&quot; | &quot;points&quot; (pairwise LAT/LON)</td></tr><tr><td><code>Units</code></td><td>1 x 1</td><td>string</td><td><code>&quot;perMeter&quot;</code></td><td class="desc">&quot;perMeter&quot; | &quot;perRadian&quot; (= r x perMeter)</td></tr><tr><td><code>MaxMemGB</code></td><td>1 x 1</td><td>double</td><td><code>4</code></td><td class="desc">Legendre memory budget [GB]</td></tr><tr><td><code>LatType</code></td><td>1 x 1</td><td>string</td><td><code>&quot;geocentric&quot;</code></td><td class="desc">&quot;geocentric&quot; | &quot;geodetic&quot;: how the latitude inputs are read. NOTE that only the evaluation POINT is converted - the components stay in the geocentric local frame, which differs from the geodetic one by up to 0.19 deg of meridian convergence. For a map that is invisible; for a station comparison it is not</td></tr><tr><td><code>Flattening</code></td><td>1 x 1</td><td>double</td><td><code>1/298.257223563</code></td><td class="desc">ellipsoid flattening for that conversion (WGS84; overridable, never silently assumed)</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>dq</code></td><td class="desc">(1,1) struct   as returned by <a href="shLowLevel_shSynthesisGradient.html"><code>shLowLevel.shSynthesisGradient</code></a>: north, east and up, each (nlat x nlon) double or (npts x 1) for Mode=&quot;points&quot;; up is [] for surface quantities</td></tr><tr><td><code>info</code></td><td class="desc">(1,1) struct   as returned by <a href="shLowLevel_shSynthesisGradient.html"><code>shLowLevel.shSynthesisGradient</code></a> (quantity, units, r, nmin, nmax, hasUp, lat, lon, latType), except that lat and latType are overwritten here when geodetic input was given, so the convention travels with the numbers</td></tr></table>
+<h2>Error Identifiers</h2>
+<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<ul class="seealso"><li><a href="shLowLevel_shSynthesisGradient.html"><code>shLowLevel.shSynthesisGradient</code></a></li></ul>
+<p class="prov">shAnalysis v3.34.1 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

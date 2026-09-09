@@ -17,13 +17,15 @@ function tn = readTN14(filename)
 %   Inputs
 %     filename  char/string
 %   Outputs
-%     tn  (1,1) struct  fields: t (T x 1 double, decimal years),
-%         C20/C30 (T x 1 double), sigmaC20/sigmaC30 (T x 1 double)
+%     tn  (1,1) struct  one row per table line (T rows), fields
+%         epochStart, epochStop (T x 1 double)  span bounds [decimal years]
+%         epoch      (T x 1 double)  span mid-point [decimal years]
+%         C20, C30   (T x 1 double)  SLR replacement coefficients; C30 is
+%                    NaN for months the file leaves blank
+%         sigmaC20, sigmaC30 (T x 1 double)  1-sigma, scaled out of the
+%                    file's 1e-10 units
 %
 %   Claude (Fable 5), 2026-08-07.
-%   Outputs
-%     tn         struct: epoch/epochStart/epochStop (M x 1 decimal years), C20, sigmaC20, C30, sigmaC30 (M x 1; C30 NaN before 2012.16)
-%
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 
 arguments

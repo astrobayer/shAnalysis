@@ -50,22 +50,26 @@ function [d1, info] = estimateDegree1(ts, ocean, opts)
 %             (NaN: the series' own nmax)
 %
 %   Outputs
-%     d1         (1,1) struct  fields: epoch, t0, t1 (T,1 double),
-%                C10, C11, S11 (T,1 double) and sigC10, sigC11, sigS11
-%                (T,1 double, from the ocean-fit residual propagated
-%                through the least-squares solution). This is exactly
-%                the layout shLowLevel.readTN13 returns - including the
-%                sigmas, which shCoefficients.addDegree1 requires - so
-%                it drops straight into shSeries.addDegree1
-%     info       (1,1) struct  fields: cond (T,1 double, condition
-%                number of the column-equilibrated design matrix per
-%                epoch (equilibrated so the number reflects the GEOMETRY
-%                of the ocean domain, not the units of the columns) - a rising value
-%                warns that the ocean domain is too small or too
-%                lopsided BEFORE the noise shows it), oceanFraction
-%                (1,1 double, area fraction used), nPixels, hasModel
-%                (1,1 logical), residualRMS (T,1 double, of the ocean
-%                fit in EWH [m])
+%     d1  (1,1) struct  exactly the layout shLowLevel.readTN13 returns -
+%         sigmas included, which shCoefficients.addDegree1 requires - so
+%         it drops straight into shSeries.addDegree1. Fields
+%         epoch, t0, t1  (T,1) double  epoch and span bounds
+%                        [decimal years]
+%         C10, C11, S11  (T,1) double  the geocentre coefficients
+%         sigC10, sigC11, sigS11  (T,1) double  their 1-sigma, from the
+%                        ocean-fit residual propagated through the
+%                        least-squares solution
+%     info  (1,1) struct  fields
+%           cond      (T,1) double  condition number of the
+%                     column-equilibrated design matrix per epoch -
+%                     equilibrated so the number reflects the GEOMETRY of
+%                     the ocean domain, not the units of the columns. A
+%                     rising value warns that the domain is too small or
+%                     too lopsided BEFORE the noise shows it
+%           oceanFraction  (1,1) double  area fraction used
+%           nPixels   (1,1) double  ocean pixels that entered the fit
+%           hasModel  (1,1) logical  whether an ocean model was supplied
+%           residualRMS  (T,1) double  of the ocean fit, in EWH [m]
 %
 %   Validated in tools/dev/validate_degree1.py: exact recovery of a known
 %   geocentre from a synthetic land/ocean world, 1.5-4% error at 2 mm

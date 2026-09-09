@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shLowLevel.obpChain &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shLowLevel.obpChain</nav>
+<h1>shLowLevel.obpChain</h1>
+<p class="h1line">Ocean-bottom-pressure fields (GravIS Level-3 OBP recipe).</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>[out, rep] = shLowLevel.obpChain(folder)</code><code>[out, rep] = shLowLevel.obpChain(folder, kn=[], OceanMask=[], GADFolder=&quot;&quot;, ...)</code></div>
+<h2>Description</h2>
+<p>[OUT, REP] = shLowLevel.obpChain(FOLDER, kn = KN, OceanMask = OC, GADFolder = GAD) produces gridded ocean-bottom-pressure anomalies in EWH following the GravIS/GFZ Level-3 OBP definition: gravisL2B corrections (C20/C30/C21/S21, degree 1, minus NFIL mean, GIA) -&gt; GAD added back on the coefficient level -&gt; filter (AFTER the GAD addition - the GravIS order) -&gt; EWH synthesis -&gt; anomalies against the mean over RefPeriod, land set to NaN.</p>
+<h2>Examples</h2>
+<details class="example"><summary>From the help block</summary><div><pre><code>    kn = readmatrix(&quot;loadLoveNumbers_Gegout97.txt&quot;, FileType = &quot;text&quot;, ...
+        NumHeaderLines = 2);
+    [out, rep] = shLowLevel.obpChain(serFolder, kn = kn, ...
+        OceanMask = oc, GADFolder = &quot;E:/DATAPOOL/GravityField/GAX/GAD&quot;);
+    imagesc(out.lon, out.lat, out.grid(:, :, end)); axis xy</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>folder</code></td><td>1 x 1</td><td>string</td><td><code>required</code></td><td class="desc">string  monthly .gfc folder (GSM-2_*, any centre)</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>kn</code></td><td>n x 1</td><td>double</td><td><code>[]</code></td><td class="desc">(N x 2 | N x 1) REQUIRED load Love numbers</td></tr><tr><td><code>OceanMask</code></td><td>n x m</td><td>-</td><td><code>[]</code></td><td class="desc">(fn handle | nLat x nLon logical) REQUIRED ocean decision, false over land</td></tr><tr><td><code>GADFolder</code></td><td>1 x 1</td><td>string</td><td><code>&quot;&quot;</code></td><td class="desc">(1 x 1) string  REQUIRED folder of GAD-2_*.gfc (<a href="shLowLevel_fetchGAX.html"><code>shLowLevel.fetchGAX</code></a>) - OBP without GAD is not OBP, so the empty default errors</td></tr><tr><td><code>GravisFolder</code></td><td>1 x 1</td><td>string</td><td><code>&quot;&quot;</code></td><td class="desc">GravIS aux folder; &quot;&quot; = shipped data/gravis</td></tr><tr><td><code>GIAFile</code></td><td>1 x 1</td><td>string</td><td><code>&quot;GRAVIS-2B_COSTG_0200_GIA_ICE-6G_D_VM5a_0001.gz&quot;</code></td><td class="desc">(&quot;GRAVIS-2B_COSTG_0200_GIA_ICE-6G_D_VM5a_0001.gz&quot;) &quot;&quot; disables the GIA rate (see gravisL2B)</td></tr><tr><td><code>GIAEpoch</code></td><td>1 x 1</td><td>double</td><td><code>2011</code></td><td class="desc">(1 x 1) GIA reference epoch</td></tr><tr><td><code>GridStep</code></td><td>1 x 1</td><td>double</td><td><code>1</code></td><td class="desc">(1 x 1) synthesis graticule [deg]</td></tr><tr><td><code>SpanEnd</code></td><td>1 x 1</td><td>double</td><td><code>[]</code></td><td class="desc">(1 x 1) keep epochs &lt;= SpanEnd [decimal yr]</td></tr><tr><td><code>Filter</code></td><td>1 x 1</td><td>string</td><td><code>&quot;gauss445&quot;</code></td><td class="desc">&quot;none&quot; | &quot;gaussN&quot; [km], applied after GAD</td></tr><tr><td><code>RefPeriod</code></td><td>1 x 2</td><td>double</td><td><code>[2002.25, 2020.25]</code></td><td class="desc">(1 x 2) anomaly reference window [decimal years], the GravIS 2002/04-2020/03 convention</td></tr><tr><td><code>Quiet</code></td><td>1 x 1</td><td>logical</td><td><code>true</code></td><td class="desc">(1 x 1) suppress progress output</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>out</code></td><td class="desc">(1 x 1) struct with fields grid      (nLat x nLon x T) OBP anomaly [cm EWH], land NaN lat, lon  (nLat x 1), (nLon x 1) grid vectors [deg] epochs    (T x 1) decimal years refMean   (nLat x nLon) subtracted reference-period mean [cm] oceanMeanOBP (T x 1) area-weighted ocean mean of the anomaly [cm] - contains the atmospheric term by definition</td></tr><tr><td><code>rep</code></td><td class="desc">(1,1) struct  fields steps         (1,K) string  the stages applied, with parameters version       (1,1) string  <a href="shLowLevel_version.html"><code>shLowLevel.version</code></a> at run time nEpochs       (1,1) double  epochs processed nGadRestored  (1,1) double  months the GAD restore reached nRefEpochs    (1,1) double  epochs inside RefPeriod</td></tr></table>
+<h2>Error Identifiers</h2>
+<table><tr><th>Identifier</th><th>Raised when</th></tr><tr><td><code>shLowLevel:obpChain:missingKn</code></td><td class="desc">kn not supplied</td></tr><tr><td><code>shLowLevel:obpChain:missingGAD</code></td><td class="desc">GADFolder empty</td></tr><tr><td><code>shLowLevel:obpChain:emptyRefPeriod</code></td><td class="desc">no epochs inside RefPeriod</td></tr></table>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<p class="none">No other entity is named in this help block.</p>
+<p class="prov">shAnalysis v3.34.1 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

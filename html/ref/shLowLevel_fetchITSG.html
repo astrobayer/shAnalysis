@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shLowLevel.fetchITSG &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shLowLevel.fetchITSG</nav>
+<h1>shLowLevel.fetchITSG</h1>
+<p class="h1line">Download ITSG monthly OR daily solutions from TU Graz.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>[files, info] = shLowLevel.fetchITSG(months)</code><code>[files, info] = shLowLevel.fetchITSG(months, Dest=&quot;&quot;, Nmax=NaN, Product=&quot;monthly&quot;, ...)</code></div>
+<h2>Description</h2>
+<p>The fetch family, one function per source and product: fetchITSG and fetchICGEM for solution series, fetchGAX for the AOD1B GAA/GAB/GAC/GAD monthly means (ICGEM/GFZ pages), fetchITSGSINEX for the ITSG monthly normal-equation SINEX, fetchITSGBackground for the ITSG monthly background models, plus fetchTN, fetchDDK, fetchLoveNumbers for auxiliaries.</p>
+<h2>Examples</h2>
+<details class="example"><summary>Runnable (docs/apiExamples.json)</summary><div><pre><code>shLowLevel.fetchITSG([&quot;2008-04&quot;, &quot;2025-12&quot;], Nmax = 96);</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>months</code></td><td>n x m</td><td>-</td><td><code>&quot;&quot;</code></td><td class="desc">numeric years (each expands to 12 months) OR string array &quot;YYYY-MM&quot;</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>Dest</code></td><td>1 x 1</td><td>string</td><td><code>&quot;&quot;</code></td><td class="desc">(fullfile(<a href="shLowLevel_dataFolder.html"><code>shLowLevel.dataFolder</code></a>(), &quot;series&quot;, &quot;itsg&quot;, &quot;monthly&quot;))  target folder (set a shared location once via <a href="shLowLevel_dataFolder.html"><code>shLowLevel.dataFolder</code></a>(path))</td></tr><tr><td><code>Nmax</code></td><td>1 x 1</td><td>double</td><td><code>NaN</code></td><td class="desc">monthly: 60 | 96 | 120 (server folder monthly_nXX; NaN resolves to 96). Daily solutions are n40 only and NaN resolves to 40; any other value errors</td></tr><tr><td><code>Product</code></td><td>1 x 1</td><td>string</td><td><code>&quot;monthly&quot;</code></td><td class="desc">product identifier to download</td></tr><tr><td><code>Timeout</code></td><td>1 x 1</td><td>double</td><td><code>60</code></td><td class="desc">[s] per file</td></tr><tr><td><code>Proxy</code></td><td>1 x 1</td><td>string</td><td><code>&quot;&quot;</code></td><td class="desc">per-call proxy URL, e.g. &quot;http://proxy:8080&quot; (empty: MATLAB Web Preferences)</td></tr><tr><td><code>Update</code></td><td>1 x 1</td><td>logical</td><td><code>false</code></td><td class="desc">re-download/overwrite files that already exist</td></tr><tr><td><code>Quiet</code></td><td>1 x 1</td><td>logical</td><td><code>false</code></td><td class="desc">suppress per-file progress</td></tr><tr><td><code>Release</code></td><td>1 x 1</td><td>string</td><td><code>&quot;&quot;</code></td><td class="desc">product release identifier</td></tr><tr><td><code>BaseURL</code></td><td>1 x 1</td><td>string</td><td><code>&quot;https://ftp.tugraz.at/pub/ITSG/GRACE&quot;</code></td><td class="desc">(&quot;https://ftp.tugraz.at/pub/ITSG/GRACE&quot;)  server base URL, or a local mirror folder for offline use</td></tr><tr><td><code>Catalog</code></td><td>1 x :</td><td>double</td><td><code>[]</code></td><td class="desc">row numbers of the <a href="shLowLevel_listITSG.html"><code>shLowLevel.listITSG</code></a> catalogue to fetch completely</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>files</code></td><td class="desc">(1,:) string   paths of all present files (new + existing)</td></tr><tr><td><code>info</code></td><td class="desc">(1,1) struct  fields fetched  (1,:) string  files downloaded now updated  (1,:) string  files replaced by a newer copy skipped  (1,:) string  files already present missing  (1,:) string  months the server did not offer dest     (1,1) string  target folder base     (1,1) string  server base URL product  (1,1) string  the ITSG product actually requested</td></tr></table>
+<h2>Error Identifiers</h2>
+<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<p class="none">No other entity is named in this help block.</p>
+<p class="prov">shAnalysis v3.34.1 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

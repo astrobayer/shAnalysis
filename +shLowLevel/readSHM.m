@@ -47,7 +47,7 @@ function out = readSHM(filename, opts)
 %                  header  (1,1) string  the raw YAML header, kept so
 %                          provenance is not lost on the way in
 %
-%   Errors
+%   Error identifiers
 %     shLowLevel:readSHM:noHeaderEnd   no "# End of YAML header" line
 %     shLowLevel:readSHM:noRecords     header present but no data records
 %     shLowLevel:readSHM:mixedKinds    GRCOF2 and GRDOTA in one file

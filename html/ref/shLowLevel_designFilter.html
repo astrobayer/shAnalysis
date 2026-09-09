@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shLowLevel.designFilter &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shLowLevel.designFilter</nav>
+<h1>shLowLevel.designFilter</h1>
+<p class="h1line">Build a DDK-class anisotropic filter from user covariances.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>[W, info] = shLowLevel.designFilter(SigmaC, SigmaS)</code><code>[W, info] = shLowLevel.designFilter(SigmaC, SigmaS, Alpha=1, Kaula=1e-5, DegVar=[], ...)</code></div>
+<h2>Description</h2>
+<p>W = shLowLevel.designFilter(SIGMAC, SIGMAS) constructs the Wiener- type decorrelation filter W = (N + Alpha * inv(S))^-1 * N per order/parity block - the same construction as the published DDK filters, but matched to YOUR solution&#x27;s error information instead of a fixed release. N is the normal (inverse noise covariance) matrix built from the formal sigmas (diagonal) or from a full covariance (Noise=); S is the signal covariance from a Kaula-type degree rule or your own model (Signal= / DegVar=). The result uses the exact block format of <a href="shLowLevel_readDDK.html"><code>shLowLevel.readDDK</code></a>, so it drops into applyDDK, g.filter/ts.filter(&quot;ddk&quot;, W = ...) and every downstream tool unchanged. Python-validated: block eigenvalues in (0, 1) for SPD inputs, identity limit for Alpha -&gt; 0, pinned 2 x 2 reference.</p>
+<h2>Examples</h2>
+<details class="example"><summary>From the help block</summary><div><pre><code>    W = shLowLevel.designFilter(g.sigmaC, g.sigmaS, Alpha = 1);
+    gF = g.applyDDK(W);                % apply like any DDK</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>SigmaC</code></td><td>nmax+1 x nmax+1</td><td>double</td><td><code>required</code></td><td class="desc">double  formal sigmas of the cosine coefficients, C(n+1, m+1) layout (e.g. g.sigmaC)</td></tr><tr><td><code>SigmaS</code></td><td>nmax+1 x nmax+1</td><td>double</td><td><code>required</code></td><td class="desc">double  same for the sine coefficients</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>Alpha</code></td><td>1 x 1</td><td>double</td><td><code>1</code></td><td class="desc">regularization weight: larger = stronger smoothing (DDK1-like), smaller = weaker (DDK7+)</td></tr><tr><td><code>Kaula</code></td><td>1 x 1</td><td>double</td><td><code>1e-5</code></td><td class="desc">signal RMS per coefficient K / n^2 (ignored when DegVar or Signal is given)</td></tr><tr><td><code>DegVar</code></td><td>n x m</td><td>double</td><td><code>[]</code></td><td class="desc">(nmax+1 x 1) double  per-coefficient signal VARIANCE per degree (overrides Kaula)</td></tr><tr><td><code>Noise</code></td><td>n x m</td><td>double</td><td><code>[]</code></td><td class="desc">(P x P) double  full noise covariance in <a href="shLowLevel_shIndex.html"><code>shLowLevel.shIndex</code></a> ordering (overrides sigmas)</td></tr><tr><td><code>Signal</code></td><td>n x m</td><td>double</td><td><code>[]</code></td><td class="desc">(P x P) double  full signal covariance, same ordering (overrides Kaula/DegVar)</td></tr><tr><td><code>Idx</code></td><td>n x m</td><td>-</td><td><code>[]</code></td><td class="desc"><a href="shLowLevel_shIndex.html"><code>shLowLevel.shIndex</code></a> struct, required with Noise/Signal</td></tr><tr><td><code>Nmin</code></td><td>1 x 1</td><td>double</td><td><code>2</code></td><td class="desc">first filtered degree; below it W passes through</td></tr><tr><td><code>Name</code></td><td>1 x 1</td><td>string</td><td><code>&quot;designFilter&quot;</code></td><td class="desc">stored in W.name</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>W</code></td><td class="desc">(1,1) struct  identical layout to <a href="shLowLevel_readDDK.html"><code>shLowLevel.readDDK</code></a>, fields nmax    (1,1) double  maximum degree the filter covers name    (1,:) char    the filter&#x27;s label blocks  (1,K) struct  one per (order, cs) block, each with m (1,1 double), cs (&#x27;c&#x27;|&#x27;s&#x27;), n (1,B double, the degrees) and M (B x B double, the block matrix)</td></tr><tr><td><code>info</code></td><td class="desc">(1,1) struct  fields alpha      (1,1) double  the regularisation actually used mode       (1,1) string  &quot;diagonal&quot; | &quot;fullcov&quot; gainRange  (1,2) double  min and max eigenvalue over all blocks</td></tr></table>
+<h2>Error Identifiers</h2>
+<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<ul class="seealso"><li><a href="shLowLevel_readDDK.html"><code>shLowLevel.readDDK</code></a></li></ul>
+<p class="prov">shAnalysis v3.34.1 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

@@ -1,22 +1,6 @@
 <!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>shLowLevel.shSynthesisGradient</title>
-<style>
-body { font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; margin: 0; padding: 0; background: #fff; color: #222; }
-.content { max-width: 900px; margin: 0 auto; padding: 24px 32px 60px 32px; }
-h1 { font-size: 24px; border-bottom: 1px solid #d6d6d6; padding-bottom: 8px; color: #1a1a1a; }
-h2 { font-size: 16px; margin-top: 28px; color: #0b5394; border-bottom: 1px solid #eaeaea; padding-bottom: 4px; }
-h3 { font-size: 13px; margin-top: 18px; color: #333; }
-p, li { font-size: 13px; line-height: 1.55; }
-code, pre { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 12.5px; }
-pre { background: #f7f7f7; border: 1px solid #e2e2e2; border-radius: 4px; padding: 10px 14px; overflow-x: auto; }
-code.inline { background: #f2f2f2; padding: 1px 4px; border-radius: 3px; }
-table { border-collapse: collapse; margin: 10px 0 18px 0; width: 100%; }
-th, td { border: 1px solid #ddd; padding: 6px 10px; font-size: 12.5px; text-align: left; vertical-align: top; }
-th { background: #f5f7fa; }
-.tag { display:inline-block; background:#eef3fb; color:#0b5394; border-radius:3px; padding:1px 7px; font-size:11px; margin-right:6px;}
-.seealso a { margin-right: 14px; }
-.note { background: #fff8e6; border-left: 3px solid #e0b400; padding: 8px 12px; font-size: 12.5px; margin: 12px 0; }
-</style>
+<link rel="stylesheet" href="shAnalysis.css">
 </head>
 <body><div class="content">
 <span class="tag">Spatial</span>
@@ -52,7 +36,7 @@ dq.up    = &part;Q/&part;r                  = -(1/r) &Sigma; p&#8345; f&#8345; &
 <h3>Not the same as deformation</h3>
 <p><code class="inline">shLowLevel.shSynthesisDeformation</code>'s horizontal components are NOT this gradient. Elastic horizontal displacement carries the load Love number l'&#8345; and the vertical one carries h'&#8345;, so the two fields differ by a degree-dependent factor, not by a constant. Use this function for &ldquo;which way does the field fall&rdquo;, that one for &ldquo;which way does the crust move&rdquo;. Deformation is a vector because of l'&#8345;; every other quantity is a scalar that has a gradient.</p>
 
-<h2>Inputs / Outputs</h2>
+<h2>Arguments</h2>
 <table><tr><th>Name</th><th>Type / size</th><th>Description</th></tr>
 <tr><td>C, S</td><td>(n1,n1) double</td><td>Stokes coefficients, C(n+1,m+1); use RESIDUAL fields for time-variable work &mdash; the gradient of a static field is dominated by the flattening</td></tr>
 <tr><td>GM, R</td><td>(1,1) double</td><td>[m&sup3;/s&sup2;], [m]</td></tr>
@@ -75,7 +59,7 @@ dq.up    = &part;Q/&part;r                  = -(1/r) &Sigma; p&#8345; f&#8345; &
 <h2>Validation</h2>
 <p>Python-validated before implementation (<code class="inline">tools/dev/validate_gradient.py</code>): all three components against 5-point finite differences of an independent scalar synthesis at 1e-12 (the difference floor); the identities &part;(potential)/&part;r&nbsp;=&nbsp;&minus;gravity_disturbance and &part;(gravity_disturbance)/&part;r&nbsp;=&nbsp;&minus;gravity_gradient_rr at 4e-16, which reduce the up component to kernels the toolbox already validates; single-coefficient closed forms at 2e-16. In MATLAB, <code class="inline">testCorrectness</code> repeats all three against <code class="inline">shSynthesis</code> itself.</p>
 
-<h2>See also</h2><p class="seealso"><a href="shSynthesis.html">shSynthesis</a> <a href="shSynthesisDeformation.html">shSynthesisDeformation</a> <a href="gradientTensor.html">gradientTensor</a> <a href="legendreALF.html">legendreALF</a></p>
+<h2>See Also</h2><p class="seealso"><a href="shSynthesis.html">shSynthesis</a> <a href="shSynthesisDeformation.html">shSynthesisDeformation</a> <a href="gradientTensor.html">gradientTensor</a> <a href="legendreALF.html">legendreALF</a></p>
 <p style="color:#999;font-size:11px;margin-top:40px;">shAnalysis v3.30.0 &mdash; Claude (Opus 5), 2026-08-22</p>
 </div><p class="provenance">Developed by Matthias Weigelt with the help of Claude (Opus 5).</p>
 </body></html>

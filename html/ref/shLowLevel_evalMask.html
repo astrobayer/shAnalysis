@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shLowLevel.evalMask &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shLowLevel.evalMask</nav>
+<h1>shLowLevel.evalMask</h1>
+<p class="h1line">Evaluate a region definition on the toolbox quadrature grid.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>[mask, grid] = shLowLevel.evalMask(idx, region)</code><code>[mask, grid] = shLowLevel.evalMask(idx, region, BufferKm=0, R=6378136.3, OverSample=2)</code></div>
+<h2>Description</h2>
+<p>[MASK, GRID] = shLowLevel.evalMask(IDX, REGION) evaluates REGION on the Gauss-Legendre quadrature grid of <a href="shLowLevel_synthesisMatrix.html"><code>shLowLevel.synthesisMatrix</code></a>(IDX) and returns MASK (Ngrid x 1, in [0,1]) plus the GRID struct. Shared by <a href="shLowLevel_basinKernel.html"><code>shLowLevel.basinKernel</code></a> and <a href="shLowLevel_slepianBasis.html"><code>shLowLevel.slepianBasis</code></a>.</p>
+<h2>Examples</h2>
+<details class="example"><summary>Runnable (docs/apiExamples.json)</summary><div><pre><code>[mask, area] = shLowLevel.evalMask(idx, capSpec);   % quadrature-grid mask</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>idx</code></td><td>1 x 1</td><td>struct</td><td><code>required</code></td><td class="desc">index struct from <a href="shLowLevel_shIndex.html"><code>shLowLevel.shIndex</code></a> (fields n, m, cs, P, Lmax, minDegree, pos)</td></tr><tr><td><code>region</code></td><td>n x m</td><td>-</td><td><code>required</code></td><td class="desc">region as polygon [lat lon] deg, mask, or @(lat, lon) handle (see evalMask)</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>BufferKm</code></td><td>1 x 1</td><td>double</td><td><code>0</code></td><td class="desc">&gt;0 grows, &lt;0 shrinks the region by great-circle distance [km] to the region boundary points, computed exactly in latitude chunks (O(N*Nregion); fine to Lmax ~ 60-96, cost noted in the doc page)</td></tr><tr><td><code>R</code></td><td>1 x 1</td><td>double</td><td><code>6378136.3</code></td><td class="desc">sphere radius [m] for the km conversion</td></tr><tr><td><code>OverSample</code></td><td>1 x 1</td><td>double</td><td><code>2</code></td><td class="desc">refinement factor of the quadrature grid the mask is evaluated on; the Gauss rule uses OverSample*(Lmax+1) latitude rings, so a higher value resolves the region boundary more finely at quadratic cost</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>mask</code></td><td class="desc">(Ngrid,1) double in [0,1]</td></tr><tr><td><code>grid</code></td><td class="desc">struct from <a href="shLowLevel_synthesisMatrix.html"><code>shLowLevel.synthesisMatrix</code></a> (latDeg, lonDeg per ring)</td></tr></table>
+<h2>Error Identifiers</h2>
+<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<ul class="seealso"><li><a href="shLowLevel_synthesisMatrix.html"><code>shLowLevel.synthesisMatrix</code></a></li><li><a href="shLowLevel_basinKernel.html"><code>shLowLevel.basinKernel</code></a></li><li><a href="shLowLevel_slepianBasis.html"><code>shLowLevel.slepianBasis</code></a></li></ul>
+<p class="prov">shAnalysis v3.34.1 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

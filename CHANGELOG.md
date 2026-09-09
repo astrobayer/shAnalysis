@@ -1,5 +1,472 @@
 # Changelog
 
+## [3.34.1] - 2026-09-08 - A public function nothing could see, and coverage by name
+
+Two instruments were measuring less than their silence suggested. No
+numerical behaviour changes; one help block corrected.
+
+### Fixed - a public function was invisible to the API extractor (A17)
+
+`gridHandover` continues its signature across two lines with `...`.
+`api_extract.py` matched the signature on a single raw line, so the file
+parsed to nothing and the entity never reached `api_data.py`. It
+therefore had no reference page - while `apiReference.html` told the
+reader the handover bundle was "as built by shLowLevel.gridHandover,
+which documents every field", linking nowhere.
+
+`refpages_audit.py`'s COVER check compares the generated pages against
+`api_data.py`, so it reported zero findings: the gate's reach was
+defined by the bug it should have caught.
+
+Four parsers of "what is a public entity" live in this repository. Two
+were blind the same way - `api_extract.parse_function_file` and
+`doc_sync_audit.parse_one` - and they agreed with each other. That is
+why the new guard checks the FILESYSTEM, not a second parser's opinion:
+MATLAB requires a file to define the function it is named after, so
+every `+shLowLevel/X.m` owes exactly one entity `shLowLevel.X`.
+
+- both parsers join `...` continuations and read the help block after
+  the LAST continuation line. Both skip comment lines inside a
+  continuation, as MATLAB does - joining one let a `(base MATLAB only)`
+  in a help line supply the closing paren and parse to nonsense. Found
+  while fault-injecting, not by review.
+- `api_extract.py` refuses to write `api_data.py` when any public file
+  produces no entity.
+- `doc_sync_audit.py` gains a SURFACE check, fault-injected both ways.
+- `tools/tests/test_api_extract.py`: 5 of its 7 tests fail against the
+  pre-fix extractor; the 2 that pass cover shapes never broken.
+
+122 package entities (was 121), 200 reference pages (was 199).
+
+### Fixed - `opApply` documented option values it rejects
+
+Its Inputs row offered `'apply' | 'applyT'`; the arguments block accepts
+only `'forward' | 'transp'`, which the same help block's syntax lines
+had right. A caller following the row got a validation error. Found
+while writing the test that now pins both modes.
+
+### Added - `tools/dev/name_coverage.py`, and the 32 tests that satisfy it (A10)
+
+The audit found thirteen package functions no test file mentioned, by
+hand. Nothing measured it, so the set could only grow - and it was
+larger than recorded: **22 public class methods** were unnamed too
+(A18), among them every operator (`plus`, `minus`, `uminus`, `mtimes`,
+`times`) and `disp` on all three classes.
+
+The gate strips comments first, so a name in a `% see also` line does
+not count. Its claim is deliberately narrow and it says so in its own
+output: naming is not exercise. Operators get no exemption - they are
+callable by name, and a test that checks `plus(a, b)` against `a + b`
+is stronger than one that checks either alone.
+
+New tests assert a property each function's own help states:
+
+- `icgemDate2Year` hand-computed epochs across a leap and a non-leap
+  year, and the documented `< 1.8e7` pass-through
+- `pctile` against the documented order statistic, the median identity,
+  clamping, non-finite handling and empty input
+- `gridHandover` reads FieldKind off the C00 identity - the same grid is
+  labelled full, anomaly, unknown or mixed by C00 alone
+- `shDestripe` annihilates a polynomial in degree, passes `m < MinOrder`
+  through bitwise, and leaves a subset with too few degrees alone
+- `shGaussianFilter` is exactly the weights applied by degree
+- `shSpectralCrossover` finds the first crossing and returns NaN for none
+- `vceRescale` is quadratic in the residuals and inverse in the
+  covariance - powers of two, so the identities are bitwise
+- `opApply` is the true adjoint of its forward operator, dense and
+  block-diagonal
+- `buildSignalCov` is scale-equivariant
+- `plotBasinSeries`, `plotCovariance`, `spectrum`, `triangle` return
+  graphics handles; `disp` prints the identifying facts
+- `shClimatology.fromCoef` honours its documented row layout, one
+  distinct constant per row so a swapped mapping is visible
+
+268/269 -> 300/301 tests, and the self-hosted runner executed **exactly
+301** - the prediction matched. 296 passed, 4 filtered (the optional
+real-data fixtures), 1 failed: `testCompareDelegatesToCompareSolutions`
+gave `compareSeries` 8 epochs where it requires >= 12 common ones. That
+guard is an `error` a hundred lines into the function, not part of its
+`arguments` block, so reading the signature was not enough. Fixed by
+giving the fixture two full years.
+
+### Fixed - `demos.xml` carries the version stamp, and nothing said so
+
+The first push of this release failed CI on `make_demos.py --check`:
+`demos.xml` is generated from the demo registry AND stamped with the
+toolbox version, so bumping to 3.34.1 made it stale on its own. It was
+regenerated by neither of CLAUDE.md's two lists, because `make_demos`
+appeared in neither - eleven local gates were green while `gates` was
+red.
+
+- `doc_sync_audit.py`'s VERSION check now covers `demos.xml` too, so the
+  gate that owns version agreement owns all four stamped artifacts
+  (`apiReference.html`, `html/ref/*`, `demos.xml`, the guide PDF).
+  Fault-injected both ways: a stale stamp and a missing one.
+- CLAUDE.md §3.4's gate list is now stated to equal `ci.yml` and names
+  `make_demos --check` and `name_coverage`; §3.9 names all four
+  generators.
+
+## [3.34.0] - 2026-09-08 - Struct fields, a correct test count, and reference pages
+
+Second half of the documentation-rot work, and the check that closes the
+class of defect v3.33.1 fixed by hand. No numerical behaviour changes.
+
+### Added - `help_audit.py` now checks struct output FIELDS, both ways
+
+v3.33.1 fixed eight help blocks that named struct fields the code does not
+produce (`tn.t`, `info.condest` for `condEst`, `out.q16/q50/q84`, ...). It
+fixed them by reading; nothing stopped the next one. Now:
+
+- **documented => assigned.** Every field a help block lists must be
+  assigned somewhere in that function. Runs where the help gives a field
+  LIST (the house form: the struct row ends with `fields`, one field per
+  deeper-indented line - the spelling already dominant in the tree).
+- **assigned => documented.** Every field the function writes on a
+  documented struct output must appear in its Outputs section. Needs no
+  parsing, so it runs on prose rows too - and it found **55** fields the
+  code returns and `help` never named.
+
+`help_audit.py` reports its own reach rather than implying full
+coverage, and that reach is now total: **96 documented struct outputs -
+79 with a field list verified against the source, 17 naming the function
+that builds them, 0 prose.** A mechanical prose-to-list rewrite was
+written, inspected and **discarded** because it produced confident
+nonsense (`'full-blocks'` split at a field name, a nested struct array's
+subfields hoisted to the top level), so all 79 were converted by hand
+against the source, with the gate verifying every name as it went.
+
+That conversion found **three more** help blocks naming fields that do
+not exist, on top of the eight v3.33.1 fixed by reading - eleven in all:
+
+| Function | Documented | Reality |
+|---|---|---|
+| `shReadGFC` | `model.tide` | the tide system is `model.header.tide_system`, which is where `shCoefficients.read` gets it |
+| `readSINEX` | `snx.header` | no such field |
+| `gravisL2B` | `rep.files` | no such field |
+
+**Five defects in the checker itself**, each caught by reading its output
+against the source before trusting it, each now with a regression test:
+
+- MATLAB's `'` is transpose after a value, so
+  `struct('areaFraction', w' * mask, ...)` desynchronised the scan and
+  hid three of `basinKernel`'s four fields. Converting that row first
+  would have made a **correct** help block look wrong.
+- `struct()` alternates name and value: the `"zeroField"` in
+  `struct(..., 'stoppedBy', "zeroField", ...)` is a VALUE, and counting
+  it invented a field `leakageCorrect` does not have.
+- the field-row grammar demanded two spaces before the type, so
+  `epochStart, epochStop (T x 1 double)` broke the parse.
+- the list marker was case-sensitive, so a preamble ending `Fields` was
+  not seen.
+- a classdef's local functions were excluded from a method's source,
+  hiding the struct `shSeries.mean` builds in `meanWindowInfo`.
+
+The delegation marker was tightened as well: a bare "from" or "see"
+appears in ordinary prose ("removed from the file", "from the ocean-fit
+residual") and had silently excused five rows that were in fact
+documented here and verifiable. It now requires an explicit reference to
+the function that builds the struct.
+
+### Fixed - 55 struct fields the code returns and the help did not name
+
+Found by the new direction. Among them:
+
+- `shIndex`: the help named `nmax` and `Nmin`. The FIELDS are `Lmax` and
+  `minDegree` - the help had copied the option spellings - and `pos`, the
+  reverse map, was undocumented. `shIndex` is the toolbox's canonical
+  vector ordering, so this one was in everybody's way.
+- `trendBreaks`: 15 of its 17 fields were described only in the prose
+  paragraph, and the Outputs section called them `shCoefficients` when
+  they are plain `(n1 x n1)` doubles.
+- `tvANSFilter`: `op.layout`, `op.blocks`, `op.sBlocks`, `op.detLeverage`,
+  `op.detResVar`, `info.vce`, `info.sigmaNote` - including which of the
+  two operator layouts is filled, which a caller must know.
+- `httpFetch.transport` was documented as if always present; it exists
+  only on the websave-fallback path. The correction says so.
+- `shReadGFC.variableTerms` (documented as two words, "variable terms"),
+  `header`, `modelname`; `shOrderRMS`'s `err*` glob spelled out;
+  `eofAnalysis`, `eofSeparate`, `fetchDDK`, `fetchGAX`, `fetchICGEM`,
+  `fetchITSG`, `fetchITSGBackground`, `basinScaling`, `oceanChain`,
+  `kalmanFilter`, `seaLevelFingerprint`,
+  `shSynthesisGradientTensor`.
+
+### Added - `tools/dev/count_tests.py`, and a corrected test count
+
+The predicted test count was **wrong**, on a green run. `grep -c '^function
+test' tests/*.m` counts the script-based harness entry point (`function
+tests = testCorrectness`) as a test, and misses every `bench*` method and
+every parameterised expansion. It said 261, and this release predicted 262;
+the runner ran **268**.
+
+`count_tests.py` reports methods and runs per class, expands
+`TestParameter` blocks, and with `--executed N` exits non-zero on a
+mismatch. It reproduces the self-hosted run exactly. CI prints it beside
+the run. The corrected figures: Correctness 135, Contract 61, Robustness
+53, Science 7, Performance 11 methods / 12 runs - **267 methods, 268 runs**,
+of which 3 filter out when the optional real-data fixtures are absent.
+
+### Fixed - three defects in the new checker, found by reviewing its own output
+
+Recorded because each produced confident, wrong findings before it was
+caught, and each is the kind of thing a gate is supposed to prevent:
+
+- an `id(src)`-keyed cache returned another file's field set (CPython
+  reuses ids after garbage collection) - 6 invented findings;
+- a class method was given the WHOLE class file as its source, so a
+  variable named `op` or `info` in a sibling method counted - 57 invented
+  findings;
+- quoted literals inside a call NESTED in `struct(...)` were read as field
+  names, so `struct('created', string(datetime('now', 'Format', ...)))`
+  looked like three fields - 4 invented findings.
+
+### Added - WP6 stage 1: a reference page per entity
+
+`doc` integration was a monolith: 196 entities had a dedicated page only
+inside the 304 KB `apiReference.html`, the 50 hand-written pages used five
+heading vocabularies, and each inlined its own `<style>` (A7, A8).
+
+- **`tools/dev/make_refpages.py`** emits `html/ref/<entity>.html` for all
+  198 public entities plus an index - 199 pages - in the MathWorks order:
+  Syntax, Description, Examples, Input Arguments, Name-Value Arguments,
+  Output Arguments, Error Identifiers, Version History, See Also. Every
+  page carries every section; a section with nothing to say says so,
+  because a missing section and an empty one are different claims. Nothing
+  on a page is hand-written: all of it derives from `api_data.py`, which is
+  parsed out of the help blocks, so a page cannot drift from its source.
+- **`html/shAnalysis.css`**, one stylesheet for the look: system font
+  stack, 14 px body, `#0076a8` links, a grey Syntax panel, bordered
+  argument tables, collapsible examples in plain HTML `<details>` (no JS).
+- **`api_extract.py`** now also captures `Error identifiers` (14 files) and
+  `See also` (15), neither of which is derivable. `See Also` is completed
+  from the entities a help block actually names - measured, not asserted.
+- **`tools/dev/refpages_audit.py`**, the gate: pages match what the
+  generator would write now, every entity has a page and no page outlives
+  its entity, every section present and in order, no heading outside the
+  skeleton, no inline `<style>`, every relative link resolves. Seven
+  fault injections in `tools/tests/test_refpages.py`.
+- `helptoc.xml` reaches the new index, so the pages are visible in the
+  Help browser.
+
+Two of WP6's own premises did not survive measurement, and are recorded
+rather than papered over:
+
+- **Per-entity Version History from the changelog** was to be included
+  "only if the match rate is > 80 %". A loose name match reaches 81 % but
+  matches `filter` against releases that never mention it; a match
+  anchored on the qualified name reaches 74 %. Below the bar either way,
+  so every page links `CHANGELOG.md` and says why it does not claim a
+  per-entity history.
+- **"Functions by the existing tag categories"**: there are no tag
+  categories in the data. Deriving them from `helptoc.xml` mapped 163 of
+  198 entities and put 75 in one catch-all. The index groups by what IS
+  derivable - classes, class methods, package functions, root functions,
+  plus an A-Z list - and topic categories wait for an editorial decision.
+
+### Added - WP6 stage 2: one look, one vocabulary, an Examples tab
+
+- **The 50 hand-written pages now link `html/shAnalysis.css`.** They had
+  carried an inline `<style>` block each - and only **two were distinct**:
+  49 were byte-identical and one more sat in the generated
+  `apiReference.html`. One stylesheet copied fifty times is exactly what
+  A8 described. `make_apiref.py` emits the link instead of the block, so
+  the copy cannot come back with the next regeneration.
+- **One spelling per structural heading.** 46 headings were renamed:
+  `See also` -> `See Also` (34), `Outputs` -> `Output Arguments` (7),
+  `Example` -> `Examples` (6), `Inputs` -> `Input Arguments`,
+  `Inputs / Outputs` -> `Arguments` (5, where one table genuinely covers
+  both). Narrative pages keep their own page-specific headings; only the
+  structural ones are pinned.
+- **`demos.xml`** (`tools/dev/make_demos.py`), derived from the case
+  registry inside `demo_shAnalysis.m` so a case cannot exist in one and
+  not the other. 16 cases, each with a `demo_shAnalysis("Dnn")` callback.
+- `doc_sync_audit.py` gates all three: no inline `<style>` anywhere in
+  `html/`, every page links the stylesheet, structural headings use the
+  house spelling, and `demos.xml` matches the registry both ways. Six
+  more fault injections.
+
+`setup_shAnalysis(Docs=true)` already ran `builddocsearchdb` on `html/` -
+the audit's A7 missed it, so no second option was added; its help now
+says the index covers `html/ref/` too and explains why the binary index
+is not committed.
+
+### Fixed - A13: the kilometre conversion was a hidden constant
+
+`resolutionMap` turned its half-widths from degrees into kilometres with
+a hardcoded `R = 6371`, against the toolbox's own rule that physical
+constants are defaults, not literals. It is now the `RadiusKm` option -
+default unchanged, so no number moves - documented as the MEAN Earth
+radius, which is the right choice for a great-circle distance and is
+deliberately not the coefficients' reference radius (6378.1363 km).
+
+`testResolutionMapRadiusIsAChoice` pins both halves metamorphically, so
+no tolerance is involved: the angular half-widths do not depend on the
+radius, every kilometre figure scales exactly with it, and `anisotropy`
+- a ratio of two of them - is invariant. It also asserts the struct's
+field names, and it takes `resolutionMap` off A10's list of functions
+never named in a test. Declared test count 268 methods / 269 runs.
+
+### Fixed - ten tests whose temp folder a killed run could poison
+
+`runAllTests (self-hosted)` failed on
+`testProvenanceSidecarsDoNotBreakTheRoundTrip` with
+
+```
+[Warning: Directory already exists.]
+[Warning: ...\shx_sidecar_176639289\plain.gfc: 1502 of 1891 coefficient
+ records (degrees 0..54) for the header's max_degree 60 - truncated file?]
+Error ID: 'shSeries:sizeMismatch'
+All epochs must share nmax (epoch 3 has 54, expected 60)
+```
+
+Two CI runs had been **cancelled** mid-suite by the next push. A killed
+MATLAB process runs no `onCleanup`, so a half-written `plain.gfc` stayed
+behind in the runner's temp folder - and the folder name,
+`sprintf('shx_sidecar_%d', randi(1e9))`, is reproducible whenever the rng
+state at that point is, so the next run walked straight back into it and
+read the truncated file as a third epoch.
+
+Ten tests built their temp path that way. They now use `tempname`, which
+is the pattern this repo already documents in `tests/rmIfFolder.m` and
+uses in eight other places: it returns a path that does not exist, so no
+leftover can be found and no two runs can collide. The test was never
+skipped, widened or given a tolerance - it isolates itself now, which is
+what it should always have done.
+
+To be exact about what this change did and did not do: the leftover had
+already cleared itself by the next run, which was green **before** this
+fix existed. It is hardening against recurrence, not the cure for a red
+build. The failure was intermittent in practice but not a flake - the
+mechanism is deterministic given its precondition.
+
+### Fixed - two gates that were not looking where they claimed
+
+- `attribution_sweep.py` globbed `html/*.html`, so it kept reporting 50
+  pages while 199 more existed one directory down. Now recursive: 249.
+- `doc_sync_audit.py` and `testHelpBrowserTocIsComplete` both compared
+  `helptoc.xml` targets against bare filenames, so any target in a
+  subfolder read as a dead link. Both resolve targets against `html/` now.
+
+### Added
+
+- `tools/tests/test_help_audit.py` grows to 17 tests; `test_count_tests.py`
+  (7) and `test_refpages.py` (14) are new. Every rule fault-injected and
+  paired with a clean-tree assertion. Five self-test suites, 81 tests.
+
+## [3.33.1] - 2026-09-08 - Documentation rot, and the gates that missed it
+
+Hygiene release: no numerical behaviour changes. Every finding below was
+green on all nine gates for weeks - the gates checked that a section was
+present, never that it appeared once, and never that what it claimed was
+what the code returns.
+
+### Fixed - 65 help blocks carried two sections of the same kind
+
+`fix_help.py` appended a generated `Outputs`/`Options`/`Inputs` section
+below the hand-written one instead of editing it, in every run since
+2026-08-12. `help_audit.py` reads the FIRST such section, so the second
+was invisible to it - and the two disagreed. Where they disagreed, the
+code was consulted and both were often wrong:
+
+- `readTN14`: the help promised a field `tn.t`. There is none; the
+  reader returns `epoch`, `epochStart`, `epochStop`.
+- `parseGraceFilename`: `center`, `product`, `release`, `year`, `month`,
+  `nmax` and "raw tokens" were documented. The parser returns
+  `productType`, `epoch`, `epochStart`, `epochStop` and nothing else.
+- `resolutionMap`: documented as returning an `(nlat x nlon)` double of
+  half-widths. It returns a struct - `psiHalfDeg`, `azDeg`, `kmMean`,
+  `kmMin`, `kmMax`, `anisotropy`.
+- `shAnalysisGrid`: every documented `info` field name was wrong -
+  `condest` for `condEst` (MATLAB is case-sensitive on fields), `nObs`
+  for `nPoints`, and a `kaula` field that does not exist. `method`,
+  `unobservedDegrees`, `regularized` and `residRMS` were undocumented.
+- `basinDeconvolve`: the two `Ridge` descriptions contradicted each
+  other and neither matched the code, which solves
+  `(A'A + lam^2 I) \ (A' v)` with `lam = Ridge*||A||_2` - relative to
+  the spectral norm, which is the whole point of the v2.1 change.
+- `buildSignalCov`: `info` was documented as `mode` and `iterations`,
+  neither of which exists; it holds `c` (P x NIter+1, one column per
+  iteration) and `varMap`.
+- `vceRescale`: documented as returning `(nBands x T)`. It returns
+  `(T x 1)`; `tvANSFilter` assembles the band matrix itself.
+- `mcPropagate`: `q16/q50/q84` percentiles were documented and are not
+  computed; `N` was undocumented; `samples` is conditional on
+  `KeepSamples`.
+- `shSynthesis`: the fourth output `P` is EMPTY in latitude-banded mode
+  (`MaxMemGB` exceeded) - undocumented, and a caller passing it back in
+  would have been puzzled.
+- `readMascon`, `shSynthesisDeformation`, `errorMap`, `rescaleGMR`,
+  `buildNoiseCov`, `shCoefficients.analysis` and 35 class methods:
+  corrected against the source in the same sweep. `errorMap`'s
+  description had been truncated mid-sentence since its first commit.
+
+### Fixed - error identifiers a caller could not catch by owner
+
+`shSynthesisDeformation` raised `shSynthesis:badInput` and
+`shSynthesis:missingLoveNumbers`. It now raises
+`shLowLevel:shSynthesisDeformation:badInput` and
+`:missingLoveNumbers`, documented in its own `Error identifiers` block
+and pinned by `testDeformationIDs` (which also checks the identifier
+survives the `shCoefficients.deformation` delegation). Not a breaking
+change: these identifiers were never documented.
+
+`kernelFactors`, `shSynthesisGradient` and `seaLevelFingerprint` still
+raise `shSynthesis:*`; those identifiers ARE documented and pinned by
+tests, so renaming them is a major-version change and stays with the
+identifier sweep of the next major release.
+
+### Fixed - documentation that had aged
+
+- The shipped workflow guide PDF was stamped v3.28.0 - five releases
+  behind, missing the BREAKING `MinDegree`/`MaxDegree` -> `Nmin`/`Nmax`
+  rename. Rebuilt, and `doc_sync_audit.py` now reads the PDF's page-1
+  running head and fails when it disagrees with `Contents.m` (standard
+  library only: reportlab writes ASCII85 + Flate streams).
+- `docs/apiReference.html` was a byte-identical copy of
+  `html/apiReference.html`. Nothing wrote it, nothing read it, nothing
+  compared them. Deleted; `doc_sync_audit.py` now fails on any HTML page
+  outside `html/`.
+- `README.md` said CI pulls the orphan branch `testdata`. CI has pinned
+  the tag `fixtures-YYYY-MM` since v3.26.1. The README now points at
+  `ci.yml` rather than naming a tag it would have to keep in step.
+- `Contents.m` was 1149 lines, 74 "New in v..." sections out of
+  chronological order, printed in full by `help shAnalysis`. Now 78
+  lines: product line, classes, quick start, internals, tests, and a
+  pointer to this file. Nothing was lost - v2.1, v2.2, v2.3, v2.4,
+  v2.4.1 and v2.4.2 existed only in `Contents.m` and are written up
+  below in this release.
+- Section headings in help blocks now use one vocabulary:
+  `Name/value options:` -> `Options` (5 files), `Errors` -> `Error
+  identifiers` (2), `Output`/`Examples` -> `Outputs`/`Example` in
+  `setup_shAnalysis`.
+
+### Added - the checks that would have caught all of it
+
+- `help_audit.py` (v3.0.2): a house-vocabulary section may appear at
+  most once per help block; no section may appear below the provenance
+  footer, where the doc builder stops reading; near-miss spellings are
+  named with the spelling to use. Prose sub-headings inside a
+  description are explicitly not sections.
+- `tools/tests/test_help_audit.py`: nine tests, each rule fault-injected
+  (fires on the defect) and paired with a clean-tree assertion.
+- `fix_help.py` refuses to create a second section of a kind that
+  already exists, and says so instead of writing.
+- `api_extract.py`: a row in an `Outputs` section starts at the
+  section's own indent; anything deeper is a continuation. Six entities
+  (`httpFetch`, `obpChain`, `oceanChain`, `poleTideConvert`,
+  `readMascon`, `readTN13`) had their struct sub-fields parsed as
+  separate outputs, so the generated reference invented outputs the
+  functions do not have.
+- CI runs `tools/tests/` at last. The three gate self-tests committed in
+  v3.32/v3.33 had never run in CI; one of them
+  (`test_legacy_name_tolerated`) had been broken since the v3.33.0
+  casing sweep drained `LEGACY` to empty, and nothing said so. It now
+  asserts the mechanism instead of a member name.
+
+### Changed
+
+- `CLAUDE.md` records the audit findings this release closes, the ones
+  it leaves open, and the four it adds (A12-A15).
+
 ## [3.33.0] - 2026-09-05 - Name-Value casing, and one real rename
 
 ### BREAKING: `MinDegree` and `MaxDegree` are gone
@@ -1599,7 +2066,128 @@ All notable changes to shAnalysis. The version line in `Contents.m`
 - Real-file validation: CSR/JPL/GFZ TN-13, GSFC TN-14, DDK Wbd
   binaries, ITSG monthly/daily, 460 MB operational SINEX streaming.
 
-## [2.4.2] - earlier
+## [2.4.2] - 2026-08-07
 
+- MIT LICENSE file (Matthias Weigelt); every help text and doc page
+  closes with the attribution statement.
+- `plotSHCoeffTriangle` difference mode: sine sectorals S_nn no longer
+  blanked (the S wing was one column narrow).
+- `shLowLevel.listICGEM(Type="temporal")`: full ~70-series catalogue
+  (was 3 release-note rows) + `Series=` listing single downloadable
+  files.
 - Full-sine-wing triangle difference plots; robust cache-speedup test;
   DDK reader; ICGEM catalogue; persistent data folder.
+
+## [2.4.1] - 2026-08-07
+
+### Added
+- Triangle plots without the centre line; spectrum plots on a LINEAR
+  degree axis (log y kept).
+- `plotSHSpectrum` `Quantity=` amplitude | rms | variance |
+  cumamplitude | cumrms | cumvariance; order-domain plots via
+  `shLowLevel.shOrderRMS` (the striping axis; marginals tested against
+  `shDegreeRMS`); cumulative variance/RMS fields added to
+  `shDegreeRMS`.
+- `shLowLevel.version` - toolbox metadata (name, version, date, root)
+  parsed from `Contents.m`.
+- `shLowLevel.fetch*` take `Update=true` for a safe, parse-verified
+  refresh of existing files (TN-13/TN-14 grow monthly upstream).
+
+## [2.4] - 2026-08-07
+
+### Added
+- Visualization: `shLowLevel.plotSHMap` / `g.map` (divergent map,
+  coastlines, Hammer projection; `plotSHMap` was REMOVED again in
+  3.32.0), `shLowLevel.plotBasinSeries` (sigma band, gaps, trend),
+  triangle difference mode (`RefC`/`RefS`), `shLowLevel.plotCovariance`
+  (block boundaries), `plotSHSpectrum` Kaula + crossover overlays,
+  `shLowLevel.writeAnimation` (MP4, fixed robust scale).
+- `shLowLevel.errorMap` - analytic sigma maps from full covariances
+  (Cholesky, cross-checked against `mcPropagate`).
+- `shLowLevel.eofAnalysis` - EOF/PCA modes as shCoefficients + unit PCs.
+- `shLowLevel.basinScaling` - forward-modelled gain factors
+  (struct | matrix | handle operators).
+- `shSeries.trendBreaks` - hinge breakpoints with F-test (betainc-based
+  p-values, no toolbox; null calibrated at 5.1%/5%).
+- `shLowLevel.shFanFilter` / `g.fan` / `ts.fan` - Han degree x order
+  Gaussian.
+- `shLowLevel.combineCenters` - per-(center, month) VCE combination with
+  partial redundancies, robust block-median option, inter-center
+  correlation diagnostic, posterior sigmas.
+- `shLowLevel.seaLevelFingerprint` - elastic sea-level equation (mass
+  exactly conserved; near-field fall / far-field excess validated).
+- `shLowLevel.writeGrid` - CF-style netCDF export (roundtrip-tested).
+- Reference systems: `shLowLevel.normalFieldCS` (even zonals COMPUTED
+  from WGS84/GRS80 defining constants, matching NIMA TR8350.2 to all
+  published digits), `g.subtractNormalField` (auto-rescaled),
+  `shLowLevel.rescaleGMR` / `g.toReference` (exact (GM, R) conversion;
+  field invariance verified); arithmetic guards GM/R mismatches.
+- `demo_shAnalysis` - selectable case registry (D01..D16,
+  "list"/"core"/"all"/subset, `Visible=` for headless runs); rendered
+  gallery with explanations in the workflow guide PDF.
+- `shLowLevel.fetchITSG` / `shSeries.fromFolder` - on-demand ITSG
+  download (websave, release routing, gap-aware) + folder loading;
+  demos D01-D06 use real data when present, D12-D14 stay synthetic by
+  design (known-truth recovery).
+- `shLowLevel.pctile` - percentile without the Statistics Toolbox (an
+  audit found `prctile` had slipped into two plot functions; fixed).
+
+## [2.3] - 2026-08-07
+
+### Added
+- New synthesis/analysis quantities in `shLowLevel.kernelFactors`:
+  `surface_density` [kg/m^2] R rho_ave/3 (2n+1)/(1+kn),
+  `bottom_pressure` [Pa] g0 * surface density (OBP),
+  `deformation_up` [m] R hn/(1+kn) elastic vertical,
+  `gravity_gradient_rr` [1/s^2] (GM/R^3)(n+1)(n+2) (T_rr).
+- `Height` option: upward continuation (R/r)^p to satellite altitude.
+- `shLowLevel.shSynthesisDeformation` / `g.deformation` - up/north/east
+  elastic load deformation (the GNSS comparison); grid and station-list
+  modes; exact dPbar/dphi via `shLowLevel.legendreALFDeriv` (frozen
+  validated identity, ~5e-10 against numerical gradients).
+
+## [2.2] - 2026-08-07
+
+All rows Python-validated before the MATLAB implementation.
+
+### Added
+- `shLowLevel.basinKernel` - basin kernels from polygons/masks/functions
+  (buffering + spectral taper).
+- `shLowLevel.slepianBasis` - Slepian localization (regional analysis).
+- `shLowLevel.readDDK`, `shLowLevel.applyDDK`, `g.applyDDK`,
+  `ts.applyDDK` - DDK anisotropic decorrelation filters (native binary
+  Wbd support + Nmax truncation in 2.2.1).
+- `ts.removeGIA`, `clim.removeGIA` - GIA correction (user-supplied rate
+  models).
+- `ts.climatology(ARCorrect=true)` - AR(1)-corrected trend/coefficient
+  sigmas.
+- `shLowLevel.mcPropagate` - Monte-Carlo sigma propagation (independent
+  or full SINEX covariance).
+- `shLowLevel.readMascon` - JPL/CSR mascon netCDF reader.
+- `shLowLevel.geodetic2geocentric`, `shLowLevel.geocentric2geodetic`,
+  and `LatType="geodetic"` in the synthesis/analysis entry points.
+- `shLowLevel.shSynthesis(..., MaxMemGB=4)` - latitude-banded streaming
+  makes nmax 2190 real on ordinary RAM.
+- `shLowLevel.tvANSFilter(..., VCEBands=[0 16 33 61])` - per-order-band
+  VCE.
+- `shLowLevel.readSINEX(..., Only="estimate")` - streaming estimate
+  block of multi-100-MB SINEX in seconds.
+
+## [2.1] - 2026-08-07
+
+### Added
+- `shCoefficients.analysis` - SH ANALYSIS: gridded or scattered data ->
+  Stokes coefficients (rings: exact fast per-order solver; scattered:
+  least squares + Kaula).
+- `addDegree1` - TN-13 geocenter insertion (with
+  `shLowLevel.readTN13`), completing the GSM + TN-14 + TN-13 chain.
+- `filter(..., Blocks="auto")` - block-diagonal tvANS (identical
+  results, Lmax ~ 120 tractable) + posterior sigma stacks
+  (`tsF.sigmaCs`/`Ss`) and basin-average sigmas.
+- `climatology(Periods=[161/365.25, 3.66, 7.48])` - S2/K2/K1 tidal
+  alias terms; per-coefficient significance on components.
+- `synthesis(..., Method="fft")` - FFT-along-longitude + latitude
+  parity trick; Legendre recursion stable to degree 2190.
+- `dropNaN` / `select` - GRACE <-> GRACE-FO gap handling.
+- ICGEM 2.0 piecewise gfct files; `shLowLevel.readSINEX` covariances /
+  normal equations.

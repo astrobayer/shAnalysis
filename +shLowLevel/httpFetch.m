@@ -40,6 +40,9 @@ function info = httpFetch(url, dest, opts)
 %       tries   (1 x 1) double  attempts used
 %       waited  (1 x 1) double  total seconds slept between attempts
 %       bytes   (1 x 1) double  bytes written to DEST
+%       transport (1 x 1) string  present ONLY when the websave
+%               fallback ran (value "websave-fallback"); the normal
+%               path leaves the field absent, so test with isfield
 %
 %   Error identifiers
 %     shLowLevel:httpFetch:failed     all attempts exhausted (message

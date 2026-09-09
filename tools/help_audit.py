@@ -1,15 +1,27 @@
 #!/usr/bin/env python3
-"""help_audit: enforce complete in-file documentation (v3.0.1).
+"""help_audit: enforce complete in-file documentation (v3.0.2).
 
 Every public function and class method must document, in its help text:
   - every positional input (name mentioned),
   - every name-value option WITH its default value,
   - an Outputs section naming every output with a size or type token,
   - an Example (in-file, or registered in docs/apiExamples.json).
+
+Structural rules on the help block itself (v3.0.2), added after 13 files
+were found carrying two sections of the same kind - a generated block
+appended below a hand-written one, with the two disagreeing about the
+returned struct fields. Presence checks alone cannot see that:
+  - a section heading of the house vocabulary appears AT MOST ONCE,
+  - no section heading appears after the provenance footer (the doc
+    builder and the audit's own section parser stop reading there),
+  - headings use the house spelling exactly (Outputs, not Output; Example,
+    not Examples; Error identifiers, not Errors; Options, not
+    "Name/value options").
+
 Runs in CI before the test suite; nonzero exit on any finding.
 
 Developed by Matthias Weigelt with the help of Claude (Fable 5),
-2026-08-10 (v3.0.1).
+2026-08-10 (v3.0.1); structural section rules 2026-09-08 (v3.0.2).
 """
 import json, os, re, sys
 
@@ -29,7 +41,8 @@ def join_cont(lines):
     return out
 
 def parse_file(path):
-    lines = open(path, encoding="utf-8", errors="replace").readlines()
+    with open(path, encoding="utf-8", errors="replace") as fh:
+        lines = fh.readlines()
     return parse_from(lines, 0, os.path.basename(path)[:-2])
 
 def parse_from(lines, i0, expect):
@@ -65,16 +78,336 @@ def parse_from(lines, i0, expect):
                 default = dm.group(1).strip() if dm else ""
                 args.append({"name": nm, "nv": nv, "default": default})
             break
+    # the source of THIS function only: a class file holds many methods, and
+    # a variable named 'op' or 'info' in a sibling method is not this one's
+    # (that leak invented 57 findings before it was noticed)
+    ind = len(re.match(r"^(\s*)", lines[i]).group(1))
+    end = len(lines)
+    for k in range(i + 1, len(lines)):
+        mf = re.match(r"^(\s*)function\b", lines[k])
+        if mf and len(mf.group(1)) <= ind:
+            end = k
+            break
+    # In a classdef file the local functions after the class body are
+    # part of the implementation - shSeries.mean builds its info struct
+    # in meanWindowInfo - so they belong to every method's source. They
+    # sit at indentation 0, which inside a classdef only a local function
+    # can be.
+    local = ""
+    if any(re.match(r"^classdef\b", L) for L in lines[:40]):
+        for k, L in enumerate(lines):
+            if re.match(r"^function\s", L):
+                local = "".join(lines[k:])
+                break
     return {"name": m.group(2), "outs": outs, "ins": ins,
-            "help": "\n".join(help_lines), "args": args, "line": i}
+            "help": "\n".join(help_lines), "args": args, "line": i,
+            "src": "".join(lines[i:end]) + local}
 
 def norm(s):
     return re.sub(r"[\s'\"]+", "", s)
+
+# House section vocabulary. A heading is a help line that is nothing but the
+# name (with an optional colon); anything else on the line is prose.
+SECTIONS = ("Inputs", "Outputs", "Options", "Example", "Error identifiers",
+            "References")
+# Near-misses that the section parsers silently do not recognise.
+NEAR_MISS = {"Output": "Outputs", "Input": "Inputs", "Examples": "Example",
+             "Errors": "Error identifiers", "Error Identifiers":
+             "Error identifiers", "Name/value options": "Options",
+             "Name-value options": "Options", "Option": "Options",
+             "Outputs Arguments": "Outputs", "Output Arguments": "Outputs",
+             "Input Arguments": "Inputs"}
+HEAD_RE = re.compile(r"^\s{2,6}([A-Za-z][A-Za-z/\- ]*?)\s*:?\s*$")
+PROV_RE = re.compile(r"^\s*Developed by ", re.I)
+
+def structure(help_text, label):
+    """duplicate / misplaced / misspelt section headings"""
+    probs = []
+    seen = {}
+    prov = None
+    for k, L in enumerate(help_text.split("\n")):
+        if prov is None and PROV_RE.match(L):
+            prov = k
+        m = HEAD_RE.match(L.rstrip())
+        if not m:
+            continue
+        name = m.group(1).strip()
+        if name in NEAR_MISS:
+            probs.append("%s: section '%s' should be spelt '%s' (the house "
+                         "vocabulary; other spellings are invisible to the "
+                         "section parsers)" % (label, name, NEAR_MISS[name]))
+            continue
+        if name not in SECTIONS:
+            continue          # free prose sub-heading inside a description
+        if name in seen:
+            probs.append("%s: section '%s' appears twice (help lines %d and "
+                         "%d); one authority per section" %
+                         (label, name, seen[name] + 1, k + 1))
+        else:
+            seen[name] = k
+        if prov is not None and k > prov:
+            probs.append("%s: section '%s' comes after the provenance "
+                         "footer, where the doc builder stops reading" %
+                         (label, name))
+    return probs
+
+# --- struct output fields (A12) -------------------------------------------
+# help_audit checked that every OUTPUT VARIABLE appears in the Outputs
+# section. It never checked the FIELDS a struct output promises, so
+# `readTN14` documented `tn.t` (there is none), `shAnalysisGrid` documented
+# `info.condest` for `condEst` (MATLAB field names are case-sensitive: a
+# user following the help got an error), and `mcPropagate` documented
+# percentiles it does not compute. Eight such lies were found by hand.
+#
+# A prose field list cannot be parsed apart from its description, so the
+# house form is a LIST: the struct row ends with the word "fields", and
+# each field is one deeper-indented continuation line beginning with its
+# name. A struct built by another function is declared delegated instead.
+STRUCT_ROW = re.compile(r"^(\s{2,10})(\w+)\s{2,}(.*?\bstruct\b.*)$")
+# both spellings are in the tree already; the leading dot is the older one
+FIELD_ROW = re.compile(r"^(\s+)\.?([A-Za-z_]\w*"
+                       r"(?:\s*[,/]\s*\.?[A-Za-z_]\w*)*)"
+                       r"(?:\s+(.*))?$")
+# A struct built by ANOTHER function is documented there, not here. The
+# marker has to be explicit and name that function: a bare "from" or
+# "see" appears in ordinary prose ("removed from the file", "from the
+# ocean-fit residual") and silently excused five rows that were in fact
+# documented here and verifiable.
+DELEGATED = re.compile(
+    r"\b(?:as returned by|as documented by|output of|built by|"
+    r"as in)\s+(?:shLowLevel\.)?\w+"
+    r"|\bfrom\s+shLowLevel\.\w+"
+    r"|\bthe\s+shLowLevel\.\w+\s+(?:report|struct|output)"
+    r"|\bshLowLevel\.\w+\s+(?:returns|documents)\b", re.I)
+ENDS_FIELDS = re.compile(r"\bfields\s*:?\s*$", re.I)
+SECTION_END = re.compile(r"^\s*(Inputs?|Options?|Example|Error identifiers|"
+                         r"References|Developed by)\b")
+
+
+def struct_field_docs(help_text):
+    """[(var, [field, ...], delegated, line)] for every struct output row."""
+    lines = help_text.split("\n")
+    heads = [k for k, L in enumerate(lines)
+             if re.match(r"^\s*Outputs\s*$", L)]
+    if not heads:
+        return []
+    out = []
+    k = heads[0] + 1
+    while k < len(lines):
+        L = lines[k]
+        if not L.strip() or SECTION_END.match(L):
+            break
+        m = STRUCT_ROW.match(L.rstrip())
+        if not m:
+            k += 1
+            continue
+        indent, var, desc = len(m.group(1)), m.group(2), m.group(3)
+        # "as returned by shLowLevel.synthesisMatrix" often wraps, so the
+        # delegation marker is looked for across the row and the two lines
+        # under it, not on the row alone
+        window = " ".join([desc] + [x.strip() for x in lines[k + 1:k + 3]])
+        delegated = bool(DELEGATED.search(window))
+        # The marker is the first line ending in "fields", which may be
+        # the row itself or the last line of a short preamble ("...the
+        # PHYSICAL state is the first block. Fields"). Everything after
+        # it, indented deeper, is the list.
+        fields, j = [], k + 1
+        marked = bool(ENDS_FIELDS.search(desc))
+        while not marked and j < len(lines):
+            L2 = lines[j]
+            if not L2.strip() or SECTION_END.match(L2):
+                break
+            m2 = re.match(r"^(\s+)", L2)
+            if not m2 or len(m2.group(1)) <= indent:
+                break
+            j += 1
+            if ENDS_FIELDS.search(L2):
+                marked = True
+                break
+        if not marked:
+            j = k + 1
+        if marked:
+            while j < len(lines):
+                L2 = lines[j]
+                if not L2.strip() or SECTION_END.match(L2):
+                    break
+                m2 = FIELD_ROW.match(L2.rstrip())
+                if not m2 or len(m2.group(1)) <= indent:
+                    break
+                fields += re.findall(r"[A-Za-z_]\w*", m2.group(2))
+                j += 1
+                # continuation of THIS field's description: deeper again
+                while j < len(lines) and lines[j].strip() and \
+                        not SECTION_END.match(lines[j]) and \
+                        re.match(r"^(\s+)", lines[j]) and \
+                        len(re.match(r"^(\s+)", lines[j]).group(1)) > \
+                        len(m2.group(1)):
+                    j += 1
+        out.append((var, fields, delegated, k + 1))
+        k = max(j, k + 1)
+    return out
+
+
+def _is_transpose(src, i):
+    """In MATLAB ' is transpose after a value, a quote otherwise.
+
+    struct('areaFraction', w' * mask, 'nGridPoints', ...) - the ' in w'
+    is an operator. Reading it as a string delimiter desynchronises
+    everything after it, which hid three of basinKernel's four fields
+    and would have made a correct help block look wrong.
+    """
+    k = i - 1
+    while k >= 0 and src[k] in " \t":
+        k -= 1
+    return k >= 0 and (src[k].isalnum() or src[k] in "_)]}.'")
+
+
+def struct_field_names(args):
+    """'name' literals at depth 0 of a struct() argument list.
+
+    Nested calls carry their own quoted arguments - struct(..., 'created',
+    string(datetime('now', 'Format', 'yyyy-MM-dd'))) is one field, not
+    three - so anything inside a nested paren is skipped.
+    """
+    # struct() alternates name, value, name, value: only the EVEN
+    # depth-0 arguments are field names. Without this, the "zeroField" in
+    # struct(..., 'stoppedBy', "zeroField", ...) looked like a field of
+    # its own - a phantom that weakens both directions of the check.
+    names, depth, i, arg = set(), 0, 0, 0
+    while i < len(args):
+        c = args[i]
+        if c in "([{":
+            depth += 1
+        elif c in ")]}":
+            depth -= 1
+        elif c == "," and depth == 0:
+            arg += 1
+        elif c in "'\"":
+            if c == "'" and _is_transpose(args, i):
+                i += 1
+                continue
+            j = i + 1
+            while True:
+                j = args.find(c, j)
+                if j < 0:
+                    break
+                if j + 1 < len(args) and args[j + 1] == c:   # '' escape
+                    j += 2
+                    continue
+                break
+            if j < 0:
+                break
+            if depth == 0:
+                lit = args[i + 1:j]
+                k = j + 1
+                while k < len(args) and args[k] in " \t\r\n.":
+                    k += 1
+                if arg % 2 == 0 and re.fullmatch(r"[A-Za-z_]\w*", lit) \
+                        and k < len(args) and args[k] == ",":
+                    names.add(lit)
+            i = j
+        i += 1
+    return names
+
+
+def struct_call_args(src):
+    """text inside every struct( ... ), paren-matched (calls nest and wrap)"""
+    out = []
+    for m in re.finditer(r"\bstruct\s*\(", src):
+        depth, i = 1, m.end()
+        while i < len(src) and depth:
+            if src[i] == "(":
+                depth += 1
+            elif src[i] == ")":
+                depth -= 1
+            i += 1
+        out.append(src[m.end():i - 1])
+    return out
+
+
+def fields_assigned_to(src, var):
+    """fields the source writes on THIS variable specifically"""
+    v = re.escape(var)
+    names = set(re.findall(r"\b" + v + r"(?:\([^)]*\))?\.(\w+)\s*"
+                           r"(?:\([^)]*\))?\s*=(?!=)", src))
+    for m in re.finditer(r"\b" + v + r"\s*=\s*struct\s*\(", src):
+        depth, i = 1, m.end()
+        while i < len(src) and depth:
+            if src[i] == "(":
+                depth += 1
+            elif src[i] == ")":
+                depth -= 1
+            i += 1
+        names.update(struct_field_names(src[m.end():i - 1]))
+    return names
+
+
+def assigned_fields(src):
+    """field names the source actually writes on any struct"""
+    names = set(re.findall(r"\b\w+\.(\w+)\s*(?:\([^)]*\))?\s*=(?!=)", src))
+    for call in struct_call_args(src):
+        names.update(struct_field_names(call))
+    names.update(re.findall(r"setfield\s*\([^,]+,\s*['\"](\w+)['\"]", src))
+    # dynamic assignment: s.(fld) = ... with fld from a literal list
+    if re.search(r"\.\(\w+\)\s*=", src):
+        names.update(re.findall(r"['\"](\w+)['\"]", src))
+    return names
+
+
+def outputs_section(help_text):
+    m = re.search(r"^\s*Outputs\s*$(.*?)(?=^\s*(?:Inputs?|Options?|Example|"
+                  r"Error identifiers|References|Developed by)\b|\Z)",
+                  help_text, re.M | re.S)
+    return m.group(1) if m else ""
+
+
+def struct_fields(help_text, src, label, outs, stats=None):
+    """Two directions, and each says how far it reached.
+
+    B (documented => assigned) needs the field list in list form, so it runs
+    only where the help gives one; STATS carries how many rows that was, so
+    the gate can report its own coverage instead of implying it checked all.
+    A (assigned => documented) is a substring test and runs everywhere.
+    """
+    probs = []
+    have = assigned_fields(src)
+    sec = outputs_section(help_text)
+    for var, fields, delegated, line in struct_field_docs(help_text):
+        if var not in outs:
+            continue                    # a struct INPUT mentioned in Outputs
+        if delegated:
+            if stats is not None:
+                stats["delegated"] += 1
+            continue                    # built elsewhere; that file documents it
+        # --- A: nothing the file writes on this struct may go unmentioned
+        for f in sorted(fields_assigned_to(src, var)):
+            if not re.search(r"\b" + re.escape(f) + r"\b", sec):
+                probs.append("%s: assigns '%s.%s' but the Outputs section "
+                             "never mentions it (help line %d)"
+                             % (label, var, f, line))
+        # --- B: nothing the help promises may be missing from the file
+        if not fields:
+            if stats is not None:
+                stats["prose"] += 1
+            continue
+        if stats is not None:
+            stats["listed"] += 1
+        for f in fields:
+            if f not in have:
+                probs.append("%s: help promises field '%s.%s', which the file "
+                             "never assigns (help line %d)"
+                             % (label, var, f, line))
+    return probs
+
 
 def audit(entry, label, examples):
     H = entry["help"]; probs = []
     if not H.strip():
         return [label + ": no help text"]
+    probs += structure(H, label)
+    if entry.get("src"):
+        probs += struct_fields(H, entry["src"], label, set(entry["outs"]),
+                               STRUCT_STATS)
     Hn = norm(H)
     # positional inputs (skip obj/varargin/opts)
     for a in entry["ins"]:
@@ -113,11 +446,15 @@ def audit(entry, label, examples):
         probs.append(label + ": no Example (in-file or apiExamples.json)")
     return probs
 
+STRUCT_STATS = {"listed": 0, "prose": 0, "delegated": 0}
+
+
 def main():
     examples = set()
     jp = os.path.join(ROOT, "docs", "apiExamples.json")
     if os.path.isfile(jp):
-        J = json.load(open(jp))
+        with open(jp, encoding="utf-8") as fh:
+            J = json.load(fh)
         ents = J["entries"] if isinstance(J, dict) and "entries" in J else J
         examples = {e["name"] for e in ents if e.get("example")}
     probs = []
@@ -134,7 +471,8 @@ def main():
     for cls in ["shCoefficients.m", "shSeries.m", "shClimatology.m"]:
         p = os.path.join(ROOT, cls)
         if not os.path.isfile(p): continue
-        lines = open(p, encoding="utf-8", errors="replace").readlines()
+        with open(p, encoding="utf-8", errors="replace") as fh:
+            lines = fh.readlines()
         # walk methods blocks, tracking each block's Access/Hidden attrs;
         # a block opened by '<ind>methods...' closes at '<ind>end'
         i = 0; seen = set()
@@ -159,7 +497,11 @@ def main():
         print("help_audit: %d finding(s)" % len(probs))
         for p in probs: print("  -", p)
         sys.exit(1)
-    print("help_audit: 0 findings - all public help complete")
+    print("help_audit: 0 findings - all public help complete "
+          "(struct outputs: %d field lists verified against the source, "
+          "%d delegated, %d still prose - see CLAUDE.md A12)"
+          % (STRUCT_STATS["listed"], STRUCT_STATS["delegated"],
+             STRUCT_STATS["prose"]))
 
 if __name__ == "__main__":
     main()

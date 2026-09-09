@@ -83,9 +83,6 @@ methods
         %   Outputs
         %     obj        (1 x 1) shClimatology   copy with the note appended to its history
         %
-        %   Outputs
-        %     obj  (1,1) shClimatology  modified copy; the operation is appended to the
-        %              history (immutable value-class pattern)
         arguments
             obj
             txt {mustBeTextScalar}
@@ -109,9 +106,6 @@ methods
         %     out  (1,1) shClimatology  copy with the GIA trend removed from the
         %          trend component; history appended
         %
-        %   Outputs
-        %     out  (1,1) shClimatology  modified copy; the operation is appended to the
-        %              history (immutable value-class pattern)
         arguments
             obj
             gia (1,1) shCoefficients
@@ -130,8 +124,6 @@ methods
         %   Outputs
         %     g          (1 x 1) shCoefficients   model field evaluated at the epoch
         %
-        %   Outputs
-        %     g  (1,1) shCoefficients  climatology evaluated at the epoch
         arguments
             obj
             epoch (1,1) double
@@ -159,8 +151,6 @@ methods
         %   Outputs
         %     g          (1 x 1) shCoefficients   bias component with sigmas
         %
-        %   Outputs
-        %     out  (1,1) shCoefficients  bias (mean) component; sigmas from the fit
         g = obj.component(obj.biasC, obj.biasS, "climatology bias (at t0)");
     end
 
@@ -169,8 +159,6 @@ methods
         %   Outputs
         %     g          (1 x 1) shCoefficients   trend component [units/yr] with sigmas
         %
-        %   Outputs
-        %     out  (1,1) shCoefficients  trend component [1/yr]; sigmas from the fit
         g = obj.component(obj.trendC, obj.trendS, "climatology trend [1/yr]");
     end
 
@@ -179,8 +167,6 @@ methods
         %   Outputs
         %     g          (1 x 1) shCoefficients   cosine annual component
         %
-        %   Outputs
-        %     out  (1,1) shCoefficients  component field; sigmas propagated from the fit
         g = obj.component(obj.cosAnnC, obj.cosAnnS, "annual cos component");
     end
     function g = sinAnnual(obj)
@@ -188,8 +174,6 @@ methods
         %   Outputs
         %     g          (1 x 1) shCoefficients   sine annual component
         %
-        %   Outputs
-        %     out  (1,1) shCoefficients  component field; sigmas propagated from the fit
         g = obj.component(obj.sinAnnC, obj.sinAnnS, "annual sin component");
     end
     function g = cosSemiannual(obj)
@@ -197,8 +181,6 @@ methods
         %   Outputs
         %     g          (1 x 1) shCoefficients   cosine semiannual component
         %
-        %   Outputs
-        %     out  (1,1) shCoefficients  component field; sigmas propagated from the fit
         g = obj.component(obj.cosSemiC, obj.cosSemiS, "semi-annual cos component");
     end
     function g = sinSemiannual(obj)
@@ -206,8 +188,6 @@ methods
         %   Outputs
         %     g          (1 x 1) shCoefficients   sine semiannual component
         %
-        %   Outputs
-        %     out  (1,1) shCoefficients  component field; sigmas propagated from the fit
         g = obj.component(obj.sinSemiC, obj.sinSemiS, "semi-annual sin component");
     end
 
@@ -224,8 +204,6 @@ methods
         %     gc         (1 x 1) shCoefficients   cosine component of the k-th extra period
         %     gs         (1 x 1) shCoefficients   sine component
         %
-        %   Outputs
-        %     out  (1,1) shCoefficients  cos/sin component of the k-th extra period
         arguments
             obj
             k (1,1) double {mustBeInteger, mustBePositive}
@@ -257,9 +235,6 @@ methods
         %     lon        (1 x nlon) double   longitudes
         %     phase      (nlat x nlon) double   phase [rad] of the harmonic
         %
-        %   Outputs
-        %     A  (nlat x nlon) double  annual amplitude of the synthesized quantity
-        %     h  (1,1) graphics handle  figure (Plot = true only)
         arguments
             obj
             which (1,1)   % "annual" | "semiannual" | integer k (extra period)
@@ -330,9 +305,6 @@ methods (Static)
     %   Outputs
         %     obj        (1 x 1) shClimatology   rebuilt from a coefficient table with the series' layout
         %
-        %   Outputs
-        %     obj  (1,1) shClimatology  modified copy; the operation is appended to the
-        %              history (immutable value-class pattern)
         arguments
             coef double
             t0 (1,1) double

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shCoefficients.subtractNormalField &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shCoefficients.subtractNormalField</nav>
+<h1>shCoefficients.subtractNormalField</h1>
+<p class="h1line">Remove the ellipsoidal normal field.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>out = shCoefficients.subtractNormalField(obj)</code><code>out = shCoefficients.subtractNormalField(obj, System=&quot;WGS84&quot;, GM=NaN, a=NaN, ...)</code></div>
+<h2>Description</h2>
+<p>OUT = g.subtractNormalField()            % WGS84 OUT = g.subtractNormalField(System (&quot;WGS84&quot;)=&quot;GRS80&quot;) Computes the even zonals from the DEFINING constants (<a href="shLowLevel_normalFieldCS.html"><code>shLowLevel.normalFieldCS</code></a>, Heiskanen-Moritz closed form; validated against NIMA TR8350.2 to all published digits), rescales them from the ellipsoid&#x27;s own (GM (NaN), a (NaN)) to the object&#x27;s (GM, R) - the WGS84 GM and a DIFFER from the ICGEM values, skipping this step costs millimetres - and subtracts them including the degree-0 GM ratio term. The result is the disturbing field T: &#x27;geoid&#x27; synthesis then yields proper +-100 m undulations (Bruns).</p>
+<h2>Examples</h2>
+<details class="example"><summary>Runnable (docs/apiExamples.json)</summary><div><pre><code>g = g.subtractNormalField(System = &quot;GRS80&quot;);</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td><code>required</code></td><td class="desc">the object the method is called on</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>System</code></td><td>1 x 1</td><td>string</td><td><code>&quot;WGS84&quot;</code></td><td class="desc">normal-field system, e.g. &#x27;GRS80&#x27; or &#x27;WGS84&#x27;</td></tr><tr><td><code>GM</code></td><td>1 x 1</td><td>double</td><td><code>NaN</code></td><td class="desc">gravitational constant times Earth mass [m^3/s^2] (default 3.986004415e14, overridable)</td></tr><tr><td><code>a</code></td><td>1 x 1</td><td>double</td><td><code>NaN</code></td><td class="desc">semi-major axis of the normal ellipsoid [m]</td></tr><tr><td><code>f</code></td><td>1 x 1</td><td>double</td><td><code>NaN</code></td><td class="desc">flattening of the normal field (NaN: the System default; give GM, a, f and omega together to define your own)</td></tr><tr><td><code>omega</code></td><td>1 x 1</td><td>double</td><td><code>NaN</code></td><td class="desc">angular velocity [rad/s] of the normal field</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>out</code></td><td class="desc">(1 x 1) <a href="shCoefficients.html"><code>shCoefficients</code></a>   disturbing field (even zonals of the normal field removed)</td></tr></table>
+<h2>Error Identifiers</h2>
+<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<ul class="seealso"><li><a href="shLowLevel_normalFieldCS.html"><code>shLowLevel.normalFieldCS</code></a></li></ul>
+<p class="prov">shAnalysis v3.34.1 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

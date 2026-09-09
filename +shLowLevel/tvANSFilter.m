@@ -53,20 +53,43 @@ function [Xf, op, info] = tvANSFilter(X, tYears, idx, opts)
 %         (validated: 1.8e-15). 'on' errors if conditions are violated.
 %   Outputs
 %     Xf     (P,T) double   filtered series (deterministic part restored)
-%     op     struct         filter operator: Ut, V, lam, s, Ac, SA, M,
-%                           idx, tYears, model, Xres, Xfres
-%                           (use with shLowLevel.opApply / shLowLevel.basinDeconvolve /
-%                           shLowLevel.resolutionMap)
-%     info   struct         noise/signal/VCE diagnostics; additionally
-%                           info.sigmaXfres (P x T): 1-sigma posterior
-%                           uncertainty of the filtered residual per
-%                           coefficient/month, diag((I-W_t)S) =
-%                           (V.^2)*(s_t*lam./(lam+s_t)) (validated to
-%                           3.5e-16 against the direct matrix product).
-%                           With constraints (v2.5) this is the EXACT
-%                           diagonal of (W-I)S(W-I)' + s*W*N*W' - the
-%                           earlier unconstrained formula underestimated
-%                           along constrained directions.
+%     op  (1,1) struct  the filter operator, for shLowLevel.opApply,
+%         shLowLevel.basinDeconvolve and shLowLevel.resolutionMap. Fields
+%         layout   (1,:) char  'full' | 'blocks' - which of the two forms
+%                  below is filled
+%         Ut, V    (P x P) double  the eigenbasis; layout 'full'
+%         blocks   (1,K) struct    per-block eigenbases; layout 'blocks'
+%         sBlocks  (K x T) double  per-block variance factors; 'blocks'
+%         lam      (P x 1) double  generalized eigenvalues
+%         s        (T x 1) double  per-month variance factors
+%         Ac, SA   double          the constraint operator and its
+%                  covariance action; empty when unconstrained
+%         M        double          the constraint normal matrix
+%         idx      (1,1) struct    the shIndex ordering everything uses
+%         tYears   (T x 1) double  the epochs
+%         model    (P x T) double  the deterministic part removed
+%         Xres     (P x T) double  the residuals filtered
+%         Xfres    (P x T) double  the filtered residuals, filled by
+%                  the caller
+%         detLeverage, detResVar  double  the deterministic fit's
+%                  leverage and residual variance, carried so
+%                  shLowLevel.basinDeconvolve can form the exact basin
+%                  sigma
+%     info  (1,1) struct  noise, signal and VCE diagnostics, fields
+%           noise      (1,1) struct  the buildNoiseCov info
+%           signal     (1,1) struct  the buildSignalCov info
+%           vce        (T x 1) double  the per-month variance factors s
+%           lam        (P x 1) double  the generalized eigenvalues
+%           sigmaNote  (1,:) char  which posterior-sigma formula was
+%                      used; empty when the filter is unconstrained
+%           sigmaXfres (P x T) double  1-sigma posterior uncertainty of
+%                      the filtered residual per coefficient and month,
+%                      diag((I-W_t)S) = (V.^2)*(s_t*lam./(lam+s_t)),
+%                      validated to 3.5e-16 against the direct matrix
+%                      product. With constraints (v2.5) this is the
+%                      EXACT diagonal of (W-I)S(W-I)' + s*W*N*W'; the
+%                      earlier unconstrained formula underestimated
+%                      along constrained directions
 %
 %   Claude (Fable 5), 2026-08-07.
 %

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shLowLevel.compareSolutions &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shLowLevel.compareSolutions</nav>
+<h1>shLowLevel.compareSolutions</h1>
+<p class="h1line">Full spectral + spatial comparison of two solutions.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>[rep, h] = shLowLevel.compareSolutions(g1, g2)</code><code>[rep, h] = shLowLevel.compareSolutions(g1, g2, LatDeg=-89:2:89, LonDeg=0:2:358, Quantity=&quot;geoid&quot;, ...)</code></div>
+<h2>Description</h2>
+<p>REP = shLowLevel.compareSolutions(G1, G2) compares two <a href="shCoefficients.html"><code>shCoefficients</code></a> on a COMMON BASIS - both are truncated to the smaller nmax and G2 is rescaled to G1&#x27;s GM/R if they differ (otherwise the comparison measures processing chains, not solutions) - and returns the standard metric set: spectral: difference degree amplitude vs both signal spectra, per-degree correlation, crossover degree of agreement (<a href="shLowLevel_diffSpectrum.html"><code>shLowLevel.diffSpectrum</code></a>) spatial:  area-weighted bias/RMSD/centered RMSD/pattern correlation/std ratio of the synthesized quantity (<a href="shLowLevel_spatialStats.html"><code>shLowLevel.spatialStats</code></a>; Taylor-ready) errors:   chi^2/dof of the coefficient differences against the combined formal sigmas, when both carry sigmas - this tests error REALISM, a separate question from agreement [REP, H] = shLowLevel.compareSolutions(..., Plot (false) = true) adds a 4-panel figure: spectra, degree correlation, difference map, and the order RMS of the difference (stripe and alias differences live at specific orders).</p>
+<h2>Examples</h2>
+<details class="example"><summary>From the help block</summary><div><pre><code>    rep = shLowLevel.compareSolutions(g, g.gaussian(350), Names = [&quot;raw&quot;, &quot;G350&quot;]);
+    fprintf(&quot;crossover n = %d, spatial corr = %.3f\n&quot;, ...
+        rep.spectral.ncross, rep.spatial.corr)</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>g1</code></td><td>1 x 1</td><td>shCoefficients</td><td><code>required</code></td><td class="desc">first coefficient set</td></tr><tr><td><code>g2</code></td><td>1 x 1</td><td>shCoefficients</td><td><code>required</code></td><td class="desc">second coefficient set</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>LatDeg</code></td><td>1 x :</td><td>double</td><td><code>-89:2:89</code></td><td class="desc">, LonDeg (0:2:358)  comparison grid</td></tr><tr><td><code>LonDeg</code></td><td>1 x :</td><td>double</td><td><code>0:2:358</code></td><td class="desc">longitudes [deg], lon in [0, 360)</td></tr><tr><td><code>Quantity</code></td><td>1 x 1</td><td>string</td><td><code>&quot;geoid&quot;</code></td><td class="desc">synthesis quantity; &quot;ewh&quot; etc. need kn ([])</td></tr><tr><td><code>kn</code></td><td>n x m</td><td>double</td><td><code>[]</code></td><td class="desc">load Love numbers (user-supplied, 0..nmax)</td></tr><tr><td><code>Mask</code></td><td>n x m</td><td>-</td><td><code>[]</code></td><td class="desc">nlat x nlon logical region restriction</td></tr><tr><td><code>Names</code></td><td>1 x 2</td><td>string</td><td><code>[&quot;solution 1&quot;, &quot;solution 2&quot;]</code></td><td class="desc">([&quot;solution 1&quot;,&quot;solution 2&quot;])</td></tr><tr><td><code>Plot</code></td><td>1 x 1</td><td>logical</td><td><code>false</code></td><td class="desc">produce the diagnostic figure</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>rep</code></td><td class="desc">(1,1) struct  fields: .spectral (1,1) struct  <a href="shLowLevel_diffSpectrum.html"><code>shLowLevel.diffSpectrum</code></a> output .spatial  (1,1) struct  <a href="shLowLevel_spatialStats.html"><code>shLowLevel.spatialStats</code></a> output .chi2dof  (1,1) double  error-realism statistic (NaN when either solution lacks sigmas) .nmax     (1,1) double  common maximum degree used .quantity (1,1) string  compared quantity .names    (1,2) string  solution labels .rescaled (1,1) logical true when GM/R were unified</td></tr><tr><td><code>h</code></td><td class="desc">(1,1) graphics handle  figure handle (Plot = true only)</td></tr></table>
+<h2>Error Identifiers</h2>
+<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<ul class="seealso"><li><a href="shCoefficients.html"><code>shCoefficients</code></a></li><li><a href="shLowLevel_diffSpectrum.html"><code>shLowLevel.diffSpectrum</code></a></li><li><a href="shLowLevel_spatialStats.html"><code>shLowLevel.spatialStats</code></a></li></ul>
+<p class="prov">shAnalysis v3.34.1 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shLowLevel.readSHM &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shLowLevel.readSHM</nav>
+<h1>shLowLevel.readSHM</h1>
+<p class="h1line">Read a GRAVIS/GRACE SHM file (GRCOF2 fields, GRDOTA rates).</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>out = shLowLevel.readSHM(filename)</code><code>out = shLowLevel.readSHM(filename, Nmax=NaN)</code></div>
+<h2>Description</h2>
+<p>OUT = shLowLevel.readSHM(FILENAME) reads the spherical-harmonic format used by the GRAVIS Level-2B products and by GRACE/GRACE-FO Level-2 files that are not in ICGEM layout:</p>
+<h2>Examples</h2>
+<details class="example"><summary>From the help block</summary><div><pre><code>    gia = shLowLevel.readSHM(&quot;GRAVIS-2B_..._GIA_ICE-6G_D_VM5a_0001.gz&quot;, ...
+        Nmax = 96);
+    g = shCoefficients(gia.C, gia.S, GM = gia.GM, R = gia.R);
+    ts = shLowLevel.standardChain(folder, GIA = g);   % rates in 1/yr
+
+  See also shLowLevel.shReadGFC, shLowLevel.standardChain.</code></pre></div></details><details class="example"><summary>Runnable (docs/apiExamples.json)</summary><div><pre><code>gia = shLowLevel.readSHM(&quot;GRAVIS-2B_..._GIA_ICE-6G_D_VM5a.gz&quot;, Nmax = 96);
+g   = shCoefficients(gia.C, gia.S, GM = gia.GM, R = gia.R);   % rates [1/yr]</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>filename</code></td><td>1 x 1</td><td>-</td><td><code>required</code></td><td class="desc">string | char   path to the file; .gz is read transparently</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>Nmax</code></td><td>1 x 1</td><td>double</td><td><code>NaN</code></td><td class="desc">truncate while reading (NaN: the file&#x27;s own maximum degree). A GIA model at degree 256 against a solution at 96 wastes memory and time</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>out</code></td><td class="desc">(1,1) struct  fields: kind    (1,1) string  &quot;GRCOF2&quot; (field) | &quot;GRDOTA&quot; (rate) C, S    (nmax+1 x nmax+1) double  coefficients in the C(n+1, m+1) house layout; for GRDOTA these are rates per year sigmaC, sigmaS  (nmax+1 x nmax+1) double, or [] when the file carries none (GRDOTA never does) GM      (1,1) double  [m^3/s^2] from the header R       (1,1) double  [m] from the header nmax    (1,1) double  maximum degree actually read header  (1,1) string  the raw YAML header, kept so provenance is not lost on the way in</td></tr></table>
+<h2>Error Identifiers</h2>
+<table><tr><th>Identifier</th><th>Raised when</th></tr><tr><td><code>shLowLevel:readSHM:noHeaderEnd</code></td><td class="desc">no &quot;# End of YAML header&quot; line</td></tr><tr><td><code>shLowLevel:readSHM:noRecords</code></td><td class="desc">header present but no data records</td></tr><tr><td><code>shLowLevel:readSHM:mixedKinds</code></td><td class="desc">GRCOF2 and GRDOTA in one file</td></tr></table>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<ul class="seealso"><li><a href="shLowLevel_shReadGFC.html"><code>shLowLevel.shReadGFC</code></a></li></ul>
+<p class="prov">shAnalysis v3.34.1 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

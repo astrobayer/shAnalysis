@@ -30,9 +30,19 @@ function model = shReadGFC(filename)
 %
 %   Claude (Sonnet 4.6), 2026-07-11; merged into +shLowLevel: Claude (Fable 5), 2026-08-07.
 %   Outputs
-%     model  (1,1) struct  fields: C/S/sigmaC/sigmaS (nmax+1 x nmax+1
-%            double), GM/R (1,1 double), nmax (1,1 double), tide (string),
-%            variable terms (trend/annual/semiannual) when present
+%     model  (1,1) struct  fields
+%            C, S, sigmaC, sigmaS  (nmax+1 x nmax+1) double  coefficients
+%                    and their formal errors
+%            GM, R   (1,1) double  the file's reference constants
+%            nmax    (1,1) double  maximum degree read
+%            modelname  (1,1) string  the model's own name
+%            header  (1,1) struct  the parsed file header, verbatim -
+%                    this is where the TIDE SYSTEM lives, as
+%                    header.tide_system when the file declares one.
+%                    There is no model.tide field; shCoefficients.read
+%                    lifts it out of the header
+%            variableTerms  (1,:) struct array  trend/annual/semiannual
+%                    terms; empty when the file carries none
 %
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 

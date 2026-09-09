@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shLowLevel.oceanRMS &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shLowLevel.oceanRMS</nav>
+<h1>shLowLevel.oceanRMS</h1>
+<p class="h1line">Open-ocean RMS of a field - the standard GRACE noise metric.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>[rmsVal, info] = shLowLevel.oceanRMS(grid, latDeg, lonDeg, ocean)</code><code>[rmsVal, info] = shLowLevel.oceanRMS(grid, latDeg, lonDeg, ocean, MinDistanceKm=1000, Weighted=true, Subsample=1)</code></div>
+<h2>Description</h2>
+<p>RMSVAL = shLowLevel.oceanRMS(GRID, LATDEG, LONDEG, OCEAN) returns the area-weighted RMS of GRID over the OPEN ocean: ocean points more than MinDistanceKm (default 1000) from the nearest non-ocean point.</p>
+<h2>Examples</h2>
+<details class="example"><summary>From the help block</summary><div><pre><code>    isOcean = @(la, lo) ~inpolygon(lo, la, landLon, landLat);
+    noise = shLowLevel.oceanRMS(ewh, -89:89, 0:359, isOcean);
+    m = shLowLevel.leakageCorrect(ewh, -89:89, 0:359, ...
+            Filter = &quot;gauss300&quot;, Mask = basin, NoiseLevel = noise);
+
+  See also shLowLevel.leakageCorrect, shLowLevel.spatialStats.</code></pre></div></details><details class="example"><summary>Runnable (docs/apiExamples.json)</summary><div><pre><code>noise = shLowLevel.oceanRMS(ewh, -89:89, 0:359, isOcean);   % &gt; 1000 km offshore
+m = shLowLevel.leakageCorrect(ewh, -89:89, 0:359, Mask = basin, NoiseLevel = noise);</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>grid</code></td><td>nLat x nLon</td><td>double</td><td><code>required</code></td><td class="desc">double   the field to measure</td></tr><tr><td><code>latDeg</code></td><td>n x m</td><td>double</td><td><code>required</code></td><td class="desc">double  geocentric latitudes [deg]</td></tr><tr><td><code>lonDeg</code></td><td>n x m</td><td>double</td><td><code>required</code></td><td class="desc">double  longitudes [deg]</td></tr><tr><td><code>ocean</code></td><td>nLat x nLon</td><td>-</td><td><code>required</code></td><td class="desc">logical, or a function handle f(latDeg, lonDeg) -&gt; logical/[0,1] evaluated on the grid. true = ocean</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>MinDistanceKm</code></td><td>1 x 1</td><td>double</td><td><code>1000</code></td><td class="desc">erode the ocean mask by this great-circle distance, i.e. keep only points farther than this from any non-ocean point. 1000 km is the common convention; 0 uses the whole ocean and will be contaminated by leakage from the continents</td></tr><tr><td><code>Weighted</code></td><td>1 x 1</td><td>logical</td><td><code>true</code></td><td class="desc">weight by cos(latitude). Grid cells are not equal in area, and an unweighted RMS over a lat/lon grid over-counts the polar rows. On white noise the two agree, which is exactly why the difference is easy to miss until the field has structure</td></tr><tr><td><code>Subsample</code></td><td>1 x 1</td><td>double</td><td><code>1</code></td><td class="desc">use every n-th boundary point for the distance computation. The erosion costs O(nOcean x nLand); on fine grids raise this, at the cost of a distance error of order n grid steps</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>rmsVal</code></td><td class="desc">(1,1) double  open-ocean RMS, in GRID&#x27;s units. NaN when the erosion leaves no points</td></tr><tr><td><code>info</code></td><td class="desc">(1,1) struct  fields nPixels       (1,1) double   points that entered the RMS fractionUsed  (1,1) double   those as a fraction of the grid mask          (nLat x nLon) logical  the eroded region - plot it once before trusting the number minDistanceKm (1,1) double   erosion distance applied [km] weighted      (1,1) logical  whether area weights were used</td></tr></table>
+<h2>Error Identifiers</h2>
+<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<ul class="seealso"><li><a href="shLowLevel_leakageCorrect.html"><code>shLowLevel.leakageCorrect</code></a></li></ul>
+<p class="prov">shAnalysis v3.34.1 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

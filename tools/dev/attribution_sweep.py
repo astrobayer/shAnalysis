@@ -83,7 +83,12 @@ def main():
         counts[r] = counts.get(r, 0) + 1
         if r.startswith("SKIP"):
             skipped.append(os.path.relpath(p, ROOT))
-    for p in sorted(glob.glob(os.path.join(ROOT, "html", "*.html"))):
+    # html/ref/ holds the generated reference pages (WP6). They were
+    # outside this glob when they first appeared, so the sweep kept
+    # reporting 50 pages while 199 more existed - an instrument silent
+    # about what it does not look at.
+    for p in sorted(glob.glob(os.path.join(ROOT, "html", "**", "*.html"),
+                              recursive=True)):
         r = "html " + process_html(p)
         counts[r] = counts.get(r, 0) + 1
     print(counts)

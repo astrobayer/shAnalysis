@@ -14,25 +14,31 @@ function [avgHat, out] = basinDeconvolve(B, op, opts)
 %   never filtered).
 %
 %   Options
-%     Ridge (0)       ridge regularization scale added to the normal
-%                     matrix (times norm(A); 0 disables)
+%     Ridge (0)  Tikhonov parameter for ill-conditioned basin sets,
+%                RELATIVE to the spectral norm of A (v2.1):
+%                c = (A'A + lam^2 I) \ (A' v)  with  lam = Ridge*||A||_2.
+%                An absolute ridge is silently absorbed by floating-point
+%                addition whenever ||A'A|| >> ridge^2, leaving the system
+%                exactly singular; the relative form is scale-invariant.
+%                0 disables. The posterior covariance uses the same
+%                regularized inverse.
 %
-%   Result layout (K x T):
-%     avgHat        deconvolved basin averages  ((B'B)*c + B'model)/diag(B'B)
-%     out.avgNaive  naive averages of the filtered field (attenuated+leaky)
-%     out.c         span coefficients
-%     out.attn      diag(A_t)./diag(B'B) attenuation factors (K x T)
-%     out.condA     cond(A_t) per month
+%   v2.5: out.sigma includes the OLS parameter uncertainty of the restored
+%   deterministic part (leverage x residual variance; MC-validated), and
+%   the constrained-operator noise covariance is exact.
 %
-%   Options:
-%     Ridge (0)  Tikhonov parameter for ill-conditioned basin sets:
-%                c = (A'A + Ridge^2 I) \ (A' v)
-%   v2.5: out.sigma now includes the OLS parameter uncertainty of the
-%   restored deterministic part (leverage x residual variance; MC-
-%   validated), and the constrained-operator noise covariance is exact.
 %   Outputs
-%     avgHat     (K x T) double   deconvolved basin averages
-%     out        struct: c (K x T) deconvolved coefficients, sigma (K x T) 1-sigma incl. deterministic term (v2.5), avgNaive, attn, condA
+%     avgHat  (K x T) double  deconvolved basin averages,
+%             ((B'B)*c + B'model) ./ diag(B'B)
+%     out     (1,1) struct  fields
+%             c         (K x T) double  span coefficients
+%             sigma     (K x T) double  1-sigma of avgHat, deterministic
+%                       term included (v2.5)
+%             avgNaive  (K x T) double  naive averages of the filtered
+%                       field (attenuated and leaky) for comparison
+%             attn      (K x T) double  diag(A_t) ./ diag(B'B)
+%                       attenuation factors
+%             condA     (T x 1) double  cond(A_t) per month
 %
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 

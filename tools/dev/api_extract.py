@@ -12,6 +12,7 @@ Developed by Matthias Weigelt with the help of Claude (Fable 5),
 import glob
 import os
 import re
+import sys
 
 import os as _os
 _HERE = _os.path.dirname(_os.path.abspath(__file__))
@@ -97,15 +98,24 @@ def parse_help(block):
     if m:
         idx = [k for k, L in enumerate(lines)
                if re.match(r"^\s*Outputs?\s*$", L)][0] + 1
+        row_indent = None
         while idx < len(lines):
             s = lines[idx]
             if s.strip() == "" or re.match(
                     r"^\s*(Inputs?|Options?)\s*:?\s*$", s) or re.match(
                     r"^\s*(Example|Notes?|Developed)\b", s):
                 break
-            mo = re.match(r"^\s{1,8}([\w.]+(?:,\s*[\w.]+)*)\s{2,}(.+)$", s)
-            if mo:
-                outputs.append([mo.group(1), mo.group(2).strip()])
+            # A row starts at the section's own indent; anything indented
+            # DEEPER is a continuation - the sub-fields of a returned
+            # struct, above all. Without the indent test, "tn (1,1) struct
+            # fields / epoch ... / C20, C30 ..." became three outputs for a
+            # one-output function (6 entities carried that before this
+            # rule: httpFetch, obpChain, oceanChain, poleTideConvert,
+            # readMascon, readTN13).
+            mo = re.match(r"^(\s{1,8})([\w.]+(?:,\s*[\w.]+)*)\s{2,}(.+)$", s)
+            if mo and (row_indent is None or len(mo.group(1)) <= row_indent):
+                row_indent = len(mo.group(1))
+                outputs.append([mo.group(2), mo.group(3).strip()])
             elif outputs:
                 outputs[-1][1] += " " + s.strip()
             idx += 1
@@ -127,6 +137,35 @@ def parse_help(block):
             ex.append(s.rstrip())
             idx += 1
         example = "\n".join(x for x in ex).strip("\n")
+    # Error identifiers and See also: present in only 14 and 13 files, but
+    # the reference pages want both sections and neither can be derived.
+    errors = []
+    for k, L in enumerate(lines):
+        if re.match(r"^\s*Error identifiers\s*:?\s*$", L):
+            for L2 in lines[k + 1:]:
+                if not L2.strip() or re.match(
+                        r"^\s*(Inputs?|Options?|Outputs?|Examples?|References|"
+                        r"Developed by)\b", L2):
+                    break
+                m2 = re.match(r"^\s+([\w.:]+:[\w.:]+)\s*(.*)$", L2)
+                if m2:
+                    errors.append([m2.group(1), m2.group(2).strip()])
+                elif errors:
+                    errors[-1][1] = (errors[-1][1] + " " + L2.strip()).strip()
+            break
+    seealso = []
+    for k, L in enumerate(lines):
+        if re.match(r"^\s*See also\b", L, re.I):
+            txt = L.split(":", 1)[-1] if ":" in L else re.sub(
+                r"^\s*See also\b", "", L, flags=re.I)
+            for L2 in lines[k + 1:]:
+                if not L2.strip() or re.match(r"^\s*(Developed by)\b", L2):
+                    break
+                txt += " " + L2.strip()
+            seealso = [x for x in re.findall(r"[\w.]+", txt)
+                       if not x.isdigit()]
+            break
+
     # Inputs/Options sections: "name (size/type) description", continuation
     # lines indented deeper. Collected for merging into arguments-block args.
     iodocs = {}
@@ -154,7 +193,7 @@ def parse_help(block):
                         last = list(iodocs)[-1]
                         iodocs[last][1] += " " + t.strip()
                     idx += 1
-    return h1, " ".join(desc), outputs, example, iodocs
+    return h1, " ".join(desc), outputs, example, iodocs, errors, seealso
 
 
 def leading_help(lines, i):
@@ -387,12 +426,30 @@ CONVENTION_DESCS = {
 
 
 def parse_function_file(path):
-    raw = open(path).read().split("\n")
+    with open(path, encoding="utf-8") as _fh:
+        raw = _fh.read().split("\n")
     lines = raw
     m = None
+    i = last = 0
     for i, L in enumerate(lines):
+        if not re.match(r"\s*function\b", L):
+            continue
+        # a signature may be continued with "..." (gridHandover). Join it
+        # before matching, and remember where it ENDS - the help block
+        # starts after the last continuation line, not after the first.
+        sig, last = L, i
+        while (sig.split("%")[0].rstrip().endswith("...")
+               and last + 1 < len(lines)):
+            last += 1
+            # MATLAB skips comment lines inside a continuation, and so must
+            # this: joining one in let a "(base MATLAB only)" in the help
+            # text supply the closing paren and parse to nonsense.
+            if lines[last].lstrip().startswith("%"):
+                continue
+            sig = (sig.split("%")[0].rstrip()[:-3].rstrip()
+                   + " " + lines[last].strip())
         m = re.match(r"\s*function\s+(?:(\[[^\]]*\]|\w+)\s*=\s*)?(\w+)\s*"
-                     r"\(([^)]*)\)", L)
+                     r"\(([^)]*)\)", sig)
         if m:
             break
     if not m:
@@ -401,8 +458,8 @@ def parse_function_file(path):
     outs = [o.strip() for o in outs.split(",") if o.strip()]
     name = m.group(2)
     ins = [a.strip() for a in m.group(3).split(",") if a.strip()]
-    hb, j = leading_help(lines, i + 1)
-    h1, desc, outdocs, example, iodocs = parse_help(hb)
+    hb, j = leading_help(lines, last + 1)
+    h1, desc, outdocs, example, iodocs, errdocs, seealso = parse_help(hb)
     args = []
     jl = _join_continuations(lines[j:j + 200])
     for k, L in enumerate(jl):
@@ -414,6 +471,7 @@ def parse_function_file(path):
     args = merge_iodocs(args, iodocs)
     return dict(kind="function", name=name, inputs=ins, outputs=outs,
                 h1=h1, desc=desc, outdocs=outdocs, example=example,
+                errdocs=errdocs, seealso=seealso,
                 args=args)
 
 
@@ -423,7 +481,7 @@ def parse_classdef(path):
     cname = re.search(r"^classdef\s+(\w+)", src, re.M).group(1)
     ci = [i for i, L in enumerate(lines) if L.startswith("classdef")][0]
     hb, _ = leading_help(lines, ci + 1)
-    ch1, cdesc, _, _, _ = parse_help(hb)
+    ch1, cdesc, _, _, _, _, _ = parse_help(hb)
     props = []
     for pm in re.finditer(r"^properties\s*(\([^)]*\))?\s*$(.*?)^end\s*$",
                           src, re.M | re.S):
@@ -470,7 +528,7 @@ def parse_classdef(path):
                 ins = [a.strip() for a in fm.group(3).split(",")
                        if a.strip()]
                 hb, j = leading_help(lines, i + 1)
-                h1, desc, outdocs, example, iodocs = parse_help(hb)
+                h1, desc, outdocs, example, iodocs, errdocs, seealso = parse_help(hb)
                 jl = _join_continuations(lines[j:j + 120])
                 margs = []
                 for k, L2 in enumerate(jl):
@@ -483,7 +541,8 @@ def parse_classdef(path):
                 methods.append(dict(
                     kind="method", cls=cname, name=mname, static=static,
                     inputs=ins, outputs=outs, h1=h1, desc=desc,
-                    outdocs=outdocs, example=example, args=margs))
+                    outdocs=outdocs, example=example, args=margs,
+                    errdocs=errdocs, seealso=seealso))
             i += 1
     return dict(name=cname, h1=ch1, desc=cdesc, props=props,
                 methods=methods)
@@ -493,14 +552,29 @@ def main():
     entries = {"classes": [], "shLowLevel": [], "root": []}
     for f in ["shCoefficients.m", "shSeries.m", "shClimatology.m"]:
         entries["classes"].append(parse_classdef(os.path.join(ROOT, f)))
+    silent = []
     for f in sorted(glob.glob(os.path.join(ROOT, "+shLowLevel", "*.m"))):
         e = parse_function_file(f)
         if e:
             entries["shLowLevel"].append(e)
+        else:
+            silent.append(os.path.relpath(f, ROOT))
     for f in ["setup_shAnalysis.m", "runAllTests.m", "demo_shAnalysis.m"]:
         e = parse_function_file(os.path.join(ROOT, f))
         if e:
             entries["root"].append(e)
+        else:
+            silent.append(f)
+    # A17: a public file that parses to nothing used to vanish silently -
+    # gridHandover's continued signature did, and with it its reference
+    # page, while refpages_audit's COVER check compared pages against this
+    # same blind artifact and saw nothing wrong. Refuse to write instead.
+    if silent:
+        print("api_extract: %d public file(s) produced NO entity - the "
+              "signature did not parse:" % len(silent), file=sys.stderr)
+        for f in silent:
+            print("  - " + f, file=sys.stderr)
+        return 1
     # coverage report
     miss_ex, miss_desc = [], []
     for e in entries["shLowLevel"] + entries["root"]:
@@ -550,4 +624,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main() or 0)

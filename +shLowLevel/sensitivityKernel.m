@@ -64,14 +64,17 @@ function [k, info] = sensitivityKernel(idx, region, opts)
 %   Outputs
 %     k          (P,1) double  the kernel, IDX ordering, ready for
 %                shSeries.basinAverage or b' * x like any other kernel
-%     info       (1,1) struct  fields: leakage (1,1 double,
-%                ||k - kExact||_M), noise (1,1 double, sqrt(k' N k)),
-%                alpha (1,1 double), kExact (P,1 double, the indicator
-%                it started from), areaFraction (1,1 double), gain
-%                (1,1 double, k' kExact / (kExact' kExact) - how much of
-%                the region's own signal survives. The constraint holds
-%                it at 1; a value that drifts off 1 means the constraint
-%                could not be applied, e.g. a degenerate region)
+%     info  (1,1) struct  fields
+%           leakage       (1,1) double  ||k - kExact||_M
+%           noise         (1,1) double  sqrt(k' N k)
+%           alpha         (1,1) double  the trade-off actually used
+%           kExact        (P,1) double  the indicator it started from
+%           areaFraction  (1,1) double  the region's area / 4pi
+%           gain          (1,1) double  k' kExact / (kExact' kExact) -
+%                         how much of the region's own signal survives.
+%                         The constraint holds it at 1; a value drifting
+%                         off 1 means the constraint could not be
+%                         applied, e.g. a degenerate region
 %
 %   Validated in tools/dev/validate_senskernel.py: the trade-off is
 %   monotone in Alpha (so it is a real dial), the two limits are exact,

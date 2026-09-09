@@ -46,7 +46,12 @@ function summary = setup_shAnalysis(opts)
 %     Months (["2008-04","2025-12"])   months for "starter"
 %     Nmax (96)           degree of the ITSG starter files (60 or 96)
 %     Docs (false)        builddocsearchdb on html/ so the toolbox
-%                         pages appear in the MATLAB help-browser search
+%                         pages appear in the MATLAB help-browser search.
+%                         Covers the narrative pages and the generated
+%                         html/ref/ reference pages. The index is a
+%                         binary helpsearch-v* folder and is deliberately
+%                         NOT committed: build it here, on the machine
+%                         that will search it
 %     DryRun (false)      report the plan only - zero side effects
 %     Update (false)     forward to the fetchers: refresh existing files
 %                       with a safe, parse-verified swap (temporal files
@@ -88,7 +93,7 @@ function summary = setup_shAnalysis(opts)
 %     DataFolder ("")  persistent data folder, applied BEFORE any fetcher runs
 %     Proxy ("")  per-call proxy URL, e.g. "http://proxy:8080" (empty: MATLAB Web Preferences)
 %
-%   Output
+%   Outputs
 %     summary struct:
 %       root        (1,1) string   toolbox root folder
 %       pathAction  (1,1) string   "already-on-path" | "added-temporarily"
@@ -105,7 +110,7 @@ function summary = setup_shAnalysis(opts)
 %                                  in startup.m to keep them
 %       ok          (1,1) logical  isempty(failed)
 %
-%   Examples
+%   Example
 %     setup_shAnalysis(Permanent = true, Download = "core")
 %     setup_shAnalysis(Download = "filters", DDK = [2 3 5])
 %     s = setup_shAnalysis(DryRun = true, Download = "starter")

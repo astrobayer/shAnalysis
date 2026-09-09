@@ -92,7 +92,19 @@ class TestAuditBlock(unittest.TestCase):
         self.assertIn("not PascalCase", out[0])
 
     def test_legacy_name_tolerated(self):
-        self.assertEqual(nca.audit_block("x.m", 1, ["nmax"]), [])
+        # LEGACY is a backlog and was drained to empty in v3.33.0, so this
+        # asserts the mechanism with a temporary entry rather than naming a
+        # member: the old form pinned 'nmax', which the casing sweep renamed,
+        # and the test then failed silently because CI never ran it.
+        nca.LEGACY.add("someOldName")
+        try:
+            self.assertEqual(nca.audit_block("x.m", 1, ["someOldName"]), [])
+        finally:
+            nca.LEGACY.discard("someOldName")
+
+    def test_legacy_backlog_is_empty(self):
+        # if this ever fails, the sweep left work behind - name it here
+        self.assertEqual(sorted(nca.LEGACY), [])
 
     def test_symbols_entry_tolerated(self):
         nca.SYMBOLS["theta"] = "colatitude, standard notation"

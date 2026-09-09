@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shLowLevel.readTN13 &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shLowLevel.readTN13</nav>
+<h1>shLowLevel.readTN13</h1>
+<p class="h1line">Read a GRACE/GRACE-FO TN-13 geocenter (degree-1) file.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>tn = shLowLevel.readTN13(filename)</code></div>
+<h2>Description</h2>
+<p>TN = shLowLevel.readTN13(FILENAME) parses the official TN-13 product (JPL/CSR/GFZ, e.g. TN-13_GEOC_CSR_RL06.txt): data lines GRCOF2  n  m  Clm  Slm  Clm_sig  Slm_sig  begin  end with n=1, m=0/1 and begin/end epochs yyyymmdd.hhmm. Line pairs (m=0, m=1) sharing the same interval are combined into one monthly record with the interval mid-point as epoch.</p>
+<h2>Examples</h2>
+<details class="example"><summary>Runnable (docs/apiExamples.json)</summary><div><pre><code>tn13 = shLowLevel.readTN13(&quot;TN-13_GEOC_CSR_RL06.3.txt&quot;);</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>filename</code></td><td>n x m</td><td>-</td><td><code>required</code></td><td class="desc">char/string  path (.txt, or .gz which is gunzipped)</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<p class="none">None.</p>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>tn</code></td><td class="desc">(1,1) struct  fields epoch  (K,1) double  interval mid-points [decimal years] C10, C11, S11        (K,1) double  degree-1 Stokes coefficients sigC10, sigC11, sigS11 (K,1) double 1-sigma t0, t1 (K,1) double  interval bounds [decimal years]</td></tr></table>
+<h2>Error Identifiers</h2>
+<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<p class="none">No other entity is named in this help block.</p>
+<p class="prov">shAnalysis v3.34.1 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

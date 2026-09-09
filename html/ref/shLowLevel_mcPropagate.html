@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shLowLevel.mcPropagate &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shLowLevel.mcPropagate</nav>
+<h1>shLowLevel.mcPropagate</h1>
+<p class="h1line">Monte-Carlo uncertainty propagation through arbitrary chains.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>out = shLowLevel.mcPropagate(fun, g)</code><code>out = shLowLevel.mcPropagate(fun, g, N=500, Cov=[], Idx=struct([]), ...)</code></div>
+<h2>Description</h2>
+<p>OUT = shLowLevel.mcPropagate(FUN, G) draws coefficient samples consistent with the formal errors of the <a href="shCoefficients.html"><code>shCoefficients</code></a> G, pushes each through FUN, and returns empirical statistics - uncertainty propagation for ANY functional (filtered grids, basin averages, amplitude maps, ...) without deriving analytic formulas, and the standard cross-check for every analytic sigma in this toolbox.</p>
+<h2>Examples</h2>
+<details class="example"><summary>Runnable (docs/apiExamples.json)</summary><div><pre><code>out = shLowLevel.mcPropagate(@(gs) gs.C(3, 1), g, N = 200);   % any functional of g</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>fun</code></td><td>1 x 1</td><td>function_handle</td><td><code>required</code></td><td class="desc">function handle   y = fun(gs), gs an <a href="shCoefficients.html"><code>shCoefficients</code></a> sample; y numeric (any fixed size, column-ized)</td></tr><tr><td><code>g</code></td><td>1 x 1</td><td>shCoefficients</td><td><code>required</code></td><td class="desc"><a href="shCoefficients.html"><code>shCoefficients</code></a>   with sigmas (or Cov supplied)</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>N</code></td><td>1 x 1</td><td>double</td><td><code>500</code></td><td class="desc">double = 500    number of samples</td></tr><tr><td><code>Cov</code></td><td>n x m</td><td>double</td><td><code>[]</code></td><td class="desc">double = []         full covariance (P x P, Idx ordering)</td></tr><tr><td><code>Idx</code></td><td>n x m</td><td>struct</td><td><code>struct([])</code></td><td class="desc">struct = struct([]) <a href="shLowLevel_shIndex.html"><code>shLowLevel.shIndex</code></a> for Cov</td></tr><tr><td><code>Seed</code></td><td>n x m</td><td>double</td><td><code>[]</code></td><td class="desc">double = []        rng seed for reproducibility</td></tr><tr><td><code>KeepSamples</code></td><td>1 x 1</td><td>logical</td><td><code>false</code></td><td class="desc">logical = false</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>out</code></td><td class="desc">(1,1) struct  Monte-Carlo moments of the functional, fields mean   size(fun(g)) double  sample mean sigma  size(fun(g)) double  sample 1-sigma (N-1 normalization) N      (1,1) double         number of samples drawn samples (K x N) double      only when KeepSamples=true; K = numel(fun(g)), one column-ized draw per column</td></tr></table>
+<h2>Error Identifiers</h2>
+<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<ul class="seealso"><li><a href="shCoefficients.html"><code>shCoefficients</code></a></li></ul>
+<p class="prov">shAnalysis v3.34.1 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

@@ -23,13 +23,13 @@ says whether it was *read* or *inferred*.
 
 | Fact | Value | Evidence |
 |---|---|---|
-| Version | **3.33.0**, 05-Sep-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
+| Version | **3.34.1**, 08-Sep-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
 | Branches | `main` only; `claude/getframe-recapture` and `claude/readshm` are gone (merged/deleted) | `GET /branches` |
 | Public surface | 3 classes / 71 methods, 122 `+shLowLevel` functions (+4 private), 3 root functions | `tools/dev/api_extract.py` run in sandbox |
-| Tests | 5 classes, 261 test methods: Correctness 136, Contract 61, Robustness 54, Science 8, Performance 2 | `grep -c 'function test' tests/*.m` |
+| Tests | 5 classes, **300 methods / 301 runs**: Correctness 159, Contract 70, Robustness 53, Science 7, Performance 11 methods (12 runs, `nmaxP` x2). 4 filter out without the optional real-data fixtures. v3.34.1 added 32 for A10/A18; the 268/269 baseline before it was confirmed exactly by the self-hosted run at `5acf14c`. | `python3 tools/dev/count_tests.py` |
 | Python oracles | 16 `tools/dev/validate_*.py` + `tools/audit/*` | listing |
-| Docs | 50 `html/*.html`, `helptoc.xml`, `info.xml`, 122-page guide PDF, generated `apiReference.html` (304 KB) | listing |
-| CI | `gates` job on ubuntu (help_audit, doc_sync_audit, no_map_renderer, toolbox_dependency_audit, nv_casing_audit, fixture_tag_audit) + `runAllTests (self-hosted)` on A8/R2026a; fixtures from tag `fixtures-2026-08` | `.github/workflows/ci.yml` |
+| Docs | 50 hand-written `html/*.html` + **200 generated `html/ref/*.html`** (one per entity + index, `make_refpages.py`), one shared `html/shAnalysis.css`, `helptoc.xml`, `info.xml`, guide PDF, generated `html/apiReference.html`. `docs/` holds the PDF and `apiExamples.json` only - no HTML page lives outside `html/` (gated). | listing |
+| CI | `gates` job on ubuntu (help_audit, doc_sync_audit, no_map_renderer, toolbox_dependency_audit, nv_casing_audit, fixture_tag_audit, gate self-tests `tools/tests/`, `count_tests`, `name_coverage`, `refpages_audit`) + `runAllTests (self-hosted)` on A8/R2026a; fixtures from tag `fixtures-2026-08` | `.github/workflows/ci.yml` |
 | Namespace | `+shLowLevel` (renamed from `+shx` in v3.0.0). Any memory saying `shx.*` is stale. | README §History |
 
 ### 1.1 Already implemented — do NOT propose again
@@ -115,15 +115,34 @@ CF-1.8 export, provenance sidecars, geoMap bridge (`toGrid`, `gridHandover`).
    `python tools/dev/no_map_renderer.py`, `python tools/toolbox_dependency_audit.py`,
    `python tools/nv_casing_audit.py`, `python tools/fixture_tag_audit.py`,
    `python tools/dev/mlint_lite.py <changed files>`, `python tools/dev/check_api.py`,
-   `python tools/dev/api_audit.py`, `python tools/dev/attribution_sweep.py`.
-5. Predict the test count before running (`runAllTests`); a missed prediction
-   is a finding.
+   `python tools/dev/api_audit.py`, `python tools/dev/attribution_sweep.py`,
+   `python tools/dev/refpages_audit.py`, `python tools/dev/name_coverage.py`,
+   `python tools/dev/make_demos.py --check`; then every `tools/tests/test_*.py`.
+   **This list must equal what `ci.yml` runs.** It did not, and CI failed on
+   `make_demos --check` at `0ab29b5` while eleven local gates were green.
+   Regenerate before auditing when help blocks changed:
+   `api_extract.py` -> `make_apiref.py` -> `make_refpages.py` -> `make_guide.py`.
+5. Predict the test count before running (`runAllTests`) with
+   `python3 tools/dev/count_tests.py`; a missed prediction is a finding.
+   Do NOT count with `grep -c '^function test'` - it counts the
+   script-based entry point and misses `bench*` and parameterised
+   methods; it said 261 where the runner ran 268 (A16).
 6. Never widen a tolerance to pass. Every tolerance carries a comment naming
    the term it bounds and the oracle it was measured against.
 7. Push with `HEAD:refs/heads/<branch>`, read the SHA back with `git ls-remote`.
    Token read from file at call time, never echoed, never in a URL.
-8. Close each WP with: CHANGELOG entry under `## [Unreleased]`, verdict per
-   tier, debt named, next action as a command.
+8. Close each WP with: a CHANGELOG entry under a **new version heading**
+   (`doc_sync_audit.py` requires the top `## [x.y.z]` to equal `Contents.m`
+   and rejects any `Unreleased` heading — bump in the same commit), verdict
+   per tier, debt named, next action as a command.
+9. Regenerate what the version stamps: `tools/dev/make_apiref.py`,
+   `tools/dev/make_refpages.py`, `tools/dev/make_demos.py` and
+   `tools/dev/make_guide.py` (the last needs `reportlab` + `matplotlib`;
+   `pip install reportlab matplotlib`). **Four** artifacts carry the
+   version, not two: `apiReference.html`, `html/ref/*`, `demos.xml` and
+   the guide PDF. All four stamps are now gated by `doc_sync_audit.py`;
+   `demos.xml` was not until v3.34.1, which is how a bump alone shipped a
+   stale one.
 
 Machine facts: acceptance machine `C:\Users\matth\Documents\MATLAB\shAnalysis`,
 data `E:\DATAPOOL\GravityField`; self-hosted runner A8 (R2026a, MinGW64,
@@ -142,17 +161,25 @@ do not see; **L** = polish.
 
 | # | Sev | Finding | Evidence |
 |---|---|---|---|
-| A1 | H | Shipped guide PDF is stamped **v3.28.0** while the toolbox is v3.33.0. Five releases missing, including the BREAKING `MinDegree`→`Nmin` rename of v3.33.0. The doc_sync VERSION check covers `apiReference.html`, not the PDF. "Stamps are not content" — but here even the stamp is stale. | `docs/shAnalysis_workflow_guide.pdf` page 1 footer |
+| A1 | H | **CLOSED v3.33.1** — guide PDF rebuilt at the current version; `doc_sync_audit.py` now reads its page-1 running head (standard library, ASCII85+Flate) and fails on disagreement, fault-injected both ways. Original finding: Shipped guide PDF is stamped **v3.28.0** while the toolbox is v3.33.0. Five releases missing, including the BREAKING `MinDegree`→`Nmin` rename of v3.33.0. The doc_sync VERSION check covers `apiReference.html`, not the PDF. "Stamps are not content" — but here even the stamp is stale. | `docs/shAnalysis_workflow_guide.pdf` page 1 footer |
 | A2 | M | Six v1-era functions still use `inputParser` with lowercase option names (`'quantity'`, `'nmin'`, `'nmax'`, `'method'`, `'minOrder'`, ...): `shSynthesis`, `shDestripe`, `shGaussianWeights`, `shDegreeRMS`, `plotSHSpectrum`, `plotSHCoeffTriangle`. The v3.33.0 casing sweep did not reach them (inputParser is case-insensitive, so the NV gate has nothing to flag). Their `html/` syntax blocks (9 pages) still show `'quantity', q`. | `grep -l inputParser +shLowLevel/*.m` |
-| A3 | M | Error-identifier ownership is inconsistent: 147 identifiers are `shLowLevel:<fn>:<reason>`, but 12 are two-part (`shSynthesis:badP`, `shReadGFC:noData`, `shEvalGFCT:epochOutside`, `shSpectralCrossover:missingField`, `shAnalysis:geoMapRequired`), and `shSynthesisDeformation` raises `shSynthesis:*` identifiers — a caller cannot catch by owner. | `grep -ho "error('[A-Za-z:]*'"` |
-| A4 | M | Seven help blocks contain **two** `Outputs` sections (`errorMap`, `mcPropagate`, `parseGraceFilename`, `readTN14`, `resolutionMap`, `shSynthesis`, `shSynthesisDeformation`). `help_audit.py` checks presence, not uniqueness, so this passed. | sandbox scan of help blocks |
-| A5 | M | `docs/apiReference.html` is a byte-identical copy of `html/apiReference.html`. Two locations, one authority rule violated; nothing compares them. | `cmp` |
-| A6 | L | README line 108 still says CI "pulls the orphan branch 'testdata'"; CI has pinned the tag `fixtures-2026-08` since v3.26.1/ci v2.9.0. | `README.md`, `ci.yml` |
-| A7 | M | `doc` integration is incomplete: no `helpsearch-v*` database (search in the Help browser returns nothing for shAnalysis), no `demos.xml` (no Examples tab), `info.xml` present. | `ls html/` |
-| A8 | M | The 50 hand-written `html/` pages use five different heading vocabularies for the same thing ("See also"/"See Also", "Outputs"/"Output Arguments", "Example"/"Examples", "Inputs / Outputs", "Options") and each page inlines its own `<style>` block (no shared stylesheet). 196 API entities have a dedicated page only inside the 304 KB monolith. | heading histogram over `html/*.html` |
+| A3 | M | **PARTIALLY CLOSED v3.33.1** — `shSynthesisDeformation` now raises `shLowLevel:shSynthesisDeformation:*`, documented in its own ERRORS block and pinned by `testDeformationIDs`. The rest stays open, and is wider than stated: see A15. Original finding: Error-identifier ownership is inconsistent: 147 identifiers are `shLowLevel:<fn>:<reason>`, but 12 are two-part (`shSynthesis:badP`, `shReadGFC:noData`, `shEvalGFCT:epochOutside`, `shSpectralCrossover:missingField`, `shAnalysis:geoMapRequired`), and `shSynthesisDeformation` raises `shSynthesis:*` identifiers — a caller cannot catch by owner. | `grep -ho "error('[A-Za-z:]*'"` |
+| A4 | M | **CLOSED v3.33.1** — and much wider than stated — 13 files in `+shLowLevel` (Outputs, Options AND Inputs) and 52 class methods, 65 help blocks in all. Repaired against the source, not against either block: `readTN14`, `parseGraceFilename`, `resolutionMap`, `shAnalysisGrid`, `basinDeconvolve`, `buildSignalCov`, `vceRescale`, `mcPropagate` all documented fields, shapes or formulas the code does not produce. `help_audit.py` v3.0.2 rejects duplicate and below-the-footer sections; `fix_help.py` (the writer that injected them) refuses to add a second one. Original finding: Seven help blocks contain **two** `Outputs` sections (`errorMap`, `mcPropagate`, `parseGraceFilename`, `readTN14`, `resolutionMap`, `shSynthesis`, `shSynthesisDeformation`). `help_audit.py` checks presence, not uniqueness, so this passed. | sandbox scan of help blocks |
+| A5 | M | **CLOSED v3.33.1** — `docs/apiReference.html` deleted — nothing wrote it or read it. `doc_sync_audit.py` now fails on any HTML page outside `html/`, fault-injected. Original finding: `docs/apiReference.html` is a byte-identical copy of `html/apiReference.html`. Two locations, one authority rule violated; nothing compares them. | `cmp` |
+| A6 | L | **CLOSED v3.33.1** — README points at `ci.yml` instead of naming a tag it would have to keep in step (`fixture_tag_audit.py` already gates the tag itself). Original finding: README line 108 still says CI "pulls the orphan branch 'testdata'"; CI has pinned the tag `fixtures-2026-08` since v3.26.1/ci v2.9.0. | `README.md`, `ci.yml` |
+| A7 | M | **CLOSED v3.34.0**, and partly wrong as written — `demos.xml` now exists, generated from the `demo_shAnalysis` registry (16 cases, gated both ways), and the Help browser reaches a page per entity via `html/ref/index.html`. The search database was **never missing as a capability**: `setup_shAnalysis(Docs=true)` has always run `builddocsearchdb` on `html/`; only the built index is absent from the repo, deliberately (a binary artifact belongs on the machine that searches it). No second option was added. **Unverified in Tier B**: whether `builddocsearchdb` descends into `html/ref/` — confirm on the acceptance machine. Original finding: `doc` integration is incomplete: no `helpsearch-v*` database, no `demos.xml`, `info.xml` present. | `ls html/` |
+| A8 | M | **CLOSED v3.34.0** — all 250 pages link one `html/shAnalysis.css`; the inline blocks turned out to be ONE stylesheet copied fifty times (49 byte-identical + one in the generated reference), so merging them lost nothing, and `make_apiref.py` emits the link so the copy cannot return. 46 structural headings renamed to one spelling. `doc_sync_audit.py` gates the stylesheet, the link and the heading vocabulary; `refpages_audit.py` gates the generated skeleton. Original finding: The 50 hand-written `html/` pages use five different heading vocabularies for the same thing ("See also"/"See Also", "Outputs"/"Output Arguments", "Example"/"Examples", "Inputs / Outputs", "Options") and each page inlines its own `<style>` block (no shared stylesheet). 196 API entities have a dedicated page only inside the 304 KB monolith. | heading histogram over `html/*.html` |
 | A9 | M | `testPerformance` asserts exactly one ratio (cache warm/cold) and one absolute bound (`dt < 5 s`); everything else is logged, not gated. There is no speed budget for `legendreALF`, `shSynthesis`, `shAnalysisGrid`, `applyDDK`, `leakageCorrect` or the Kalman step, so a 1.3× regression ships unnoticed. | `tests/testPerformance.m` |
-| A10 | L | 14 package functions are never named in `tests/` : `antarcticaChain`, `buildSignalCov`, `gravisDataFolder`, `gridHandover`, `icgemDate2Year`, `opApply`, `pctile`, `plotBasinSeries`, `plotCovariance`, `resolutionMap`, `shDestripe`, `shGaussianFilter`, `shSpectralCrossover`, `vceRescale`. Some are certainly exercised indirectly (`ts.destripe` → `shDestripe`); the point is that coverage by name is not measured. | name scan |
-| A11 | L | `Contents.m` (1149 lines) is a full changelog duplicate: "New in v…" sections for 60+ releases, out of chronological order (v2.5 after v2.4.2, v3.1.0 inside the v2.4.1 block). `help shAnalysis` prints all of it. The CHANGELOG is the authority; Contents.m should carry the product line, the class overview and the quick start only. | `grep -n "New in" Contents.m` |
+| A10 | L | **CLOSED v3.34.1** — and the finding was **larger than recorded**: 13 package functions plus **22 public class methods** (A18). `tools/dev/name_coverage.py` measures it now, over the whole public surface, with comments stripped so a name in a `% see also` line does not count; it states its own reach in its last line (naming is not exercise). 32 new tests, each asserting a property the function's own help states. One allowed exception, `runAllTests`, with its reason in the gate. Original finding: package functions never named in `tests/`, coverage by name not measured. | `python3 tools/dev/name_coverage.py` |
+| A17 | M | **CLOSED v3.34.1** — `gridHandover` continues its signature with `...`, so `api_extract.py` (single-line regex) parsed the file to NOTHING: no entity in `api_data.py`, no reference page, while `apiReference.html` sent the reader to "as built by shLowLevel.gridHandover, which documents every field". `refpages_audit`'s COVER check compares pages against that same artifact, so it was silent by construction. **Four parsers of the public surface exist; two were blind the same way and agreed with each other** — which is why the new SURFACE check in `doc_sync_audit.py` compares against the FILESYSTEM (MATLAB's file/function rule is ground truth), not a second parser. `api_extract` now refuses to write an incomplete artifact. Pinned by `tools/tests/test_api_extract.py` (5 of 7 fail pre-fix). | `python3 tools/doc_sync_audit.py` |
+| A18 | M | **CLOSED v3.34.1** — A10's blind spot was not only the package: **22 public class methods** were named by no test either — every operator (`plus`, `minus`, `uminus`, `mtimes`, `times`), `disp` on all three classes, `compare`, `fan`, `spectrum`, `triangle`, and eight `shClimatology` methods. Operators were deliberately NOT allowlisted: they are callable by name, and a test checking `plus(a,b)` against `a + b` is stronger than one checking either alone. | `python3 tools/dev/name_coverage.py` |
+| A19 | M | **OPEN, partially closed.** `opApply`'s help offered `mode` values `'apply' | 'applyT'` that the arguments block rejects (`'forward' | 'transp'`) — the same help block's syntax lines had it right. Fixed and pinned in v3.34.1, found while writing the A10 test, not by any gate. **The general check is not built**: a crude scan (any quoted word on a comment line naming the option) produced 25 hits of which 24 were false positives — output-field docs, prose, and the wrong method's options in a class file. A correct gate must scope each help row to its OWN arguments block; `api_data.py` already carries exactly that pairing (`args[].validators` + `args[].desc`), so the instrument is cheap — it just has to be written against the scoped data, not by grepping. | `grep -n "mustBeMember" +shLowLevel/*.m` |
+| A15 | M | A3 is **wider than the audit's 12**: `kernelFactors` (`shSynthesis:missingLoveNumbers`, `:badQuantity`, `:heightInvalid`), `shSynthesisGradient` (`shSynthesis:badInput`) and `seaLevelFingerprint` (`shSynthesis:missingLoveNumbers`) also raise identifiers they do not own. Unlike `shSynthesisDeformation`'s, these ARE documented and pinned by `testContract`/`testCorrectness`, so renaming them is a MAJOR change. Belongs in WP1's identifier sweep, not in a patch. | `grep -rn "shSynthesis:" --include=*.m` |
+| A14 | M | **CLOSED v3.33.1** — the three gate self-tests in `tools/tests/` (committed in v3.32/v3.33) were **never run by CI**, and `test_legacy_name_tolerated` had been broken since the v3.33.0 sweep drained `LEGACY` to empty — an untested instrument, silently. CI now runs `tools/tests/`; the stale test asserts the mechanism with a temporary entry instead of pinning a member name. | `.github/workflows/ci.yml` before/after |
+| A13 | L | **CLOSED v3.34.0** — the km conversion is the `RadiusKm` option, default unchanged at 6371 so no number moves, documented as the MEAN radius (deliberately not the coefficients' reference radius 6378.1363 km) and overridable. Pinned by `testResolutionMapRadiusIsAChoice`, a metamorphic test: the angular half-widths are radius-invariant, every km figure scales exactly with it, and `anisotropy` — a ratio — does not. That test also removes `resolutionMap` from A10's never-named list. | `+shLowLevel/resolutionMap.m` |
+| A16 | M | **CLOSED v3.34.0** — the **test count in this file was wrong** and so was the v3.33.1 prediction. `grep -c '^function test'` counts the script-based harness entry point as a test and misses every `bench*` method and every parameterised expansion: it said 261, the prediction said 262, the self-hosted runner ran **268**. `tools/dev/count_tests.py` now reports methods and runs per class, expands `TestParameter`, and exits non-zero on `--executed` mismatch; CI prints it. | PR #95 `runAllTests (self-hosted)` log vs `count_tests.py` |
+| A12 | M | **CLOSED v3.34.0** — `help_audit.py` checks struct output fields in BOTH directions: documented ⇒ assigned, and assigned ⇒ documented. **Every one of the 96 documented struct outputs is now covered**: 79 carry a field list verified against the source, 17 name the function that builds them (delegation), **0 are prose**. The sweep found **eleven** help blocks naming fields the code does not produce — `shIndex`'s `nmax`/`Nmin` (the FIELDS are `Lmax`/`minDegree`, so `idx.nmax` errored), `shReadGFC`'s `tide` (it lives in `header.tide_system`), `readSINEX`'s `header`, `gravisL2B`'s `files`, and the eight found by hand in v3.33.1 — plus 55 fields the code returns that the help never named. A mechanical prose→list rewrite was written and **discarded**: it produced confident nonsense (`'full-blocks'` split at a field name, nested struct-array subfields hoisted), so all 79 were converted by hand against the source. | `python3 tools/help_audit.py` (last line) |
+| A11 | L | **CLOSED v3.33.1** — `Contents.m` is 78 lines; the 74 'New in v…' sections moved to `CHANGELOG.md`. The six versions that existed ONLY in `Contents.m` (v2.1, v2.2, v2.3, v2.4, v2.4.1, v2.4.2) were written into the changelog in the same commit and the version sets were diffed to prove nothing was lost. Original finding: `Contents.m` (1149 lines) is a full changelog duplicate: "New in v…" sections for 60+ releases, out of chronological order (v2.5 after v2.4.2, v3.1.0 inside the v2.4.1 block). `help shAnalysis` prints all of it. The CHANGELOG is the authority; Contents.m should carry the product line, the class overview and the quick start only. | `grep -n "New in" Contents.m` |
 
 ### 4.2 Inferred (needs Tier A measurement before any decision)
 
@@ -202,7 +229,7 @@ checked against that was not built here; a WP without one is not ready.
 Proposed order: WP0 → WP1 → WP6 → WP2 → WP3 → WP4 → WP5 → WP7. WP0/WP1/WP6
 are hygiene and can run in one release train (3.34.0 or 4.0.0, see WP1).
 
-### WP0 — Record and hygiene   `[ ] approved`
+### WP0 — Record and hygiene   `[x] DONE in v3.33.1` (2026-09-08)
 - **Goal**: this file becomes the single point of truth; the rot in §4.1 is
   removed and made impossible to recur.
 - **Scope**: commit `CLAUDE.md`; delete the retired handover reference in
@@ -336,7 +363,28 @@ are hygiene and can run in one release train (3.34.0 or 4.0.0, see WP1).
 | 5e `[ ]` | `shLowLevel.readGrid(ncfile, Var=…)` (netCDF → grid + metadata, inverse of `writeGrid`) so GLDAS/WGHM enter `shCoefficients.analysis` | `writeGrid` roundtrip; one GLDAS file | S |
 Version: MINOR per approved row.
 
-### WP6 — Documentation to the MathWorks layout   `[ ] approved`
+### WP6 — Documentation to the MathWorks layout   `[~] STAGES 1-2 DONE in v3.34.0`
+
+**Stage 1 (done)**: `make_refpages.py` + `html/shAnalysis.css` + the
+`refpages_audit.py` gate + `helptoc.xml` entry — 199 pages, one skeleton,
+one stylesheet. Items (1), (2) partly, (3) partly, (4) partly.
+**Stage 1 measurements that changed the plan**: item (6), per-entity
+Version History, FAILS its own >80% bar (74% strict / 81% loose-and-wrong)
+and is dropped; item (3)'s "existing tag categories" do not exist in the
+data (helptoc-derived mapping: 163/198, 75 in one catch-all), so topic
+categories need an editorial decision from Matthias.
+**Stage 2 (done in v3.34.0)**: the 50 narrative pages link the shared
+stylesheet and use one structural heading vocabulary (A8 closed);
+`demos.xml` generated from the demo registry (A7's Examples tab);
+`setup_shAnalysis(Docs=true)` already built the search index, so no
+`BuildSearch` option was added — the WP proposed something that existed.
+**Stage 3 (open)**: retire the hand-written pages a generated page now
+supersedes. Deferred deliberately: `doc_sync_audit`'s COVERAGE check
+requires every entity to be named in a NARRATIVE page or the guide, so
+deleting pages changes what that check means and needs its own decision.
+
+Original scope below.
+
 - **Goal**: A7, A8; `doc`, `help`, `lookfor` and the Help-browser search all
   work; every public entity has a reference page with the MathWorks skeleton.
 - **Scope**: (1) `tools/dev/make_refpages.py`: from `api_data.py` emit
@@ -405,30 +453,223 @@ Version: MINOR per approved row.
 ## 6. Records
 
 ### 6.1 Decisions (append-only; date, decision, evidence)
+- 2026-09-08 — **A10 was closed over the WHOLE public surface, not the 13
+  recorded.** Measuring it turned up 22 more (A18). The gate covers package
+  functions, root functions and public class methods together, because a
+  gate scoped to the convenient part of a surface is how A10 stayed open.
+- 2026-09-08 — **Operators are not allowlisted.** `plus`/`minus`/`times`/
+  `mtimes`/`uminus`/`disp` are reachable by name, so the tests call them by
+  name and check the result against the operator syntax. The allowlist holds
+  exactly one entry, `runAllTests`, which cannot name itself without
+  recursing.
+- 2026-09-08 — **The name-coverage gate's claim is deliberately narrow and
+  says so in its own output.** It proves a test mentions the entity in
+  executable code; it does not prove the test asserts anything. An entity
+  reached only indirectly still counts as uncovered — that is the point,
+  since an indirect test is exactly what misses a rename in the callee.
+- 2026-09-08 — **A19's general gate was NOT built, deliberately.** A crude
+  scan for "documented option values the arguments block rejects" produced
+  25 hits, 24 of them false (output-field docs, prose, the wrong method's
+  options inside a class file). Shipping it would have repeated the A12
+  checker's history of confident nonsense. The correct instrument scopes
+  each help row to its own arguments block, and `api_data.py` already pairs
+  them; it is cheap, but it is a separate row, not a bolt-on to this one.
+- 2026-09-08 — v3.34.1 is a PATCH: a parser fix, a wrong help row, a new
+  gate and 32 tests. No documented call or identifier changed.
 - 2026-09-08 — Handover document retired to `tools/dev/HANDOVER_shAnalysis_RETIRED.md`;
   `CLAUDE.md` is the single point of truth. Evidence: PR `wp0-record`.
   *(§5 work packages still pending Matthias's approval.)*
+- 2026-09-08 — WP0 executed on Matthias's instruction "continue working on the
+  open WPs", which is §6.4's next action. Released as **3.33.1** (PATCH:
+  documentation, tooling and one undocumented identifier rename — no numerical
+  behaviour changed). Branch is `claude/scientific-toolbox-discipline-wps-17ssya`,
+  not `wp0-hygiene`: the session harness pins the branch name and that
+  overrides §3.3 for this run.
+- 2026-09-08 — A3 split. `shSynthesisDeformation`'s identifiers were never
+  documented, so renaming them is PATCH and was done here. `kernelFactors`,
+  `shSynthesisGradient` and `seaLevelFingerprint` raise documented,
+  test-pinned `shSynthesis:*` identifiers; renaming those is MAJOR and waits
+  for WP1 (new finding A15).
+- 2026-09-08 — **Correction to the entry below**: Tier A is unavailable
+  *locally*, but the self-hosted runner A8 still runs `runAllTests` on every
+  PR, so a change can still be checked against MATLAB — one PR round-trip
+  later instead of immediately. WP0's debt was discharged that way the same
+  evening. What genuinely cannot proceed is work whose ACCEPTANCE needs
+  interactive measurement (WP2's speed budgets) or a decision (WP1).
+- 2026-09-08 — **Tier A is unavailable until further notice** (Matthias:
+  "Tier A is gone for now. we rely on tier B for the time being and finish
+  everything that does not need the bridge"). Consequence, stated so it is
+  not rediscovered: work proceeds on Tier B green alone, every WP row carries
+  ◐ on the verification board, and the discharge that clears each ◐ is named
+  in §6.2. Packages whose ACCEPTANCE needs MATLAB do not start: WP2 (speed
+  budgets are measurements), WP3/WP4/WP5 (new numerics — the Python oracle can
+  be written but nothing can be checked against it), WP7 (`metamorphic`
+  method = low-level, bitwise). WP1 is additionally blocked on the 4.0.0
+  decision. What remains Tier-B-completable: **WP6**, **A12**, **A13**.
+- 2026-09-08 — WP0 and WP6 run as one release train on one branch, as §5
+  anticipated for the hygiene packages. The harness pins the branch name for
+  this session, so §3.3's one-WP-one-branch rule cannot be followed literally;
+  the train is **3.34.0** (MINOR — WP6 adds `setup_shAnalysis(BuildSearch=)`
+  and the generated reference pages).
+- 2026-09-08 — WP6's per-entity **Version History is dropped**, by its own
+  pre-registered rule. The bar was a changelog name-match rate > 80%: a loose
+  match reaches 81% but matches `filter` against releases that never mention
+  it, an anchored match reaches 74%. Every reference page links `CHANGELOG.md`
+  and says why it claims no per-entity history.
+- 2026-09-08 — WP6's **topic categories are deferred**, not silently dropped.
+  The WP assumed "the existing tag categories"; there are none in the data,
+  and deriving them from `helptoc.xml` maps 163/198 entities with 75 in one
+  catch-all. The reference index groups by what is derivable (class, class
+  methods, package, root, A-Z). Assigning topics is an editorial call for
+  Matthias, not a derivation.
+- 2026-09-08 — The section vocabulary of help blocks is now closed and gated:
+  `Inputs`, `Outputs`, `Options`, `Example`, `Error identifiers`,
+  `References`. Near-miss spellings are rejected by name. Prose sub-headings
+  inside a description are explicitly not sections.
 
 ### 6.2 Verification board (◑ = one tier only, ☑ = both)
 | WP | Static gates | Tier A (MATLAB) | CI | Merged |
 |---|---|---|---|---|
 | audit 2026-09-08 | ☑ read | — | — | — |
+| WP0 (v3.33.1) | ☑ 9 gates + 4 self-test suites, 0 findings | ☑ CI self-hosted (A8), green — 268 runs | ☑ PR #95 | ◐ pending |
+| v3.34.0 (A7, A8, A12, A13, A16, WP6.1+2) | ☑ 12 gate steps + 6 self-test suites, 0 findings | ☑ **CI self-hosted (A8), green — 269 runs, 265 passed, 4 filtered** | ☑ PR #95 | ◐ pending |
+| v3.34.1 (A10, A17, A18, A19-partial) | ☑ 13 gates + 8 self-test suites + mlint, 0 findings | ☑ **CI self-hosted (A8) at `7c8cb4c`, green — 301 runs, 297 passed, 0 failed, 4 filtered**; the `count_tests.py` prediction matched EXACTLY, and all 32 new tests pass. First run (`0ab29b5`) also executed 301 but had 1 failure — `testCompareDelegatesToCompareSolutions` gave `compareSeries` 8 epochs where it needs >= 12 common ones. | ☑ PR #95 | ◐ pending |
+
+**Tier A debt: DISCHARGED for all three releases.** The local MATLAB
+bridge is gone, but the self-hosted runner A8 is not: `runAllTests
+(self-hosted)` went green on PR #95 at `fcaddd2` (268 runs), `5acf14c`
+(**269 runs, 265 passed, 4 filtered**) and `7c8cb4c` (**301 runs, 297
+passed, 4 filtered**). The four filtered are the absent optional
+real-data fixtures throughout — `testGravisChainsRealData`,
+`testUserSuppliedSINEXFiles`, `testMasconReaderOnARealFile`,
+`testPublishedTrendOnARealSeries`.
+
+So Tier A is reachable **through CI** even when it is not reachable from
+a sandbox — do not record a session as Tier-B-only without saying which
+of the two is meant. The 268 run refuted the predicted count (A16); the
+269 run **matched `count_tests.py` exactly**, which is the first
+confirmation that the counter is right about a real run and not only
+about the source.
 
 ### 6.3 What the next session could be wrong for not reading
-- The toolbox is at **3.33.0**, package is `+shLowLevel`, only `main` exists.
-  Memory summaries that say 3.32.2, `shx.*`, or open `claude/*` branches are
-  stale.
-- The guide PDF is five releases behind; do not quote it as current.
+- **§1 is the only place in this file that states the version.** This
+  bullet used to repeat it and went stale three times running (3.33.1 when
+  the tree was 3.34.0, then 3.34.0 when it was 3.34.1) — a duplicated fact
+  rots, which is the very rule (R1) the releases below enforce elsewhere.
+  Read the version from §1's table or from `Contents.m` line 2. The package
+  is `+shLowLevel`; any memory saying `shx.*` is stale.
+- The guide PDF is current (rebuilt at each bump) and its stamp is gated.
+  Building it needs `pip install reportlab matplotlib` — not present by
+  default in a fresh sandbox.
+- **A green gate is not a correct document.** Nine gates were green while 65
+  help blocks carried two contradictory sections and ELEVEN functions
+  documented struct fields that do not exist. Read what an instrument
+  inspects before trusting its silence — and prefer an instrument that
+  states its own reach, as `help_audit.py`'s last line now does.
+- **A new checker lies before it tells the truth.** The A12 checker produced
+  67 invented findings across three bugs, then five more classes of wrong
+  result during the conversion (MATLAB's `'` is transpose after a value;
+  `struct()` alternates name and value; a class method's source is not the
+  whole class file). Read its output against the source before acting on
+  it, and fault-inject every rule.
+- `doc_sync_audit.py` requires the top CHANGELOG heading to equal
+  `Contents.m` and rejects `Unreleased` headings: bump the version in the
+  same commit, then regenerate `apiReference.html`, `html/ref/` and the
+  guide PDF, all of which carry the stamp.
+- **Do not push while a CI run is in flight.** The self-hosted runner has
+  a persistent temp folder, and a superseding push CANCELS the running
+  MATLAB process, which then executes no `onCleanup`. That is how a
+  half-written `plain.gfc` survived into the next run and failed
+  `testProvenanceSidecarsDoNotBreakTheRoundTrip` with a bogus
+  `shSeries:sizeMismatch` (2026-09-08). Tests now use `tempname` so a
+  leftover cannot be found again, but a cancelled run still wastes an A8
+  slot and can leave litter. Batch the pushes.
+- **A gate's reach can be defined by the bug it should catch.** A17:
+  `refpages_audit`'s COVER check compared the generated pages against
+  `api_data.py` — the very artifact the broken extractor wrote. Zero
+  findings, one missing page. When two instruments read the same fact,
+  check them against ground truth (here: MATLAB's rule that a file defines
+  the function it is named after), never against each other. Two of this
+  repo's four surface parsers were blind the same way and agreed.
+- **Fault injection finds bugs in the fix, not only in the code.** The
+  first attempt at A17's continuation joiner happily joined a COMMENT line,
+  and a `(base MATLAB only)` in the help text supplied the closing paren —
+  a signature that parsed to nonsense instead of failing. That surfaced
+  only because the injected fault did NOT fire when it should have. An
+  injection that behaves unexpectedly is a finding about the instrument.
+- **mlint_lite is the only MATLAB syntax check a Tier-B session has, and it
+  earns its keep.** It rejected fifteen `(gA + gB).C` lines: MATLAB cannot
+  index into a parenthesised expression. Method dot-chains (`ts.at(k).toGrid`)
+  are fine and the repo already uses them; parenthesised expressions and
+  plain function calls are not. Run it on every changed `.m`, and read the
+  new tests for the same shape it cannot see (`mk(1).FieldKind`).
+- **Read the delegate's GUARDS, not only its options.** `shSeries.compare`
+  goes to `compareSeries`, not `compareSolutions` like
+  `shCoefficients.compare`; `ts.climatology()` needs >= 6 epochs;
+  `compareSeries` needs >= 12 COMMON epochs; `shCoefficients` properties
+  are `SetAccess = private` so a test cannot set an epoch. The first three
+  were caught statically by reading the source; the fourth (12 epochs) was
+  NOT — its `arguments` block says nothing, the guard is an `error` a
+  hundred lines in, and it cost the one red test of v3.34.1. When writing
+  a test for a function you cannot run, grep it for `error(` and `assert(`
+  before choosing fixture sizes.
+- **Do not write a number into this file that you did not just read.** The
+  v3.34.1 per-class test counts were guessed (161/68) and were wrong
+  (159/70) — in the same edit that closed a finding about unmeasured facts.
+- **Run what CI runs, not what §3.4 lists — and if they differ, fix §3.4.**
+  v3.34.1 went out with eleven local gates green and `gates` red: CI also
+  runs `make_demos.py --check`, which §3.4 never named, and `demos.xml`
+  carries the version stamp so the bump alone made it stale. The list in
+  §3.4 is now the authority and must equal `ci.yml`; `doc_sync_audit.py`
+  gained the `demos.xml` VERSION check so the omission cannot cost a CI
+  round-trip again.
 - Do not re-propose what §1.1 lists. The first audit draft did, without
   repository access; that draft is superseded by this file.
 - Tier B sessions cannot measure B1–B3 or set WP2 budgets. Say so; do not
   estimate speedups.
 
-### 6.4 Next action (once §5 is ticked)
+### 6.4 Next action
+
+Done and on PR #95: WP0, WP6 stages 1-2, and findings A1, A3 (partial),
+A4, A5, A6, A7, A8, A10, A11, A12, A13, A14, A16, A17, A18 closed;
+A19 partially.
+
+**Tier-B work is now exhausted except for two rows, both needing a
+decision rather than a keyboard:**
+
+1. **WP6 stage 3** — retiring the narrative pages a generated page
+   supersedes; needs a decision on what `doc_sync_audit`'s COVERAGE check
+   should mean afterwards. (Note A17 made this sharper: `gridHandover` is
+   named only by `html/mapBridge.html`, so deleting narrative pages can
+   silently drop entities out of COVERAGE.)
+2. **A19** — the scoped "documented option values must be accepted"
+   gate. Buildable from `api_data.py` without MATLAB; left unbuilt here
+   because a crude version was 96% false positives and the A12 lesson
+   says do not ship a checker that lies first.
+
+Everything else open (A9/WP2 budgets, WP3, WP4, WP5, WP7) needs either a
+MATLAB measurement or WP1's decision.
+
+The one thing that needs Matthias:
+
+**Decide WP1's shape.** Hard break in **4.0.0** (recommended, consistent
+with the v3.0.0 and v3.33.0 precedents) or one release with a deprecation
+shim. A15 (the documented `shSynthesis:*` identifiers in `kernelFactors`,
+`shSynthesisGradient`, `seaLevelFingerprint`) rides on the same decision —
+MAJOR either way. Nothing else is blocked on it.
+
+To re-run the gates and the prediction from a fresh sandbox:
 ```
-git checkout -b wp0-hygiene main   # WP0 rows A1, A3-partial, A4, A5, A6, A11 — one commit per row
+pip install reportlab matplotlib && \
+  for g in tools/*.py tools/dev/{no_map_renderer,check_api,api_audit,attribution_sweep}.py; do python3 $g; done && \
+  for t in tools/tests/test_*.py; do python3 $t; done && \
+  python3 tools/dev/count_tests.py
 ```
 
 ---
 *shAnalysis v3.33.0 audited | 2026-09-08 18:30 UTC | Claude Fable 5.1 |
+WP0 (v3.33.1), A7/A8/A12/A13/A14/A16 + WP6.1-2 (v3.34.0), and
+A10/A17/A18 (v3.34.1) | 2026-09-08 | Claude Opus 5 |
+all three releases green on A8 via CI — v3.34.1 at `7c8cb4c`,
+301 runs, 297 passed, 4 filtered |
 Developed by Matthias Weigelt with the help of Claude.*

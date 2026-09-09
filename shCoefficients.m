@@ -97,9 +97,6 @@ methods
         %     History (string.empty(0,1))  initial processing history; every
         %         operation appends one line
         %
-        %   Outputs
-        %     obj  (1,1) shCoefficients  modified copy; the operation is appended to the
-        %              history (immutable value-class pattern)
         arguments
             C double = 0
             S double = 0
@@ -154,9 +151,6 @@ methods
         %   Outputs
         %     out        (1 x 1) shCoefficients   sum; sigmas RSS; epochs must match
         %
-        %   Outputs
-        %     out  (1,1) shCoefficients  modified copy; the operation is appended to the
-        %              history (immutable value-class pattern)
         [a, b] = shCoefficients.checkPair(a, b, 'plus');
         shCoefficients.checkEpochs(a, b, 0.02, 'plus');
         out = a.combine(b, +1, ...
@@ -172,9 +166,6 @@ methods
         %   Outputs
         %     out        (1 x 1) shCoefficients   difference; sigmas RSS
         %
-        %   Outputs
-        %     out  (1,1) shCoefficients  modified copy; the operation is appended to the
-        %              history (immutable value-class pattern)
         [a, b] = shCoefficients.checkPair(a, b, 'minus');
         out = a.combine(b, -1, "difference");
         out.epoch = NaN;
@@ -190,9 +181,6 @@ methods
         %   Outputs
         %     out        (1 x 1) shCoefficients   negated coefficients (sigmas kept)
         %
-        %   Outputs
-        %     out  (1,1) shCoefficients  modified copy; the operation is appended to the
-        %              history (immutable value-class pattern)
         out = a; out.C = -a.C; out.S = -a.S;
         out.history(end+1) = "negated";
     end
@@ -205,9 +193,6 @@ methods
         %   Outputs
         %     out        (1 x 1) shCoefficients   scalar-scaled; sigmas scale by |a|
         %
-        %   Outputs
-        %     out  (1,1) shCoefficients  modified copy; the operation is appended to the
-        %              history (immutable value-class pattern)
         if isa(a, 'shCoefficients') && isnumeric(b) && isscalar(b)
             out = a; f = b;
         elseif isa(b, 'shCoefficients') && isnumeric(a) && isscalar(a)
@@ -231,12 +216,11 @@ methods
         %   Inputs
         %     other  (1,1) shCoefficients  solution to compare against OBJ
         %   Outputs
-        %     rep        (1 x 1) struct   shLowLevel.compareSolutions report
+        %     rep        (1,1) struct   as returned by
+        %                shLowLevel.compareSolutions, which documents
+        %                every field
         %     h          (1 x 1) graphics handle   figure (Plot = true)
         %
-        %   Outputs
-        %     rep  (1,1) struct  shLowLevel.compareSolutions report
-        %     h    (1,1) graphics handle  figure (Plot = true only)
         [rep, h] = shLowLevel.compareSolutions(obj, other, varargin{:});
     end
 
@@ -252,9 +236,6 @@ methods
         %   Outputs
         %     out        (1 x 1) shCoefficients   elementwise-scaled coefficients
         %
-        %   Outputs
-        %     out  (1,1) shCoefficients  modified copy; the operation is appended to the
-        %              history (immutable value-class pattern)
         if isa(a, 'shCoefficients') && isnumeric(b)
             out = a; f = b;
         elseif isa(b, 'shCoefficients') && isnumeric(a)
@@ -287,9 +268,6 @@ methods
         %   Outputs
         %     out        (1 x 1) shCoefficients   truncated to the new nmax
         %
-        %   Outputs
-        %     out  (1,1) shCoefficients  modified copy; the operation is appended to the
-        %              history (immutable value-class pattern)
         arguments
             obj
             nmaxNew (1,1) double {mustBeInteger, mustBeNonnegative}
@@ -320,9 +298,6 @@ methods
         %         (NaN leaves the existing sigma untouched)
         %     SigmaS (NaN)  same for the sine coefficient
         %
-        %   Outputs
-        %     out  (1,1) shCoefficients  modified copy; the operation is appended to the
-        %              history (immutable value-class pattern)
         arguments
             obj
             n (1,1) double {mustBeInteger, mustBeNonnegative}
@@ -364,9 +339,6 @@ methods
         %   Outputs
         %     out        (1 x 1) shCoefficients   C20 (and C30 when available) replaced by the SLR values, sigmas updated
         %
-        %   Outputs
-        %     out  (1,1) shCoefficients  modified copy; the operation is appended to the
-        %              history (immutable value-class pattern)
         arguments
             obj
             tn
@@ -416,9 +388,6 @@ methods
         %   Outputs
         %     out        (1 x 1) shCoefficients   degree-1 row set from the TN-13 record nearest to obj.epoch
         %
-        %   Outputs
-        %     out  (1,1) shCoefficients  modified copy; the operation is appended to the
-        %              history (immutable value-class pattern)
         arguments
             obj
             tn
@@ -463,9 +432,6 @@ methods
         %   Outputs
         %     out        (1 x 1) shCoefficients   Swenson-Wahr decorrelated
         %
-        %   Outputs
-        %     out  (1,1) shCoefficients  modified copy; the operation is appended to the
-        %              history (immutable value-class pattern)
         arguments
             obj
             opts.MinOrder (1,1) double = 6
@@ -494,9 +460,6 @@ methods
         %   Outputs
         %     out        (1 x 1) shCoefficients   Gaussian-smoothed; sigmas scaled by Wn
         %
-        %   Outputs
-        %     out  (1,1) shCoefficients  modified copy; the operation is appended to the
-        %              history (immutable value-class pattern)
         arguments
             obj
             radiusKm (1,1) double {mustBePositive}
@@ -516,7 +479,9 @@ methods
     function spec = degreeRMS(obj, opts)
         %DEGREERMS Degree variance/RMS/amplitude spectrum (+ error spectrum).
         %   Outputs
-        %     spec       struct: n, amp/rms/var, err   degree spectrum incl. formal-error curve
+        %     spec       (1,1) struct   the degree spectrum, including
+        %                the formal-error curve, as returned by
+        %                shLowLevel.shDegreeRMS
         %
         %   Options
         %     N0 (0)  first degree included in the spectrum
@@ -555,9 +520,6 @@ methods
         %   Outputs
         %     h          (1 x 1) graphics handle   spectrum plot
         %
-        %   Outputs
-        %     spec  (1,1) struct  shLowLevel.shDegreeRMS output (degree, degRMS,
-        %           degAmplitude, cum*, err* when sigmas are present)
         h = shLowLevel.plotSHSpectrum(obj.degreeRMS, varargin{:});
     end
 
@@ -566,8 +528,6 @@ methods
         %   Outputs
         %     h          (1 x 1) graphics handle   coefficient triangle plot
         %
-        %   Outputs
-        %     h  (1,1) graphics handle  axes of the coefficient triangle plot
         h = shLowLevel.plotSHCoeffTriangle(obj.C, obj.S, varargin{:});
     end
 
@@ -666,9 +626,6 @@ methods
         %   Outputs
         %     out        (1 x 1) shCoefficients   rescaled to the given GM/R
         %
-        %   Outputs
-        %     out  (1,1) shCoefficients  modified copy; the operation is appended to the
-        %              history (immutable value-class pattern)
         arguments
             obj
             opts.GM (1,1) double = NaN
@@ -711,9 +668,6 @@ methods
         %         default; give GM, a, f and omega together to define your own)
         %     omega (NaN)  angular velocity [rad/s] of the normal field
         %
-        %   Outputs
-        %     out  (1,1) shCoefficients  modified copy; the operation is appended to the
-        %              history (immutable value-class pattern)
         arguments
             obj
             opts.System (1,1) string ...
@@ -766,7 +720,9 @@ methods
         %     latDeg  (1,:) double  latitudes [deg]
         %     lonDeg  (1,:) double  longitudes [deg]
         %   Outputs
-        %     H          (1 x 1) struct   the handle struct geo.map returns
+        %     H          (1,1) struct   the graphics handle struct, as
+        %                returned by geoMap's map function - this
+        %                toolbox draws no map of its own
         %
         %   Options
         %     Quantity ("ewh")  any kernelFactors quantity
@@ -845,9 +801,6 @@ methods
         %   Outputs
         %     out        (1 x 1) shCoefficients   fan-filtered
         %
-        %   Outputs
-        %     out  (1,1) shCoefficients  modified copy; the operation is appended to the
-        %              history (immutable value-class pattern)
         arguments
             obj
             rDegKm (1,1) double {mustBePositive}
@@ -919,11 +872,16 @@ methods
         %     latDeg  (1,:) double  latitudes [deg]
         %     lonDeg  (1,:) double  longitudes [deg]
         %   Outputs
-        %     dq       (1 x 1) struct   fields north, east, up: each
-        %                (nlat x nlon) double, or (npts x 1) for
+        %     dq       (1,1) struct   as returned by
+        %                shLowLevel.shSynthesisGradient: north, east and
+        %                up, each (nlat x nlon) double or (npts x 1) for
         %                Mode="points"; up is [] for surface quantities
-        %     info       (1 x 1) struct   quantity, units, r, nmin, nmax,
-        %                hasUp, lat (as given), latType, lon
+        %     info       (1,1) struct   as returned by
+        %                shLowLevel.shSynthesisGradient (quantity, units,
+        %                r, nmin, nmax, hasUp, lat, lon, latType), except
+        %                that lat and latType are overwritten here when
+        %                geodetic input was given, so the convention
+        %                travels with the numbers
         %
         %   Options
         %     Quantity ("geoid")  any kernelFactors quantity
@@ -1032,12 +990,13 @@ methods
         %     latDeg  (1,:) double  latitudes [deg], convention per LatType
         %     lonDeg  (1,:) double  longitudes [deg]
         %   Outputs
-        %     b          (1 x 1) struct   Z (nlat x nlon) double values;
-        %                lat (nlat x 1) double AS GIVEN; lon (1 x nlon)
-        %                double; Units, LatType, Quantity, ProductType,
-        %                Source, Name, FieldKind (1,1) string; Epoch,
-        %                C00, Zmin, Zmax, Zmean (1,1) double; History
-        %                (: x 1) string
+        %     b          (1,1) struct   the handover bundle, as built by
+        %                shLowLevel.gridHandover, which documents every
+        %                field: Z (nlat x nlon) double values; lat
+        %                (nlat x 1) AS GIVEN; lon (1 x nlon); the string
+        %                fields Units, LatType, Quantity, ProductType,
+        %                Source, Name and FieldKind; the scalars Epoch,
+        %                C00, Zmin, Zmax and Zmean; and History
         %
         %   Options
         %     Quantity ("ewh")  any kernelFactors quantity; the default is
@@ -1103,9 +1062,6 @@ methods
         %   Outputs
         %     out        (1 x 1) shCoefficients   DDK-decorrelated
         %
-        %   Outputs
-        %     out  (1,1) shCoefficients  modified copy; the operation is appended to the
-        %              history (immutable value-class pattern)
         arguments
             obj
             W
@@ -1124,9 +1080,6 @@ methods
         %   Outputs
         %     out        (1 x 1) shCoefficients   gfct variable terms evaluated at the epoch; static models pass through unchanged
         %
-        %   Outputs
-        %     out  (1,1) shCoefficients  modified copy; the operation is appended to the
-        %              history (immutable value-class pattern)
         arguments
             obj
             epoch (1,1) double
@@ -1172,9 +1125,6 @@ methods
         %   Outputs
         %     x          (P x 1) double   coefficients in idx ordering
         %
-        %   Outputs
-        %     x    (P x 1) double  stacked coefficients in shLowLevel.shIndex order
-        %     sig  (P x 1) double  matching sigmas ([] when absent)
         arguments
             obj
             idx (1,1) struct
@@ -1227,9 +1177,6 @@ methods (Static)
         %   Outputs
         %     obj        (1 x 1) shCoefficients   parsed gfc/gfct(.gz) with GM, R, sigmas, variable terms, Epoch= as given
         %
-        %   Outputs
-        %     obj  (1,1) shCoefficients  modified copy; the operation is appended to the
-        %              history (immutable value-class pattern)
         arguments
             filename {mustBeTextScalar}
             opts.Epoch (1,1) double = NaN
@@ -1274,9 +1221,6 @@ methods (Static)
         %   Outputs
         %     obj        (1 x 1) shCoefficients   rebuilt from x with sizes/GM/R/epoch of the template
         %
-        %   Outputs
-        %     obj  (1,1) shCoefficients  modified copy; the operation is appended to the
-        %              history (immutable value-class pattern)
         arguments
             x (:,1) double
             idx (1,1) struct
@@ -1308,26 +1252,31 @@ methods (Static)
         %     latVec  (P,1) double  observation latitudes [deg, geocentric]
         %            Nmax (1,1) double
         %   Options
+        %     Quantity ("geoid")  physical quantity of the grid values;
+        %         its kernel is divided out, see shLowLevel.kernelFactors
         %     Method ("auto")  "auto" | "rings" | "ls", see shAnalysisGrid
         %     Weights ("none") ("none" | "coslat") latitude weighting
         %     Kaula (0)     (1 x 1) Kaula regularization for "ls"
+        %     kn ([])  load Love numbers, degrees 0..nmax, required for
+        %         Quantity="ewh" (user-supplied, never hardcoded)
+        %     hn ([])  vertical-deformation Love numbers, degrees 0..nmax
+        %     rho_ave (5517)  mean Earth density [kg/m^3] in the EWH kernel
+        %     rho_water (1000)  water density [kg/m^3] in the EWH kernel
+        %     LatType ("geocentric")  "geocentric" | "geodetic": how latVec
+        %         is interpreted; geodetic values are converted with
+        %         Flattening before evaluation
+        %     Flattening (1/298.257223563)  flattening of the reference
+        %         ellipsoid for that conversion (WGS84; overridable,
+        %         never silently assumed)
+        %     GM (3.986004415e14), R (6378136.3), Epoch (NaN)  stored on
+        %         the returned object
         %     Name ("analysis")  (1 x 1) string stored as the object name
         %
         %   Outputs
         %     obj        (1 x 1) shCoefficients   Stokes coefficients estimated from the grid (exact on ring grids; Kaula for scattered points)
-        %     info       (1 x 1) struct   diagnostics, see shLowLevel.shAnalysisGrid
+        %     info       (1,1) struct   the estimation diagnostics, as
+        %                returned by shLowLevel.shAnalysisGrid
         %
-        %   Options
-        %     kn ([])  load Love numbers, degrees 0..nmax (user-supplied; e.g. shLowLevel.fetchLoveNumbers)
-        %     hn ([])  vertical-deformation Love numbers, degrees 0..nmax (user-supplied)
-        %     rho_ave (5517)  mean Earth density [kg/m^3] in the EWH kernel
-        %     rho_water (1000)  water density [kg/m^3] in the EWH kernel
-        %     LatType ("geocentric")  "geocentric" | "geodetic": how the
-        %         latitude inputs are interpreted; geodetic values are
-        %         converted with Flattening before evaluation
-        %     Flattening (1/298.257223563)  flattening of the reference
-        %         ellipsoid for the geodetic/geocentric conversion (WGS84;
-        %         overridable, never silently assumed)
         arguments
             grid double
             latVec double

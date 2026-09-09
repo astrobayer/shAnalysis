@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shLowLevel.shFanFilter &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shLowLevel.shFanFilter</nav>
+<h1>shLowLevel.shFanFilter</h1>
+<p class="h1line">Han fan filter: separable degree x order Gaussian smoothing.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>[Cf, Sf] = shLowLevel.shFanFilter(C, S, rDegKm, rOrdKm)</code><code>[Cf, Sf] = shLowLevel.shFanFilter(C, S, rDegKm, rOrdKm, R=6378136.3)</code></div>
+<h2>Description</h2>
+<p>[CF, SF] = shLowLevel.shFanFilter(C, S, RDEGKM, RORDKM) applies the fan filter of Han et al. (2005): the product of a Jekeli Gaussian in DEGREE and one in ORDER, W_nm = W_n(rDeg) * W_m(rOrd), damping high orders (the striping direction) harder than an isotropic Gaussian of equal degree radius - the cheap anisotropic benchmark between Jekeli and DDK/tvANS. Common choice: rOrd = rDeg (original fan) or rOrd &lt; rDeg for stronger destriping.</p>
+<h2>Examples</h2>
+<details class="example"><summary>Runnable (docs/apiExamples.json)</summary><div><pre><code>[C2, S2] = shLowLevel.shFanFilter(g.C, g.S, 350, 200);</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>C</code></td><td>n x m</td><td>double</td><td><code>required</code></td><td class="desc">cosine Stokes coefficients, C(n+1, m+1) indexing</td></tr><tr><td><code>S</code></td><td>n x m</td><td>double</td><td><code>required</code></td><td class="desc">sine Stokes coefficients, S(n+1, m+1) indexing</td></tr><tr><td><code>rDegKm</code></td><td>1 x 1</td><td>double</td><td><code>required</code></td><td class="desc">double  degree half-response radius [km]</td></tr><tr><td><code>rOrdKm</code></td><td>1 x 1</td><td>double</td><td><code>required</code></td><td class="desc">double  order half-response radius [km]</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>R</code></td><td>1 x 1</td><td>double</td><td><code>6378136.3</code></td><td class="desc">double = 6378136.3  [m]</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>Cf, Sf</code></td><td class="desc">(n1,n1) double  filtered coefficients</td></tr></table>
+<h2>Error Identifiers</h2>
+<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<p class="none">No other entity is named in this help block.</p>
+<p class="prov">shAnalysis v3.34.1 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

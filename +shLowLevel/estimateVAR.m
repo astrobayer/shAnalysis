@@ -63,15 +63,19 @@ function model = estimateVAR(X, opts)
 %                   domain. [] leaves the covariances untouched.
 %
 %   Outputs
-%     model  (1 x 1) struct  process model:
-%            Phi (1 x p cell of P x P double) coefficient matrices,
-%            Q (P x P double) symmetric PSD process-noise covariance,
-%            Sigma0 (P x P double) empirical auto-covariance Sigma(0)
-%            (the stationary state covariance and the filter's initial
-%            covariance), order (1 x 1), P (1 x 1), specRadius (1 x 1)
-%            spectral radius of the companion matrix (< 1 = stable; a
-%            warning is raised otherwise - filtering an unstable model
-%            diverges over long gaps)
+%     model  (1,1) struct  the process model, fields
+%            Phi     (1 x p) cell of (P x P) double  coefficient matrices
+%            Q       (P x P) double  symmetric PSD process-noise
+%                    covariance
+%            Sigma0  (P x P) double  empirical auto-covariance Sigma(0):
+%                    the stationary state covariance, and the filter's
+%                    initial covariance
+%            order   (1,1) double   the VAR order p
+%            P       (1,1) double   state dimension
+%            specRadius (1,1) double  spectral radius of the companion
+%                    matrix; < 1 is stable, and anything else raises a
+%                    warning because filtering an unstable model diverges
+%                    over long gaps
 %
 %   Example
 %     [~, resid] = tsModel.climatology;              % reduce long-term parts

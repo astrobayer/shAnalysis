@@ -30,6 +30,10 @@ Checks, in order of how badly they bite:
             documented default matches the arguments block.
   COVERAGE  every public entity is mentioned in at least one narrative
             source, not only in the generated reference.
+  SURFACE   the entity set matches the FILESYSTEM, not another parser's
+            opinion of it: one entity per +shLowLevel/*.m, named after
+            its file, and api_data.py agrees. Four parsers of this fact
+            exist in the repo and two were blind the same way (A17).
 
 Stdlib only; run from the repository root. Nonzero exit on any finding.
 
@@ -37,7 +41,9 @@ Developed by Matthias Weigelt with the help of Claude (Opus 5),
 2026-08-11 (v3.1.2).
 """
 import html as _html
+import base64
 import os
+import zlib
 import re
 import sys
 
@@ -112,15 +118,30 @@ def parse_one(lines, i0):
     """Parse the function starting at/after i0."""
     fre = re.compile(r"^\s*function\s+(?:(\[[^\]]*\]|\w+)\s*=\s*)?"
                      r"(\w+)\s*\(([^)]*)\)")
-    i = i0
-    while i < len(lines) and not fre.match(lines[i]):
+    i, m, last = i0, None, i0
+    while i < len(lines):
+        if re.match(r"^\s*function\b", lines[i]):
+            # A17: a signature may be continued with "..." (gridHandover).
+            # Matching the raw line alone dropped the whole file, and this
+            # audit's COVERAGE check then never asked for it. MATLAB skips
+            # comment lines inside a continuation, so skip them here too.
+            sig, last = lines[i], i
+            while (sig.split("%")[0].rstrip().endswith("...")
+                   and last + 1 < len(lines)):
+                last += 1
+                if lines[last].lstrip().startswith("%"):
+                    continue
+                sig = (sig.split("%")[0].rstrip()[:-3].rstrip()
+                       + " " + lines[last].strip())
+            m = fre.match(sig)
+            if m:
+                break
         i += 1
-    if i >= len(lines):
+    if m is None:
         return None
-    m = fre.match(lines[i])
     outs = re.findall(r"\w+", m.group(1)) if m.group(1) else []
     ins = [a.strip() for a in m.group(3).split(",") if a.strip()]
-    j = i + 1
+    j = last + 1
     help_lines = []
     while j < len(lines) and lines[j].lstrip().startswith("%"):
         help_lines.append(lines[j].lstrip().lstrip("%").rstrip("\n"))
@@ -384,6 +405,52 @@ def html_snippets(path):
         yield _html.unescape(re.sub(r"<[^>]+>", "", blk))
 
 
+# The shipped guide PDF carried v3.28.0 while the toolbox was at
+# v3.33.0 - five releases, one of them the BREAKING MinDegree -> Nmin
+# rename. The VERSION check covered apiReference.html and the overview
+# page but not the PDF, because reading a PDF looked like it needed a
+# dependency. It does not: reportlab writes ASCII85 + Flate content
+# streams that the standard library decodes.
+_PDF_TEXT_OP = re.compile(rb"BT\b.*?\bET\b", re.S)
+
+
+def _pdf_inflate(chunk):
+    chunk = chunk.strip()
+    for load in (lambda c: c,
+                 lambda c: base64.a85decode(c, adobe=True),
+                 lambda c: base64.a85decode(c.rstrip(b"~>") + b"~>",
+                                            adobe=True)):
+        try:
+            return zlib.decompress(load(chunk))
+        except Exception:
+            continue
+    return None
+
+
+def pdf_first_page_text(path):
+    """Text of the first content stream. Standard library only."""
+    with open(path, "rb") as fh:
+        data = fh.read()
+    for m in re.finditer(rb"stream\r?\n", data):
+        s = m.end()
+        e = data.find(b"endstream", s)
+        if e < 0:
+            continue
+        head = data[max(0, m.start() - 400):m.start()]
+        if b"/Image" in head or b"/FontFile" in head:
+            continue
+        raw = _pdf_inflate(data[s:e])
+        if raw is None or b"BT" not in raw or b"Tf" not in raw:
+            continue
+        frags = []
+        for blk in _PDF_TEXT_OP.findall(raw):
+            frags += [t.group(0)[1:-1] for t in
+                      re.finditer(rb"\((?:\\.|[^\\()])*\)", blk)]
+        if frags:
+            return b" ".join(frags).decode("latin-1", "replace")
+    return ""
+
+
 def guide_snippets():
     if not os.path.isfile(GUIDE_SRC):
         return
@@ -427,12 +494,18 @@ def main():
                              "the page is stale" % (k, a["name"]))
 
     # --- TOC
-    toc = open(os.path.join(HTML, "helptoc.xml"), encoding="utf-8").read()
+    # A target may name a page in a subfolder: html/ref/ holds one
+    # generated page per entity (WP6) and appears in the TOC as its index,
+    # so resolve targets against html/ rather than matching bare names.
+    # The generated pages are gated by tools/dev/refpages_audit.py.
+    with open(os.path.join(HTML, "helptoc.xml"), encoding="utf-8") as fh:
+        toc = fh.read()
     targets = set(re.findall(r'target="([^"]+)"', toc))
     for f in set(pages) - targets:
         probs.append("helptoc.xml: %s is unreachable from the Help browser" % f)
-    for f in targets - set(pages):
-        probs.append("helptoc.xml: target %s does not exist" % f)
+    for f in sorted(targets):
+        if not os.path.isfile(os.path.join(HTML, f)):
+            probs.append("helptoc.xml: target %s does not exist" % f)
 
     # --- VERSION
     cm = open(os.path.join(ROOT, "Contents.m"), encoding="utf-8").read()
@@ -455,6 +528,20 @@ def main():
                                   chg, re.M):
             probs.append("CHANGELOG.md: %s - a tagged release leaves no "
                          "Unreleased section" % openhdr.strip())
+        pdf = os.path.join(ROOT, "docs", "shAnalysis_workflow_guide.pdf")
+        if not os.path.isfile(pdf):
+            probs.append("docs/shAnalysis_workflow_guide.pdf is missing - "
+                         "build it with tools/dev/make_guide.py")
+        else:
+            page1 = pdf_first_page_text(pdf)
+            mp = re.search(r"shAnalysis v(\S+?) - Workflow", page1)
+            if not mp:
+                probs.append("workflow guide PDF: no version in the page-1 "
+                             "running head - did the title page change?")
+            elif mp.group(1) != ver:
+                probs.append("workflow guide PDF: stamped v%s, Contents.m "
+                             "says %s - rebuild it with "
+                             "tools/dev/make_guide.py" % (mp.group(1), ver))
         if "API reference (v%s)" % ver not in api:
             probs.append("apiReference.html: title is not v%s - regenerate it"
                          % ver)
@@ -472,6 +559,23 @@ def main():
             elif mo.group(1) != ver:
                 probs.append("shAnalysis.html: version %s != Contents.m %s"
                              % (mo.group(1), ver))
+        # demos.xml is generated from the demo registry AND stamped with
+        # the toolbox version, so a bump alone makes it stale. It was
+        # regenerated by neither §3.4's gate list nor §3.9's list because
+        # make_demos appeared in neither: CI caught it, this session did
+        # not. Version agreement is this check's job, so it owns this one
+        # too - make_demos --check stays the content check.
+        dx = os.path.join(ROOT, "demos.xml")
+        if os.path.isfile(dx):
+            dt = open(dx, encoding="utf-8").read()
+            md = re.search(r"\(v(\d+\.\d+\.\d+)\)", dt)
+            if not md:
+                probs.append("demos.xml: no version stamp - it is generated "
+                             "with one and must keep it")
+            elif md.group(1) != ver:
+                probs.append("demos.xml: version %s != Contents.m %s - "
+                             "rerun tools/dev/make_demos.py"
+                             % (md.group(1), ver))
         # the first Contents.m line is what ver() shows as the product NAME
         first = cm.split("\n", 1)[0].lstrip("% ").strip()
         if len(first) >= 60 or re.search(r"\d+\.\d+", first):
@@ -521,6 +625,112 @@ def main():
         if not re.search(r"\b" + re.escape(short) + r"\b", blob):
             probs.append("%s is documented ONLY in the generated API "
                          "reference - no narrative page or guide section" % k)
+
+    # --- SURFACE: ground truth is the filesystem. MATLAB requires a file
+    # to define the function it is named after, so every +shLowLevel/X.m
+    # owes exactly one entity "shLowLevel.X". Comparing two parsers to
+    # each other would not have caught A17 - api_extract and this audit
+    # were blind in the SAME way, agreed with each other, and both
+    # dropped gridHandover along with its reference page.
+    for f in sorted(os.listdir(PKG)):
+        if not f.endswith(".m"):
+            continue
+        want = "shLowLevel." + f[:-2]
+        if want not in ent:
+            probs.append("%s: the file exists but this audit parsed no "
+                         "entity from it (continued signature?)" % want)
+    try:
+        sys.path.insert(0, os.path.join(ROOT, "tools", "dev"))
+        from api_data import API as _API
+        seen = {"shLowLevel." + e["name"] for e in _API["shLowLevel"]}
+        seen |= {e["name"] for e in _API["root"]}
+        seen |= {c["name"] + "." + m["name"]
+                 for c in _API["classes"] for m in c["methods"]}
+        for k in sorted(set(ent) - seen):
+            probs.append("%s: missing from api_data.py - regenerate with "
+                         "tools/dev/api_extract.py" % k)
+        for k in sorted(seen - set(ent)):
+            probs.append("%s: in api_data.py but not parsed here - the "
+                         "two readers of the public surface disagree" % k)
+    except ImportError:
+        probs.append("tools/dev/api_data.py is missing - regenerate it")
+
+    # --- DEMOS: the Examples tab is derived from the registry inside
+    # demo_shAnalysis.m, so a case cannot exist in one and not the other.
+    dx = os.path.join(ROOT, "demos.xml")
+    if not os.path.isfile(dx):
+        probs.append("demos.xml is missing - run tools/dev/make_demos.py")
+    else:
+        try:
+            import xml.etree.ElementTree as ET
+            root_el = ET.parse(dx).getroot()
+            labels = [it.findtext("label") or ""
+                      for it in root_el.findall(".//demoitem")]
+        except Exception as exc:                       # noqa: BLE001
+            probs.append("demos.xml does not parse: %s" % exc)
+            labels = []
+        with open(os.path.join(ROOT, "demo_shAnalysis.m"),
+                  encoding="utf-8") as fh:
+            ids = re.findall(r'^\s*mk\("(D\d+)"', fh.read(), re.M)
+        for cid in ids:
+            if not any(x.startswith(cid) for x in labels):
+                probs.append("demos.xml: no entry for demo case %s - run "
+                             "tools/dev/make_demos.py" % cid)
+        for lab in labels:
+            cid = lab.split()[0]
+            if cid not in ids:
+                probs.append("demos.xml: entry %s is not in the "
+                             "demo_shAnalysis registry" % cid)
+
+    # --- ONE LOOK, ONE VOCABULARY (A8). Fifty pages each carried the
+    # SAME inline <style> block - one stylesheet copied fifty times - and
+    # the same section went by "See also"/"See Also", "Example"/
+    # "Examples", "Outputs"/"Output Arguments"/"Inputs / Outputs".
+    # Page-specific narrative headings stay free; only the structural
+    # ones are pinned, and only to their canonical spelling.
+    CANON = {"see also": "See Also", "example": "Examples",
+             "examples": "Examples", "outputs": "Output Arguments",
+             "inputs": "Input Arguments",
+             "inputs / outputs": "Arguments", "inputs/outputs": "Arguments",
+             "output arguments": "Output Arguments",
+             "input arguments": "Input Arguments", "arguments": "Arguments",
+             "syntax": "Syntax", "description": "Description",
+             "options": "Options"}
+    css = os.path.join(ROOT, "html", "shAnalysis.css")
+    if not os.path.isfile(css):
+        probs.append("html/shAnalysis.css is missing - it is the one "
+                     "authority for the look of every page")
+    for fn in sorted(os.listdir(HTML)):
+        if not fn.endswith(".html"):
+            continue
+        with open(os.path.join(HTML, fn), encoding="utf-8") as fh:
+            d = fh.read()
+        if "<style" in d:
+            probs.append("%s: inline <style> - link html/shAnalysis.css "
+                         "instead; fifty copies of one stylesheet is what "
+                         "A8 found" % fn)
+        if 'href="shAnalysis.css"' not in d:
+            probs.append("%s: does not link the shared stylesheet" % fn)
+        for m in re.finditer(r"<(h[23])[^>]*>(.*?)</\1>", d, re.S):
+            raw = re.sub(r"<[^>]+>", "", m.group(2)).strip()
+            canon = CANON.get(raw.lower())
+            if canon and canon != raw:
+                probs.append("%s: heading '%s' - the house spelling is "
+                             "'%s'" % (fn, raw, canon))
+
+    # --- ONE LOCATION: html/ is the only page authority. docs/ carried a
+    # byte-identical copy of the generated apiReference.html for months;
+    # nothing wrote it, nothing read it, and nothing compared the two, so
+    # it simply aged. A second copy of a generated page is never right.
+    for dirpath, dirnames, filenames in os.walk(ROOT):
+        dirnames[:] = [d for d in dirnames
+                       if d not in (".git", "html", "node_modules")]
+        for fn in filenames:
+            if not fn.endswith(".html"):
+                continue
+            rel = os.path.relpath(os.path.join(dirpath, fn), ROOT)
+            probs.append("%s: HTML pages live in html/ only - this is a "
+                         "second copy that nothing regenerates" % rel)
 
     # structural (audit F-6): content after </html> renders by browser
     # error recovery and passes every text-presence check above

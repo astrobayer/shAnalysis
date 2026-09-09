@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shLowLevel.readDDK &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shLowLevel.readDDK</nav>
+<h1>shLowLevel.readDDK</h1>
+<p class="h1line">Load a DDK (Kusche) anisotropic decorrelation filter.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>W = shLowLevel.readDDK(source)</code><code>W = shLowLevel.readDDK(source, Nmax=[])</code></div>
+<h2>Description</h2>
+<p>W = shLowLevel.readDDK(SOURCE) loads a DDK filter into the toolbox&#x27;s order-block container, ready for <a href="shLowLevel_applyDDK.html"><code>shLowLevel.applyDDK</code></a> / g.applyDDK / ts.applyDDK. The DDK filters (Kusche 2007; Kusche et al. 2009, DDK1..DDK8) are the standard published anisotropic alternative to Gaussian smoothing and the usual benchmark against tvANS.</p>
+<h2>Examples</h2>
+<details class="example"><summary>Runnable (docs/apiExamples.json)</summary><div><pre><code>W = shLowLevel.readDDK(&quot;DDK3&quot;);   % DDK3 ships with the toolbox; others via shLowLevel.fetchDDK</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>source</code></td><td>n x m</td><td>-</td><td><code>required</code></td><td class="desc">DDK filter file or folder the coefficients are read from</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>Nmax</code></td><td>n x m</td><td>double</td><td><code>[]</code></td><td class="desc">truncate the filter to degrees &lt;= Nmax (leading submatrix per block - identical to the reference filterSH behavior for inputs with nmax below the filter&#x27;s Lmax). Required to apply an Lmax-120 DDK to n96 series without an nmaxMismatch error.</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>W</code></td><td class="desc">(1,1) struct  fields nmax    (1,1) double  maximum degree the filter covers name    (1,1) string  the DDK label, e.g. &quot;DDK3&quot; blocks  (1 x 241) struct array  one per (order, cs) block, each with m (1,1 double), cs (&#x27;c&#x27;|&#x27;s&#x27;), n (1,B double, the degrees) and M (B x B double, the square block matrix)</td></tr></table>
+<h2>Error Identifiers</h2>
+<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<ul class="seealso"><li><a href="shLowLevel_applyDDK.html"><code>shLowLevel.applyDDK</code></a></li></ul>
+<p class="prov">shAnalysis v3.34.1 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

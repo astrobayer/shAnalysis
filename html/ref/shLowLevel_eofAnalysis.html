@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shLowLevel.eofAnalysis &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shLowLevel.eofAnalysis</nav>
+<h1>shLowLevel.eofAnalysis</h1>
+<p class="h1line">Empirical orthogonal functions of a coefficient series.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>[modes, pcs, varExplained, info] = shLowLevel.eofAnalysis(ts)</code><code>[modes, pcs, varExplained, info] = shLowLevel.eofAnalysis(ts, NModes=6, Center=true)</code></div>
+<h2>Description</h2>
+<p>[MODES, PCS, VAREXPLAINED, INFO] = shLowLevel.eofAnalysis(TS) decomposes the (typically residual) series into spatial modes and principal components via SVD of the flattened, time-centered coefficient stack: X = U S V&#x27;; MODES{k} carries U(:,k)*S(k,k)/sqrt(T-1) as an <a href="shCoefficients.html"><code>shCoefficients</code></a> (synthesize for the spatial pattern), PCS(:,k) = sqrt(T-1)*V(:,k) is the unit-variance temporal amplitude, so mode-k field * pc reconstructs the mode&#x27;s contribution exactly.</p>
+<h2>Examples</h2>
+<details class="example"><summary>Runnable (docs/apiExamples.json)</summary><div><pre><code>[modes, pcs, ve] = shLowLevel.eofAnalysis(resid);
+plot(resid.epochs, pcs(:, 1))         % leading principal component</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>ts</code></td><td>1 x 1</td><td>shSeries</td><td><code>required</code></td><td class="desc"><a href="shSeries.html"><code>shSeries</code></a> (NaN-free; use dropNaN across the gap)</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>NModes</code></td><td>1 x 1</td><td>double</td><td><code>6</code></td><td class="desc">modes returned</td></tr><tr><td><code>Center</code></td><td>1 x 1</td><td>logical</td><td><code>true</code></td><td class="desc">remove the temporal mean first</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>modes</code></td><td class="desc">1 x K cell of <a href="shCoefficients.html"><code>shCoefficients</code></a> (spatial patterns)</td></tr><tr><td><code>pcs</code></td><td class="desc">(T,K) double, unit variance columns</td></tr><tr><td><code>varExplained</code></td><td class="desc">(K,1) double, fraction in [0,1]</td></tr><tr><td><code>info</code></td><td class="desc">(1,1) struct  fields singularValues  (K x 1) double  singular values of the centred data matrix totalVariance   (1,1) double    total variance before truncation T               (1,1) double    epochs used centered        (1,1) logical   whether the temporal mean was removed (= the Center option)</td></tr></table>
+<h2>Error Identifiers</h2>
+<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<ul class="seealso"><li><a href="shCoefficients.html"><code>shCoefficients</code></a></li></ul>
+<p class="prov">shAnalysis v3.34.1 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

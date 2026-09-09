@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shLowLevel.shSynthesisGradient &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shLowLevel.shSynthesisGradient</nav>
+<h1>shLowLevel.shSynthesisGradient</h1>
+<p class="h1line">North/east/up gradient of any synthesized quantity.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>[dq, info] = shLowLevel.shSynthesisGradient(C, S, GM, R, latDeg, lonDeg)</code><code>[dq, info] = shLowLevel.shSynthesisGradient(C, S, GM, R, latDeg, lonDeg, Quantity=&quot;geoid&quot;, kn=[], hn=[], ...)</code></div>
+<h2>Description</h2>
+<p>[DQ, INFO] = shLowLevel.shSynthesisGradient(C, S, GM, R, LAT, LON, Quantity (&quot;geoid&quot;)=..., Units (&quot;perMeter&quot;)=..., Mode (&quot;grid&quot;)=...) returns the spatial gradient of the field that <a href="shLowLevel_shSynthesis.html"><code>shLowLevel.shSynthesis</code></a> would produce from the SAME coefficients and the SAME options, resolved in the local north-east-up frame:</p>
+<h2>Examples</h2>
+<details class="example"><summary>From the help block</summary><div><pre><code>    % a zonal degree-2 pattern: the east gradient must vanish exactly
+    C = zeros(3); S = zeros(3); C(3,1) = 1;              % C_20
+    lat = -80:10:80; lon = 0:20:340;
+    dq = shLowLevel.shSynthesisGradient(C, S, 3.986004415e14, ...
+            6378136.3, lat, lon, Quantity = &quot;none&quot;, Units = &quot;perRadian&quot;);
+    max(abs(dq.east(:)))            % 0
+    quiver(lon, lat, dq.east, dq.north)
+
+  References
+    Wahr, Molenaar &amp; Bryan (1998), JGR 103(B12) - the degree factors.
+    Holmes &amp; Featherstone (2002), J Geod 76 - the Legendre recursion
+    whose exact latitude derivative shLowLevel.legendreALFDeriv carries.
+
+  Python-validated before implementation (tools/dev/validate_gradient.py):
+  all three components against 5-point finite differences of an
+  independent scalar synthesis at 1e-12 (the difference floor), the
+  radial identities d(potential)/dr = -gravity_disturbance and
+  d(gravity_disturbance)/dr = -gravity_gradient_rr at 4e-16, and
+  single-coefficient closed forms at 2e-16.
+
+  See also SHSYNTHESIS, SHSYNTHESISDEFORMATION, SHSYNTHESISGRADIENTTENSOR,
+  KERNELFACTORS, LEGENDREALFDERIV.
+
+  Claude (Opus 5), 2026-08-22 (v3.30.0).</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>C</code></td><td>n x m</td><td>double</td><td><code>required</code></td><td class="desc">cosine Stokes coefficients, C(n+1, m+1) indexing</td></tr><tr><td><code>S</code></td><td>n x m</td><td>double</td><td><code>required</code></td><td class="desc">sine Stokes coefficients, S(n+1, m+1) indexing</td></tr><tr><td><code>GM</code></td><td>1 x 1</td><td>double</td><td><code>required</code></td><td class="desc">double [m^3/s^2]</td></tr><tr><td><code>R</code></td><td>1 x 1</td><td>double</td><td><code>required</code></td><td class="desc">double [m]      reference radius</td></tr><tr><td><code>latDeg</code></td><td>1 x :</td><td>double</td><td><code>required</code></td><td class="desc">double [deg] GEOCENTRIC latitude</td></tr><tr><td><code>lonDeg</code></td><td>1 x :</td><td>double</td><td><code>required</code></td><td class="desc">double [deg] longitude</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>Quantity</code></td><td>1 x 1</td><td>string</td><td><code>&quot;geoid&quot;</code></td><td class="desc">any quantity of <a href="shLowLevel_kernelFactors.html"><code>shLowLevel.kernelFactors</code></a>: &quot;none&quot;, &quot;geoid&quot;, &quot;potential&quot;, &quot;gravity_anomaly&quot;, &quot;gravity_disturbance&quot;, &quot;gravity_gradient_rr&quot;, &quot;ewh&quot;, &quot;surface_density&quot;, &quot;bottom_pressure&quot;, &quot;deformation_up&quot;</td></tr><tr><td><code>kn</code></td><td>n x m</td><td>double</td><td><code>[]</code></td><td class="desc">load Love numbers k&#x27;_n, degrees 0..nmax; REQUIRED by the mass quantities, never hardcoded</td></tr><tr><td><code>hn</code></td><td>n x m</td><td>double</td><td><code>[]</code></td><td class="desc">load Love numbers h&#x27;_n (deformation_up only)</td></tr><tr><td><code>Nmin</code></td><td>1 x 1</td><td>double</td><td><code>0</code></td><td class="desc">degrees below nmin are zeroed. Degree 0 and 1 have no horizontal gradient beyond the degree-1 tilt, but they DO contribute to G.up - so this is not a free choice; keep it equal to the scalar map&#x27;s</td></tr><tr><td><code>Nmax</code></td><td>1 x 1</td><td>double</td><td><code>NaN</code></td><td class="desc">truncation degree; NaN uses all supplied degrees</td></tr><tr><td><code>Height</code></td><td>1 x 1</td><td>double</td><td><code>0</code></td><td class="desc">evaluation height above R [m]; r = R + Height enters both the kernel attenuation and the metric factors. Rejected for surface quantities, by kernelFactors</td></tr><tr><td><code>rho_ave</code></td><td>1 x 1</td><td>double</td><td><code>5517</code></td><td class="desc">mean Earth density [kg/m^3] (mass kernels)</td></tr><tr><td><code>rho_water</code></td><td>1 x 1</td><td>double</td><td><code>1000</code></td><td class="desc">water density [kg/m^3] (ewh kernel)</td></tr><tr><td><code>Mode</code></td><td>1 x 1</td><td>string</td><td><code>&quot;grid&quot;</code></td><td class="desc">&quot;grid&quot; evaluates the nlat x nlon outer product; &quot;points&quot; takes equal-length LAT/LON and evaluates pairwise - the mode a particle advection needs when it steps tracers at their own positions. NOTE the cost: &quot;points&quot; pays a Legendre recursion per point, so a per-frame call for 10^4 tracers is far slower than one grid call plus interpolation. Grid-and- interpolate is the right pattern for animation; &quot;points&quot; is for when the exact value at a station matters</td></tr><tr><td><code>Units</code></td><td>1 x 1</td><td>string</td><td><code>&quot;perMeter&quot;</code></td><td class="desc">&quot;perMeter&quot; is the true gradient [Q]/m. &quot;perRadian&quot; multiplies every component by r, giving dQ/dphi, (1/cos phi) dQ/dlambda and dQ/d(ln r) - the form a lat/lon advection step wants, since dphi/dt is then G.north/r directly</td></tr><tr><td><code>MaxMemGB</code></td><td>1 x 1</td><td>double</td><td><code>4</code></td><td class="desc">memory budget [GB] for the Legendre stack; latitudes are processed in bands so nmax is not limited by it</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>dq</code></td><td class="desc">(1,1) struct  each field is (nlat x nlon) double for Mode=&quot;grid&quot; or (npts x 1) double for &quot;points&quot;. Fields north  the north component of the gradient east   the east component. NaN where |lat| = 90 - the east direction does not exist at a pole, and the cos(phi) division there returns a finite, meaningless number if it is not caught up     the radial component; [] for surface quantities (see above)</td></tr><tr><td><code>info</code></td><td class="desc">(1,1) struct  fields quantity  (1,1) string   what was differentiated units     (1,1) string   the units of dq r         (1,1) double   evaluation radius [m] nmin, nmax  (1,1) double  the degree range used hasUp     (1,1) logical  whether dq.up is filled lat       (1 x nlat) double  latitudes actually used lon       (1 x nlon) double  longitudes actually used latType   (1,1) string   always &quot;geocentric&quot; here: this function has no ellipsoid. <a href="shCoefficients_gradient.html"><code>shCoefficients.gradient</code></a> overwrites lat and latType when it was handed geodetic input, so the convention travels with the numbers instead of being remembered by the caller</td></tr></table>
+<h2>Error Identifiers</h2>
+<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<ul class="seealso"><li><a href="shLowLevel_shSynthesis.html"><code>shLowLevel.shSynthesis</code></a></li></ul>
+<p class="prov">shAnalysis v3.34.1 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

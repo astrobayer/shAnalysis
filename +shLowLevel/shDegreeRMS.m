@@ -14,17 +14,25 @@ function spec = shDegreeRMS(C, S, varargin)
 %   computes the error degree amplitude .errAmplitude from formal errors,
 %   using the same degree-RMS formula applied to sigC, sigS.
 %
-%   Name/value options:
+%   Options
 %     'R'     reference radius [m], default 6378136.3
 %     'n0'    lowest degree to include (coefficients below n0 zeroed out
 %             before summation, e.g. n0=2 to drop degree 0/1), default 0
 %
 %   Claude (Sonnet 4.6), 2026-07-11; merged into +shLowLevel: Claude (Fable 5), 2026-08-07.
 %   Outputs
-%     spec       struct: degree (nmax+1 x 1), degVariance/degRMS/
-%                degAmplitude, cumVariance/cumRMS/cumAmplitude, R,
-%                domain; errVariance/errRMS/errAmplitude when sigmas
-%                are supplied
+%     spec  (1,1) struct  fields
+%           degree        (nmax+1 x 1) double  the degree axis
+%           degVariance, degRMS, degAmplitude  (nmax+1 x 1) double
+%                         per-degree signal measures
+%           cumVariance, cumRMS, cumAmplitude  (nmax+1 x 1) double
+%                         their cumulative counterparts
+%           R             (1,1) double  the radius the amplitudes use
+%           domain        (1,:) char    'degree' (consumed by
+%                         plotSHSpectrum)
+%           errVariance, errRMS, errAmplitude  (nmax+1 x 1) double
+%                         the same for the formal errors; present only
+%                         when sigmas were supplied
 %
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 

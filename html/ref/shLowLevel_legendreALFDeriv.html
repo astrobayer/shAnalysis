@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shLowLevel.legendreALFDeriv &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shLowLevel.legendreALFDeriv</nav>
+<h1>shLowLevel.legendreALFDeriv</h1>
+<p class="h1line">Fully normalized ALFs and their latitude derivatives.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>[P, D, D2] = shLowLevel.legendreALFDeriv(nmax, latRad)</code></div>
+<h2>Description</h2>
+<p>[P, D] = shLowLevel.legendreALFDeriv(NMAX, LATRAD) returns the 4pi-fully- normalized associated Legendre functions P (via <a href="shLowLevel_legendreALF.html"><code>shLowLevel.legendreALF</code></a>, scaled Holmes-Featherstone, stable to degree 2190) and their exact first derivatives with respect to LATITUDE phi,</p>
+<h2>Examples</h2>
+<details class="example"><summary>Runnable (docs/apiExamples.json)</summary><div><pre><code>[P, dP] = shLowLevel.legendreALFDeriv(60, theta);   % for deformation/tensor</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>nmax</code></td><td>1 x 1</td><td>double</td><td><code>required</code></td><td class="desc">double            maximum degree</td></tr><tr><td><code>latRad</code></td><td>1 x :</td><td>double</td><td><code>required</code></td><td class="desc">double [rad]   geocentric latitudes</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<p class="none">None.</p>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>P</code></td><td class="desc">(nmax+1, nmax+1, nlat) double   Pbar_nm(sin lat)</td></tr><tr><td><code>D</code></td><td class="desc">(nmax+1, nmax+1, nlat) double   dPbar_nm/dphi [1/rad] D2 (nmax+1, nmax+1, nlat) double   d2Pbar_nm/dphi2 [1/rad^2]: the SAME column stencil applied to D - exact, because the first-derivative identity holds degree-wise as a function of phi and differentiates term by term (Python-validated vs numerical second differences, rel ~2e-7 = FD floor; v2.4)</td></tr></table>
+<h2>Error Identifiers</h2>
+<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<ul class="seealso"><li><a href="shLowLevel_legendreALF.html"><code>shLowLevel.legendreALF</code></a></li></ul>
+<p class="prov">shAnalysis v3.34.1 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

@@ -184,8 +184,6 @@ methods
         %   Outputs
         %     g          (1 x 1) shCoefficients   month k with epoch and sigmas
         %
-        %   Outputs
-        %     g  (1,1) shCoefficients  the k-th epoch as a standalone field
         arguments
             obj
             k (1,1) double {mustBeInteger, mustBePositive}
@@ -267,9 +265,24 @@ methods
         %     g          (1 x 1) shCoefficients   mean field over the window,
         %         with sigmas (scatter-based for "arithmetic", propagated
         %         through the fit for "model")
-        %     info       (1 x 1) struct   estimator, range, nUsed, nTotal,
-        %         nDropped, span, coverage, maxGapYears, centroidOffset,
-        %         epoch, attenuation (K+2 x 2 [period factor], "model" only)
+        %     info       (1,1) struct   fields
+        %         estimator       (1,1) string   which estimator ran
+        %         range           (1,2) double   the window requested
+        %         nUsed           (1,1) double   epochs that contributed
+        %         nTotal          (1,1) double   epochs in the series
+        %         nDropped        (1,1) double   epochs dropped as empty
+        %         span            (1,2) double   first and last epoch used
+        %         coverage        (1,1) double   used*dt / window length,
+        %                         capped at 1; NaN below two epochs
+        %         maxGapYears     (1,1) double   largest gap between two
+        %                         used epochs; NaN below two epochs
+        %         centroidOffset  (1,1) double   mean(used) minus the
+        %                         window centre - how lopsided the sample
+        %                         is
+        %         epoch           (1,1) double   the epoch stamped on the
+        %                         returned field
+        %         attenuation     (K+2 x 2) double  [period factor];
+        %                         Estimator="model" only
         %
         %   Example
         %     gBase = ts.mean(Range = [2004 2010]);
@@ -419,10 +432,6 @@ methods
         %     clim       (1 x 1) shClimatology   fitted bias/trend/annual/semiannual (+Periods=) with coefficient sigmas
         %     resid      (1 x 1) shSeries   residual series about the fit
         %
-        %   Options
-        %     ARCorrect (false)  correct the parameter sigmas for AR(1)
-        %         residual autocorrelation (Kendall-corrected r1); the
-        %         uncorrected sigmas are optimistic for monthly series
         arguments
             obj
             opts.Robust (1,1) logical = false
@@ -476,11 +485,8 @@ methods
         %   Python-validated: 5.1% null rejection at the 5% level;
         %   F = 23 for a 0.02/yr break in 0.05-sigma noise (T = 120).
         %
-        %   Returns a struct (NOT an shClimatology - the climatology
-        %   schema stays fixed): trend1C/S (pre-break rate), hingeC/S
-        %   (n1 x n1 x K rate CHANGES per break; post-break rate =
-        %   trend1 + cumsum of hinges), sigmas, F (n1 x n1 x K),
-        %   pValue, breaks, t0.
+        %   Returns a plain struct, not an shClimatology - the
+        %   climatology schema stays fixed. See Outputs for the fields.
         %   Options
         %     Breaks (required) (1 x B) trend break epochs [decimal years]
         %     Periods ([])      (1 x K) extra harmonic periods [yr]
@@ -488,11 +494,28 @@ methods
         %     ARCorrect (false) (1 x 1) AR(1) correction of the sigmas
         %
         %   Outputs
-        %     out        struct: trends per segment (shCoefficients), F/p per break, segment epochs
+        %     out  (1,1) struct  NOT an shCoefficients - the coefficient
+        %          matrices are plain (n1 x n1) doubles - fields
+        %          breaks              (1 x B) double  the break epochs, as
+        %                              given [decimal years]
+        %          t0                  (1,1) double  reference epoch used
+        %          trend1C, trend1S    (n1 x n1) double  pre-break rate
+        %                              [units/yr], cosine and sine
+        %          sigmaTrend1C, sigmaTrend1S  (n1 x n1) double  their
+        %                              1-sigma
+        %          hingeC, hingeS      (n1 x n1 x B) double  rate CHANGE at
+        %                              each break; the post-break rate is
+        %                              trend1 + cumsum over the hinges
+        %          sigmaHingeC, sigmaHingeS  (n1 x n1 x B) double  1-sigma
+        %                              of the rate changes
+        %          trendNoBreakC       (n1 x n1) double  rate of the
+        %                              no-break model, the F-test's null
+        %          sigmaTrendNoBreakC  (n1 x n1) double  its 1-sigma
+        %          F, pValue           (n1 x n1) double  F statistic and
+        %                              p-value per cosine coefficient
+        %          FS, pValueS         (n1 x n1) double  the same for the
+        %                              sine coefficients
         %
-        %   Outputs
-        %     out  (1,1) shSeries  modified copy; the operation is appended to the
-        %              history (immutable value-class pattern)
         arguments
             obj
             opts.Breaks (1,:) double
@@ -551,9 +574,6 @@ methods
         %   Outputs
         %     out        (1 x 1) shSeries   fan-filtered per month
         %
-        %   Outputs
-        %     out  (1,1) shSeries  modified copy; the operation is appended to the
-        %              history (immutable value-class pattern)
         arguments
             obj
             rDegKm (1,1) double {mustBePositive}
@@ -591,9 +611,6 @@ methods
         %     ReplaceC30 ("auto")  "auto" (replace when the table has a
         %         non-NaN C30 for that month) | "never" | "always"
         %
-        %   Outputs
-        %     out  (1,1) shSeries  modified copy; the operation is appended to the
-        %              history (immutable value-class pattern)
         arguments
             obj
             tn
@@ -620,9 +637,6 @@ methods
         %     Tolerance (0.05)  maximum |epoch difference| [yr] accepted
         %         when matching a table entry to this epoch
         %
-        %   Outputs
-        %     out  (1,1) shSeries  modified copy; the operation is appended to the
-        %              history (immutable value-class pattern)
         arguments
             obj
             tn
@@ -759,9 +773,6 @@ methods
         %   Outputs
         %     out        (1 x 1) shSeries   GIA trend removed about the series mean epoch
         %
-        %   Outputs
-        %     out  (1,1) shSeries  modified copy; the operation is appended to the
-        %              history (immutable value-class pattern)
         arguments
             obj
             gia (1,1) shCoefficients
@@ -796,9 +807,6 @@ methods
         %   Outputs
         %     out        (1 x 1) shSeries   DDK-decorrelated per month
         %
-        %   Outputs
-        %     out  (1,1) shSeries  modified copy; the operation is appended to the
-        %              history (immutable value-class pattern)
         arguments
             obj
             W
@@ -823,12 +831,11 @@ methods
         %   Inputs
         %     others  shSeries or cell of shSeries  series to compare; OBJ is the reference
         %   Outputs
-        %     rep        (1 x 1) struct   shLowLevel.compareSeries report
+        %     rep        (1,1) struct   as returned by
+        %                shLowLevel.compareSeries, which documents every
+        %                field
         %     h          (1 x 1) graphics handle   figure (Plot = true)
         %
-        %   Outputs
-        %     rep  (1,1) struct  shLowLevel.compareSeries report
-        %     h    (1,1) graphics handle  figure (Plot = true only)
         if ~iscell(others), others = {others}; end
         [rep, h] = shLowLevel.compareSeries([{obj}, others], varargin{:});
     end
@@ -846,9 +853,6 @@ methods
         %   Outputs
         %     out        (1 x 1) shSeries   background model added back epoch-matched (e.g. GSM + GAD)
         %
-        %   Outputs
-        %     out  (1,1) shSeries  modified copy; the operation is appended to the
-        %              history (immutable value-class pattern)
         arguments
             obj
             gax (1,1) shSeries
@@ -888,9 +892,6 @@ methods
         %   Outputs
         %     out        (1 x 1) shSeries   per-month difference (series or single field)
         %
-        %   Outputs
-        %     out  (1,1) shSeries  modified copy; the operation is appended to the
-        %              history (immutable value-class pattern)
         if isa(b, 'shCoefficients')
             if a.nmax ~= b.nmax
                 error('shSeries:sizeMismatch', ...
@@ -934,9 +935,6 @@ methods
         %         moving window instead (WindowLength=6 with PolyOrder=3 is
         %         the common "P3M6" variant)
         %
-        %   Outputs
-        %     out  (1,1) shSeries  modified copy; the operation is appended to the
-        %              history (immutable value-class pattern)
         arguments
             obj
             opts.MinOrder (1,1) double = 6
@@ -962,9 +960,6 @@ methods
         %   Outputs
         %     out        (1 x 1) shSeries   Gaussian-smoothed per month
         %
-        %   Outputs
-        %     out  (1,1) shSeries  modified copy; the operation is appended to the
-        %              history (immutable value-class pattern)
         arguments
             obj
             radiusKm (1,1) double {mustBePositive}
@@ -989,9 +984,6 @@ methods
         %   Outputs
         %     out        (1 x 1) shSeries   truncated per month
         %
-        %   Outputs
-        %     out  (1,1) shSeries  modified copy; the operation is appended to the
-        %              history (immutable value-class pattern)
         arguments
             obj
             nmaxNew (1,1) double {mustBeInteger, mustBeNonnegative}
@@ -1023,9 +1015,6 @@ methods
         %   Outputs
         %     out        (1 x 1) shSeries   gap months removed
         %
-        %   Outputs
-        %     out  (1,1) shSeries  modified copy; the operation is appended to the
-        %              history (immutable value-class pattern)
         bad = false(1, obj.nEpochs);
         for k = 1:obj.nEpochs
             bad(k) = any(~isfinite(obj.Cs(:,:,k)), 'all') ...
@@ -1169,8 +1158,13 @@ methods
         %
         %   Outputs
         %     out        (1 x 1) shSeries   tvANS-filtered series with sigmaCs/Ss posterior stacks (exact incl. constraints, v2.5)
-        %     op         struct   stored linear operator (V/Ut/lam/s or blocks, model, detLeverage/detResVar) for deconvolution and resolution maps
-        %     info       struct: sigmaXfres (P x T), sigmaNote, VCE diagnostics
+        %     op         (1,1) struct   the stored linear operator, as
+        %                returned by shLowLevel.tvANSFilter, for
+        %                shLowLevel.basinDeconvolve and
+        %                shLowLevel.resolutionMap
+        %     info       (1,1) struct   the noise, signal and VCE
+        %                diagnostics, as returned by
+        %                shLowLevel.tvANSFilter
         %
         arguments
             obj
@@ -1254,7 +1248,9 @@ methods
         %
         %   Outputs
         %     avg        (K x T) double   basin averages (deconvolved when Deconvolve=true)
-        %     out        struct: sigma (K x T), c, attn, condA (deconvolution path)
+        %     out        (1,1) struct   on the deconvolution path, as
+        %                returned by shLowLevel.basinDeconvolve (sigma,
+        %                c, attn, condA, avgNaive); empty otherwise
         %
         %   Options
         %     Ridge (0)  Tikhonov ridge added to the deconvolution normal
@@ -1311,9 +1307,11 @@ methods
         %     latDeg  (1,:) double  latitudes [deg], convention per LatType
         %     lonDeg  (1,:) double  longitudes [deg]
         %   Outputs
-        %     b          (1 x 1) struct   as shCoefficients.toGrid, with Z
+        %     b          (1,1) struct   as built by
+        %                shLowLevel.gridHandover, the same bundle
+        %                shCoefficients.toGrid returns, with Z
         %                (nlat x nlon x nEpochs) double, Epoch and C00
-        %                (nEpochs x 1) double, and FieldKind "mixed" if
+        %                (nEpochs x 1) double, and FieldKind "mixed" when
         %                the epochs disagree
         %
         %   Options
@@ -1466,9 +1464,6 @@ methods (Static)
         %   Outputs
         %     obj        (1 x 1) shSeries   all gfc(.gz) files of a folder, epoch-sorted
         %
-        %   Outputs
-        %     obj  (1,1) shSeries  modified copy; the operation is appended to the
-        %              history (immutable value-class pattern)
         arguments
             folder (1,1) string
             opts.Pattern (1,1) string = "*.gfc*"

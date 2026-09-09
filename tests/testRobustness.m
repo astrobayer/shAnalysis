@@ -1376,7 +1376,7 @@ verifyError(testCase, ...
     @() shLowLevel.listICGEM(Type = "temporal", Series = "x", Source = fx2), ...
     'shLowLevel:listICGEM:noFiles');           % catalogue page has no file links
 % exact-name resolution finds the row (skip download: file marker trick)
-tmp = fullfile(tempdir, sprintf('shx_icgem_%d', randi(1e9)));
+tmp = tempname;
 mkdir(tmp);
 cleanup = onCleanup(@() rmIfFolder(tmp)); %#ok<NASGU>
 row = T(T.name == "Tongji-GMMG2025S", :);

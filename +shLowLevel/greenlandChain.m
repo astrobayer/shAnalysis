@@ -57,9 +57,11 @@ function [gt, rep] = greenlandChain(folder, gravisFolder, opts)
 %
 %   Outputs
 %     gt   (1,1) double  ice-mass trend over the basin mask [Gt/yr]
-%     rep  (1,1) struct  trendGrid, lat, lon, sigTrend, mask, unionMask,
-%          iterations, stoppedBy, m (inverted map), steps, l2b (gravisL2B
-%          report), version, created
+%     rep  (1,1) struct  as returned by shLowLevel.gravisRegionChain,
+%          which this function delegates to and which documents every
+%          field: trendGrid, lat, lon, sigTrend, residRMS, mask,
+%          unionMask, m, iterations, stoppedBy, steps, l2b, version,
+%          created
 %
 %   Example
 %     kn = readmatrix("loadLoveNumbers_Gegout97.txt", FileType="text", ...

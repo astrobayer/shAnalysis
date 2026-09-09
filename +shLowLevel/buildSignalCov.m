@@ -22,26 +22,27 @@ function [S, info] = buildSignalCov(Xres, N, idx, opts)
 %        smoothing where the data show strong signal (continents), more
 %        over the quiet ocean.
 %
-%   Options:
-%     Mode        ('isotropic') | 'inhomogeneous'
-%     NIter       (3)
-%     FloorRel    (1e-8)  relative variance floor
-%     MapSmooth   (true)  cap the variance map dynamic range to [0.1, 10]
-%
-%   info: c per iteration (per-coefficient variances), variance map (mode 2).
 %   Inputs
-%     Xres (P x T) residual coefficient vectors (shIndex ordering)
-%     N    (P x P | struct) noise covariance, dense or the block
-%         container from buildNoiseCov(Assemble="blocks")
+%     Xres (P x T) double  residual coefficient vectors (shIndex ordering)
+%     N    (P x P) double or (1,1) struct  noise covariance, dense or the
+%         block container from buildNoiseCov(Assemble='blocks'); the block
+%         form supports Mode='isotropic' only
+%     idx  (1,1) struct    shLowLevel.shIndex matching Xres
 %   Options
-%     Mode ("isotropic")  "isotropic" | "inhomogeneous" signal model
-%     NIter (3)        (1 x 1) re-estimation iterations
-%     FloorRel (1e-8)  (1 x 1) relative variance floor
-%     MapSmooth (true) (1 x 1) logical, smooth the variance map
+%     Mode ('isotropic')  'isotropic' | 'inhomogeneous' signal model
+%     NIter (3)        (1 x 1) double  re-estimation iterations
+%     FloorRel (1e-8)  (1 x 1) double  relative variance floor
+%     MapSmooth (true) (1 x 1) logical  cap the variance map dynamic range
+%         to [0.1, 10] before renormalizing it
 %
 %   Outputs
-%     S          (P x P) double   signal covariance in idx ordering
-%     info       struct: mode, iterations, degree-variance model
+%     S     (P x P) double  signal covariance in idx ordering; sparse
+%           diagonal when N is the block container
+%     info  (1,1) struct  fields
+%           c       (P x NIter+1) double  per-coefficient variances,
+%                   column 1 the initialization, one column per iteration
+%           varMap  (Ngrid x 1) double  spatial variance map, weighted
+%                   global mean 1; Mode='inhomogeneous' only
 %
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 

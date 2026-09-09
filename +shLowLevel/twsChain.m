@@ -43,11 +43,19 @@ function [out, rep] = twsChain(folder, gravisFolder, opts)
 %     Quiet      (false)
 %
 %   Outputs
-%     out  (1,1) struct  name (K,1 string), epochs (T,1), series
-%          (K x T double, basin means [cm EWH]), trend (K,1 [cm/yr]),
-%          amplitude (K,1 [cm], annual), phase (K,1 [rad])
-%     rep  (1,1) struct  steps, filter, l2b (gravisL2B report),
-%          version, created
+%     out  (1,1) struct  fields
+%          name       (K,1) string  basin names, in the row order below
+%          epochs     (T,1) double  the epoch grid [decimal years]
+%          series     (K x T) double  basin means [cm EWH]
+%          trend      (K,1) double  per-basin trend [cm/yr]
+%          amplitude  (K,1) double  annual amplitude [cm]
+%          phase      (K,1) double  annual phase [rad]
+%     rep  (1,1) struct  fields
+%          steps    (1,K) string  the stages applied, with parameters
+%          filter   (1,1) string  the filter actually used
+%          l2b      (1,1) struct  the shLowLevel.gravisL2B report
+%          version  (1,1) string  shLowLevel.version at run time
+%          created  (1,1) string  when the run happened
 %
 %   Example
 %     kn = readmatrix("loadLoveNumbers_Gegout97.txt", FileType="text", ...

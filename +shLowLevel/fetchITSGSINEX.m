@@ -42,9 +42,12 @@ function [files, info] = fetchITSGSINEX(months, opts)
 %
 %   Outputs
 %     files (n x 1) string  local .snx.gz paths (downloaded or present)
-%     info  (1 x 1) struct  nListed, nDownloaded, nSkipped, nFailed,
-%           nRemaining, missing (requested months absent on the
-%           server), releases used
+%     info  (1,1) struct  fields
+%           nListed, nDownloaded, nSkipped, nFailed, nRemaining
+%                     (1,1) double  the download tally; nRemaining is
+%                     what the budget cut off
+%           missing   (1,:) string  requested months absent on the server
+%           releases  (1,:) string  releases actually used
 %
 %   Example
 %     f = shLowLevel.fetchITSGSINEX(["2018-06", "2018-07"], Nmax = 96);

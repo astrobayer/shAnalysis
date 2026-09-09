@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shCoefficients.addDegree1 &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shCoefficients.addDegree1</nav>
+<h1>shCoefficients.addDegree1</h1>
+<p class="h1line">Insert TN-13 geocenter (degree-1) coefficients.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>out = shCoefficients.addDegree1(obj, tn)</code><code>out = shCoefficients.addDegree1(obj, tn, Tolerance=0.05)</code></div>
+<h2>Description</h2>
+<p>OUT = obj.addDegree1(TN) with TN from <a href="shLowLevel_readTN13.html"><code>shLowLevel.readTN13</code></a> (or a filename) sets C10, C11, S11 (with their sigmas) from the TN-13 record nearest to obj.epoch (within opts.Tolerance (0.05), default 0.05 yr). Without degree 1, EWH/mass grids are systematically biased - this completes the standard GSM + TN-14 + TN-13 processing chain.</p>
+<h2>Examples</h2>
+<details class="example"><summary>Runnable (docs/apiExamples.json)</summary><div><pre><code>g = g.addDegree1(tn13);               % nearest epoch within 0.05 yr</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td><code>required</code></td><td class="desc">the object the method is called on</td></tr><tr><td><code>tn</code></td><td>n x m</td><td>-</td><td><code>required</code></td><td class="desc">correction-table struct as returned by the matching reader</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>Tolerance</code></td><td>1 x 1</td><td>double</td><td><code>0.05</code></td><td class="desc">epoch matching tolerance [yr]</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>out</code></td><td class="desc">(1 x 1) <a href="shCoefficients.html"><code>shCoefficients</code></a>   degree-1 row set from the TN-13 record nearest to obj.epoch</td></tr></table>
+<h2>Error Identifiers</h2>
+<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<ul class="seealso"><li><a href="shLowLevel_readTN13.html"><code>shLowLevel.readTN13</code></a></li></ul>
+<p class="prov">shAnalysis v3.34.1 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shLowLevel.readTN14 &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shLowLevel.readTN14</nav>
+<h1>shLowLevel.readTN14</h1>
+<p class="h1line">Parse a TN-14 style SLR C20/C30 replacement table.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>tn = shLowLevel.readTN14(filename)</code></div>
+<h2>Description</h2>
+<p>TN = shLowLevel.readTN14(FILENAME) reads the CSR/GFZ &quot;TN-14&quot; technical-note text format: an arbitrary text header followed by data lines with 10 whitespace-separated numeric columns MJD_begin  yearfrac_begin  C20  C20-mean*1e10  sigC20*1e10 ... C30  C30-mean*1e10  sigC30*1e10  MJD_end  yearfrac_end C30 columns contain &#x27;NaN&#x27; for months where no SLR C30 is provided (pre GRACE-FO accelerometer degradation).</p>
+<h2>Examples</h2>
+<details class="example"><summary>Runnable (docs/apiExamples.json)</summary><div><pre><code>tn14 = shLowLevel.readTN14(&quot;TN-14_C30_C20_SLR_GSFC.txt&quot;);</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>filename</code></td><td>n x m</td><td>-</td><td><code>required</code></td><td class="desc">char/string</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<p class="none">None.</p>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>tn</code></td><td class="desc">(1,1) struct  one row per table line (T rows), fields epochStart, epochStop (T x 1 double)  span bounds [decimal years] epoch      (T x 1 double)  span mid-point [decimal years] C20, C30   (T x 1 double)  SLR replacement coefficients; C30 is NaN for months the file leaves blank sigmaC20, sigmaC30 (T x 1 double)  1-sigma, scaled out of the file&#x27;s 1e-10 units</td></tr></table>
+<h2>Error Identifiers</h2>
+<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<p class="none">No other entity is named in this help block.</p>
+<p class="prov">shAnalysis v3.34.1 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

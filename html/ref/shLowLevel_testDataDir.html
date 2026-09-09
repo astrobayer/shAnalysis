@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shLowLevel.testDataDir &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shLowLevel.testDataDir</nav>
+<h1>shLowLevel.testDataDir</h1>
+<p class="h1line">Resolve the sample/fixture data folder (relocatable).</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>d = shLowLevel.testDataDir()</code></div>
+<h2>Description</h2>
+<p>D = shLowLevel.testDataDir() returns, in order of precedence: 1. getenv(&#x27;SHX_TESTDATA_FOLDER&#x27;)          if set and a folder 2. getpref(&#x27;shAnalysis&#x27;,&#x27;TestDataFolder&#x27;) if set and a folder 3. &lt;toolbox&gt;/tests/test_data              the in-repo default Same contract as tests/shxTestDataDir (which the test suites use); this packaged twin exists because TOOLBOX code also consults the shipped samples - readDDK&#x27;s &quot;DDK3&quot; name form and the demos - and must not depend on the tests folder being on the path. The v3.25 relocation missed exactly that: with the fixtures moved to a data drive, readDDK(&quot;DDK3&quot;) failed on the acceptance machine while all suite-internal paths worked (caught by the 2026-08-18 acceptance run, testDataFolderAndDDKNames).</p>
+<h2>Examples</h2>
+<details class="example"><summary>From the help block</summary><div><pre><code>    W = shLowLevel.readDDK(&quot;DDK3&quot;);   % resolves the shipped sample
+    f = fullfile(shLowLevel.testDataDir(), &#x27;test_static.gfc&#x27;);</code></pre></div></details>
+<h2>Input Arguments</h2>
+<p class="none">None.</p>
+<h2>Name-Value Arguments</h2>
+<p class="none">None.</p>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>d</code></td><td class="desc">(1 x :) char  folder path (existence NOT enforced for the fallback - callers keep their own diagnostics)</td></tr></table>
+<h2>Error Identifiers</h2>
+<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<p class="none">No other entity is named in this help block.</p>
+<p class="prov">shAnalysis v3.34.1 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

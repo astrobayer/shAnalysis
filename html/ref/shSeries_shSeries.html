@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shSeries.shSeries &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shSeries.shSeries</nav>
+<h1>shSeries.shSeries</h1>
+<p class="h1line">Construct from an shCoefficients array or raw stacks.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>obj = shSeries.shSeries(in)</code><code>obj = shSeries.shSeries(in, Ss=[], Epochs=[], GM=3.986004415e14, ...)</code></div>
+<h2>Description</h2>
+<p>ts = <a href="shSeries.html"><code>shSeries</code></a>(objArray) ts = <a href="shSeries.html"><code>shSeries</code></a>(Cs, Epochs ([])=..., Ss ([])=...)  (raw-stack form via opts)</p>
+<h2>Examples</h2>
+<details class="example"><summary>Runnable (docs/apiExamples.json)</summary><div><pre><code>ts = shSeries(Cs, Ss = Ss, Epochs = tYears);</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>in</code></td><td>nmax+1 x nmax+1 x T</td><td>-</td><td><code>required</code></td><td class="desc">double or (1,T) <a href="shCoefficients.html"><code>shCoefficients</code></a>  coefficient stacks or object array</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>Ss</code></td><td>n x m</td><td>double</td><td><code>[]</code></td><td class="desc">stacked sine coefficients, S(n+1, m+1, T)</td></tr><tr><td><code>Epochs</code></td><td>: x 1</td><td>double</td><td><code>[]</code></td><td class="desc">epochs [decimal years]</td></tr><tr><td><code>GM</code></td><td>1 x 1</td><td>double</td><td><code>3.986004415e14</code></td><td class="desc">gravitational constant times mass [m^3/s^2] of the series (overridable default)</td></tr><tr><td><code>R</code></td><td>1 x 1</td><td>double</td><td><code>6378136.3</code></td><td class="desc">reference radius [m] of the series</td></tr><tr><td><code>ProductType</code></td><td>1 x 1</td><td>string</td><td><code>&quot;unknown&quot;</code></td><td class="desc">provider product code shared by all epochs, e.g. &quot;GSM&quot;</td></tr><tr><td><code>Names</code></td><td>: x 1</td><td>string</td><td><code>string.empty(0,1)</code></td><td class="desc">)  display labels, one per solution/series</td></tr><tr><td><code>SigmaCs</code></td><td>n x m</td><td>double</td><td><code>[]</code></td><td class="desc">formal 1-sigma stack for Cs, same size</td></tr><tr><td><code>SigmaSs</code></td><td>n x m</td><td>double</td><td><code>[]</code></td><td class="desc">formal 1-sigma stack for Ss, same size</td></tr><tr><td><code>History</code></td><td>1 x 1</td><td>string</td><td><code>string.empty(0,1)</code></td><td class="desc">)  initial processing history; every operation appends one line</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>obj</code></td><td class="desc">(1 x 1) <a href="shSeries.html"><code>shSeries</code></a>   epoch-sorted monthly stack with sigmas and history</td></tr></table>
+<h2>Error Identifiers</h2>
+<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<ul class="seealso"><li><a href="shSeries.html"><code>shSeries</code></a></li></ul>
+<p class="prov">shAnalysis v3.34.1 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

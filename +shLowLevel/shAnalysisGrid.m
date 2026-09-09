@@ -16,7 +16,7 @@ function [C, S, info] = shAnalysisGrid(grid, latVec, lonVec, nmax, opts)
 %       point values/positions - full least squares on (NMAX+1)^2
 %       unknowns ("ls" method), normal equations accumulated in chunks.
 %
-%   Name/value options:
+%   Options
 %     Method    "auto" (default) | "rings" | "ls"
 %     Quantity  'geoid' (default) | 'potential' | 'gravity_anomaly' |
 %               'gravity_disturbance' | 'ewh'  - the grid's physical
@@ -38,21 +38,28 @@ function [C, S, info] = shAnalysisGrid(grid, latVec, lonVec, nmax, opts)
 %               sampling underdetermines the coefficients; without it,
 %               rank deficiency raises shLowLevel:shAnalysisGrid:rankDeficient.
 %     ChunkSize points per accumulation chunk for "ls" (default 2000)
-%
-%   Options
-%     Method ("auto")  "auto" | "rings" | "ls" analysis operator
-%     Weights ("none") ("none" | "coslat") latitude weighting of the
-%         quadrature
-%     Kaula (0)      (1 x 1) Kaula regularization strength for "ls"
-%     rho_ave (5517) (1 x 1) mean Earth density [kg/m^3] for "ewh"
-%     rho_water (1000) (1 x 1) water density [kg/m^3] for "ewh"
-%     ChunkSize (2000) (1 x 1) grid points per Legendre chunk (memory cap)
+%     hn ([])   vertical-deformation Love numbers, degrees 0..nmax
+%               (user-supplied; only reached through kernelFactors)
+%     LatType   "geocentric" (default) | "geodetic": how LATVEC is
+%               interpreted; geodetic values are converted with Flattening
+%               before evaluation
+%     Flattening (1/298.257223563)  flattening of the reference ellipsoid
+%               for that conversion (WGS84; overridable, never silently
+%               assumed)
 %
 %   Outputs
 %     C     (nmax+1 x nmax+1) double  estimated cosine coefficients
 %     S     (nmax+1 x nmax+1) double  estimated sine coefficients
-%     info  (1,1) struct  fields: condest (1,1 double), nObs (1,1
-%           double), kaula (1,1 double, NaN when unregularized)
+%     info  (1,1) struct  fields
+%           method    (1,:) char  operator actually used, 'rings' or 'ls'
+%           nPoints   (1,1) double  observations entering the estimate
+%           unobservedDegrees (1,:) double  degrees with a zero kernel,
+%                     returned as 0 in C and S
+%           regularized (1,1) logical  whether Kaula > 0 was applied
+%           condEst   (1,1) double  condition estimate of the system
+%                     (worst per-order value for 'rings')
+%           residRMS  (1,1) double  RMS of the post-fit residuals in the
+%                     units of the input grid
 %
 %   Notes: analysis of an incomplete/regional grid is an ill-posed
 %   problem; expect leakage across degrees unless Kaula (or restricting
@@ -60,15 +67,6 @@ function [C, S, info] = shAnalysisGrid(grid, latVec, lonVec, nmax, opts)
 %   (sin 0 = 0) and is always returned 0.
 %
 %   Claude (Fable 5), 2026-08-07.
-%
-%   Options
-%     hn ([])  vertical-deformation Love numbers, degrees 0..nmax (user-supplied)
-%     LatType ("geocentric")  "geocentric" | "geodetic": how the
-%         latitude inputs are interpreted; geodetic values are
-%         converted with Flattening before evaluation
-%     Flattening (1/298.257223563)  flattening of the reference
-%         ellipsoid for the geodetic/geocentric conversion (WGS84;
-%         overridable, never silently assumed)
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 
 arguments

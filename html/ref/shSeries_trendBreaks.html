@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shSeries.trendBreaks &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shSeries.trendBreaks</nav>
+<h1>shSeries.trendBreaks</h1>
+<p class="h1line">Piecewise-linear trends with break significance.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>out = shSeries.trendBreaks(obj)</code><code>out = shSeries.trendBreaks(obj, Breaks=..., Periods=double.empty(1,0), T0=NaN, ...)</code></div>
+<h2>Description</h2>
+<p>OUT = ts.trendBreaks(Breaks=[2016.0], Periods (double.empty(1,0))=[], T0 (NaN)=, ARCorrect (false)=false) fits the standard climatology design PLUS hinge terms max(0, t - tb) per break epoch (continuous piecewise-linear trend) to every coefficient, and tests the break&#x27;s significance with an F-test against the no-break model (p-values via betainc - base MATLAB, no toolbox). Python-validated: 5.1% null rejection at the 5% level; F = 23 for a 0.02/yr break in 0.05-sigma noise (T = 120).</p>
+<h2>Examples</h2>
+<details class="example"><summary>Runnable (docs/apiExamples.json)</summary><div><pre><code>out = ts.trendBreaks(Breaks = 2021.0); % F-test on the hinge</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td><code>required</code></td><td class="desc">the object the method is called on</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>Breaks</code></td><td>1 x :</td><td>double</td><td><code>-</code></td><td class="desc">(1 x B) trend break epochs [decimal years]</td></tr><tr><td><code>Periods</code></td><td>1 x :</td><td>double</td><td><code>double.empty(1,0)</code></td><td class="desc">(1 x K) extra harmonic periods [yr]</td></tr><tr><td><code>T0</code></td><td>1 x 1</td><td>double</td><td><code>NaN</code></td><td class="desc">(1 x 1) reference epoch; NaN uses the mean</td></tr><tr><td><code>ARCorrect</code></td><td>1 x 1</td><td>logical</td><td><code>false</code></td><td class="desc">(1 x 1) AR(1) correction of the sigmas</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>out</code></td><td class="desc">(1,1) struct  NOT an <a href="shCoefficients.html"><code>shCoefficients</code></a> - the coefficient matrices are plain (n1 x n1) doubles - fields breaks              (1 x B) double  the break epochs, as given [decimal years] t0                  (1,1) double  reference epoch used trend1C, trend1S    (n1 x n1) double  pre-break rate [units/yr], cosine and sine sigmaTrend1C, sigmaTrend1S  (n1 x n1) double  their 1-sigma hingeC, hingeS      (n1 x n1 x B) double  rate CHANGE at each break; the post-break rate is trend1 + cumsum over the hinges sigmaHingeC, sigmaHingeS  (n1 x n1 x B) double  1-sigma of the rate changes trendNoBreakC       (n1 x n1) double  rate of the no-break model, the F-test&#x27;s null sigmaTrendNoBreakC  (n1 x n1) double  its 1-sigma F, pValue           (n1 x n1) double  F statistic and p-value per cosine coefficient FS, pValueS         (n1 x n1) double  the same for the sine coefficients</td></tr></table>
+<h2>Error Identifiers</h2>
+<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<p class="none">No other entity is named in this help block.</p>
+<p class="prov">shAnalysis v3.34.1 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

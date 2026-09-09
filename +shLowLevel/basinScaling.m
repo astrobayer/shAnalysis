@@ -31,8 +31,16 @@ function [k, info] = basinScaling(op, b, tsModel, opts)
 %     PerMonth (false)    also return monthly factors aTrue./aFilt
 %   Outputs
 %     k     (1,1) double  regression scaling factor
-%     info  struct: sigmaK (regression 1-sigma), kMonthly (T x 1, if
-%           PerMonth), matched (T x 1 logical), aTrue, aFilt
+%     info  (1,1) struct  fields
+%           sigmaK    (1,1) double   1-sigma of the regression factor
+%           kMonthly  (T x 1) double  per-month factors; present only
+%                     with PerMonth
+%           matched   (T x 1) logical  which epochs matched between the
+%                     two series
+%           nMatched  (1,1) double   nnz(matched), the epochs the
+%                     regression actually used
+%           aTrue     (T x 1) double  basin average of the model field
+%           aFilt     (T x 1) double  basin average after filtering
 %
 %   Claude (Fable 5), 2026-08-07 (v2.4).
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).

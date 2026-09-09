@@ -52,10 +52,13 @@ function [ts, rep] = standardChain(folder, opts)
 %
 %   Outputs
 %     ts         (1,1) shSeries  the processed series (full history)
-%     rep        (1,1) struct  fields: files (1,T string), steps
-%                (1,K string, applied stages with parameters), nmax
-%                (1,1 double), epochs (T,1 double), version (1,1 string,
-%                shLowLevel.version at run time), created (1,1 string)
+%     rep  (1,1) struct  fields
+%          files    (1,T) string  the files read, in epoch order
+%          steps    (1,K) string  the stages applied, with parameters
+%          nmax     (1,1) double  the degree the chain ran at
+%          epochs   (T,1) double  the epoch grid [decimal years]
+%          version  (1,1) string  shLowLevel.version at run time
+%          created  (1,1) string  when the run happened
 %
 %   Example
 %     [ts, rep] = shLowLevel.standardChain("D:/grace/monthly", ...

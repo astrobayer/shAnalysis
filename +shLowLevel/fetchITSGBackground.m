@@ -48,8 +48,11 @@ function [files, info] = fetchITSGBackground(months, opts)
 %
 %   Outputs
 %     files (n x 1) string  local .gfc paths (downloaded or present)
-%     info  (1 x 1) struct  per-product nListed/nDownloaded/nSkipped/
-%           nFailed/nRemaining, missing months, releases used
+%     info  (1,1) struct  fields
+%           products  (1 x nProducts) struct array, one per product, with
+%                     nListed, nDownloaded, nSkipped, nFailed, nRemaining
+%           missing   (1,:) string  months the server did not offer
+%           releases  (1,:) string  releases actually used
 %
 %   Example
 %     f = shLowLevel.fetchITSGBackground(["2018-06", "2018-07"]);

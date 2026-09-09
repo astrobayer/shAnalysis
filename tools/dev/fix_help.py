@@ -1,4 +1,8 @@
-"""Audit-driven help completion. Reads help_audit findings, patches files."""
+"""Audit-driven help completion. Reads help_audit findings, patches files.
+
+Never creates a second section of a kind the help block already has: see
+SECT_RE / has_section below and tools/tests/test_help_audit.py.
+"""
 import re, sys, subprocess, os
 _HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.environ.get('SHX_ROOT',
@@ -83,6 +87,26 @@ def insert_before_anchor(lines, i, j, prefix, block):
             break
     return lines[:at] + block + lines[at:], at
 
+# A generated section appended below a hand-written one is how 65 help
+# blocks came to carry two Outputs/Options/Inputs sections that disagreed
+# about the returned struct fields (2026-08-12 .. 2026-09-08, every gate
+# green throughout). This writer never creates a second one: a section
+# that exists is curated by hand, not duplicated.
+SECT_RE = {
+    'Outputs': re.compile(r"^\s*%\s*Outputs?\b", re.I),
+    'Options': re.compile(r"^\s*%\s*(Options|Name[/-]value options)\b", re.I),
+    'Inputs': re.compile(r"^\s*%\s*Inputs?\b", re.I),
+}
+
+def has_section(lines, i, j, name):
+    rx = SECT_RE[name]
+    return any(rx.match(lines[k]) for k in range(i, j))
+
+def refuse(label, name):
+    print('  SKIP %s: a %s section already exists - edit it by hand '
+          '(this writer never adds a second one)' % (label, name))
+    return False
+
 def fix_option_default(label, opt, default):
     path, e = locate(label)
     lines, i, j, pre = helpspan(path, e)
@@ -117,6 +141,8 @@ def fix_option_missing(label, opt, default):
     if at is not None:
         lines = lines[:at] + [row] + lines[at:]
     else:
+        if has_section(lines, i, j, 'Options'):
+            return refuse(label, 'Options')
         block = [pre + '%\n', pre + '%   Options\n', row]
         lines, _ = insert_before_anchor(lines, i, j, pre, block)
     open(path, 'w', encoding='utf-8').write(''.join(lines))
@@ -137,6 +163,8 @@ def fix_input(label, name):
     if at is not None:
         lines = lines[:at] + block + lines[at:]
     else:
+        if has_section(lines, i, j, 'Inputs'):
+            return refuse(label, 'Inputs')
         blk = [pre + '%\n', pre + '%   Inputs\n'] + block
         for k in range(i, j):
             s = lines[k].lstrip().lstrip('%').strip()
@@ -205,6 +233,8 @@ def fix_outputs(label):
             body += ['%              history (immutable value-class pattern)']
         else:
             return False
+    if has_section(lines, i, j, 'Outputs'):
+        return refuse(label, 'Outputs')
     block = [pre + '%\n', pre + '%   Outputs\n'] + \
             [pre + b + '\n' for b in body]
     lines, _ = insert_before_anchor(lines, i, j, pre, block)

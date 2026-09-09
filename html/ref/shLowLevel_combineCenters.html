@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shLowLevel.combineCenters &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shLowLevel.combineCenters</nav>
+<h1>shLowLevel.combineCenters</h1>
+<p class="h1line">VCE-weighted combination of multi-center monthly series.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>[tsComb, info] = shLowLevel.combineCenters(tsCell)</code><code>[tsComb, info] = shLowLevel.combineCenters(tsCell, Tolerance=0.05, AllowMissing=true, Robust=false, ...)</code></div>
+<h2>Description</h2>
+<p>[TSCOMB, INFO] = shLowLevel.combineCenters({tsITSG, tsCSR, tsGFZ}) combines monthly solutions from several processing centers into one series with one variance factor per (center, month), estimated by Foerstner variance-component iteration with PARTIAL REDUNDANCIES:</p>
+<h2>Examples</h2>
+<details class="example"><summary>Runnable (docs/apiExamples.json)</summary><div><pre><code>tsC = shLowLevel.combineCenters({tsCSR, tsGFZ, tsJPL});   % VCE-weighted</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>tsCell</code></td><td>1 x :</td><td>cell</td><td><code>required</code></td><td class="desc">1 x C cell of <a href="shSeries.html"><code>shSeries</code></a>, equal nmax, &gt;= 2 centers</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>Tolerance</code></td><td>1 x 1</td><td>double</td><td><code>0.05</code></td><td class="desc">[yr] epoch matching (centers date mid-months slightly differently)</td></tr><tr><td><code>AllowMissing</code></td><td>1 x 1</td><td>logical</td><td><code>true</code></td><td class="desc">months missing at some centers are combined from the available ones (weights renormalize); false: only fully-covered months are kept</td></tr><tr><td><code>Robust</code></td><td>1 x 1</td><td>logical</td><td><code>false</code></td><td class="desc">per-month factor = median over blocks of the unbiased block estimates q_b/r_b instead of the global ratio (outlier-month protection; Python-validated design)</td></tr><tr><td><code>MaxIter</code></td><td>1 x 1</td><td>double</td><td><code>6</code></td><td class="desc">, Tol (1e-3)  VCE iteration control</td></tr><tr><td><code>Tol</code></td><td>1 x 1</td><td>double</td><td><code>1e-3</code></td><td class="desc">convergence tolerance</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>tsComb</code></td><td class="desc"><a href="shSeries.html"><code>shSeries</code></a>  combined stacks on the reference epochs (first center), sigmaCs/Ss = posterior sqrt(diag(H)) per month, provenance in history</td></tr><tr><td><code>info</code></td><td class="desc">(1,1) struct  fields s2         (C x T) double   variance factors per centre and month, NaN where that centre has no solution weights    (C x T) double   normalized 1/s2 redundancy (C x T) double   partial redundancy per centre interCenterCorr  (C x C) double  empirical residual correlation - the honesty diagnostic: VCE assumes independence, and GRACE centres share data and background models nIter      (1,1) double   VCE iterations used epochs     (T x 1) double   the combined epoch grid centers    (C x 1) string   centre labels, in the row order of s2/weights/redundancy note       (1,1) string   what the combination actually did</td></tr></table>
+<h2>Error Identifiers</h2>
+<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<p class="none">No other entity is named in this help block.</p>
+<p class="prov">shAnalysis v3.34.1 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

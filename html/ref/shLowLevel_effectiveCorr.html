@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shLowLevel.effectiveCorr &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shLowLevel.effectiveCorr</nav>
+<h1>shLowLevel.effectiveCorr</h1>
+<p class="h1line">Correlation with AR(1)-corrected significance.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>out = shLowLevel.effectiveCorr(x, y)</code></div>
+<h2>Description</h2>
+<p>OUT = shLowLevel.effectiveCorr(X, Y) computes the Pearson correlation of two time series together with a significance test that accounts for serial correlation: monthly GRACE series are strongly autocorrelated, so the effective sample size Neff = T*(1-r1*r2)/(1+r1*r2) (r1, r2 = lag-1 autocorrelations) is well below T, and the naive t-test badly over-states significance (Monte-Carlo: ~30% false positives at phi = 0.7 vs ~6% corrected; validated in Python). The two-sided p-value uses the incomplete beta function (base MATLAB betainc), no Statistics Toolbox required.</p>
+<h2>Examples</h2>
+<details class="example"><summary>From the help block</summary><div><pre><code>    ec = shLowLevel.effectiveCorr(avg(1,:)&#x27;, avg(2,:)&#x27;);   % two basin series
+    fprintf(&quot;r = %.3f (p = %.3g, Neff = %.0f)\n&quot;, ec.r, ec.p, ec.neff)</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>x</code></td><td>: x 1</td><td>double</td><td><code>required</code></td><td class="desc">coefficient stack, (P x T) in index ordering</td></tr><tr><td><code>y</code></td><td>: x 1</td><td>double</td><td><code>required</code></td><td class="desc">series the lag-1 autocorrelation is estimated from</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<p class="none">None.</p>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>out</code></td><td class="desc">(1,1) struct  fields: .r     (1,1) double  Pearson correlation .neff  (1,1) double  effective sample size (clamped [4, T]) .t     (1,1) double  t statistic on neff-2 dof .p     (1,1) double  two-sided p-value .n     (1,1) double  finite pairs used</td></tr></table>
+<h2>Error Identifiers</h2>
+<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<p class="none">No other entity is named in this help block.</p>
+<p class="prov">shAnalysis v3.34.1 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

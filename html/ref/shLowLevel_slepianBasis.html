@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shLowLevel.slepianBasis &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shLowLevel.slepianBasis</nav>
+<h1>shLowLevel.slepianBasis</h1>
+<p class="h1line">Spatially concentrated (Slepian) basis for a region.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>[G, lam, info] = shLowLevel.slepianBasis(idx, region)</code><code>[G, lam, info] = shLowLevel.slepianBasis(idx, region, NKeep=[], BufferKm=0, R=6378136.3, ...)</code></div>
+<h2>Description</h2>
+<p>[G, LAM, INFO] = shLowLevel.slepianBasis(IDX, REGION) solves the spherical concentration problem of Simons et al. (2006): find band-limited functions g = Y*x maximizing the energy fraction inside REGION, lambda = (x&#x27; K x) / (x&#x27; x),   K = Y&#x27; diag(w .* mask) Y, by symmetric eigendecomposition of the localization kernel K (exact Gauss-Legendre quadrature). Columns of G are the Slepian taper coefficient vectors, orthonormal (G&#x27;G = I), sorted by concentration LAM (in [0,1], descending). The Shannon number N = sum(LAM) = areaFraction * P tells how many tapers are usefully concentrated - regional analysis then estimates only ~N coefficients instead of P, the well-posed alternative to Kaula-regularized least squares on regional grids.</p>
+<h2>Examples</h2>
+<details class="example"><summary>Runnable (docs/apiExamples.json)</summary><div><pre><code>[G, lam] = shLowLevel.slepianBasis(idx, capSpec);   % concentration basis</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>idx</code></td><td>1 x 1</td><td>struct</td><td><code>required</code></td><td class="desc">struct  <a href="shLowLevel_shIndex.html"><code>shLowLevel.shIndex</code></a> (P x P eig: fine to Lmax ~ 60-96)</td></tr><tr><td><code>region</code></td><td>n x m</td><td>-</td><td><code>required</code></td><td class="desc">handle | polygon | mask   (see <a href="shLowLevel_evalMask.html"><code>shLowLevel.evalMask</code></a>)</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>NKeep</code></td><td>n x 1</td><td>double</td><td><code>[]</code></td><td class="desc">)  columns of G to return; [] = all P</td></tr><tr><td><code>BufferKm</code></td><td>1 x 1</td><td>double</td><td><code>0</code></td><td class="desc">, R (6378136.3)  passed to <a href="shLowLevel_evalMask.html"><code>shLowLevel.evalMask</code></a></td></tr><tr><td><code>R</code></td><td>1 x 1</td><td>double</td><td><code>6378136.3</code></td><td class="desc">reference radius [m] (default 6378136.3, overridable)</td></tr><tr><td><code>OverSample</code></td><td>1 x 1</td><td>double</td><td><code>2</code></td><td class="desc">refinement factor of the quadrature grid the mask is evaluated on; the Gauss rule uses OverSample*(Lmax+1) latitude rings, so a higher value resolves the region boundary more finely at quadratic cost</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>G</code></td><td class="desc">(P,NKeep) double  taper coefficient vectors, G&#x27;G = I</td></tr><tr><td><code>lam</code></td><td class="desc">(NKeep,1) double  concentrations, descending in [0,1]</td></tr><tr><td><code>info</code></td><td class="desc">(1,1) struct  fields shannon       (1,1) double  the Shannon number, areaFraction*P, exact by the addition theorem areaFraction  (1,1) double  the region&#x27;s area / 4pi lamAll        (P x 1) double  every concentration eigenvalue, not only the retained ones</td></tr></table>
+<h2>Error Identifiers</h2>
+<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<p class="none">No other entity is named in this help block.</p>
+<p class="prov">shAnalysis v3.34.1 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

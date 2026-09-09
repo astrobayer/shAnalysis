@@ -22,7 +22,14 @@ function [files, info] = fetchDDK(which, opts)
 %     Proxy ("")  per-call proxy URL, e.g. "http://proxy:8080" (empty: MATLAB Web Preferences)
 %   Outputs
 %     files  (1,:) string  present file paths (new + existing)
-%     info   struct: fetched, updated, skipped, names, url
+%     info   (1,1) struct  fields
+%            fetched  (1,:) string  files downloaded now
+%            updated  (1,:) string  files replaced by a newer copy
+%            skipped  (1,:) string  files already present
+%            names    (1,:) string  the DDK names resolved
+%            url      (1,1) string  server base URL used
+%            dest     (1,1) string  folder the files were resolved
+%                     against
 %
 %   Load with W = shLowLevel.readDDK("DDK5") (resolves against Dest) or with
 %   the explicit path. Cite Kusche et al. when publishing.

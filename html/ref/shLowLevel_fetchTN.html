@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shLowLevel.fetchTN &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shLowLevel.fetchTN</nav>
+<h1>shLowLevel.fetchTN</h1>
+<p class="h1line">Download the TN-13/TN-14 low-degree completion files on demand.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>[files, info] = shLowLevel.fetchTN()</code><code>[files, info] = shLowLevel.fetchTN(Providers=[&quot;GFZ&quot;, &quot;CSR&quot;, &quot;JPL&quot;], TN14=true, Release=&quot;RL06.3&quot;, ...)</code></div>
+<h2>Description</h2>
+<p>FILES = shLowLevel.fetchTN() fetches the GRACE/GRACE-FO technical notes that complete the standard processing chain into &lt;dataFolder&gt;/TN: TN-14  GSFC SLR C20/C30 replacement       (<a href="shLowLevel_readTN14.html"><code>shLowLevel.readTN14</code></a>/applyTN14) TN-13  geocenter (degree 1) per provider  (<a href="shLowLevel_readTN13.html"><code>shLowLevel.readTN13</code></a>/addDegree1) Source: the GFZ ISDC open document server (URLs verified 2026-08-07; the CSR/JPL/GFZ RL06.3 files and the GSFC TN-14 also ship as test fixtures, so the toolbox works offline out of the box).</p>
+<h2>Examples</h2>
+<details class="example"><summary>From the help block</summary><div><pre><code>    shLowLevel.fetchTN(Update = true);            % monthly refresh, safe swap
+    tn13 = shLowLevel.readTN13(fullfile(shLowLevel.dataFolder(), &quot;TN&quot;, ...
+               &quot;TN-13_GEOC_CSR_RL06.3.txt&quot;));
+    g1 = g.applyTN14(tn14).addDegree1(tn13);</code></pre></div></details>
+<h2>Input Arguments</h2>
+<p class="none">None.</p>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>Providers</code></td><td>1 x :</td><td>string</td><td><code>[&quot;GFZ&quot;, &quot;CSR&quot;, &quot;JPL&quot;]</code></td><td class="desc">TN-13 providers to fetch</td></tr><tr><td><code>TN14</code></td><td>1 x 1</td><td>logical</td><td><code>true</code></td><td class="desc">also fetch the GSFC TN-14 file</td></tr><tr><td><code>Release</code></td><td>1 x 1</td><td>string</td><td><code>&quot;RL06.3&quot;</code></td><td class="desc">TN-13 release tag in the filename</td></tr><tr><td><code>Update</code></td><td>1 x 1</td><td>logical</td><td><code>false</code></td><td class="desc">refresh existing files (safe swap)</td></tr><tr><td><code>Dest</code></td><td>1 x 1</td><td>string</td><td><code>&quot;&quot;</code></td><td class="desc">(fullfile(<a href="shLowLevel_dataFolder.html"><code>shLowLevel.dataFolder</code></a>(), &quot;TN&quot;))</td></tr><tr><td><code>BaseURL</code></td><td>1 x 1</td><td>string</td><td><code>&quot;&quot;</code></td><td class="desc">override source: an https base or a LOCAL MIRROR FOLDER (institute mirrors, offline tests)</td></tr><tr><td><code>Proxy</code></td><td>1 x 1</td><td>string</td><td><code>&quot;&quot;</code></td><td class="desc">per-call proxy, e.g. &quot;http://proxy.uni.de:8080&quot; (websave otherwise honours MATLAB Web Preferences)</td></tr><tr><td><code>Timeout</code></td><td>1 x 1</td><td>double</td><td><code>60</code></td><td class="desc">, Quiet (false)</td></tr><tr><td><code>Quiet</code></td><td>1 x 1</td><td>logical</td><td><code>false</code></td><td class="desc">suppress progress output</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>files</code></td><td class="desc">(1,:) string  verified present file paths (new + updated + kept existing)</td></tr><tr><td><code>info</code></td><td class="desc">(1,1) struct  fields fetched  (1,:) string  files downloaded now updated  (1,:) string  files replaced by a newer copy skipped  (1,:) string  files already present failed   (1,:) string  files that did not arrive urls     (1,:) string  the URLs used, in the same order dest     (1,1) string  target folder</td></tr></table>
+<h2>Error Identifiers</h2>
+<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<ul class="seealso"><li><a href="shLowLevel_readTN14.html"><code>shLowLevel.readTN14</code></a></li><li><a href="shLowLevel_readTN13.html"><code>shLowLevel.readTN13</code></a></li></ul>
+<p class="prov">shAnalysis v3.34.1 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

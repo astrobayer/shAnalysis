@@ -1049,6 +1049,39 @@ end
 verifyTrue(testCase, all(isfinite(Dp(:))));
 end
 
+function testResolutionMapRadiusIsAChoice(testCase)
+%TESTRESOLUTIONMAPRADIUSISACHOICE The km conversion is not a hidden constant.
+%   resolutionMap turned degrees into kilometres with a hardcoded 6371
+%   (CLAUDE.md A13). It is now the RadiusKm option, default unchanged, so
+%   this pins BOTH halves: the default still gives the old numbers, and
+%   scaling the radius scales the half-widths exactly. Metamorphic, so no
+%   tolerance is needed beyond the arithmetic of the product itself.
+rng(31);
+idx = shLowLevel.shIndex(4);
+X = randn(idx.P, 12) * 1e-10;
+t = 2002 + (0:11)' / 12;
+[~, op] = shLowLevel.tvANSFilter(X, t, idx, Blocks = 'off', ...
+    NoiseCov = eye(idx.P));
+lat = [0; 45];
+lon = [0; 90];
+r1 = shLowLevel.resolutionMap(op, 1, lat, lon, NAz = 4, NPsi = 40);
+r2 = shLowLevel.resolutionMap(op, 1, lat, lon, NAz = 4, NPsi = 40, ...
+    RadiusKm = 2 * 6371);
+% the angular half-widths do not depend on the radius at all
+verifyEqual(testCase, r2.psiHalfDeg, r1.psiHalfDeg);
+verifyEqual(testCase, r2.azDeg, r1.azDeg);
+% and every kilometre figure scales exactly with it
+verifyEqual(testCase, r2.kmMean, 2 * r1.kmMean, 'AbsTol', 0);
+verifyEqual(testCase, r2.kmMin, 2 * r1.kmMin, 'AbsTol', 0);
+verifyEqual(testCase, r2.kmMax, 2 * r1.kmMax, 'AbsTol', 0);
+% anisotropy is a ratio of two km figures, so it is radius-invariant
+verifyEqual(testCase, r2.anisotropy, r1.anisotropy);
+% the documented struct fields are the ones the reader gets
+verifyEqual(testCase, sort(string(fieldnames(r1)))', ...
+    sort(["psiHalfDeg", "azDeg", "kmMean", "kmMin", "kmMax", ...
+          "anisotropy"]));
+end
+
 function testDeformationSynthesis(testCase)
 % north/east against numerical gradients of the tangential-kernel scalar
 rng(61);
@@ -3563,7 +3596,7 @@ function testFetchITSGMonthsArrayOffline(testCase)
 %   setup(Download="all") starter level with the operator-&& array
 %   error (2026-08-18). Offline: BaseURL points at an empty local
 %   folder, so both months are reported missing, no network involved.
-tmp = fullfile(tempdir, sprintf('shx_itsg_%d', randi(1e9)));
+tmp = tempname;
 mkdir(fullfile(tmp, 'ITSG-Grace2018', 'monthly', 'monthly_n96'));
 mkdir(fullfile(tmp, 'ITSG-Grace_operational', 'monthly', 'monthly_n96'));
 dst = fullfile(tmp, 'out');
@@ -3749,4 +3782,489 @@ for k = 1:size(expected, 1)
     verifyEqual(testCase, u, expected(k, 2), ...
         sprintf('units of %s', expected(k, 1)));
 end
+end
+
+% ---------------------------------------------------------------- A10 (v3.34.1)
+% Coverage by NAME of the package functions the audit found unnamed in any
+% test. Each test asserts a property the function's own help states, so it
+% pins documented behaviour rather than merely mentioning the name.
+
+function testIcgemDate2YearAgainstHandComputedEpochs(testCase)
+% yyyymmdd -> decimal year with proper leap years. 2024 is a leap year
+% (366 d), 2023 is not (365 d); day-of-year is 0-based in the formula.
+verifyEqual(testCase, shLowLevel.icgemDate2Year(20240101), 2024, ...
+    'AbsTol', 1e-12);                       % doy 0 -> exactly the year
+verifyEqual(testCase, shLowLevel.icgemDate2Year(20230101), 2023, ...
+    'AbsTol', 1e-12);
+% 1 March 2024: 31 + 29 = 60 days elapsed (the leap day is included)
+verifyEqual(testCase, shLowLevel.icgemDate2Year(20240301), 2024 + 60/366, ...
+    'AbsTol', 1e-12);
+% 1 March 2023: 31 + 28 = 59 days elapsed (no leap day)
+verifyEqual(testCase, shLowLevel.icgemDate2Year(20230301), 2023 + 59/365, ...
+    'AbsTol', 1e-12);
+% 31 December 2024 is the last day, doy 365 of 366
+verifyEqual(testCase, shLowLevel.icgemDate2Year(20241231), 2024 + 365/366, ...
+    'AbsTol', 1e-12);
+% the .hhmm fraction is a fraction of a day
+verifyEqual(testCase, shLowLevel.icgemDate2Year(20240101.1200), ...
+    2024 + 0.5/366, 'AbsTol', 1e-12);
+end
+
+function testIcgemDate2YearPassesDecimalYearsThrough(testCase)
+% the documented < 1.8e7 rule that keeps pre-v2.1 synthetic files evaluating
+% identically: already-decimal years are returned UNCHANGED, bitwise.
+d = [2002.5; 1997.0; 2024.123456789];
+verifyEqual(testCase, shLowLevel.icgemDate2Year(d), d);
+% mixed input: each element is decided on its own
+mixed = [2002.5; 20240301];
+got = shLowLevel.icgemDate2Year(mixed);
+verifyEqual(testCase, got(1), 2002.5);
+verifyEqual(testCase, got(2), 2024 + 60/366, 'AbsTol', 1e-12);
+verifyEqual(testCase, size(got), size(mixed));
+end
+
+function testPctileMatchesTheDocumentedOrderStatistic(testCase)
+% sample k sits at percentile 100*(k-0.5)/n, linear in between - the
+% Statistics Toolbox prctile rule this base-MATLAB version reproduces.
+x = 1:100;
+% q_k = k - 0.5, so p = 50 lies midway between x = 50 and x = 51
+verifyEqual(testCase, shLowLevel.pctile(x, 50), 50.5, 'AbsTol', 1e-12);
+% odd n: the 50th percentile IS the median, exactly
+xo = [3 1 4 1 5];
+verifyEqual(testCase, shLowLevel.pctile(xo, 50), median(xo), 'AbsTol', 1e-12);
+% outside the sampled range the value is clamped to the extreme order
+% statistics, so p = 0 and p = 100 are min and max
+verifyEqual(testCase, shLowLevel.pctile(x, 0), min(x), 'AbsTol', 1e-12);
+verifyEqual(testCase, shLowLevel.pctile(x, 100), max(x), 'AbsTol', 1e-12);
+% a vector p returns one value per request, in that shape
+p = [10 25 50 75 90];
+v = shLowLevel.pctile(x, p);
+verifyEqual(testCase, size(v), size(p));
+verifyTrue(testCase, all(diff(v) > 0), 'percentiles must increase with p');
+end
+
+function testPctileIgnoresNonFiniteAndHandlesEmpty(testCase)
+x = [1 2 NaN 3 Inf 4 -Inf];
+% the finite values are 1 2 3 4 - identical to passing them alone
+verifyEqual(testCase, shLowLevel.pctile(x, [25 50 75]), ...
+    shLowLevel.pctile([1 2 3 4], [25 50 75]), 'AbsTol', 1e-12);
+verifyTrue(testCase, all(isnan(shLowLevel.pctile([], [10 90]))));
+verifyTrue(testCase, all(isnan(shLowLevel.pctile([NaN NaN], 50))));
+% a single finite value is that value at every percentile
+verifyEqual(testCase, shLowLevel.pctile(7, [0 50 100]), [7 7 7], ...
+    'AbsTol', 1e-12);
+end
+
+function testGridHandoverReadsTheFieldKindOffTheIdentity(testCase)
+% C00 = 1 means the field carries the total mass, C00 = 0 means a residual.
+% The help calls this a fact about the coefficients, not an inference from
+% the values - so the SAME Z must be labelled differently by C00 alone.
+Z = randn(5, 8);
+lat = linspace(-80, 80, 5);
+lon = linspace(0, 315, 8);
+mk = @(c00) shLowLevel.gridHandover(Z, lat, lon, "m", "geocentric", ...
+    "geoid", "GSM", "test", 2024.1, c00, "history line", 10, 0);
+bFull = mk(1);  bAnom = mk(0);  bMid = mk(0.5);
+verifyEqual(testCase, bFull.FieldKind, "full");
+verifyEqual(testCase, bAnom.FieldKind, "anomaly");
+verifyEqual(testCase, bMid.FieldKind, "unknown");
+% a stack whose kinds disagree is reported as mixed, never decided
+bs = shLowLevel.gridHandover(Z, lat, lon, "m", "geocentric", "geoid", ...
+    "GSM", "test", [2024.1; 2024.2], [1; 0], "history line", 10, 0);
+verifyEqual(testCase, bs.FieldKind, "mixed");
+% and agreeing kinds collapse to the one kind
+ba = shLowLevel.gridHandover(Z, lat, lon, "m", "geocentric", "geoid", ...
+    "GSM", "test", [2024.1; 2024.2], [0; 0], "history line", 10, 0);
+verifyEqual(testCase, ba.FieldKind, "anomaly");
+end
+
+function testGridHandoverCarriesExtremesWithoutJudgingThem(testCase)
+% Zmin/Zmax/Zmean are the raw measured extremes over EVERY epoch, which is
+% the fixed colour scale an animation needs. Non-finite values are skipped.
+Z = cat(3, [1 2; 3 4], [-10 0; 5 20]);
+lat = [-45 45]; lon = [0 180];
+b = shLowLevel.gridHandover(Z, lat, lon, "m", "geocentric", "geoid", ...
+    "GSM", "test", [2024.1; 2024.2], [0; 0], "h", 10, 0);
+verifyEqual(testCase, b.Zmin, -10, 'AbsTol', 1e-12);
+verifyEqual(testCase, b.Zmax, 20, 'AbsTol', 1e-12);
+verifyEqual(testCase, b.Zmean, mean(Z(:)), 'AbsTol', 1e-12);
+% lat comes back as a column and lon as a row, whatever was passed in
+verifyEqual(testCase, size(b.lat), [2 1]);
+verifyEqual(testCase, size(b.lon), [1 2]);
+% a NaN in the field does not poison the extremes
+Zn = Z; Zn(1) = NaN;
+bn = shLowLevel.gridHandover(Zn, lat, lon, "m", "geocentric", "geoid", ...
+    "GSM", "test", [2024.1; 2024.2], [0; 0], "h", 10, 0);
+verifyEqual(testCase, bn.Zmin, -10, 'AbsTol', 1e-12);
+verifyEqual(testCase, bn.Zmax, 20, 'AbsTol', 1e-12);
+end
+
+function testShGaussianFilterIsTheWeightsAppliedByDegree(testCase)
+% the filter is exactly "multiply each degree row by Wn" - so it must equal
+% that product bitwise, and return the weights it used.
+rng(4711);
+g = randomField(20);
+[Cf, Sf, Wn] = shLowLevel.shGaussianFilter(g.C, g.S, 500);
+verifyEqual(testCase, Cf, g.C .* Wn);
+verifyEqual(testCase, Sf, g.S .* Wn);
+verifyEqual(testCase, Wn, shLowLevel.shGaussianWeights(20, 500));
+% Jekeli: degree 0 is untouched and the weights decay monotonically
+verifyEqual(testCase, Wn(1), 1, 'AbsTol', 1e-12);
+verifyTrue(testCase, all(diff(Wn) <= 0), 'weights must not increase');
+verifyTrue(testCase, all(Wn >= 0), 'the negativity guard must hold');
+% a larger radius smooths harder at every degree above 0
+Wn2 = shLowLevel.shGaussianWeights(20, 1000);
+verifyTrue(testCase, all(Wn2(2:end) <= Wn(2:end)));
+end
+
+function testShGaussianFilterMatchesTheClassMethod(testCase)
+% the class method is a delegate: same numbers, or the two lanes disagree
+rng(4712);
+g = randomField(16);
+[Cf, Sf] = shLowLevel.shGaussianFilter(g.C, g.S, 350);
+gf = g.gaussian(350);
+verifyEqual(testCase, gf.C, Cf);
+verifyEqual(testCase, gf.S, Sf);
+end
+
+function testShDestripeRemovesAPolynomialInDegreeExactly(testCase)
+% Swenson & Wahr fit a polynomial in n per (order, parity) and subtract it.
+% A field that IS such a polynomial must therefore be annihilated, up to
+% the conditioning of the fit - this is the defining property, not a bound.
+L = 30;
+C = zeros(L+1); S = zeros(L+1);
+n = (0:L)';
+for m = 7:L                                  % above the default minOrder 6
+    rows = m+1:L+1;
+    nn = n(rows);
+    C(rows, m+1) = 1 + 0.5*nn + 0.02*nn.^2 + 1e-4*nn.^3;   % cubic in n
+    S(rows, m+1) = 2 - 0.3*nn + 0.01*nn.^2 - 5e-5*nn.^3;
+end
+[Cf, Sf] = shLowLevel.shDestripe(C, S);
+% filterParity leaves a subset alone when it holds <= polyOrder+1 = 4
+% points, so only orders with >= 5 degrees of EACH parity are fitted:
+% m..30 must hold >= 10 degrees, i.e. m <= 21.
+mFit = 7:21;
+% Tolerance: the residual of an exact cubic recovered by an UNCENTRED
+% polyfit. Vandermonde conditioning on n <= 30 at degree 3 is ~1e5, the
+% polynomial itself reaches ~37, so the roundoff floor is ~1e-9. 1e-7 is
+% two orders of margin over that term, not a fitted number.
+verifyLessThan(testCase, max(abs(Cf(:, mFit+1)), [], 'all'), 1e-7);
+verifyLessThan(testCase, max(abs(Sf(:, mFit+1)), [], 'all'), 1e-7);
+% and the guard itself: an order with too few degrees per parity is
+% returned untouched rather than fitted badly
+verifyEqual(testCase, Cf(:, 29), C(:, 29));      % m = 28: 2 even, 1 odd
+verifyEqual(testCase, Sf(:, 29), S(:, 29));
+end
+
+function testShDestripePassesLowOrdersThroughUnchanged(testCase)
+% "Coefficients at m < minOrder are passed through unchanged" - bitwise.
+rng(4713);
+g = randomField(24);
+[Cf, Sf] = shLowLevel.shDestripe(g.C, g.S);
+verifyEqual(testCase, Cf(:, 1:6), g.C(:, 1:6));
+verifyEqual(testCase, Sf(:, 1:6), g.S(:, 1:6));
+% and the boundary moves with the option
+[Cf2, Sf2] = shLowLevel.shDestripe(g.C, g.S, 'minOrder', 10);
+verifyEqual(testCase, Cf2(:, 1:10), g.C(:, 1:10));
+verifyEqual(testCase, Sf2(:, 1:10), g.S(:, 1:10));
+% the class method delegates here, so the two must agree bitwise
+gd = g.destripe();
+verifyEqual(testCase, gd.C, Cf);
+verifyEqual(testCase, gd.S, Sf);
+end
+
+function testShSpectralCrossoverFindsTheFirstCrossing(testCase)
+% a constructed spectrum whose error overtakes the signal at a known degree
+n = (0:20)';
+spec.degree = n;
+spec.degAmplitude = 10 .^ (-n/5);             % a decade per 5 degrees
+spec.errAmplitude = 1e-2 * ones(size(n));     % flat noise floor
+% the signal drops below 1e-2 where -n/5 < -2, i.e. from n = 11 on, so the
+% crossing is strictly inside the degree range (and not at the first index)
+first = find(spec.errAmplitude > spec.degAmplitude, 1, 'first');
+verifyEqual(testCase, spec.degree(first), 11, ...
+    'the fixture must cross where the test says it does');
+[nc, ni] = shLowLevel.shSpectralCrossover(spec);
+verifyEqual(testCase, nc, spec.degree(first));
+% the interpolated degree lies in the interval that brackets the crossing
+verifyGreaterThanOrEqual(testCase, ni, spec.degree(first-1));
+verifyLessThanOrEqual(testCase, ni, spec.degree(first));
+end
+
+function testShSpectralCrossoverReturnsNaNWhenTheErrorNeverWins(testCase)
+n = (0:15)';
+spec.degree = n;
+spec.degAmplitude = ones(size(n));
+spec.errAmplitude = 1e-3 * ones(size(n));    % never exceeds the signal
+[nc, ni] = shLowLevel.shSpectralCrossover(spec);
+verifyTrue(testCase, isnan(nc));
+verifyTrue(testCase, isnan(ni));
+end
+
+function testOpApplyIsTheAdjointOfItsForwardOperator(testCase)
+% W_t = V diag(g) Ut with g = lam./(lam + s(t)). The transposed mode must
+% be the true adjoint: <W z, y> = <z, W' y> for every z, y. That identity
+% is what the tvANS posterior relies on, and it holds with no tolerance to
+% choose beyond roundoff.
+rng(90210);
+P = 12;
+[V, ~] = qr(randn(P));                 % orthogonal: a well-posed operator
+op.lam = abs(randn(P, 1)) + 0.5;
+op.s   = [0.7, 1.3];                   % one variance factor per month
+op.V   = V;
+op.Ut  = V';
+op.Ac  = [];                           % unconstrained path
+op.SA  = [];
+op.M   = [];
+t = 2;
+Z = randn(P, 3);
+Y = randn(P, 3);
+
+g = op.lam ./ (op.lam + op.s(t));
+W = op.V * diag(g) * op.Ut;
+% dense P = 12 products: roundoff ~ P*eps*|W|*|Z| ~ 1e-14. 1e-12 is two
+% orders over that term.
+verifyEqual(testCase, shLowLevel.opApply(op, Z, t), W * Z, ...
+    'AbsTol', 1e-12);                  % the 3-argument default is 'forward'
+verifyEqual(testCase, shLowLevel.opApply(op, Z, t, 'forward'), W * Z, ...
+    'AbsTol', 1e-12);
+verifyEqual(testCase, shLowLevel.opApply(op, Z, t, 'transp'), W' * Z, ...
+    'AbsTol', 1e-12);
+
+lhs = sum(shLowLevel.opApply(op, Z, t, 'forward') .* Y, 'all');
+rhs = sum(Z .* shLowLevel.opApply(op, Y, t, 'transp'), 'all');
+verifyEqual(testCase, lhs, rhs, 'RelTol', 1e-12);
+
+% s(t) selects the month: a larger noise factor shrinks harder
+g1 = op.lam ./ (op.lam + op.s(1));
+verifyEqual(testCase, shLowLevel.opApply(op, Z, 1), ...
+    op.V * (g1 .* (op.Ut * Z)), 'AbsTol', 1e-12);
+end
+
+function testOpApplyBlockPathEqualsTheEquivalentDenseOperator(testCase)
+% the block-diagonal fast path must be the dense operator restricted to
+% those blocks - same numbers, not merely a similar shape
+rng(90211);
+P = 12; half = P / 2;
+[V1, ~] = qr(randn(half));
+[V2, ~] = qr(randn(half));
+b1.rows = (1:half)';       b1.lam = abs(randn(half, 1)) + 0.5;
+b1.V = V1;                 b1.Ut = V1';
+b2.rows = (half+1:P)';     b2.lam = abs(randn(half, 1)) + 0.5;
+b2.V = V2;                 b2.Ut = V2';
+op.lam = [b1.lam; b2.lam];
+op.s = 0.8;
+op.V = blkdiag(V1, V2);
+op.Ut = op.V';
+op.Ac = []; op.SA = []; op.M = [];
+op.layout = 'blocks';
+op.blocks = [b1, b2];
+
+Z = randn(P, 2);
+g = op.lam ./ (op.lam + op.s(1));
+Wdense = op.V * diag(g) * op.Ut;
+verifyEqual(testCase, shLowLevel.opApply(op, Z, 1), Wdense * Z, ...
+    'AbsTol', 1e-12);
+verifyEqual(testCase, shLowLevel.opApply(op, Z, 1, 'transp'), ...
+    Wdense' * Z, 'AbsTol', 1e-12);
+end
+
+function testVceRescaleScalesExactlyWithResidualsAndCovariance(testCase)
+% s(t) is the ratio of observed squared residuals to formal variances, so
+% it is homogeneous: quadratic in the residuals, inverse in the noise
+% covariance. Both factors are powers of two here, which makes the
+% identities BITWISE rather than approximate - no tolerance to choose.
+rng(90212);
+idx = shLowLevel.shIndex(12);
+P = idx.P;
+T = 4;
+N = diag(abs(randn(P, 1)) + 1);
+Xres = randn(P, T);
+
+s0 = shLowLevel.vceRescale(N, Xres, idx);
+verifyEqual(testCase, size(s0), [T 1]);
+verifyTrue(testCase, all(s0 > 0), 'variance factors must be positive');
+
+verifyEqual(testCase, shLowLevel.vceRescale(N, 4 * Xres, idx), 16 * s0);
+verifyEqual(testCase, shLowLevel.vceRescale(4 * N, Xres, idx), s0 / 4);
+end
+
+function testVceRescaleReadsTheNoiseBandAndTheRowMask(testCase)
+% Nmin selects the noise-dominated band; Rows narrows it further. Both are
+% documented options, and both must change the estimate they select over.
+rng(90213);
+idx = shLowLevel.shIndex(12);
+P = idx.P;
+N = eye(P);
+Xres = randn(P, 3);
+% inflate ONLY the highest degrees, so a band that excludes them differs
+hi = idx.n >= 10;
+Xres(hi, :) = Xres(hi, :) * 10;
+
+sAll  = shLowLevel.vceRescale(N, Xres, idx, Nmin = 2);
+sHigh = shLowLevel.vceRescale(N, Xres, idx, Nmin = 10);
+verifyGreaterThan(testCase, sHigh(1), sAll(1), ...
+    'restricting to the inflated band must raise the variance factor');
+
+% a Rows mask equal to the Nmin band reproduces that band's answer
+sMask = shLowLevel.vceRescale(N, Xres, idx, Nmin = 2, Rows = hi);
+verifyEqual(testCase, sMask, sHigh, 'AbsTol', 1e-12);
+end
+
+function testBuildSignalCovIsQuadraticInTheResiduals(testCase)
+% the signal covariance is estimated from the residuals themselves, so
+% scaling every residual by a must scale S by a^2. A power of two keeps
+% the identity exact.
+rng(90214);
+idx = shLowLevel.shIndex(8);
+P = idx.P;
+T = 20;
+Xres = randn(P, T) * 1e-10;
+N = eye(P) * 1e-22;
+
+S1 = shLowLevel.buildSignalCov(Xres, N, idx);
+verifyEqual(testCase, size(S1), [P P]);
+verifyTrue(testCase, all(diag(S1) >= 0), 'variances must be non-negative');
+
+% the iteration is scale-equivariant: W = S(S+N)^-1 is unchanged when S
+% AND N scale together, so scaling both by 4 scales S by exactly 4.
+S2 = shLowLevel.buildSignalCov(2 * Xres, 4 * N, idx);
+verifyEqual(testCase, S2, 4 * S1, 'RelTol', 1e-10);
+end
+
+% --- A18: public class methods no test named. The operators are covered by
+% syntax elsewhere, but never by NAME, so a rename or a changed dispatch
+% would not have been caught. Each test asserts that the operator syntax
+% and the method call are the same operation - stronger than either alone.
+
+function testCoefficientOperatorsEqualTheirMethodCalls(testCase)
+rng(90215);
+[gA, gB] = randomPair(10);
+% randomField stamps every field Epoch = 2024.1, which is what plus's
+% 0.02 yr epoch check needs; the properties are SetAccess = private, so a
+% test cannot set them anyway.
+
+% MATLAB cannot index into a parenthesised expression or a plain
+% function call, so every result is named before it is compared.
+sumOp = gA + gB;     sumFn     = plus(gA, gB);
+difOp = gA - gB;     difFn     = minus(gA, gB);
+negOp = -gA;         negFn     = uminus(gA);
+mulOp = gA * 2;      mulFn     = mtimes(gA, 2);
+mulFlip = 2 * gA;    mulFnFlip = mtimes(2, gA);
+eleOp = gA .* 2;     eleFn     = times(gA, 2);
+
+verifyEqual(testCase, sumFn.C, sumOp.C);
+verifyEqual(testCase, sumFn.S, sumOp.S);
+verifyEqual(testCase, difFn.C, difOp.C);
+verifyEqual(testCase, difFn.S, difOp.S);
+verifyEqual(testCase, negFn.C, negOp.C);
+verifyEqual(testCase, negFn.S, negOp.S);
+verifyEqual(testCase, mulFn.C, mulOp.C);
+verifyEqual(testCase, mulFnFlip.C, mulFlip.C);
+verifyEqual(testCase, eleFn.C, eleOp.C);
+
+% and the algebra itself, which is what the operators promise
+% combine forms a.C + sgn*b.C, so these are the SAME float operations:
+% exact, no tolerance to justify.
+verifyEqual(testCase, sumOp.C, gA.C + gB.C);
+verifyEqual(testCase, difOp.C, gA.C - gB.C);
+verifyEqual(testCase, negOp.C, -gA.C);
+verifyEqual(testCase, mulOp.C, 2 * gA.C);
+% a - b and a + (-b) are the same field
+viaNeg = gA + (-gB);
+verifyEqual(testCase, difOp.C, viaNeg.C);
+% .* accepts a triangle matrix, * does not
+W = tril(rand(gA.nmax + 1));
+eleMat = times(gA, W);
+verifyEqual(testCase, eleMat.C, gA.C .* W);
+verifyError(testCase, @() mtimes(gA, W), 'shCoefficients:badInput');
+verifyError(testCase, @() times(gA, gB), 'shCoefficients:badInput');
+end
+
+function testSeriesMinusEqualsItsMethodCall(testCase)
+rng(90216);
+tsA = randomSeries(6, 5);
+tsB = randomSeries(6, 5);
+d1 = minus(tsA, tsB);
+d2 = tsA - tsB;
+verifyEqual(testCase, d1.Cs, d2.Cs);
+verifyEqual(testCase, d1.Cs, tsA.Cs - tsB.Cs);
+verifyEqual(testCase, d1.Ss, tsA.Ss - tsB.Ss);
+end
+
+function testFanMethodDelegatesToShFanFilter(testCase)
+rng(90217);
+g = randomField(14);
+gf = g.fan(500, 300);
+[Cf, Sf] = shLowLevel.shFanFilter(g.C, g.S, 500, 300);
+verifyEqual(testCase, gf.C, Cf);
+verifyEqual(testCase, gf.S, Sf);
+% the series method filters every epoch the same way
+ts = randomSeries(8, 3);
+tf = ts.fan(500, 300);
+[C1, S1] = shLowLevel.shFanFilter(ts.Cs(:, :, 2), ts.Ss(:, :, 2), 500, 300);
+verifyEqual(testCase, tf.Cs(:, :, 2), C1);
+verifyEqual(testCase, tf.Ss(:, :, 2), S1);
+end
+
+function testClimatologyComponentsCarryTheFittedCoefficients(testCase)
+% cosAnnual/sinAnnual/cosSemiannual/sinSemiannual each return the matching
+% fitted component as an shCoefficients, sigmas attached.
+rng(90218);
+ts = randomSeries(6, 48);
+clim = ts.climatology();
+pairs = {clim.cosAnnual(),     clim.cosAnnC, clim.cosAnnS;
+         clim.sinAnnual(),     clim.sinAnnC, clim.sinAnnS;
+         clim.cosSemiannual(), clim.cosSemiC, clim.cosSemiS;
+         clim.sinSemiannual(), clim.sinSemiC, clim.sinSemiS};
+for k = 1:size(pairs, 1)
+    g = pairs{k, 1};
+    verifyClass(testCase, g, 'shCoefficients');
+    verifyEqual(testCase, g.C, pairs{k, 2});
+    verifyEqual(testCase, g.S, pairs{k, 3});
+end
+% the four components are distinct fits, not the same object relabelled
+gCos = clim.cosAnnual();  gSin = clim.sinAnnual();
+verifyNotEqual(testCase, gCos.C, gSin.C);
+end
+
+function testClimatologyWithNoteAppendsToHistoryWithoutTouchingTheFit(testCase)
+rng(90219);
+ts = randomSeries(6, 36);
+clim = ts.climatology();
+n0 = numel(clim.history);
+c2 = clim.withNote("checked against GravIS");
+verifyEqual(testCase, numel(c2.history), n0 + 1);
+verifyEqual(testCase, c2.history(end), "checked against GravIS");
+% value class: the original is untouched and no coefficient moved
+verifyEqual(testCase, numel(clim.history), n0);
+verifyEqual(testCase, c2.trendC, clim.trendC);
+verifyEqual(testCase, c2.cosAnnC, clim.cosAnnC);
+end
+
+function testClimatologyAmplitudeMapIsTheQuadratureOfItsComponents(testCase)
+% A = sqrt(cos^2 + sin^2) pointwise, and the phase is atan2 of the same
+% two fields - so the map must equal the synthesis of the components
+% combined in quadrature, not an independent computation.
+rng(90220);
+ts = randomSeries(8, 48);
+clim = ts.climatology();
+lat = -60:20:60;
+lon = 0:30:330;
+[A, la, lo, ph] = clim.amplitudeMap("annual", lat, lon);
+verifyEqual(testCase, size(A), [numel(lat) numel(lon)]);
+verifyEqual(testCase, sort(la(:)), sort(lat(:)), 'AbsTol', 1e-12);
+verifyEqual(testCase, sort(lo(:)), sort(lon(:)), 'AbsTol', 1e-12);
+verifyTrue(testCase, all(A(:) >= 0), 'an amplitude cannot be negative');
+verifyTrue(testCase, all(isfinite(A(:))));
+
+gc = clim.cosAnnual();
+gs = clim.sinAnnual();
+Zc = gc.synthesis(lat, lon, Quantity = "geoid");
+Zs = gs.synthesis(lat, lon, Quantity = "geoid");
+% amplitudeMap runs exactly this synthesis on exactly these components,
+% so the quadrature identity is bitwise, not approximate
+verifyEqual(testCase, A, sqrt(Zc.^2 + Zs.^2));
+verifyEqual(testCase, ph, atan2(Zs, Zc));
 end

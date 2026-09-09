@@ -143,6 +143,45 @@ jobs:
       - name: Fixture tag currency
         run: python3 tools/fixture_tag_audit.py
 
+      # The gates above are instruments; these are the instruments'
+      # own tests. They were committed in v3.32/v3.33 and never run by
+      # CI, so a gate could have been silently broken by an edit and
+      # nothing would have said so. Each test pairs a fault injection
+      # (the check fires on a defect) with a clean-tree assertion (it
+      # stays silent otherwise).
+      - name: Gate self-tests
+        run: |
+          for t in tools/tests/test_*.py; do
+            echo "== $t"
+            python3 "$t"
+          done
+
+      # The number the self-hosted job's run is checked against. Counting
+      # by hand said 261 and the runner ran 268: '^function test' counts
+      # the script-based entry point and misses testPerformance's nine
+      # bench* rows and the parameterised expansion. Printed here so the
+      # prediction sits next to the run in the same workflow.
+      - name: Declared test count
+        run: python3 tools/dev/count_tests.py
+
+      # Thirteen package functions were named by no test at all, and the
+      # audit could only find that by hand. Coverage BY NAME is a weak
+      # claim - it says a test mentions the entity in executable code,
+      # nothing about what it asserts - but it is the claim that was
+      # unmeasured, and an entity nothing names cannot be covered at all.
+      - name: Public entities named by a test
+        run: python3 tools/dev/name_coverage.py
+
+      # The generated reference pages are DERIVED from the help blocks.
+      # A page that drifted from its source is the failure this toolbox
+      # already shipped once: a correct version stamp on help text
+      # twenty-one revisions old.
+      - name: Reference pages match the help blocks
+        run: python3 tools/dev/refpages_audit.py
+
+      - name: Examples tab matches the demo registry
+        run: python3 tools/dev/make_demos.py --check
+
   test:
     name: runAllTests (${{ matrix.os }})
     strategy:

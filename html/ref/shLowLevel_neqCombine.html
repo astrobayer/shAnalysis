@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shLowLevel.neqCombine &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shLowLevel.neqCombine</nav>
+<h1>shLowLevel.neqCombine</h1>
+<p class="h1line">VCE-weighted combination on the normal-equation level.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>[x, out] = shLowLevel.neqCombine(neqs)</code><code>[x, out] = shLowLevel.neqCombine(neqs, Weights=[], MaxIter=20, Tol=1e-6, ...)</code></div>
+<h2>Description</h2>
+<p>[X, OUT] = shLowLevel.neqCombine(NEQS) combines K normal equations into one solution the COST-G way - on the normal-equation level, BEFORE solving - with one variance component per contribution, estimated by Foerstner/Koch iteration with partial redundancies: N     = sum_i (1/s_i^2) N_i,  b = sum_i (1/s_i^2) b_i x     = N^-1 b Om_i  = ltpl_i - 2 x&#x27; b_i + x&#x27; N_i x     (= v_i&#x27; P_i v_i) r_i   = nobs_i - (1/s_i^2) tr(N^-1 N_i)  (partial redundancy) s_i^2 = Om_i / r_i The redundancy invariant sum(r_i) = sum(nobs_i) - P holds at every iteration and is asserted. This is the rigorous sibling of <a href="shLowLevel_combineCenters.html"><code>shLowLevel.combineCenters</code></a>, which combines on the SOLUTION level with approximate noise shapes; here the full information content of each contribution enters (Kvas 2019, Sec. 2.1-2.2 formalism).</p>
+<h2>Examples</h2>
+<details class="example"><summary>From the help block</summary><div><pre><code>    a = shLowLevel.readSINEX(fileA, Index = idx);
+    b = shLowLevel.readSINEX(fileB, Index = idx);
+    [x, out] = shLowLevel.neqCombine([a, b]);
+    disp(out.sigma2&#x27;)          % who carries how much noise power
+
+  Numerics pre-validated in Python (tools/dev/validate_neqcombine.py,
+  5 checks: fixed == stacked GLS, factor recovery, redundancy
+  invariant, combined beats singles, equal-noise symmetry).
+
+  Reference: Koch (1999) variance component estimation; Foerstner
+  (1979); Kvas, TU Graz PhD thesis (2019), Secs. 2.1-2.2; the
+  COST-G combination concept (Jaeggi et al.).</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>neqs</code></td><td>1 x :</td><td>struct</td><td><code>required</code></td><td class="desc">struct  one contribution each, in EITHER form: N (P x P double), b (P x 1 double), and for VCE also ltpl (1 x 1 double, l&#x27;Pl of the contribution) and nobs (1 x 1 double, its observation count); OR directly a <a href="shLowLevel_readSINEX.html"><code>shLowLevel.readSINEX</code></a> result with kind = &#x27;NEQ&#x27; (fields M, x, stats): then N = M, b = M*x, ltpl/nobs from stats (the +SOLUTION/STATISTICS block; v3.20 readSINEX parses it). An optional field name labels the contribution.</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>Weights</code></td><td>: x 1</td><td>double</td><td><code>[]</code></td><td class="desc">(K x 1) double  FIXED weights w_i = 1/s_i^2: skips the VCE iteration entirely (then ltpl/nobs are not needed); [] runs VCE, which REQUIRES ltpl and nobs on every contribution and errors loudly otherwise - no silent noise assumptions</td></tr><tr><td><code>MaxIter</code></td><td>1 x 1</td><td>double</td><td><code>20</code></td><td class="desc">(1 x 1) VCE iteration cap</td></tr><tr><td><code>Tol</code></td><td>1 x 1</td><td>double</td><td><code>1e-6</code></td><td class="desc">(1 x 1) relative change of all s_i^2 to stop</td></tr><tr><td><code>Covariance</code></td><td>1 x 1</td><td>logical</td><td><code>false</code></td><td class="desc">also return Cx = N^-1 (P x P inverse - costly for large P, off by default)</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>x</code></td><td class="desc">(P x 1) double  combined solution</td></tr><tr><td><code>out</code></td><td class="desc">(1,1) struct  fields sigma2      (K x 1) double  final variance factors; the fixed 1./Weights when those were given w           (K x 1) double  = 1./sigma2 redundancy  (K x 1) double  partial redundancies; NaN in fixed mode, where nothing was estimated nIter       (1,1) double   VCE iterations used converged   (1,1) logical  whether it converged N           (P x P) double  the combined normal matrix Cx          (P x P) double  its inverse; Covariance=true only names       (K x 1) string  the contributor labels</td></tr></table>
+<h2>Error Identifiers</h2>
+<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<ul class="seealso"><li><a href="shLowLevel_combineCenters.html"><code>shLowLevel.combineCenters</code></a></li></ul>
+<p class="prov">shAnalysis v3.34.1 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

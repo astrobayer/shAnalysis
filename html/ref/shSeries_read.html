@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shSeries.read &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shSeries.read</nav>
+<h1>shSeries.read</h1>
+<p class="h1line">Read a series of gfc files (pattern or list), sorted by epoch.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>obj = shSeries.read(files)</code><code>obj = shSeries.read(files, Truncate=NaN)</code></div>
+<h2>Description</h2>
+<p>TS = shSeries.read(&quot;GSM-2_*.gfc&quot;) or shSeries.read(fileList).</p>
+<h2>Examples</h2>
+<details class="example"><summary>Runnable (docs/apiExamples.json)</summary><div><pre><code>ts2 = shSeries.read(&quot;ITSG-Grace*_n60_*.gfc&quot;);   % wildcard, epoch-sorted</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>files</code></td><td>n x m</td><td>-</td><td><code>required</code></td><td class="desc">folder, file list or glob of monthly .gfc solutions</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>Truncate</code></td><td>1 x 1</td><td>double</td><td><code>NaN</code></td><td class="desc">truncate every field to this nmax while reading (NaN: keep the file resolution)</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>obj</code></td><td class="desc">(1 x 1) <a href="shSeries.html"><code>shSeries</code></a>   wildcard-read, epoch-sorted stack</td></tr></table>
+<h2>Error Identifiers</h2>
+<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<p class="none">No other entity is named in this help block.</p>
+<p class="prov">shAnalysis v3.34.1 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

@@ -32,14 +32,15 @@ function mas = readMascon(filename)
 %   Inputs
 %     filename  char/string  .nc path
 %   Outputs
-%     mas  (1 x 1) struct  with the fields below
-%     lat    (nlat,1) double [deg]   (as stored - typically GEODETIC;
-%            convert with shLowLevel.geodetic2geocentric before synthesizing
-%            SH fields on this grid!)
-%     lon    (nlon,1) double [deg, 0..360)
-%     epoch  (T,1) double decimal years
-%     ewh    (nlat,nlon,T) double [cm or m AS STORED - check mas.units]
-%     units, name  strings
+%     mas  (1 x 1) struct  fields
+%          lat    (nlat,1) double [deg]  as stored - typically GEODETIC;
+%                 convert with shLowLevel.geodetic2geocentric before
+%                 synthesizing SH fields on this grid!
+%          lon    (nlon,1) double [deg, 0..360)
+%          epoch  (T,1) double  decimal years
+%          ewh    (nlat,nlon,T) double  [cm or m AS STORED - check
+%                 mas.units]
+%          units, name  (1,1) string
 %
 %   The step-by-step mascon-comparison workflow (epoch matching, EWH
 %   synthesis on this grid, stats) is in the workflow guide PDF, sec.

@@ -6,6 +6,7 @@
   <tocitem target="tutorials.html">Tutorials (Live Scripts)</tocitem>
   <tocitem target="version.html">shLowLevel.version - toolbox metadata</tocitem>
   <tocitem target="apiReference.html">API reference (generated from the source)</tocitem>
+  <tocitem target="ref/index.html">Reference pages (one per entity)</tocitem>
 
   <tocitem target="shCoefficients.html">Classes
     <tocitem target="shCoefficients.html">shCoefficients class</tocitem>

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shSeries.toGrid &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shSeries.toGrid</nav>
+<h1>shSeries.toGrid</h1>
+<p class="h1line">Synthesize every epoch into one stack, with its metadata.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>b = shSeries.toGrid(obj, latDeg, lonDeg)</code><code>b = shSeries.toGrid(obj, latDeg, lonDeg, Quantity=&quot;ewh&quot;, kn=[], hn=[], ...)</code></div>
+<h2>Description</h2>
+<p>B = ts.toGrid(LAT, LON, Quantity (&quot;ewh&quot;)=..., kn ([])=..., LatType (&quot;geodetic&quot;)=...) is <a href="shCoefficients_toGrid.html"><code>shCoefficients.toGrid</code></a> over a whole series: B.Z is (nlat x nlon x nEpochs) and B.Epoch carries the decimal years, so an animation can label its own frames from the data rather than from a filename.</p>
+<h2>Examples</h2>
+<details class="example"><summary>From the help block</summary><div><pre><code>    b = ts.toGrid(-89.5:89.5, 0.5:359.5, Quantity = &quot;ewh&quot;, kn = kn);
+    size(b.Z)        % [180 360 nEpochs]</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td><code>required</code></td><td class="desc">the object the method is called on</td></tr><tr><td><code>latDeg</code></td><td>1 x :</td><td>double</td><td><code>required</code></td><td class="desc">double  latitudes [deg], convention per LatType</td></tr><tr><td><code>lonDeg</code></td><td>1 x :</td><td>double</td><td><code>required</code></td><td class="desc">double  longitudes [deg]</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>Quantity</code></td><td>1 x 1</td><td>string</td><td><code>&quot;ewh&quot;</code></td><td class="desc">any kernelFactors quantity</td></tr><tr><td><code>kn</code></td><td>n x m</td><td>double</td><td><code>[]</code></td><td class="desc">load Love numbers k&#x27;_n (mass quantities; never hardcoded)</td></tr><tr><td><code>hn</code></td><td>n x m</td><td>double</td><td><code>[]</code></td><td class="desc">load Love numbers h&#x27;_n (deformation_up only)</td></tr><tr><td><code>Nmin</code></td><td>1 x 1</td><td>double</td><td><code>0</code></td><td class="desc">degrees below nmin are zeroed</td></tr><tr><td><code>Nmax</code></td><td>1 x 1</td><td>double</td><td><code>NaN</code></td><td class="desc">truncation degree; NaN uses the series nmax</td></tr><tr><td><code>Height</code></td><td>1 x 1</td><td>double</td><td><code>0</code></td><td class="desc">evaluation height above R [m]</td></tr><tr><td><code>rho_ave</code></td><td>1 x 1</td><td>double</td><td><code>5517</code></td><td class="desc">mean Earth density [kg/m^3]</td></tr><tr><td><code>rho_water</code></td><td>1 x 1</td><td>double</td><td><code>1000</code></td><td class="desc">water density [kg/m^3]</td></tr><tr><td><code>LatType</code></td><td>1 x 1</td><td>string</td><td><code>&quot;geodetic&quot;</code></td><td class="desc">&quot;geodetic&quot; | &quot;geocentric&quot;</td></tr><tr><td><code>Flattening</code></td><td>1 x 1</td><td>double</td><td><code>1/298.257223563</code></td><td class="desc">ellipsoid flattening (WGS84)</td></tr><tr><td><code>MaxMemGB</code></td><td>1 x 1</td><td>double</td><td><code>4</code></td><td class="desc">budget for the STACK itself; exceeding it is an error naming the size, not a silent swap-thrash</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>b</code></td><td class="desc">(1,1) struct   as built by <a href="shLowLevel_gridHandover.html"><code>shLowLevel.gridHandover</code></a>, the same bundle <a href="shCoefficients_toGrid.html"><code>shCoefficients.toGrid</code></a> returns, with Z (nlat x nlon x nEpochs) double, Epoch and C00 (nEpochs x 1) double, and FieldKind &quot;mixed&quot; when the epochs disagree</td></tr></table>
+<h2>Error Identifiers</h2>
+<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<ul class="seealso"><li><a href="shCoefficients_toGrid.html"><code>shCoefficients.toGrid</code></a></li></ul>
+<p class="prov">shAnalysis v3.34.1 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

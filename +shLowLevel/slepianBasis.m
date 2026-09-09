@@ -31,8 +31,12 @@ function [G, lam, info] = slepianBasis(idx, region, opts)
 %   Outputs
 %     G     (P,NKeep) double  taper coefficient vectors, G'G = I
 %     lam   (NKeep,1) double  concentrations, descending in [0,1]
-%     info  struct: shannon (= areaFraction*P, exact by the addition
-%           theorem), areaFraction, lamAll (P x 1)
+%     info  (1,1) struct  fields
+%           shannon       (1,1) double  the Shannon number,
+%                         areaFraction*P, exact by the addition theorem
+%           areaFraction  (1,1) double  the region's area / 4pi
+%           lamAll        (P x 1) double  every concentration eigenvalue,
+%                         not only the retained ones
 %
 %   Validated (Python, 30-deg polar cap, Lmax=12): lam in [0,1] to 4e-16,
 %   G'G-I ~ 3e-15, trace(K) = quadrature-area * P exactly.

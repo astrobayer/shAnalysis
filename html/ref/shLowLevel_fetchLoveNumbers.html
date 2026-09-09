@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shLowLevel.fetchLoveNumbers &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shLowLevel.fetchLoveNumbers</nav>
+<h1>shLowLevel.fetchLoveNumbers</h1>
+<p class="h1line">Download load/deformation Love number files (GROOPS set).</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>[files, info] = shLowLevel.fetchLoveNumbers(names)</code><code>[files, info] = shLowLevel.fetchLoveNumbers(names, Dest=&quot;&quot;, BaseURL=&quot;https://ftp.tugraz.at/pub/ITSG/groops/data/loading&quot;, Timeout=30, ...)</code></div>
+<h2>Description</h2>
+<p>FILES = shLowLevel.fetchLoveNumbers() downloads the standard load Love number file (Gegout97, kn for degrees 0..1024) from the GROOPS data collection hosted by TU Graz into &lt;dataFolder&gt;/loveNumbers, with the usual safe-swap semantics. The toolbox deliberately never hardcodes Love numbers - this fetcher automates obtaining a PUBLISHED set, which you then pass explicitly (kn = ...) where required.</p>
+<h2>Examples</h2>
+<details class="example"><summary>From the help block</summary><div><pre><code>    [f, inf] = shLowLevel.fetchLoveNumbers();
+    kn = inf.parsed(1).kn(1:61);        % degrees 0..60 for an n60 field</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>names</code></td><td>1 x 1</td><td>string</td><td><code>&quot;loadLoveNumbers_Gegout97.txt&quot;</code></td><td class="desc">display names, one per series/solution</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>Dest</code></td><td>1 x 1</td><td>string</td><td><code>&quot;&quot;</code></td><td class="desc">target folder; default &lt;dataFolder&gt;/loveNumbers</td></tr><tr><td><code>BaseURL</code></td><td>1 x 1</td><td>string</td><td><code>&quot;https://ftp.tugraz.at/pub/ITSG/groops/data/loading&quot;</code></td><td class="desc">(&quot;https://ftp.tugraz.at/pub/ITSG/groops/data/loading&quot;) (GROOPS/TU Graz loading folder)  or a local mirror folder</td></tr><tr><td><code>Timeout</code></td><td>1 x 1</td><td>double</td><td><code>30</code></td><td class="desc">, Proxy (&quot;&quot;), Update (false), Quiet (false)</td></tr><tr><td><code>Proxy</code></td><td>1 x 1</td><td>string</td><td><code>&quot;&quot;</code></td><td class="desc">proxy server URL (&#x27;&#x27; = direct)</td></tr><tr><td><code>Update</code></td><td>1 x 1</td><td>logical</td><td><code>false</code></td><td class="desc">re-download/overwrite files that already exist</td></tr><tr><td><code>Quiet</code></td><td>1 x 1</td><td>logical</td><td><code>false</code></td><td class="desc">suppress progress output</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>files</code></td><td class="desc">(1,K) string  local paths</td></tr><tr><td><code>info</code></td><td class="desc">(1,1) struct  fields fetched, updated, skipped, failed  (1,K) string  the tally of file names per outcome parsed  (1,K) struct  one per file, with name, n (N x 1) and kn (N x 1); empty for deformation files</td></tr></table>
+<h2>Error Identifiers</h2>
+<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<p class="none">No other entity is named in this help block.</p>
+<p class="prov">shAnalysis v3.34.1 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

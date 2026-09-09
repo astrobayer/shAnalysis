@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shLowLevel.icgemDate2Year &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shLowLevel.icgemDate2Year</nav>
+<h1>shLowLevel.icgemDate2Year</h1>
+<p class="h1line">Convert ICGEM/GRACE yyyymmdd(.hhmm) epochs to decimal years.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>y = shLowLevel.icgemDate2Year(d)</code></div>
+<h2>Description</h2>
+<p>Y = shLowLevel.icgemDate2Year(D) converts date codes of the form yyyymmdd or yyyymmdd.hhmm (as used in ICGEM gfct files, TN-13/TN-14) to decimal years, using day-of-year / (days in year) with proper leap years. Values that do not look like date codes (&lt; 1.8e7, e.g. already-decimal years in legacy synthetic files) are returned UNCHANGED - this rule keeps pre-v2.1 files evaluating identically.</p>
+<h2>Examples</h2>
+<details class="example"><summary>Runnable (docs/apiExamples.json)</summary><div><pre><code>t = shLowLevel.icgemDate2Year(20080415.0000);   % -&gt; 2008.29</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>d</code></td><td>n x m</td><td>double</td><td><code>required</code></td><td class="desc">dates as yyyymmdd(.hhmm) numbers or decimal years (passed through)</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<p class="none">None.</p>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>y</code></td><td class="desc">(same size as input) double   decimal years</td></tr></table>
+<h2>Error Identifiers</h2>
+<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<p class="none">No other entity is named in this help block.</p>
+<p class="prov">shAnalysis v3.34.1 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

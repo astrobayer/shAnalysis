@@ -46,8 +46,11 @@ function [files, info] = fetchGAX(dest, opts)
 %   Outputs
 %     files (n x 1) string  full paths of all matching local files
 %           (downloaded now or already present)
-%     info  (1 x 1) struct  nListed, nDownloaded, nSkipped, nFailed,
-%           nRemaining (budget cut) per product, series actually used
+%     info  (1,1) struct  fields
+%           products  (1 x nProducts) struct array, one per product, with
+%                     nListed, nDownloaded, nSkipped, nFailed and
+%                     nRemaining (what the budget cut off)
+%           series    (1,:) string  the series actually used
 %
 %   Example
 %     f = shLowLevel.fetchGAX("E:/DATAPOOL/GravityField/GAX");

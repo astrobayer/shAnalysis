@@ -8,7 +8,8 @@ function Yout = opApply(op, Z, t, mode)
 %   O(P^2) per column; no P x P matrix is formed.
 %
 %   Inputs
-%     mode  (1,1) string  'apply' | 'applyT' - forward or transposed operator action
+%     mode  (1,:) char  'forward' (default) | 'transp' - forward or
+%                     transposed operator action
 %     Z               coefficient vector/stack in index ordering the
 %                     operator acts on
 %

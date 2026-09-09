@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shLowLevel.shSynthesisGradientTensor &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shLowLevel.shSynthesisGradientTensor</nav>
+<h1>shLowLevel.shSynthesisGradientTensor</h1>
+<p class="h1line">Full gravity gradient tensor in the local NEU frame.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>[comps, info] = shLowLevel.shSynthesisGradientTensor(C, S, GM, R, latDeg, lonDeg)</code><code>[comps, info] = shLowLevel.shSynthesisGradientTensor(C, S, GM, R, latDeg, lonDeg, Height=250e3, Nmin=2)</code></div>
+<h2>Description</h2>
+<p>[COMPS, INFO] = shLowLevel.shSynthesisGradientTensor(C, S, GM, R, LAT, LON, Height (250e3)=250e3) synthesizes all six independent components of the disturbing gravity gradient tensor (GOCE-style diagnostics) in the local north-east-up frame at radius r = R + Height:</p>
+<h2>Examples</h2>
+<details class="example"><summary>Runnable (docs/apiExamples.json)</summary><div><pre><code>T = shLowLevel.shSynthesisGradientTensor(g.C, g.S, g.GM, g.R, lat, lon, Height = 450e3);</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>C</code></td><td>n x m</td><td>double</td><td><code>required</code></td><td class="desc">cosine Stokes coefficients, C(n+1, m+1) indexing</td></tr><tr><td><code>S</code></td><td>n x m</td><td>double</td><td><code>required</code></td><td class="desc">sine Stokes coefficients, S(n+1, m+1) indexing</td></tr><tr><td><code>GM</code></td><td>1 x 1</td><td>double</td><td><code>required</code></td><td class="desc">gravitational constant times Earth mass [m^3/s^2] (default 3.986004415e14, overridable)</td></tr><tr><td><code>R</code></td><td>1 x 1</td><td>double</td><td><code>required</code></td><td class="desc">reference radius [m] (default 6378136.3, overridable)</td></tr><tr><td><code>latDeg</code></td><td>1 x :</td><td>double</td><td><code>required</code></td><td class="desc">, lonDeg (1,nlon) double [deg], geocentric</td></tr><tr><td><code>lonDeg</code></td><td>1 x :</td><td>double</td><td><code>required</code></td><td class="desc">longitudes [deg], lon in [0, 360)</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>Height</code></td><td>1 x 1</td><td>double</td><td><code>250e3</code></td><td class="desc">[m]  evaluation altitude above R</td></tr><tr><td><code>Nmin</code></td><td>1 x 1</td><td>double</td><td><code>2</code></td><td class="desc">zero degrees below nmin</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>comps</code></td><td class="desc">(1,1) struct  the six independent components of the symmetric tensor, each (nlat,nlon) double [1/s^2]; 1 Eotvos = 1e-9 1/s^2. Fields uu, nn, ee  the diagonal (up, north, east) un, ue, ne  the off-diagonal terms. Every component involving east is NaN at |lat| = 90</td></tr><tr><td><code>info</code></td><td class="desc">(1,1) struct  fields maxTraceResidual  (1,1) double  max |trace| / max|G| over the grid, poles excluded - the built-in Laplace self-check r                 (1,1) double  evaluation radius [m] Height            (1,1) double  the altitude r was formed from, echoed back [m]</td></tr></table>
+<h2>Error Identifiers</h2>
+<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<p class="none">No other entity is named in this help block.</p>
+<p class="prov">shAnalysis v3.34.1 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

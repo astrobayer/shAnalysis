@@ -38,12 +38,20 @@ function [tsComb, info] = combineCenters(tsCell, opts)
 %     tsComb  shSeries  combined stacks on the reference epochs (first
 %             center), sigmaCs/Ss = posterior sqrt(diag(H)) per month,
 %             provenance in history
-%     info    struct: s2 (C x T variance factors, NaN where missing),
-%             weights (C x T, normalized 1/s2), redundancy (C x T),
-%             interCenterCorr (C x C, empirical residual correlation -
-%             the honesty diagnostic: VCE assumes independence, GRACE
-%             centers share data and background models), nIter, epochs,
-%             centers, note
+%     info  (1,1) struct  fields
+%           s2         (C x T) double   variance factors per centre and
+%                      month, NaN where that centre has no solution
+%           weights    (C x T) double   normalized 1/s2
+%           redundancy (C x T) double   partial redundancy per centre
+%           interCenterCorr  (C x C) double  empirical residual
+%                      correlation - the honesty diagnostic: VCE assumes
+%                      independence, and GRACE centres share data and
+%                      background models
+%           nIter      (1,1) double   VCE iterations used
+%           epochs     (T x 1) double   the combined epoch grid
+%           centers    (C x 1) string   centre labels, in the row order
+%                      of s2/weights/redundancy
+%           note       (1,1) string   what the combination actually did
 %
 %   Combine on GSM level BEFORE TN-14/TN-13 replacements (identical for
 %   all centers - apply once afterwards). Common-mode errors (shared

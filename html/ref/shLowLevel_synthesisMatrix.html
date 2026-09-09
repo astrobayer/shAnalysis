@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shLowLevel.synthesisMatrix &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shLowLevel.synthesisMatrix</nav>
+<h1>shLowLevel.synthesisMatrix</h1>
+<p class="h1line">Dense SH synthesis matrix on a Gauss-Legendre grid.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>[Y, w, grid] = shLowLevel.synthesisMatrix(idx)</code><code>[Y, w, grid] = shLowLevel.synthesisMatrix(idx, NLat=idx.Lmax + 1, NLon=2*idx.Lmax + 2)</code></div>
+<h2>Description</h2>
+<p>[Y, W, GRID] = shLowLevel.synthesisMatrix(IDX) returns Y (Ngrid x P) with f = Y*x for coefficient vectors x in IDX ordering (<a href="shLowLevel_shIndex.html"><code>shLowLevel.shIndex</code></a>), and quadrature weights W (Ngrid x 1), normalized such that the discrete analysis A = Y&#x27; * diag(W) is EXACT for band-limited fields: A*Y = eye(P) to machine precision (asserted in the test suite).</p>
+<h2>Examples</h2>
+<details class="example"><summary>Runnable (docs/apiExamples.json)</summary><div><pre><code>[Y, w] = shLowLevel.synthesisMatrix(idx);    % quadrature-consistent pair</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>idx</code></td><td>1 x 1</td><td>struct</td><td><code>required</code></td><td class="desc">struct   from <a href="shLowLevel_shIndex.html"><code>shLowLevel.shIndex</code></a></td></tr></table>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>NLat</code></td><td>1 x 1</td><td>double</td><td><code>idx.Lmax + 1</code></td><td class="desc">number of latitude rings   [default Lmax+1]</td></tr><tr><td><code>NLon</code></td><td>1 x 1</td><td>double</td><td><code>2*idx.Lmax + 2</code></td><td class="desc">number of longitudes  [default 2*idx.Lmax + 2]</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>Y</code></td><td class="desc">(NLat*NLon x idx.P) double   synthesis matrix</td></tr><tr><td><code>w</code></td><td class="desc">(NLat*NLon x 1)     double   quadrature weights, sum(w) = 1</td></tr><tr><td><code>grid</code></td><td class="desc">(1,1) struct  fields theta   (NLat x 1) double  co-latitude of each ring [rad] lambda  (NLon x 1) double  longitude of each column [rad] latDeg  (NLat x 1) double  the same latitudes [deg] lonDeg  (NLon x 1) double  the same longitudes [deg]</td></tr></table>
+<h2>Error Identifiers</h2>
+<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<ul class="seealso"><li><a href="shLowLevel_shIndex.html"><code>shLowLevel.shIndex</code></a></li></ul>
+<p class="prov">shAnalysis v3.34.1 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

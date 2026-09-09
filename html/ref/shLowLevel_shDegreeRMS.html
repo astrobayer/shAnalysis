@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shLowLevel.shDegreeRMS &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shLowLevel.shDegreeRMS</nav>
+<h1>shLowLevel.shDegreeRMS</h1>
+<p class="h1line">Spectral (degree-domain) analysis of spherical harmonic coefficients.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>spec = shLowLevel.shDegreeRMS(C, S, varargin)</code></div>
+<h2>Description</h2>
+<p>SPEC = SHDEGREERMS(C, S) computes, per degree n = 0..nmax: .degVariance(n+1)  = sum_m (Cnm^2 + Snm^2) .degRMS(n+1)       = sqrt(degVariance) .degAmplitude(n+1) = R * degRMS            [geoid-height-equivalent, m] .cumAmplitude(n+1) = R * sqrt(cumsum(degVariance))   [cumulative, m]</p>
+<h2>Examples</h2>
+<details class="example"><summary>Runnable (docs/apiExamples.json)</summary><div><pre><code>spec = shLowLevel.shDegreeRMS(g.C, g.S);          % degree-amplitude spectrum struct</code></pre></div></details>
+<h2>Input Arguments</h2>
+<p class="none">None.</p>
+<h2>Name-Value Arguments</h2>
+<p class="none">None.</p>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>spec</code></td><td class="desc">(1,1) struct  fields degree        (nmax+1 x 1) double  the degree axis degVariance, degRMS, degAmplitude  (nmax+1 x 1) double per-degree signal measures cumVariance, cumRMS, cumAmplitude  (nmax+1 x 1) double their cumulative counterparts R             (1,1) double  the radius the amplitudes use domain        (1,:) char    &#x27;degree&#x27; (consumed by plotSHSpectrum) errVariance, errRMS, errAmplitude  (nmax+1 x 1) double the same for the formal errors; present only when sigmas were supplied</td></tr></table>
+<h2>Error Identifiers</h2>
+<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<p class="none">No other entity is named in this help block.</p>
+<p class="prov">shAnalysis v3.34.1 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

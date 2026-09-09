@@ -17,7 +17,7 @@ function [grid, lat, lon, P] = shSynthesis(C, S, GM, R, latVec, lonVec, varargin
 %           gridK = shSynthesis(Ck, Sk, GM, R, latVec, lonVec, 'P', P);
 %       end
 %
-%   Name/value options:
+%   Options
 %     'P'  precomputed Legendre array from a prior call/LEGENDREALF, for
 %          the identical latVec and nmax -- skips recomputing the
 %          recursion. No validation is done that latVec/nmax actually
@@ -36,6 +36,11 @@ function [grid, lat, lon, P] = shSynthesis(C, S, GM, R, latVec, lonVec, varargin
 %                    for 'ewh'; NOT supplied by default -- see note below.
 %     'rho_ave'      average Earth density, default 5517 kg/m^3 (used for 'ewh')
 %     'rho_water'    water density, default 1000 kg/m^3 (used for 'ewh')
+%     'method'  'auto' (default) / 'direct' / 'fft': FFT-along-longitude
+%               synthesis for uniform full-circle longitude grids (5-20x
+%               faster at 1 degree); 'auto' picks it whenever applicable.
+%               Symmetric latitude grids additionally reuse the Legendre
+%               recursion for +/-lat pairs via the parity relation.
 %
 %   NOTE on 'ewh': accurate mass-change conversion requires the degree-
 %   dependent load Love numbers k_n (e.g. from a PREM-based table, Wahr et
@@ -44,25 +49,18 @@ function [grid, lat, lon, P] = shSynthesis(C, S, GM, R, latVec, lonVec, varargin
 %   explicitly. Without it, EWH synthesis will error.
 %
 %   Outputs
-%     grid  (nlat x nlon) double  synthesized quantity
-%     lat   (1, nlat) double  latitude grid [deg]
-%     lon   (1, nlon) double  longitude grid [deg]
-%     P     (1,1) struct  cached Legendre functions (pass back in for reuse)
-%
-%   'method'  'auto' (default) / 'direct' / 'fft': FFT-along-longitude
-%             synthesis for uniform full-circle longitude grids (5-20x
-%             faster at 1 degree); 'auto' picks it whenever applicable.
-%             Symmetric latitude grids additionally reuse the Legendre
-%             recursion for +/-lat pairs via the parity relation.
+%     grid  (nlat x nlon) double  synthesized field in the units of the
+%           requested quantity
+%     lat   (1 x nlat) double  geocentric latitude grid used [deg]
+%     lon   (1 x nlon) double  longitude grid used [deg]
+%     P     (nmax+1 x nmax+1 x nlat) double  Legendre array as returned by
+%           LEGENDREALF; pass it back via 'P' to skip the recursion.
+%           EMPTY in latitude-banded mode (MaxMemGB exceeded): the blocks
+%           are streamed and discarded, so request the 4th output only
+%           with a memory budget that fits the full array.
 %
 %   Claude (Sonnet 4.6), 2026-07-11; merged into +shLowLevel and FFT/parity
 %   fast paths added: Claude (Fable 5), 2026-08-07.
-%   Outputs
-%     grid       (nlat x nlon) double   synthesized field in the requested quantity units
-%     lat        (1 x nlat) double   geocentric latitudes used
-%     lon        (1 x nlon) double   longitudes used
-%     P          struct   reusable Legendre/cache handle for repeat calls
-%
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 
 p = inputParser;

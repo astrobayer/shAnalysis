@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shLowLevel.taylorDiagram &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shLowLevel.taylorDiagram</nav>
+<h1>shLowLevel.taylorDiagram</h1>
+<p class="h1line">Taylor diagram (std / correlation / centered RMSD).</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>h = shLowLevel.taylorDiagram(refStd, stds, corrs)</code><code>h = shLowLevel.taylorDiagram(refStd, stds, corrs, Labels=strings(1, 0), Title=&quot;Taylor diagram&quot;, Normalize=false)</code></div>
+<h2>Description</h2>
+<p>H = shLowLevel.taylorDiagram(REFSTD, STDS, CORRS) draws the standard one-figure comparison of solutions against a reference: radius is the (weighted) standard deviation, the azimuth is acos(correlation), and by the law of cosines the distance to the reference point equals the centered RMSD - so pattern amplitude, pattern correlation and pattern error are read off a single plot. Feed it the .stdA/.stdB/ .corr fields of <a href="shLowLevel_spatialStats.html"><code>shLowLevel.spatialStats</code></a>, or temporal statistics from <a href="shLowLevel_compareSeries.html"><code>shLowLevel.compareSeries</code></a>. Base MATLAB graphics only.</p>
+<h2>Examples</h2>
+<details class="example"><summary>From the help block</summary><div><pre><code>    st = shLowLevel.spatialStats(grid, 0.8 * grid, lat, lon);
+    shLowLevel.taylorDiagram(st.stdA, st.stdB, st.corr, Labels = &quot;damped&quot;);</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>refStd</code></td><td>1 x 1</td><td>double</td><td><code>required</code></td><td class="desc">standard deviation of the reference field</td></tr><tr><td><code>stds</code></td><td>1 x :</td><td>double</td><td><code>required</code></td><td class="desc">standard deviations of the compared fields</td></tr><tr><td><code>corrs</code></td><td>1 x :</td><td>double</td><td><code>required</code></td><td class="desc">correlations of the compared fields with the reference</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>Labels</code></td><td>1 x 1</td><td>string</td><td><code>strings(1, 0)</code></td><td class="desc">) ([])         string array, one per point</td></tr><tr><td><code>Title</code></td><td>1 x 1</td><td>string</td><td><code>&quot;Taylor diagram&quot;</code></td><td class="desc">figure title</td></tr><tr><td><code>Normalize</code></td><td>1 x 1</td><td>logical</td><td><code>false</code></td><td class="desc">divide all stds by REFSTD (radius 1 = reference)</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>h</code></td><td class="desc">(1,1) graphics handle  the axes handle</td></tr></table>
+<h2>Error Identifiers</h2>
+<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<ul class="seealso"><li><a href="shLowLevel_spatialStats.html"><code>shLowLevel.spatialStats</code></a></li><li><a href="shLowLevel_compareSeries.html"><code>shLowLevel.compareSeries</code></a></li></ul>
+<p class="prov">shAnalysis v3.34.1 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>
