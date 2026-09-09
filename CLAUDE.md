@@ -1087,7 +1087,7 @@ Original scope below.
 | v5.1.1 (A8 numbers + matched-pair budget) | ☑ 15 gates + mlint + make_demos + 13 self-test suites, 0 findings | ☑ **CI self-hosted (A8) at `e8875fe`, green — 320 runs, 315 passed, 0 failed, 5 filtered**; the TENTH exact count prediction running. The matched pair measured: direct@200 0.0155142 s, clenshaw@200 0.0034370 s. | ☑ PR #101 | ◐ pending |
 | v5.2.0 (WP5 5c + help_audit scoping) | ☑ 15 gates + mlint + make_demos + 13 self-test suites, 0 findings | ☑ **CI self-hosted (A8) at `b65f9a2` by workflow_dispatch, green — 326 runs, 320 passed, 0 failed, 6 filtered**; the ELEVENTH exact count prediction running, per class as well as in total (Contract 76, Correctness 164, Performance 26, Robustness 53, Science 7), and exactly the 6 the row predicted. Read back by the v5.3.0 session — the run had gone green and nobody had looked, which is also how the n50 baselines sat unused. | ☐ no PR (branch was unmerged) | ☐ |
 | v5.3.0 (A22, A23, A24; A9 two-factor; WP2 both machines) | ☑ 15 gates + mlint + make_demos + 13 self-test suites, 0 findings; `NO_BASELINE` empty, 14 budgets, both machines baselined | ☑ **Tier A LOCAL on MATTHIASPC (R2026a), the first since the bridge returned** — 328 runs, count prediction matched EXACTLY (Contract 77, Correctness 164, Performance 27, Robustness 53, Science 7). Only 2 filter here, not 4: `E:\DATAPOOL` supplies the SINEX and GravIS fixtures. Then ☑ **CI self-hosted (A8) at `2a38d25` via PR #102, green — 328 runs, 323 passed, 0 failed, 5 filtered** (the 4 real-data fixtures plus `apply_ddk_n300`, which A8 had no baseline for): the TWELFTH exact count prediction running, per class as well as in total. That run also measured `apply_ddk_n300` at 23.0 ms, which is what argued it OUT of `TightBudgets` — one A8 observation is not a spread. With that baseline committed, A8 at `3c003e3` is green again with **328 runs, 324 passed, 0 failed, and only the 4 optional real-data fixtures filtered**: all fourteen speed budgets now ASSERT on both machines, which is what WP2 step 1 was for. | ☑ PR #102 | ◐ pending |
-| v5.4.0 (WP5 5b: leakageDataDriven) | ☑ 15 gates + mlint + make_demos + 13 self-test suites + the new oracle, 0 findings | ☑ **Tier A LOCAL on MATTHIASPC (R2026a) — 335 runs, 333 passed, 0 failed, 2 filtered**; the count prediction matched EXACTLY, per class as well as in total (Contract 79, Correctness 168, Performance 27, Robustness 54, Science 7). All 7 new tests pass. Two red rounds locally first, both mine and both in the TESTS, not the function: a string-array `sprintf` format, and a `badNmax` case that tripped `badSize` first because the grid was not sliced with the latitudes. | ◐ pending | ◐ pending |
+| v5.4.0 (WP5 5b: leakageDataDriven) | ☑ 15 gates + mlint + make_demos + 13 self-test suites + the new oracle, 0 findings | ☑ **Tier A LOCAL on MATTHIASPC (R2026a) — 335 runs, 333 passed, 0 failed, 2 filtered**; the count prediction matched EXACTLY, per class as well as in total (Contract 79, Correctness 168, Performance 27, Robustness 54, Science 7). All 7 new tests pass. Two red rounds locally first, both mine and both in the TESTS, not the function: a string-array `sprintf` format, and a `badNmax` case that tripped `badSize` first because the grid was not sliced with the latitudes. Then ☑ **CI self-hosted (A8) at `c1dc1d3` via PR #103, green — 335 runs, 331 passed, 0 failed, 4 filtered** (exactly the optional real-data fixtures): the THIRTEENTH exact count prediction running, per class as well as in total, and all seven new tests ran there. | ☑ PR #103 | ◐ pending |
 | v5.0.3 (WP2 step 1 baselines) | ☑ 14 gates + mlint + make_demos + 13 self-test suites, 0 findings; `NO_BASELINE` empty | ☑ **CI self-hosted (A8) at `b70c947`, green — 315 runs, 311 passed, 0 failed, 4 filtered**; the EIGHTH exact count prediction running, per class as well as in total. All ten budgets PASSED (they filtered at `f6d5529`), and the only filtered are the four real-data fixtures. Triggered by `workflow_dispatch`, not a PR — #99 merged mid-session and `ci.yml` runs only on push-to-main, pull_request and workflow_dispatch. | ☐ no PR (#99 merged; not asked) | ☐ |
 
 **Tier A debt: DISCHARGED for all nine releases.** The local MATLAB
@@ -1112,6 +1112,14 @@ confirmation that the counter is right about a real run and not only
 about the source.
 
 ### 6.3 What the next session could be wrong for not reading
+- **A pushed SHA is not a running CI.** `ci.yml` fires on push-to-main,
+  `pull_request` and `workflow_dispatch` only. When the branch's PR is
+  merged mid-session, a further push to that branch raises NO event and
+  the commit sits there green-looking and unverified. §3.7 says to read
+  the SHA back with `git ls-remote`, and that is not sufficient: also
+  check `gh run list` actually shows a run for it, and open a new PR if
+  it does not. This has now happened twice (v5.0.3 after #99, v5.4.0
+  after #102).
 - **A method's published description is not its equations.** Three open
   restatements of the data-driven correction describe it accurately in
   prose ("uses twice-filtered fields to determine leakage and deviation
@@ -1452,9 +1460,10 @@ internet, which unblocks all three stuck items at once:
    buildable and testable WITHOUT network; only the live URL needs it.
 
 **Next concrete actions, in order of what they buy:**
-1. **Get v5.2.0, v5.3.0 and v5.4.0 merged.** None is on `main`, which is
-   still `ea816eb`. All three are green; v5.2.0 and v5.3.0 have A8 runs,
-   v5.4.0 needs one.
+1. **v5.2.0 and v5.3.0 are MERGED** (PR #102; `main` is `bb6dbcb`).
+   v5.4.0 is green on A8 and waiting on PR #103. **Check `gh run list`
+   after every push** - see the CI-trigger note in 6.3, which cost a
+   round here.
 2. **A9's remaining work is specific.** `leakage_1iter_n24` moved 1.306
    across three A8 runs of untouched code at 23 ms, and the Kalman step
    1.267 at 1.2 ms; both are still at the loose 3x factor. A9 closes by
@@ -1528,5 +1537,8 @@ runs, 323 passed, 0 failed, 5 filtered) - the TWELFTH exact count
 prediction, and the first release since the bridge returned. With
 apply_ddk_n300's A8 baseline committed, `3c003e3` runs 328 with 324
 passed and only the 4 optional fixtures filtered: every speed budget
-asserts on both machines. |
+asserts on both machines.
+5.4.0 (WP5 5b) green both ways: local 335 runs / 333 passed / 2
+filtered, and A8 at `c1dc1d3` via PR #103 with 335 / 331 / 0 failed /
+4 filtered - the THIRTEENTH exact count prediction. |
 Developed by Matthias Weigelt with the help of Claude.*
