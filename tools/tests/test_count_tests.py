@@ -109,7 +109,9 @@ class TestCounting(unittest.TestCase):
         self.assertEqual(c["runs"], c["methods"])
 
 
-EXPECTED_RUNS = 320          # v5.1.1: 319 + the matched-pair clenshaw budget
+EXPECTED_RUNS = 328          # v5.3.0: 326 (v5.2.0: 320 + 4 GIA tests + 2
+                             # n50 budgets) + benchPointsCrossover + the
+                             # auto-default contract test
 
 
 class TestRepository(unittest.TestCase):

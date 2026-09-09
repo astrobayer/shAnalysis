@@ -1915,11 +1915,12 @@ function testSynthesisPointsAutoPicksTheFasterPath(testCase)
 %   above it "auto" IS "clenshaw" - bitwise in both directions, because
 %   auto only chooses, it does not compute.
 %
-%   The crossover default (150) comes from the numpy prototype, not from
-%   MATLAB, so this test deliberately pins the DISPATCH RULE and not the
-%   number: it drives ClenshawFrom explicitly. Changing the default
-%   cannot silently break it, which is the point - the number is expected
-%   to move once A8 measures the real crossover.
+%   This test deliberately pins the DISPATCH RULE and not the number: it
+%   drives ClenshawFrom explicitly, so changing the default cannot
+%   silently break it. That is exactly what it bought - the default moved
+%   from 150 to 1 in v5.2.0, when benchPointsCrossover measured MATLAB
+%   and found no crossover at all, and this test needed no edit.
+%   testSynthesisPointsAutoIsClenshawByDefault pins the shipped number.
 GM = 3.986004415e14; R = 6378136.3;
 rng(33);
 nmax = 12;
@@ -1945,6 +1946,88 @@ verifyError(testCase, @() shLowLevel.synthesisPoints(C, S, GM, R, ...
     la, lo, rr, Method = "fft"), 'MATLAB:validators:mustBeMember');
 verifyError(testCase, @() shLowLevel.synthesisPoints(C, S, GM, R, ...
     la, lo, rr, ClenshawFrom = 0), 'MATLAB:validators:mustBePositive');
+end
+
+function testSynthesisPointsAutoIsClenshawByDefault(testCase)
+%TESTSYNTHESISPOINTSAUTOISCLENSHAWBYDEFAULT v5.3.0: the SHIPPED default.
+%   testSynthesisPointsAutoPicksTheFasterPath pins the rule while driving
+%   ClenshawFrom by hand; this pins the number the toolbox actually
+%   ships, because that is the thing a user gets and the thing that
+%   changed. ClenshawFrom = 1 means "auto" is "clenshaw" for ANY point
+%   count, including a single point.
+%
+%   Why 1 and not 150: benchPointsCrossover timed both paths on the same
+%   points and "clenshaw" won at every count measured (P = 1..2000 at
+%   nmax 60 and 120, P = 1..200 at nmax 360). 150 was the numpy
+%   prototype's crossover and does not hold in
+%   MATLAB, where "direct" is bounded by legendreALF and "clenshaw" never
+%   calls it. No clock is involved here - dispatch is checked bitwise.
+GM = 3.986004415e14; R = 6378136.3;
+rng(52);
+nmax = 10;
+C = tril(randn(nmax+1)) * 1e-9; S = tril(randn(nmax+1), -1) * 1e-9;
+for n = [1, 2, 17, 400]
+    la = linspace(-70, 70, n)';
+    lo = mod(7 * (1:n)', 360);
+    rr = R + (1:n)' * 25;
+    auto = shLowLevel.synthesisPoints(C, S, GM, R, la, lo, rr);
+    cle = shLowLevel.synthesisPoints(C, S, GM, R, la, lo, rr, ...
+        Method = "clenshaw");
+    verifyTrue(testCase, isequal(auto, cle), sprintf( ...
+        'default auto must be the clenshaw path at P = %d', n));
+end
+% the default is 1, so nothing can fall below it: mustBePositive already
+% forbids 0, which makes "auto is always clenshaw" a property of the
+% shipped surface and not merely of the numbers chosen above
+verifyError(testCase, @() shLowLevel.synthesisPoints(C, S, GM, R, ...
+    la, lo, rr, ClenshawFrom = 0), 'MATLAB:validators:mustBePositive');
+% and direct is still reachable - the fast default must not have retired
+% the bitwise path
+dir = shLowLevel.synthesisPoints(C, S, GM, R, la, lo, rr, ...
+    Method = "direct");
+verifyFalse(testCase, isequal(dir, cle), ...
+    'direct and clenshaw returned identical bits: one path is not running');
+% Deliberately NOT re-asserting how closely the two agree.
+% testCorrectness/testSynthesisPointsMethodsAgree owns that property and
+% bounds it the way the oracle defines it - max|clenshaw - direct| over
+% max|direct|, across three degrees, three quantities, both Nmin values
+% and near-pole latitudes. A per-element RelTol here is a DIFFERENT
+% statistic: on a white-spectrum fixture the sum cancels to a near-zero
+% value whose relative error is 6e-13 while the field-relative error is
+% 6e-14, so such an assertion fails without anything being wrong. This
+% test owns dispatch, which it checks bitwise.
+end
+
+function testRemoveGIASigmaContract(testCase)
+%TESTREMOVEGIASIGMACONTRACT WP5 5c: the Sigma option's surface and its
+%   one identifier. Sigma must match the GIA model in size - a mismatched
+%   sigma field silently zero-padded would attach the wrong uncertainty
+%   to the wrong degree, which is worse than refusing.
+nmax = 3; n1 = nmax + 1; T = 4;
+ep = 2008 + (0:T-1)'/12;
+ts = shSeries(zeros(n1, n1, T), Ss = zeros(n1, n1, T), Epochs = ep);
+gia = shCoefficients(tril(ones(n1)) * 1e-11, tril(ones(n1), -1) * 1e-11);
+bad = shCoefficients(tril(ones(n1 + 2)) * 1e-12, ...
+    tril(ones(n1 + 2), -1) * 1e-12);
+verifyError(testCase, @() ts.removeGIA(gia, Sigma = bad), ...
+    'shSeries:removeGIA:badSigma');
+verifyError(testCase, @() ts.removeGIA(gia, Sigma = 42), ...
+    'shSeries:removeGIA:badSigma');
+% info is a documented struct: every field the help names must exist
+sig = shCoefficients(tril(ones(n1)) * 4e-12, tril(ones(n1), -1) * 4e-12);
+[~, info] = ts.removeGIA(gia, Sigma = sig);
+for f = ["t0", "rateSigmaC", "rateSigmaS", "propagated", ...
+        "sigmaWasEmpty", "correlated"]
+    verifyTrue(testCase, isfield(info, f), ...
+        sprintf('info lacks the documented field %s', f));
+end
+% an explicit Sigma OVERRIDES the model's own
+gsig = shCoefficients(gia.C, gia.S, ...
+    SigmaC = tril(ones(n1)) * 9e-12, SigmaS = tril(ones(n1), -1) * 9e-12);
+[~, iOver] = ts.removeGIA(gsig, Sigma = sig);
+verifyEqual(testCase, iOver.rateSigmaC, sig.C, 'AbsTol', 0);
+[~, iOwn] = ts.removeGIA(gsig);
+verifyEqual(testCase, iOwn.rateSigmaC, gsig.sigmaC, 'AbsTol', 0);
 end
 
 function testSynthesisOwnsItsOwnIdentifiers(testCase)

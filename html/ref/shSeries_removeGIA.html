@@ -12,24 +12,24 @@
 <h1>shSeries.removeGIA</h1>
 <p class="h1line">Subtract a glacial isostatic adjustment model.</p>
 <h2>Syntax</h2>
-<div class="syntax"><code>out = shSeries.removeGIA(obj, gia)</code><code>out = shSeries.removeGIA(obj, gia, T0=NaN)</code></div>
+<div class="syntax"><code>[out, info] = shSeries.removeGIA(obj, gia)</code><code>[out, info] = shSeries.removeGIA(obj, gia, T0=NaN, Sigma=[])</code></div>
 <h2>Description</h2>
-<p>OUT = ts.removeGIA(GIA, T0 (NaN)=mean(epochs)) subtracts the linear GIA signal  giaRate * (t - T0)  from every epoch. GIA is an <a href="shCoefficients.html"><code>shCoefficients</code></a> object holding RATE coefficients [1/yr] - read your model (ICE-6G_D, Caron et al., ...) from its gfc file with <a href="shCoefficients_read.html"><code>shCoefficients.read</code></a>; models are ALWAYS user-supplied, never embedded. Trends computed after this are GIA-corrected; the model is treated as exact (its uncertainty, often the dominant trend error over Laurentia/Fennoscandia/Antarctica, is NOT propagated - documented limitation, see the guide). The GIA model is truncated to the series nmax; a model with smaller nmax is zero-padded with a note in history.</p>
+<p>OUT = ts.removeGIA(GIA, T0 (NaN)=mean(epochs)) subtracts the linear GIA signal  giaRate * (t - T0)  from every epoch. GIA is an <a href="shCoefficients.html"><code>shCoefficients</code></a> object holding RATE coefficients [1/yr] - read your model (ICE-6G_D, Caron et al., ...) from its gfc file with <a href="shCoefficients_read.html"><code>shCoefficients.read</code></a>; models are ALWAYS user-supplied, never embedded. Trends computed after this are GIA-corrected. The GIA model is truncated to the series nmax; a model with smaller nmax is zero-padded with a note in history.</p>
 <h2>Examples</h2>
 <details class="example"><summary>Runnable (docs/apiExamples.json)</summary><div><pre><code>ts = ts.removeGIA(giaModel);           % e.g. ICE-6G trend gfc</code></pre></div></details>
 <h2>Input Arguments</h2>
 <table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td><code>required</code></td><td class="desc">the object the method is called on</td></tr><tr><td><code>gia</code></td><td>1 x 1</td><td>shCoefficients</td><td><code>required</code></td><td class="desc">GIA rate field: <a href="shCoefficients.html"><code>shCoefficients</code></a>, coefficient struct or .gz/.gfc file path (subtracted as rate times (t - Epoch))</td></tr></table>
 <h2>Name-Value Arguments</h2>
-<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>T0</code></td><td>1 x 1</td><td>double</td><td><code>NaN</code></td><td class="desc">reference epoch of the fit [decimal years]</td></tr></table>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>T0</code></td><td>1 x 1</td><td>double</td><td><code>NaN</code></td><td class="desc">reference epoch of the linear model; the series mean epoch when not given</td></tr><tr><td><code>Sigma</code></td><td>n x m</td><td>-</td><td><code>[]</code></td><td class="desc"><a href="shCoefficients.html"><code>shCoefficients</code></a> of per-coefficient 1-sigma RATE uncertainties [1/yr]; defaults to gia&#x27;s own sigmaC/sigmaS</td></tr></table>
 <h2>Output Arguments</h2>
-<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>out</code></td><td class="desc">(1 x 1) <a href="shSeries.html"><code>shSeries</code></a>   GIA trend removed about the series mean epoch</td></tr></table>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>out</code></td><td class="desc">(1 x 1) <a href="shSeries.html"><code>shSeries</code></a>   GIA trend removed about the series mean epoch</td></tr><tr><td><code>info</code></td><td class="desc">(1 x 1) struct   what was propagated, fields t0            (1,1) double  reference epoch used rateSigmaC    (n1 x n1) double  rate 1-sigma, cosine rateSigmaS    (n1 x n1) double  rate 1-sigma, sine propagated    (1,1) logical  false when no sigma was available and none was added sigmaWasEmpty (1,1) logical  the series carried no sigmas, so the stacks hold the GIA term alone correlated    (1,1) logical  always true - the GIA term is fully correlated across epochs; see the note above</td></tr></table>
 <h2>Error Identifiers</h2>
-<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<table><tr><th>Identifier</th><th>Raised when</th></tr><tr><td><code>shSeries:removeGIA:badSigma</code></td><td class="desc">Sigma is not square or does not match gia in size</td></tr></table>
 <h2>Version History</h2>
 <p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
 <h2>See Also</h2>
 <ul class="seealso"><li><a href="shCoefficients.html"><code>shCoefficients</code></a></li><li><a href="shCoefficients_read.html"><code>shCoefficients.read</code></a></li></ul>
-<p class="prov">shAnalysis v5.1.1 (09-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+<p class="prov">shAnalysis v5.3.0 (09-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
 </div>
 </body>
 </html>

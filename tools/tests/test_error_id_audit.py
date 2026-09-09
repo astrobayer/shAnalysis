@@ -331,7 +331,7 @@ class TestRealClassFiles(unittest.TestCase):
     def test_the_shipped_classes_are_clean(self):
         probs, backlog, checked = eia.check_classes()
         self.assertEqual(probs, [])
-        self.assertEqual(checked, 31)
+        self.assertEqual(checked, 32)  # +shSeries.removeGIA (WP5 5c)
         self.assertEqual(backlog, [])
 
     def test_minus_does_not_claim_the_epoch_check_plus_does(self):

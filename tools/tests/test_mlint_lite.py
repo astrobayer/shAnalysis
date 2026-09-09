@@ -102,6 +102,50 @@ class TestArgumentsFirst(unittest.TestCase):
         self.assertEqual(findings(src), [])
 
 
+Q = chr(39)
+BS = chr(92)
+NLC = chr(10)
+
+# The exact defect R7 was written for: a v5.2.0 edit dropped a real newline
+# into an fprintf format. mlint_lite said zero findings and MATLAB refused to
+# parse the class, so every test in it vanished rather than failed.
+R7_BAD = NLC.join(["function f()", "fprintf(" + Q + "XOVER,%d", "', 1);", "end"])
+R7_GOOD = NLC.join(["function f()",
+                    "fprintf(" + Q + "XOVER,%d" + BS + "n" + Q + ", 1);",
+                    "end"])
+R7_CONT = NLC.join(["function f()",
+                    "fprintf(" + Q + "XOVER,%d" + BS + "n" + Q + ", ...",
+                    "    1);", "end"])
+R7_TRANSPOSE = NLC.join(["function f()", "x = A' * b;",
+                         "y = z.b' + c(1)';", "end"])
+R7_DQ = NLC.join(["function f()", chr(109) + ' = "abc', '";', "end"])
+
+
+def r7(src):
+    return [f for f in ml.lint_text("t.m", src) if "R7" in f[2]]
+
+
+class TestUnterminatedLiteral(unittest.TestCase):
+    """R7, fault-injected both ways. A rule that only ever sees clean code
+    proves nothing, and one that fires on legal code is worse than absent:
+    a transpose after a value and a literal split by ... are both legal."""
+
+    def test_the_injected_defect_fires(self):
+        self.assertTrue(r7(R7_BAD), "R7 missed an unterminated char vector")
+
+    def test_the_repaired_line_is_clean(self):
+        self.assertEqual(r7(R7_GOOD), [])
+
+    def test_a_continuation_is_not_an_unterminated_literal(self):
+        self.assertEqual(r7(R7_CONT), [])
+
+    def test_a_transpose_is_not_a_literal(self):
+        self.assertEqual(r7(R7_TRANSPOSE), [])
+
+    def test_an_unterminated_string_scalar_fires_too(self):
+        self.assertTrue(r7(R7_DQ), "R7 only covers char vectors")
+
+
 class TestRealRepository(unittest.TestCase):
 
     def test_every_shipped_m_file_is_clean(self):

@@ -3,7 +3,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="shAnalysis.css">
 </head><body><div class="content">
-<h1>shAnalysis API reference (v5.1.1)</h1>
+<h1>shAnalysis API reference (v5.3.0)</h1>
 <p>Generated from the source arguments blocks and help text - inputs,
 name-value options with defaults, and outputs for every public function
 and method. Regenerated with every release; the source of truth is the
@@ -1471,7 +1471,7 @@ code itself.</p>
 <p class="h1line">Gravity field quantities at arbitrary 3-D points.</p>
 <p>VAL = shLowLevel.synthesisPoints(C, S, GM, R, LATDEG, LONDEG, RGEO) evaluates the spherical harmonic expansion POINTWISE at positions given by equal-length vectors of geocentric latitude [deg], longitude [deg] and geocentric radius [m] - satellite altitudes, scattered stations, profiles - including the upward continuation (R/r)^n that grid synthesis on the sphere cannot provide: potential    T   = GM/r     sum_n (R/r)^n     sum_m Pnm (C cos + S sin) disturbance  dg  = GM/r^2   sum_n (n+1)(R/r)^n ...   ( = -dT/dr ) anomaly      Dg  = GM/r^2   sum_n (n-1)(R/r)^n ... Fully normalized coefficients, C(n+1,m+1) layout, geocentric latitudes (house conventions). Python-validated: pinned reference values at the surface and at 450 km altitude, and the radial derivative identity dg = -dT/dr to 3e-10 (tools/validate_sh pointwise block; pins in testCorrectness/testSynthesisPoints).</p>
 <b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>C</code></td><td>n x m</td><td>double</td><td>required</td></tr><tr><td><code>S</code></td><td>n x m</td><td>double</td><td>required</td></tr><tr><td><code>GM</code></td><td>1 x 1</td><td>double</td><td>required</td></tr><tr><td><code>R</code></td><td>1 x 1</td><td>double</td><td>required</td></tr><tr><td><code>latDeg</code></td><td>: x 1</td><td>double</td><td>required</td></tr><tr><td><code>lonDeg</code></td><td>: x 1</td><td>double</td><td>required</td></tr><tr><td><code>r</code></td><td>: x 1</td><td>double</td><td>required</td></tr></table>
-<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Quantity</code></td><td>1 x 1</td><td>string</td><td>&quot;potential&quot;</td></tr><tr><td><code>Nmin</code></td><td>1 x 1</td><td>double</td><td>2</td></tr><tr><td><code>Method</code></td><td>1 x 1</td><td>string</td><td>&quot;auto&quot;</td></tr><tr><td><code>ClenshawFrom</code></td><td>1 x 1</td><td>double</td><td>150</td></tr><tr><td><code>MaxMemGB</code></td><td>1 x 1</td><td>double</td><td>4</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Quantity</code></td><td>1 x 1</td><td>string</td><td>&quot;potential&quot;</td></tr><tr><td><code>Nmin</code></td><td>1 x 1</td><td>double</td><td>2</td></tr><tr><td><code>Method</code></td><td>1 x 1</td><td>string</td><td>&quot;auto&quot;</td></tr><tr><td><code>ClenshawFrom</code></td><td>1 x 1</td><td>double</td><td>1</td></tr><tr><td><code>MaxMemGB</code></td><td>1 x 1</td><td>double</td><td>4</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
 <tr><td><code>val</code></td><td>(P,1) double  quantity at each point</td></tr>
 </table>
@@ -2207,11 +2207,12 @@ code itself.</p>
 <div class="entry" id="shSeries.removeGIA">
 <h3><code>shSeries.removeGIA(obj, gia, opts)</code></h3>
 <p class="h1line">Subtract a glacial isostatic adjustment model.</p>
-<p>OUT = ts.removeGIA(GIA, T0 (NaN)=mean(epochs)) subtracts the linear GIA signal  giaRate * (t - T0)  from every epoch. GIA is an shCoefficients object holding RATE coefficients [1/yr] - read your model (ICE-6G_D, Caron et al., ...) from its gfc file with shCoefficients.read; models are ALWAYS user-supplied, never embedded. Trends computed after this are GIA-corrected; the model is treated as exact (its uncertainty, often the dominant trend error over Laurentia/Fennoscandia/Antarctica, is NOT propagated - documented limitation, see the guide). The GIA model is truncated to the series nmax; a model with smaller nmax is zero-padded with a note in history.</p>
+<p>OUT = ts.removeGIA(GIA, T0 (NaN)=mean(epochs)) subtracts the linear GIA signal  giaRate * (t - T0)  from every epoch. GIA is an shCoefficients object holding RATE coefficients [1/yr] - read your model (ICE-6G_D, Caron et al., ...) from its gfc file with shCoefficients.read; models are ALWAYS user-supplied, never embedded. Trends computed after this are GIA-corrected. The GIA model is truncated to the series nmax; a model with smaller nmax is zero-padded with a note in history.</p>
 <b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td>required</td></tr><tr><td><code>gia</code></td><td>1 x 1</td><td>shCoefficients</td><td>required</td></tr></table>
-<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>T0</code></td><td>1 x 1</td><td>double</td><td>NaN</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>T0</code></td><td>1 x 1</td><td>double</td><td>NaN</td></tr><tr><td><code>Sigma</code></td><td>n x m</td><td>-</td><td>[]</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
 <tr><td><code>out</code></td><td>(1 x 1) shSeries   GIA trend removed about the series mean epoch</td></tr>
+<tr><td><code>info</code></td><td>(1 x 1) struct   what was propagated, fields t0            (1,1) double  reference epoch used rateSigmaC    (n1 x n1) double  rate 1-sigma, cosine rateSigmaS    (n1 x n1) double  rate 1-sigma, sine propagated    (1,1) logical  false when no sigma was available and none was added sigmaWasEmpty (1,1) logical  the series carried no sigmas, so the stacks hold the GIA term alone correlated    (1,1) logical  always true - the GIA term is fully correlated across epochs; see the note above</td></tr>
 </table>
 </div>
 <div class="entry" id="shSeries.restore">
@@ -2399,4 +2400,4 @@ code itself.</p>
 <tr><td><code>obj</code></td><td>(1 x 1) shClimatology   copy with the note appended to its history</td></tr>
 </table>
 </div>
-<p class="provenance">Developed by Matthias Weigelt with the help of Claude (Fable 5), 09-Sep-2026 (v5.1.1). Generated by tools - do not edit.</p></div></body></html>
+<p class="provenance">Developed by Matthias Weigelt with the help of Claude (Fable 5), 09-Sep-2026 (v5.3.0). Generated by tools - do not edit.</p></div></body></html>

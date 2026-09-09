@@ -37,9 +37,15 @@ STMT_ONLY = {"arguments", "methods", "properties", "function", "classdef"}
 OPEN, CLOSE = "([{", ")]}"
 
 
-def strip_tokens(src):
+def strip_tokens(src, unterminated=None):
     """Remove comments and string literals, preserving line structure.
-    Returns text of identical length/line layout with stripped chars blanked."""
+    Returns text of identical length/line layout with stripped chars blanked.
+
+    If `unterminated` is a list, every literal that runs into the end of its
+    line is appended to it as (line_number, quote_char). This scanner already
+    has to know where a literal stops - MATLAB does not let one span a line
+    without a continuation - so R7 reads the fact off it instead of adding a
+    second parser that would drift from this one (the A17 lesson)."""
     out = list(src)
     i, n = 0, len(src)
     in_block_comment = 0
@@ -67,6 +73,8 @@ def strip_tokens(src):
                 i += 1
             continue
         if c == '"':                                   # string scalar
+            start = i
+            closed = False
             out[i] = " "
             i += 1
             while i < n and src[i] != "\n":
@@ -77,15 +85,20 @@ def strip_tokens(src):
                         continue
                     out[i] = " "
                     i += 1
+                    closed = True
                     break
                 out[i] = " "
                 i += 1
+            if not closed and unterminated is not None:
+                unterminated.append((src.count("\n", 0, start) + 1, '"'))
             continue
         if c == "'":
             prev = src[i - 1] if i else ""
             if re.match(r"[\w\)\]\}\.']", prev):       # transpose
                 i += 1
                 continue
+            start = i
+            closed = False
             out[i] = " "
             i += 1
             while i < n and src[i] != "\n":            # char literal
@@ -96,9 +109,12 @@ def strip_tokens(src):
                         continue
                     out[i] = " "
                     i += 1
+                    closed = True
                     break
                 out[i] = " "
                 i += 1
+            if not closed and unterminated is not None:
+                unterminated.append((src.count("\n", 0, start) + 1, "'"))
             continue
         i += 1
     return "".join(out)
@@ -362,12 +378,31 @@ def check_arguments_first(name, txt):
     return bad
 
 
+def check_unterminated(name, unterminated):
+    """R7: a string literal that runs off the end of its line.
+
+    MATLAB will not parse the file at all - "Character vector is not
+    terminated properly" - so every test in it fails to even be collected.
+    The rule exists because that happened: a v5.2.0 edit put a real newline
+    inside an fprintf format, mlint_lite reported zero findings, and MATLAB
+    rejected the whole testPerformance class. A Tier-B session has no other
+    syntax check, so a parse error it cannot see costs a CI round.
+
+    A continuation (...) is folded before this runs, so a literal legally
+    split across lines does not trip it.
+    """
+    return [(name, ln, f"R7 unterminated {q} literal - MATLAB will not "
+             f"parse this file") for ln, q in unterminated]
+
+
 def lint_text(name, src):
-    txt = fold_continuations(strip_tokens(src))
+    unterminated = []
+    txt = fold_continuations(strip_tokens(src, unterminated))
     return (check_balance(name, txt) + check_dot_rules(name, txt)
             + check_arguments_blocks(name, txt)
             + check_nv_before_expansion(name, txt)
-            + check_arguments_first(name, txt))
+            + check_arguments_first(name, txt)
+            + check_unterminated(name, unterminated))
 
 
 def main(paths):

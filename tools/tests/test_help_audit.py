@@ -243,6 +243,58 @@ class TestStructFields(unittest.TestCase):
         e = ha.parse_from(lines, i, "")
         self.assertIn("attenuation", ha.fields_assigned_to(e["src"], "info"))
 
+    def test_a_sibling_method_does_not_inherit_a_local_it_never_calls(self):
+        # The other half of the rule above, and the one that was missing.
+        # Appending EVERY local function to EVERY method made any method
+        # with an `info` output inherit every other's fields. It stayed
+        # invisible while exactly one method had such an output; the
+        # moment shSeries.removeGIA grew one (WP5 5c) it produced ten
+        # false findings naming meanWindowInfo's fields.
+        src = ("classdef c\n  methods\n"
+               "    function [g, info] = mean(obj)\n"
+               "      info = meanWindowInfo(obj);\n    end\n"
+               "    function [o, info] = removeGIA(obj)\n"
+               "      info = struct('t0', 1);\n    end\n"
+               "  end\nend\n"
+               "\nfunction info = meanWindowInfo(obj)\n"
+               "info = struct('coverage', 1, 'attenuation', []);\nend\n")
+        import tempfile
+        d = tempfile.mkdtemp()
+        p2 = os.path.join(d, "c.m")
+        with open(p2, "w", encoding="utf-8") as fh:
+            fh.write(src)
+        with open(p2, encoding="utf-8") as fh:
+            lines = fh.readlines()
+        i = next(k for k, L in enumerate(lines) if "function [o, info]" in L)
+        e = ha.parse_from(lines, i, "")
+        got = ha.fields_assigned_to(e["src"], "info")
+        self.assertIn("t0", got)
+        self.assertNotIn("coverage", got)
+        self.assertNotIn("attenuation", got)
+        # and the caller still sees them, so the fix did not just narrow
+        i2 = next(k for k, L in enumerate(lines) if "function [g, info]" in L)
+        e2 = ha.parse_from(lines, i2, "")
+        self.assertIn("coverage", ha.fields_assigned_to(e2["src"], "info"))
+
+    def test_a_local_calling_a_local_is_followed(self):
+        # meanWindowInfo could delegate further; the closure is transitive
+        src = ("classdef c\n  methods\n"
+               "    function [g, info] = mean(obj)\n"
+               "      info = outer(obj);\n    end\n  end\nend\n"
+               "\nfunction info = outer(obj)\ninfo = inner(obj);\nend\n"
+               "\nfunction info = inner(obj)\n"
+               "info = struct('deep', 1);\nend\n")
+        import tempfile
+        d = tempfile.mkdtemp()
+        p2 = os.path.join(d, "c.m")
+        with open(p2, "w", encoding="utf-8") as fh:
+            fh.write(src)
+        with open(p2, encoding="utf-8") as fh:
+            lines = fh.readlines()
+        i = next(k for k, L in enumerate(lines) if "function [g, info]" in L)
+        e = ha.parse_from(lines, i, "")
+        self.assertIn("deep", ha.fields_assigned_to(e["src"], "info"))
+
     def test_delegation_needs_an_explicit_marker(self):
         # a bare "from" or "see" appears in ordinary prose and silently
         # excused five rows that were in fact documented here
