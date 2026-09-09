@@ -1460,3 +1460,35 @@ verifyEqual(tc, inf1.parsed(1).kn(1:4), kn(1:4), 'AbsTol', 1e-12);
 verifyEqual(tc, inf1.parsed(1).kn(2), -1, ...
     'the CM-frame k1 = -1 must survive the parse');
 end
+
+function testLeakageDataDrivenAcceptsFractionalAndAlternativeFilters(testCase)
+%TESTLEAKAGEDATADRIVENACCEPTSFRACTIONALANDALTERNATIVEFILTERS Robustness:
+%   a real basin mask has fractional edge cells, and the filter the data
+%   saw is not always a Gaussian. Neither may error, and "none" must
+%   still produce a finite answer even though a no-op filter makes the
+%   two correction terms degenerate.
+lat = linspace(-89, 89, 33);
+lon = (0:33) * (360/34);
+[LO, LA] = meshgrid(lon, lat);
+psi = acosd(min(1, max(-1, sind(LA)*sind(10) + ...
+    cosd(LA)*cosd(10).*cosd(LO - 200))));
+R = max(0, min(1, (25 - psi) / 6));      % soft-edged, fractional
+T = 18; t = (0:T-1)'/12;
+g = zeros(numel(lat), numel(lon), T);
+for k = 1:T
+    g(:,:,k) = (0.1*sin(2*pi*t(k)) + 0.01*t(k)) * R ...
+        + 0.05*cos(2*pi*t(k)) * double(psi > 40);
+end
+[a, ia] = shLowLevel.leakageDataDriven(g, lat, lon, Mask = R);
+verifyTrue(testCase, all(isfinite(a)), "fractional mask gave non-finite");
+verifyGreaterThan(testCase, ia.areaFraction, 0);
+[b, ib] = shLowLevel.leakageDataDriven(g, lat, lon, Mask = R, ...
+    Filter = "none");
+verifyTrue(testCase, all(isfinite(b)), """none"" gave non-finite");
+verifyEqual(testCase, ib.filter, "none");
+% Nmax is honoured and changes the chain, so it must change the answer
+[c, ic] = shLowLevel.leakageDataDriven(g, lat, lon, Mask = R, Nmax = 8);
+verifyEqual(testCase, ic.nmax, 8);
+verifyTrue(testCase, all(isfinite(c)));
+verifyNotEqual(testCase, a, c);
+end

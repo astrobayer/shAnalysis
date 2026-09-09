@@ -109,9 +109,9 @@ class TestCounting(unittest.TestCase):
         self.assertEqual(c["runs"], c["methods"])
 
 
-EXPECTED_RUNS = 328          # v5.3.0: 326 (v5.2.0: 320 + 4 GIA tests + 2
-                             # n50 budgets) + benchPointsCrossover + the
-                             # auto-default contract test
+EXPECTED_RUNS = 335          # v5.4.0: 328 + 7 leakageDataDriven tests
+                             # (4 correctness, 2 contract, 1 robustness)
+
 
 
 class TestRepository(unittest.TestCase):

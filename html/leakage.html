@@ -11,11 +11,11 @@ boundary as leakage. Two corrections are available, and they differ in <em>what 
 believe</em>.</p>
 
 <table>
-<tr><th></th><th><a href="#fwd">leakageCorrect</a> (forward modelling)</th><th><a href="#k">gridScaling</a></th></tr>
-<tr><td>Needs</td><td>the filter, and optionally a region mask</td><td>a model field series</td></tr>
-<tr><td>Assumes</td><td>mass lives only inside the mask</td><td>the model's spatial <b>pattern</b> is right</td></tr>
-<tr><td>Gives</td><td>a corrected field</td><td>a per-pixel factor <code class="inline">k</code></td></tr>
-<tr><td>Fails when</td><td>the mask is wrong</td><td>the model's pattern is wrong</td></tr>
+<tr><th></th><th><a href="#fwd">leakageCorrect</a> (forward modelling)</th><th><a href="#k">gridScaling</a></th><th><a href="#ddc">leakageDataDriven</a></th></tr>
+<tr><td>Needs</td><td>the filter, and optionally a region mask</td><td>a model field series</td><td>the filter, a catchment mask, and &ge;&nbsp;12 epochs</td></tr>
+<tr><td>Assumes</td><td>mass lives only inside the mask</td><td>the model's spatial <b>pattern</b> is right</td><td>one more filtering step behaves like the last one</td></tr>
+<tr><td>Gives</td><td>a corrected field</td><td>a per-pixel factor <code class="inline">k</code></td><td>a corrected catchment <b>time series</b></td></tr>
+<tr><td>Fails when</td><td>the mask is wrong</td><td>the model's pattern is wrong</td><td>the catchment is small (&lt; ~65000 km&sup2;)</td></tr>
 </table>
 
 <h2 id="fwd">Iterative forward modelling</h2>
@@ -137,6 +137,33 @@ instead. <code class="inline">info.kMedian</code> summarises the pixels the mode
 all finite pixels &mdash; pure-leakage pixels correctly get <code class="inline">k = 0</code> and
 would otherwise dominate the median.</div>
 
+<h2 id="ddc">Data-driven correction, without any model</h2>
+<p>Both corrections above need something you have to believe: a mask, or a hydrological model.
+The <b>method of deviation</b> needs neither. Split the true field into the part inside the
+catchment and the rest; for any filter that leaves a constant alone the filtered catchment
+average splits with <em>no approximation</em>:</p>
+<pre>gbar_c = f_c + dF_c + l_c</pre>
+<p>&mdash; the average you wanted, the <b>deviation integral</b> (what the filter does to the
+catchment's own signal, because it is not a uniform layer), and the <b>leakage</b> smeared in
+from outside. So <code class="inline">f_c = gbar_c &minus; dF_c &minus; l_c</code> is a
+rearrangement, not a fit. The difficulty is that both corrections need the unfiltered field.
+They are estimated instead from the once- and twice-filtered fields and extrapolated one
+filtering step back:</p>
+<pre>[fHat, info] = shLowLevel.leakageDataDriven(ewh, lat, lon, ...
+    Mask = basin, Filter = "gauss300");</pre>
+<p>The leakage extrapolation corrects a <b>phase</b> difference as well as an amplitude &mdash;
+out-of-phase leakage is exactly the case a scale factor cannot fix. The deviation integral
+deliberately gets no phase correction: Vishwakarma measured those phase differences and found no
+consistent relation, so applying one would be invention. That asymmetry is in the method, not an
+oversight here.</p>
+<p>The function wants a series, not an epoch: both steps are regressions over time. It refuses
+below 12 epochs, and refuses NaN, because neither regression can skip a gap &mdash; a confident
+phase from four months of data would be worse than no answer.</p>
+<p>Closed-loop, it removes 55&nbsp;% of the RMS damage in
+<code class="inline">testCorrectness</code> and 63&nbsp;% in the Python oracle. See
+<code class="inline">info.leakage</code> and <code class="inline">info.deviation</code> for the
+two terms it removed, and <code class="inline">info.phaseDeg</code> for the shift it applied.</p>
+
 <h2>Validation</h2>
 <p>Both methods were implemented and checked in Python (<code class="inline">tools/dev/validate_leakage.py</code>)
 before the MATLAB port, against known truth: exact analysis/synthesis round trip (4e-16), zero in /
@@ -163,7 +190,7 @@ outlines and an iteration that has not fully converged.</p>
 
 <h2>See Also</h2>
 <p class="seealso"><a href="ref/shLowLevel_basinKernel.html">basinDeconvolve</a>
-<a href="ref/shLowLevel_basinScaling.html">basinScaling</a> <a href="ref/shLowLevel_readDDK.html">readDDK / applyDDK</a>
+<a href="ref/shLowLevel_leakageDataDriven.html">leakageDataDriven</a> <a href="ref/shLowLevel_basinScaling.html">basinScaling</a> <a href="ref/shLowLevel_readDDK.html">readDDK / applyDDK</a>
 <a href="ref/shLowLevel_designFilter.html">designFilter</a> <a href="apiReference.html">API reference</a></p>
 
 <hr><p style="font-size:11px;color:#888">Developed by Matthias Weigelt with the help of Claude.</p>

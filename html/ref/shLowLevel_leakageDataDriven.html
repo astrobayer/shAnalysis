@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shLowLevel.leakageDataDriven &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shLowLevel.leakageDataDriven</nav>
+<h1>shLowLevel.leakageDataDriven</h1>
+<p class="h1line">Model-free leakage/damage correction of a catchment mean.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>[fHat, info] = shLowLevel.leakageDataDriven(gridSeries, latDeg, lonDeg)</code><code>[fHat, info] = shLowLevel.leakageDataDriven(gridSeries, latDeg, lonDeg, Mask=[], Filter=&quot;gauss300&quot;, Nmax=NaN, ...)</code></div>
+<h2>Description</h2>
+<p>FHAT = shLowLevel.leakageDataDriven(GRIDSERIES, LATDEG, LONDEG, Mask = R, Filter = F) repairs the catchment average of a FILTERED time series using correction terms built from the filtered fields alone - Vishwakarma&#x27;s &quot;method of deviation&quot;. No hydrological model is involved, which is the whole point: it is the model-independent counterpart of <a href="shLowLevel_leakageCorrect.html"><code>shLowLevel.leakageCorrect</code></a>&#x27;s forward model.</p>
+<h2>Examples</h2>
+<details class="example"><summary>From the help block</summary><div><pre><code>    % ewh is (nLat x nLon x T) of Gaussian-300 filtered fields
+    [fHat, info] = shLowLevel.leakageDataDriven(ewh, lat, lon, ...
+        Mask = basin, Filter = &quot;gauss300&quot;);
+    fprintf(&quot;leakage removed: %.3f m RMS, phase %.1f deg\n&quot;, ...
+        rms(info.leakage), info.phaseDeg);
+
+  References
+    Vishwakarma, B. D. (2017), Understanding and repairing the signal
+      damage due to filtering of mass change estimates from the GRACE
+      satellite mission, PhD thesis, Institute of Geodesy, University
+      of Stuttgart - chapter 3, eqs. (3.19)-(3.29).
+    Vishwakarma, Horwath, Devaraju, Groh &amp; Sneeuw (2017), A data-driven
+      approach for repairing the hydrological catchment signal damage
+      due to filtering of GRACE products, Water Resour. Res. 53,
+      9824-9844, doi:10.1002/2017WR021150.
+    Phillips, Nerem, Fox-Kemper, Famiglietti &amp; Rajagopalan (2012), The
+      influence of ENSO on global terrestrial water storage using
+      GRACE, Geophys. Res. Lett. 39, L16705, doi:10.1029/2012GL052495
+      - the Hilbert phase estimator.
+    Python-validated in tools/dev/validate_leakage_datadriven.py: the
+      decomposition closes to 4e-15, the phase measure/shift pair are
+      mutual inverses to 7e-15 deg, and a closed loop removes 63% of
+      the filtering damage.
+
+  See also shLowLevel.leakageCorrect, shLowLevel.basinScaling,
+  shLowLevel.gridScaling, shLowLevel.basinKernel.</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>gridSeries</code></td><td>nLat x nLon x T</td><td>double</td><td><code>required</code></td><td class="desc">double  ALREADY-FILTERED fields, one per epoch, in any unit that is linear in mass (EWH is the usual one). The unit passes straight through.</td></tr><tr><td><code>latDeg</code></td><td>1 x nLat</td><td>double</td><td><code>required</code></td><td class="desc">double  geocentric latitudes in degrees</td></tr><tr><td><code>lonDeg</code></td><td>1 x nLon</td><td>double</td><td><code>required</code></td><td class="desc">double  longitudes in degrees</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>Mask</code></td><td>required</td><td>double</td><td><code>[]</code></td><td class="desc">(nLat x nLon) double  the catchment function R: 1 inside, 0 outside. Fractional edge values are allowed and are used as given</td></tr><tr><td><code>Filter</code></td><td>n x m</td><td>-</td><td><code>&quot;gauss300&quot;</code></td><td class="desc">the SAME filter the data already saw - &quot;none&quot; | &quot;gauss&lt;radiusKm&gt;&quot; | &quot;DDKn&quot; | a W struct, exactly as <a href="shLowLevel_leakageCorrect.html"><code>shLowLevel.leakageCorrect</code></a> takes it. Getting this wrong does not error; it silently mis-estimates both corrections</td></tr><tr><td><code>Nmax</code></td><td>1 x 1</td><td>double</td><td><code>NaN</code></td><td class="desc">degree of the analysis/synthesis chain; default floor((nLat-1)/2)</td></tr><tr><td><code>GM</code></td><td>1 x 1</td><td>double</td><td><code>3.986004415e14</code></td><td class="desc">used identically on both sides of the chain, so it cancels</td></tr><tr><td><code>R</code></td><td>1 x 1</td><td>double</td><td><code>6378136.3</code></td><td class="desc">as GM</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>fHat</code></td><td class="desc">(T x 1) double  corrected catchment average, same unit as gridSeries</td></tr><tr><td><code>info</code></td><td class="desc">(1,1) struct  fields filtered     (T x 1) double  the uncorrected catchment average of the input - what a user would have had without this function leakage      (T x 1) double  lhat, the estimated true leakage that was removed deviation    (T x 1) double  dFhat, the estimated deviation integral that was removed leakageOnce  (T x 1) double  lbar, leakage from the once filtered fields (before extrapolation) leakageTwice (T x 1) double  lbarbar, from the twice filtered fields deviationOnce  (T x 1) double  dFbar deviationTwice (T x 1) double  dFbarbar phaseDeg     (1,1) double  phase difference applied to the leakage series, in degrees leakageRatio (1,1) double  amplitude factor applied to the leakage series deviationRatio (1,1) double  amplitude factor applied to the deviation integral areaFraction (1,1) double  catchment area over the sphere; multiply by 5.1006e8 km^2 for a rough size, and compare against the ~65000 km^2 the method wants nmax         (1,1) double  degree the chain worked at filter       (1,1) string  the filter that was re-applied</td></tr></table>
+<h2>Error Identifiers</h2>
+<table><tr><th>Identifier</th><th>Raised when</th></tr><tr><td><code>shLowLevel:leakageDataDriven:badFilter</code></td><td class="desc">Filter is not a W struct, &quot;none&quot;, &quot;gauss&lt;radiusKm&gt;&quot; or &quot;DDKn&quot;</td></tr><tr><td><code>shLowLevel:leakageDataDriven:badMask</code></td><td class="desc">Mask is missing, or is not nLat x nLon</td></tr><tr><td><code>shLowLevel:leakageDataDriven:badNmax</code></td><td class="desc">the grid supports nmax &lt; 2; give at least 3 latitudes</td></tr><tr><td><code>shLowLevel:leakageDataDriven:badSize</code></td><td class="desc">gridSeries is not nLat x nLon x T for the given latDeg/lonDeg</td></tr><tr><td><code>shLowLevel:leakageDataDriven:emptyMask</code></td><td class="desc">Mask has zero area - there is no catchment to average over</td></tr><tr><td><code>shLowLevel:leakageDataDriven:nanInput</code></td><td class="desc">gridSeries contains a non-finite value; the phase and ratio steps are least squares over the WHOLE series and cannot skip one epoch, so this refuses rather than return NaN</td></tr><tr><td><code>shLowLevel:leakageDataDriven:tooFewEpochs</code></td><td class="desc">fewer than 12 epochs. The phase and amplitude steps are regressions over the time series, and below one annual cycle they fit noise</td></tr></table>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<ul class="seealso"><li><a href="shLowLevel_leakageCorrect.html"><code>shLowLevel.leakageCorrect</code></a></li><li><a href="shLowLevel_basinScaling.html"><code>shLowLevel.basinScaling</code></a></li><li><a href="shLowLevel_gridScaling.html"><code>shLowLevel.gridScaling</code></a></li></ul>
+<p class="prov">shAnalysis v5.4.0 (09-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>
