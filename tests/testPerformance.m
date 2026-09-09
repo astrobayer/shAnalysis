@@ -20,7 +20,12 @@ classdef testPerformance < matlab.perftest.TestCase
 %       legendre_n96 / _n360 / _n720   the Holmes-Featherstone recursion
 %       synthesis_direct_n60           reduction only (cache primed)
 %       synthesis_fft_n60              the FFT-along-longitude path
-%       synthesis_points_n60           2000 scattered points
+%       synthesis_points_n60           2000 scattered points, clenshaw
+%       synthesis_points_n60_direct    200 scattered points, direct
+%       synthesis_points_n60_clenshaw  THE SAME 200 points, clenshaw -
+%         the two are a matched pair on purpose: a crossover can only
+%         be read off two paths measured at the SAME point count, and
+%         v5.1.0 shipped them at 2000 and 200, which cannot bracket it
 %       analysis_rings_n60             exact per-order ring analysis
 %       apply_ddk_n96                  order-block filter application
 %       leakage_1iter_n24              one leakageCorrect step
@@ -57,6 +62,8 @@ properties (TestParameter)
         'synthesis_direct_n60', 'synthesis_direct_n60', ...
         'synthesis_fft_n60',    'synthesis_fft_n60', ...
         'synthesis_points_n60', 'synthesis_points_n60', ...
+        'synthesis_points_n60_direct', 'synthesis_points_n60_direct', ...
+        'synthesis_points_n60_clenshaw', 'synthesis_points_n60_clenshaw', ...
         'analysis_rings_n60',   'analysis_rings_n60', ...
         'apply_ddk_n96',        'apply_ddk_n96', ...
         'leakage_1iter_n24',    'leakage_1iter_n24', ...
@@ -311,20 +318,42 @@ methods
                 g.synthesis(la, lo, Method = "fft");
                 fcn = @() g.synthesis(la, lo, Method = "fft");
             case 'synthesis_points_n60'
+                % 2000 scattered points: the regime "auto" routes to
+                % clenshaw. Forced here rather than left to auto, so the
+                % budget keeps measuring the same code if the crossover
+                % default moves.
                 g = tc.randomField(60);
                 rng(11);
-                % 2000 points, ~0.3 s: synthesisPoints calls legendreALF
-                % once PER POINT, so this is the B2 candidate's workload.
-                % Small enough to repeat 15 times, large enough to sit
-                % well clear of timer noise - the failure mode the
-                % testCacheSpeedup comment above records.
                 np = 2000;
                 la = (rand(np, 1) - 0.5) * 178;
                 lo = rand(np, 1) * 360;
                 rr = R + rand(np, 1) * 1000;
                 C = g.C; S = g.S;
                 fcn = @() shLowLevel.synthesisPoints(C, S, GM, R, ...
-                    la, lo, rr);
+                    la, lo, rr, Method = "clenshaw");
+            case {'synthesis_points_n60_direct', ...
+                    'synthesis_points_n60_clenshaw'}
+                % 200 points is a GNSS-network-sized station list - the
+                % regime "auto" routes to direct. The two cases share
+                % this arm, and therefore the SAME rng and the SAME
+                % points, so their medians are directly comparable and
+                % bracket the crossover. Measured apart they could not:
+                % v5.1.0 budgeted clenshaw at 2000 and direct at 200 and
+                % so measured neither against the other.
+                g = tc.randomField(60);
+                rng(12);
+                np = 200;
+                la = (rand(np, 1) - 0.5) * 178;
+                lo = rand(np, 1) * 360;
+                rr = R + rand(np, 1) * 1000;
+                C = g.C; S = g.S;
+                if strcmp(name, 'synthesis_points_n60_direct')
+                    how = "direct";
+                else
+                    how = "clenshaw";
+                end
+                fcn = @() shLowLevel.synthesisPoints(C, S, GM, R, ...
+                    la, lo, rr, Method = how);
             case 'analysis_rings_n60'
                 rng(9);
                 L = 60;

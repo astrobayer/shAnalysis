@@ -55,6 +55,9 @@ HEADER = "machine,matlab,benchmark,median_s,min_s,samples,measured"
 # This list may only SHRINK. An entry here means the budget FILTERS rather
 # than asserts, so nothing is being guarded - it is debt, not a decision.
 NO_BASELINE = {
+    "synthesis_points_n60_clenshaw": "new in v5.1.1 - the matched pair "
+                                     "for synthesis_points_n60_direct, "
+                                     "awaiting its first A8 measurement",
 }
 
 _DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
@@ -71,13 +74,24 @@ def declared_cases(text):
 
 
 def workload_arms(text):
-    """Case labels of the switch inside workload()."""
+    """Case labels of the switch inside workload().
+
+    MATLAB lets one arm serve several labels as a cell array,
+    `case {'a', 'b'}`, and v5.1.1 uses one for the matched-pair budgets.
+    Reading only `case 'x'` reported both of them as having no arm - a
+    FALSE finding about correct code, and the same shape as A2's
+    nv_casing_audit blind spot: an instrument is not evidence about a
+    construct it cannot parse.
+    """
     m = re.search(r"function\s+fcn\s*=\s*workload\(.*?\)(.*?)\n    function ",
                   text, re.S)
     if not m:
         return None
     body = re.sub(r"%[^\n]*", "", m.group(1))
-    return set(re.findall(r"case\s+'([^']*)'", body))
+    arms = set()
+    for hit in re.finditer(r"\bcase\s+(\{.*?\}|'[^']*')", body, re.S):
+        arms |= set(re.findall(r"'([^']*)'", hit.group(1)))
+    return arms
 
 
 def read_rows(path):

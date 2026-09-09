@@ -23,10 +23,10 @@ says whether it was *read* or *inferred*.
 
 | Fact | Value | Evidence |
 |---|---|---|
-| Version | **5.0.3**, 09-Sep-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
+| Version | **5.1.1**, 09-Sep-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
 | Branches | `main` only; `claude/getframe-recapture` and `claude/readshm` are gone (merged/deleted) | `GET /branches` |
 | Public surface | 3 classes / 71 methods, 122 `+shLowLevel` functions (+4 private), 3 root functions | `tools/dev/api_extract.py` run in sandbox |
-| Tests | 5 classes, **305 methods / 315 runs**: Correctness 159, Contract 74, Robustness 53, Science 7, Performance 12 methods (22 runs, `budgetCase` x10 + `nmaxP` x2). 4 filter out without the optional real-data fixtures; the 10 speed budgets ALSO filtered in v5.0.2 (14 filtered) and stop doing so in v5.0.3, now that A8 has a baseline. The counter has matched the runner EXACTLY on the last seven green A8 runs (269, 301, 304, 304, 305, 305, 315); the one time it did not was A16, before it existed. | `python3 tools/dev/count_tests.py` |
+| Tests | 5 classes, **308 methods / 320 runs**: Correctness 161, Contract 75, Robustness 53, Science 7, Performance 12 methods (24 runs, `budgetCase` x12 + `nmaxP` x2). 4 filter out without the optional real-data fixtures; the 10 speed budgets ALSO filtered in v5.0.2 (14 filtered) and stop doing so in v5.0.3, now that A8 has a baseline. The counter has matched the runner EXACTLY on the last seven green A8 runs (269, 301, 304, 304, 305, 305, 315); the one time it did not was A16, before it existed. | `python3 tools/dev/count_tests.py` |
 | Python oracles | 16 `tools/dev/validate_*.py` + `tools/audit/*` | listing |
 | Docs | **26** hand-written `html/*.html` (24 per-entity duplicates retired in v5.0.1, WP6 stage 3) + **200 generated `html/ref/*.html`** (one per entity + index, `make_refpages.py`), one shared `html/shAnalysis.css`, `helptoc.xml`, `info.xml`, guide PDF, generated `html/apiReference.html`. `docs/` holds the PDF and `apiExamples.json` only - no HTML page lives outside `html/` (gated). | listing |
 | CI | `gates` job on ubuntu (help_audit, doc_sync_audit, no_map_renderer, toolbox_dependency_audit, nv_casing_audit, fixture_tag_audit, gate self-tests `tools/tests/`, `count_tests`, `name_coverage`, `error_id_audit`, `option_values_audit`, `refpages_audit`, `make_demos --check`, `perf_baseline_audit`) + `runAllTests (self-hosted)` on A8/R2026a; fixtures from tag `fixtures-2026-08` | `.github/workflows/ci.yml` |
@@ -286,7 +286,7 @@ Approved by Matthias on 2026-09-09 as option (a), the hard break.
   bump `fixtures-2026-09`).
 - **Size**: M. **Version**: MAJOR (4.0.0) under (a).
 
-### WP2 — Speed budgets, then speed   `[~] STEP 1 DONE in v5.0.2 + v5.0.3`
+### WP2 — Speed budgets, then speed   `[~] STEP 1 DONE (v5.0.2+v5.0.3); STEP 2 B2 DONE (v5.1.0)`
 Approved by Matthias on 2026-09-09 ("Go ahead with WP2"), which
 supersedes the "A9 is ok" acceptance recorded the same day.
 
@@ -305,12 +305,31 @@ within-run figures the first run produced (median/min <= 1.043 above
 20 ms) — they describe 15 repeats inside one process, not two runs on
 a shared machine.
 
-**Step 2 now has a measured target.** `synthesis_points_n60` cost
-2.28 s against 1.7-88 ms for every other budget, and 36.65 s of the
-job's 4:51, because `synthesisPoints` calls `legendreALF` once PER
-POINT. B2's premise is measured, not inferred. A second measurement
-worth keeping: the FFT path is **1.40x** the direct path at n60/1 deg,
-where `benchSynthesisFFTvsDirect`'s comment had claimed 5-20x.
+**Step 2, row B2: DONE in v5.1.0.** `synthesisPoints` gained
+`Method = "auto" | "direct" | "clenshaw"`. Measured in
+`tools/dev/validate_points_clenshaw.py` against the per-point code it
+replaces: `direct` (batched Legendre, BITWISE) 52-61x, `clenshaw`
+(per-order lumped coefficients, no `Pbar` ever formed) 68-356x over
+three configurations (nmax 60 at 200 and 2000 points, nmax 120 at
+2000). On A8 the 2000-point clenshaw case measured **0.0221 s against
+the retired path's 2.2829 s - 103x**; the MATLAB win is smaller than
+numpy's because MATLAB's array ops were never the bottleneck. The two
+shipped paths cross between 100 and 200 points at BOTH nmax 60 and 120 —
+the crossover barely moves with degree, which is why `ClenshawFrom` is
+one scalar (150) and not a rule in `nmax`. **That 150 is numpy, not
+MATLAB**, and both paths are budgeted so A8 can replace it.
+
+**Two things that did NOT need changing, checked rather than assumed.**
+The GRID default was already the faster one: `shSynthesis`'s `auto`
+picks FFT for any uniform full-circle longitude vector, measured at
+1.40x direct in v5.0.3 (where `benchSynthesisFFTvsDirect`'s comment had
+claimed 5-20x). And `shSynthesisDeformation` does NOT share the
+per-point pathology — it calls `legendreALFDeriv` once with the whole
+latitude vector. An earlier note in this session said the restructure
+applied to it; that was wrong.
+
+**B1 (packed Legendre) is the weaker candidate** on the v5.0.3 numbers:
+`legendre_n720` is 0.285 s against `synthesisPoints`' 2.28 s.
 
 Two deviations from the scope below, both stated rather than smuggled:
 the budget is an absolute median per machine, NOT a per-repeat ratio
@@ -503,6 +522,34 @@ Original scope below.
 ## 6. Records
 
 ### 6.1 Decisions (append-only; date, decision, evidence)
+- 2026-09-09 — **Both paths stay, and `auto` DISPATCHES** (Matthias:
+  "Keep both paths behind the Method option but make the faster one
+  the default for each calculation type"). Neither path dominates:
+  `direct` is linear in the point count, `clenshaw` nearly flat, so
+  they cross. A single default would be wrong on one side of that
+  crossover, which is why the option's default is a rule and not a
+  path. The rule itself is pinned by
+  `testSynthesisPointsAutoPicksTheFasterPath`, bitwise in both
+  directions — and it pins the RULE, not the number 150, by driving
+  `ClenshawFrom` explicitly, so the default can move when A8
+  measures the real crossover without breaking the test.
+- 2026-09-09 — **`clenshaw` cannot be bitwise, so nothing asserts it
+  is.** It sums the same terms in a different order. WP2's
+  acceptance ("bitwise, or <= 4 eps with the term named") is
+  therefore INAPPLICABLE to this row, and writing that assertion
+  anyway would have been asserting something arithmetic forbids.
+  What is asserted: agreement with `direct` to 5e-14 (about 2x the
+  oracle's worst case), and that neither path dominates the other
+  against 60-digit truth — direct 52.7 eps worst, clenshaw 89.0 eps,
+  with clenshaw better at three of six points. `direct` carries the
+  bitwise guarantee instead, which is what lets the old pinned
+  reference values stand untouched.
+- 2026-09-09 — **The retired baseline was deleted, not kept.**
+  `synthesis_points_n60`'s 2.2829 s measured the per-point path that
+  no longer runs. Keeping it would have left a budget that passes
+  vacuously — green, and measuring nothing. It goes back into
+  `NO_BASELINE` to be re-measured, which is exactly the mechanism
+  v5.0.2 built for the case of having no trustworthy number.
 - 2026-09-09 — **The BETWEEN-run spread now exists, and it indicts one
   benchmark rather than the factor.** Two A8 runs (`f6d5529` baseline,
   `b70c947` second) give median ratios of **0.979-1.060 for the eight
@@ -844,6 +891,8 @@ Original scope below.
 | v5.0.0 (A21b) | ☑ 13 gates + mlint + make_demos + 11 self-test suites, 0 findings | ☑ **CI self-hosted (A8) at `631d524`, green — 305 runs, 301 passed, 0 failed, 4 filtered** (shared run with 5.0.1). **TWO red rounds first, both mine, both pin errors** — see the row below. | ☑ PR #99 | ◐ pending |
 | v5.0.1 (WP6 stage 3) | ☑ 13 gates + mlint + make_demos + 12 self-test suites, 0 findings; 50 hand-written pages -> 26, no entity lost COVERAGE | ☑ **CI self-hosted (A8) at `631d524`, green — 305 runs, 301 passed, 0 failed, 4 filtered**; the count prediction matched EXACTLY for the sixth release running. Round 1 (`2530e9f`) failed `testGravisChainsContract`: a pin mapped by call graph, not by which GUARD fires — `fromFolder` asserts `isfolder` (the temp folder EXISTS) then delegates to `read`. Round 2 (`f6481d7`) failed `testTN14IDs`: the pin-enumerating grep used `[A-Za-z]*` and `noC30` HAS DIGITS, so it was never rewritten — and the verification grep repeated the same character class. The new PINS rule closes the second shape. | ☑ PR #99 | ◐ pending |
 | v5.0.2 (WP2 step 1 harness) | ☑ 14 gates + mlint + make_demos + 13 self-test suites, 0 findings | ☑ **CI self-hosted (A8) at `f6d5529`, green — 315 runs, 301 passed, 0 failed, 14 filtered**; the prediction matched EXACTLY for the SEVENTH release running, per class as well as in total (Contract 74, Correctness 159, Performance 22, Robustness 53, Science 7), counts parsed from the 315-row results table. The 14 filtered were the 4 real-data fixtures plus all 10 budgets, exactly as designed — and this is the run that measured the baselines. First run, no red round. | ☑ PR #99 | ◐ pending |
+| v5.1.0 (WP2 step 2, B2) | ☑ 15 gates + mlint + make_demos + 13 self-test suites, 0 findings | ☑ **CI self-hosted (A8) at `640f3be` by workflow_dispatch, green — 319 runs, 313 passed, 0 failed, 6 filtered**; the NINTH exact count prediction running, per class as well as in total (Contract 75, Correctness 161, Performance 23, Robustness 53, Science 7). All three new tests passed, dispatch pin and bitwise-chunking pin included. | ☐ no PR (not asked) | ☐ |
+| v5.1.1 (A8 numbers + matched-pair budget) | ☑ 15 gates + mlint + make_demos + 13 self-test suites (26 in the perf gate), 0 findings | ◐ pending — expect **320 runs, 314 passed, 5 filtered**: the 4 fixtures plus the new clenshaw@200 budget. | ◐ pending | ◐ pending |
 | v5.0.3 (WP2 step 1 baselines) | ☑ 14 gates + mlint + make_demos + 13 self-test suites, 0 findings; `NO_BASELINE` empty | ☑ **CI self-hosted (A8) at `b70c947`, green — 315 runs, 311 passed, 0 failed, 4 filtered**; the EIGHTH exact count prediction running, per class as well as in total. All ten budgets PASSED (they filtered at `f6d5529`), and the only filtered are the four real-data fixtures. Triggered by `workflow_dispatch`, not a PR — #99 merged mid-session and `ci.yml` runs only on push-to-main, pull_request and workflow_dispatch. | ☐ no PR (#99 merged; not asked) | ☐ |
 
 **Tier A debt: DISCHARGED for all nine releases.** The local MATLAB
@@ -868,6 +917,12 @@ confirmation that the counter is right about a real run and not only
 about the source.
 
 ### 6.3 What the next session could be wrong for not reading
+- **A faster algorithm makes its own budget lie.** Changing which
+  summation `synthesis_points_n60` runs made its committed baseline
+  meaningless — the budget would still have gone green while
+  measuring code that no longer executes. When an optimisation lands,
+  RETIRE the baseline it invalidates in the same commit; a budget is
+  only as honest as the workload it was measured on.
 - **The budget set has one member that cannot be budgeted.**
   `apply_ddk_n96` runs in 1.8 ms and moved 1.519x between two runs of
   the same commit on the same machine, while everything at 3 ms and
@@ -1118,13 +1173,11 @@ both pin errors; the second shape is now gated by the PINS rule.
 committed and `NO_BASELINE` is empty. The budgets assert.
 
 **Next concrete actions, in order of what they buy:**
-1. **WP2 step 2, B2 first.** `synthesisPoints` is the measured hot spot
-   — 2.28 s against 1.7-88 ms for every other budget, because it calls
-   `legendreALF` once per point (1.14 ms/point at n60). A Clenshaw path
-   needs no `P` at all. Oracle: `tools/dev/validate_gradient.py` plus
-   the existing `testCorrectness` pins; acceptance is bitwise, or <= 4
-   eps with the term named. B1 (packed Legendre) is the weaker candidate
-   on this evidence — `legendre_n720` is 0.285 s.
+1. **DONE in v5.1.0** — B2 shipped. What is left of it: commit the two
+   A8 baselines the next run measures (`synthesis_points_n60`,
+   `synthesis_points_n60_direct`), and replace `ClenshawFrom = 150`
+   with the MATLAB crossover once both paths have run there. B1
+   (packed Legendre) remains the weaker candidate.
 2. **Two runs already point at the answer, and it is not the factor.**
    Between-run medians: 0.979-1.060 for the eight workloads at 3 ms and
    above, **1.519 for `apply_ddk_n96`** at 1.8 ms. So (a) enlarge
@@ -1148,7 +1201,8 @@ pip install reportlab matplotlib && \
 WP0 (v3.33.1), A7/A8/A12/A13/A14/A16 + WP6.1-2 (v3.34.0),
 A10/A17/A18 (v3.34.1), WP1/A2/A3/A15 (v4.0.0), A19 (v4.0.1),
 A20 (v4.0.2), A21a (v4.0.3), A21b (v5.0.0)
-WP6 stage 3 (v5.0.1) and WP2 step 1 (v5.0.2 + v5.0.3) |
+WP6 stage 3 (v5.0.1), WP2 step 1 (v5.0.2 + v5.0.3)
+and WP2 step 2 B2 (v5.1.0) |
 2026-09-08..09 | Claude Opus 5 |
 the first four releases green on A8 via CI — 4.0.0 at `5452938`:
 304 runs, 300 passed, 0 failed, 4 filtered.

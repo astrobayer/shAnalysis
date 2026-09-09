@@ -170,6 +170,26 @@ class TestArms(Base):
         self.assertTrue(any("no budgetCase declares" in x and "delta" in x
                             for x in f), f)
 
+    def test_a_cell_array_case_label_counts_for_every_label(self):
+        # MATLAB: one arm can serve several labels. Reading only the
+        # single-quoted form reported correct code as missing an arm
+        # (v5.1.1); both labels must be seen.
+        perf = PERF.replace("            case 'alpha'\n"
+                            "                fcn = @() 1;\n"
+                            "            case 'beta'\n"
+                            "                fcn = @() 2;\n",
+                            "            case {'alpha', ...\n"
+                            "                    'beta'}\n"
+                            "                fcn = @() 1;\n")
+        self.assertEqual(self.run_on(perf=perf), [])
+
+    def test_a_cell_label_that_names_an_undeclared_case_still_fires(self):
+        perf = PERF.replace("            case 'beta'",
+                            "            case {'beta', 'delta'}")
+        f = self.run_on(perf=perf)
+        self.assertTrue(any("no budgetCase declares" in x and "delta" in x
+                            for x in f), f)
+
     def test_a_commented_out_arm_does_not_count(self):
         perf = PERF.replace("            case 'beta'",
                             "            % case 'beta'")
