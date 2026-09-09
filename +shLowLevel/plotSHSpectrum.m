@@ -40,10 +40,6 @@ function h = plotSHSpectrum(specs, opts)
 %
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 
-if ~iscell(specs)
-    specs = {specs};
-end
-
 arguments
     specs
     opts.Names = {}
@@ -56,6 +52,11 @@ arguments
     opts.Kaula = []
     opts.MarkCrossover = false
     opts.Quantity = 'amplitude'
+end
+% one spectrum or many: normalise AFTER the arguments block, which must
+% be the first statement in the function
+if ~iscell(specs)
+    specs = {specs};
 end
 names = opts.Names;
 units = opts.Units;

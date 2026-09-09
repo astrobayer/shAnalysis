@@ -76,6 +76,20 @@ a catch, `fetchITSG*` pass their own name as a prefix to a helper. It
 now matches only the identifier argument of error/assert/warning, and
 both shapes are pinned in its self-test.
 
+### Fixed - the arguments block that was not first (found by CI)
+
+`plotSHSpectrum` normalises a single spectrum into a cell before doing
+anything else. WP1 put its `arguments` block where `inputParser` had
+been, which is BELOW that guard - and MATLAB requires the block to be
+the first statement. The function no longer parsed, so every call to it
+raised, and five tests went red on a green `mlint_lite`.
+
+`mlint_lite.py` gains **R6**: an arguments block must be the first
+executable statement of its function. It fires on the exact file CI
+rejected, stays silent when the same guard sits below the block, and is
+pinned by `tools/tests/test_mlint_lite.py` - the first self-test that
+tool has had.
+
 ### Unchanged - the numerics
 
 No numerical line moved. Each conversion replaced the parsing preamble

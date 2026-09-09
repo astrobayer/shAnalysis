@@ -627,6 +627,14 @@ about the source.
   a signature that parsed to nonsense instead of failing. That surfaced
   only because the injected fault did NOT fire when it should have. An
   injection that behaves unexpectedly is a finding about the instrument.
+- **mlint_lite is only as good as its rules, and a missing rule is a
+  silent CI failure.** WP1 moved `plotSHSpectrum`'s `arguments` block to
+  where `inputParser` had been - below the function's `if ~iscell(specs)`
+  guard. MATLAB requires the block to be FIRST, so the function stopped
+  parsing and five tests went red while mlint_lite reported zero
+  findings. R6 now checks it, with a self-test. When you convert a
+  preamble, check what was ABOVE the thing you replaced, not only what
+  you wrote.
 - **mlint_lite is the only MATLAB syntax check a Tier-B session has, and it
   earns its keep.** It rejected fifteen `(gA + gB).C` lines: MATLAB cannot
   index into a parenthesised expression. Method dot-chains (`ts.at(k).toGrid`)
