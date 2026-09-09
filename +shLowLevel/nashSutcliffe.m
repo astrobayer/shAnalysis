@@ -18,6 +18,10 @@ function nse = nashSutcliffe(ref, model)
 %   Example
 %     nse = shLowLevel.nashSutcliffe(avg(1,:), avg(2,:));   % e.g. SH vs mascon basin
 %
+%   Error identifiers
+%     shLowLevel:nashSutcliffe:sizeMismatch
+%         REF and MODEL differ in size
+%
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5),
 %   2026-08-08 (v2.6.0).
 arguments

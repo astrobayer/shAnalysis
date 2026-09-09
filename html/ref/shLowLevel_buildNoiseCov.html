@@ -24,12 +24,12 @@
 <h2>Output Arguments</h2>
 <table><tr><th>Name</th><th>Description</th></tr><tr><td><code>N</code></td><td class="desc">(P x P) double for Assemble=&#x27;full&#x27;; for Assemble=&#x27;blocks&#x27; a (1,1) struct with fields layout (&#x27;blocks&#x27;), blocks (cell of row index vectors), mats (cell of the dense blocks), diagN (P x 1 double) and P (1,1 double)</td></tr><tr><td><code>info</code></td><td class="desc">(1,1) struct  which fields are present depends on the path taken, fields mode       (1,:) char  &#x27;empirical&#x27; | &#x27;full&#x27; | &#x27;full-blocks&#x27; nBlocks    (1,1) double  number of (order, C/S, parity) blocks; absent for mode &#x27;full&#x27; T          (1,1) double  epochs used; mode &#x27;empirical&#x27; only shrinkage  (1,1) double  the gamma applied; &#x27;empirical&#x27; only</td></tr></table>
 <h2>Error Identifiers</h2>
-<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<table><tr><th>Identifier</th><th>Raised when</th></tr><tr><td><code>shLowLevel:buildNoiseCov:allZeroVariance</code></td><td class="desc">every coefficient residual series is exactly constant - there is no noise to estimate</td></tr><tr><td><code>shLowLevel:buildNoiseCov:notBlockDiagonal</code></td><td class="desc">the supplied NoiseCov is not block-diagonal in the (order, C/S, parity) partition the fast path assumes</td></tr></table>
 <h2>Version History</h2>
 <p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
 <h2>See Also</h2>
 <p class="none">No other entity is named in this help block.</p>
-<p class="prov">shAnalysis v4.0.0 (09-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+<p class="prov">shAnalysis v4.0.2 (09-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
 </div>
 </body>
 </html>

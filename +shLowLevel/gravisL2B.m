@@ -59,6 +59,19 @@ function [ts, rep] = gravisL2B(folder, gravisFolder, opts)
 %     [ts, rep] = shLowLevel.gravisL2B("E:/series/COSTG", ...   % shipped aux data
 %         GIAFile = "GRAVIS-2B_COSTG_0200_GIA_ICE-6G_D_VM5a_0001.gz");
 %
+%   Error identifiers
+%     shLowLevel:gravisL2B:badTable
+%         an auxiliary table has fewer columns than the reader needs
+%     shLowLevel:gravisL2B:epochMismatch
+%         the GSM-2 filename epochs do not line up with the series epochs
+%         - FOLDER probably mixes products
+%     shLowLevel:gravisL2B:missingAux
+%         a GravIS auxiliary file was not found next to FOLDER or at the
+%         given path
+%     shLowLevel:gravisL2B:uncovered
+%         epochs are not covered by the correction tables and
+%         OnMissing="error"
+%
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5),
 %   2026-08-12 (v3.8.8).
 arguments

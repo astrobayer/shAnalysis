@@ -36,6 +36,11 @@ function [b, info] = basinKernel(idx, region, opts)
 %   the indicator (incl. its mean); basinAverage's (B'B) normalization
 %   accounts for that consistently.
 %
+%   Error identifiers
+%     shLowLevel:basinKernel:zeroArea
+%         warning - the region has zero area on the sphere, so the kernel
+%         is 0 and a basin average built from it divides by nothing
+%
 %   Claude (Fable 5), 2026-08-07.
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 arguments

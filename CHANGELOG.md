@@ -1,5 +1,127 @@
 # Changelog
 
+## [4.0.2] - 2026-09-09 - Every raised identifier is documented
+
+A20 closed. The 61 package files that raised error identifiers without
+an `Error identifiers` help block now carry one - **208 identifiers**,
+each description written against the raise site and its guard, not
+against the message string. The backlog in `tools/error_id_audit.py` is
+drained to empty and the DOCUMENTED rule holds with no exemption.
+
+### Added - `Error identifiers` blocks in 61 `+shLowLevel` files
+
+The count in `CLAUDE.md` said 165. It was 208; nobody had measured it.
+Every block was checked against the code before it was written: the
+writer refused any file whose documented set was not exactly the set the
+file raises, so a description can be wrong in its wording but not in its
+name.
+
+### Added - the root functions, and the identifiers no scan could see
+
+`demo_shAnalysis` and `setup_shAnalysis` gained blocks too, and the gate
+now reads them. `setup_shAnalysis` turned out to raise five identifiers
+**no static scan of the file can find**:
+
+    warning("shAnalysis:setup:no" + locs(li, 1), ...)
+
+built from the option name. Read as a literal it invents
+`shAnalysis:setup:no`, which nothing raises - and that is precisely what
+the extended gate reported first. A concatenated literal is now treated
+as a PREFIX: the help must document at least one identifier under it,
+because the gate cannot enumerate them. All five (`noSeriesFolder`,
+`noMasconFile`, `noGravisFolder`, `noDDKFolder`, `noTestDataFolder`) are
+named in the help.
+
+### Changed - `demo:*` identifiers get the toolbox namespace
+
+`demo:casesFailed` and `demo:unknownCase` had no namespace at all. They
+are now `shAnalysis:demo:casesFailed` and `shAnalysis:demo:unknownCase`,
+consistent with `shAnalysis:setup:*`. This is a PATCH, not a break:
+neither was documented anywhere (`grep` over help, `html/`, the guide
+and the changelog found only the raise site), and the toolbox's rule is
+that an undocumented identifier is not part of the contract - the same
+reasoning that made `shSynthesisDeformation`'s rename a PATCH in
+v3.33.1. The two `testContract` pins were updated with them.
+
+### Changed - the backlog self-test no longer goes vacuous when drained
+
+`test_backlog_only_names_files_without_a_section` iterated over
+`UNDOCUMENTED`; emptying it would have left an assertion that cannot
+fail. That is exactly how A14's `test_legacy_name_tolerated` sat broken
+for a release. The mechanism is now asserted with a TEMPORARY entry, and
+two more tests fault-inject the no-section rule on a synthetic tree -
+one that must fire, one that must pass once the section is added.
+
+### Fixed - `tvANSFilter`'s stranded `Options` section
+
+Writing the blocks turned up a help block whose `Options` section sat
+BELOW a `Claude (...)` credit line, separated from the other sections.
+The credit line is reunited with the provenance footer, so `Options`
+now sits with `Inputs` and `Outputs` where a reader looks for it.
+
+### Known - A21: the three class files are outside every gate
+
+Measured, not estimated: `shCoefficients`, `shSeries` and
+`shClimatology` raise **32 identifiers** between them and carry **no**
+`Error identifiers` section. 29 of the 32 are two-part
+(`shSeries:badInput`), so a caller cannot tell which of the 35 methods
+raised. The gate does not read them, and says so in its own output
+rather than implying a reach it does not have: a class needs a
+per-method owner rule, which is a different instrument, not a wider
+loop. Recorded as A21 in `CLAUDE.md`.
+
+## [4.0.1] - 2026-09-09 - The option-values gate, and a correction to the record
+
+A19 closed, and one decision in `CLAUDE.md` corrected because it was
+wrong in a way that blocked work.
+
+### Added - `tools/dev/option_values_audit.py` (A19)
+
+`opApply` documented `mode` values (`'apply' | 'applyT'`) that its
+arguments block rejected (`'forward' | 'transp'`). v3.34.1 fixed the row
+but left the general check unbuilt: the obvious implementation - grep
+help lines for quoted words near an option name - produced 25 hits of
+which 24 were false.
+
+The gate reads `api_data.py` instead, where each option already carries
+its own `allowed` set and its own help row, so the scoping problem
+disappears. The rule is deliberately narrow: only a row's LEADING
+ALTERNATIVES RUN - a pipe-separated list of quoted values, the house way
+of writing the choices - is compared against `mustBeMember`. A row
+without one documents prose and is not checked. 42 of the 61
+value-restricted options carry such a run.
+
+Verified against the historical defect rather than asserted: fed
+`opApply`'s pre-v3.34.1 row the gate fires; fed the fixed row it is
+silent; and it stays silent on the three shapes that made the naive
+version lie - another option's value quoted in prose
+(`SignalMode='isotropic'` inside `Blocks`' row), a parenthetical inside
+the run (`'auto' (default) | 'on'`), and a numeric member list
+(`[60, 96]`).
+
+### Fixed - CLAUDE.md said CI could not serve as an oracle. It can.
+
+The 2026-09-08 tier decision recorded that WP3/WP4/WP5 could not
+proceed because "the Python oracle can be written but nothing can be
+checked against it". That is false, and it blocked four packages for a
+day. The oracle is a Python script that runs in any sandbox; the
+comparison is a MATLAB test that runs on the self-hosted runner through
+CI. Neither half needs a local interpreter - which is exactly the
+mechanism §2 has always described. WP3, WP5 and WP7 wait on approval,
+not on a bridge. Only WP2's two-machine speed calibration genuinely
+needs the acceptance machine.
+
+### Changed - §3.4's invariant is now literally true
+
+It claimed the gate list "must equal what `ci.yml` runs" while omitting
+`count_tests.py` and including four local-only tools. It now says
+CONTAIN, names the four (`mlint_lite`, `check_api`, `api_audit`,
+`attribution_sweep`) as having no CI step by design, and lists
+`count_tests`.
+
+All four releases (3.33.1, 3.34.0, 3.34.1, 4.0.0) are merged; the
+verification board's Merged column is no longer pending.
+
 ## [4.0.0] - 2026-09-09 - Every identifier owned, every option in house casing
 
 WP1. The last six v1-era functions leave `inputParser`, and every error

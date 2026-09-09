@@ -31,6 +31,10 @@ function val = synthesisPoints(C, S, GM, R, latDeg, lonDeg, r, opts)
 %         [10; 12], [100; 101], (g.R + 450e3) * [1; 1], ...
 %         Quantity = "disturbance") * 1e5;   % mGal at 450 km
 %
+%   Error identifiers
+%     shLowLevel:synthesisPoints:sizeMismatch
+%         latDeg, lonDeg and r differ in length, or C and S in size
+%
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5),
 %   2026-08-10 (v3.0.0).
 arguments

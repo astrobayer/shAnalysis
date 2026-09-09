@@ -44,6 +44,15 @@ function out = makeTutorials(opts)
 %
 %   See also demo_shAnalysis, shLowLevel.version.
 %
+%   Error identifiers
+%     shLowLevel:makeTutorials:cannotWrite
+%         the output file could not be opened for writing
+%     shLowLevel:makeTutorials:noConverter
+%         warning - the Live Script converter is unavailable, so only the
+%         .m files were written
+%     shLowLevel:makeTutorials:unknownCase
+%         a demo case id does not exist; demo_shAnalysis("list") names them
+%
 %   Developed by Matthias Weigelt with the help of Claude (Opus 5),
 %   2026-08-11 (v3.8.0).
 arguments

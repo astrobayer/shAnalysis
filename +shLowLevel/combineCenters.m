@@ -58,6 +58,14 @@ function [tsComb, info] = combineCenters(tsCell, opts)
 %   K-band data, AOD1B, tides) are invisible to inter-center VCE: the
 %   posterior sigmas are a lower bound (documented).
 %
+%   Error identifiers
+%     shLowLevel:combineCenters:nmaxMismatch
+%         the series do not all share the same nmax
+%     shLowLevel:combineCenters:noCommonEpochs
+%         no epochs matched across the centers within Tolerance
+%     shLowLevel:combineCenters:tooFewCenters
+%         fewer than 2 series were given
+%
 %   Claude (Fable 5), 2026-08-07 (v2.4).
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 arguments

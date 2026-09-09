@@ -21,6 +21,16 @@ function tn = readTN13(filename)
 %   the order above; header lines (anything not starting with GRCOF2)
 %   are skipped. Verify against your file's yaml header on first use.
 %
+%   Error identifiers
+%     shLowLevel:readTN13:badDegree
+%         a record is not degree 1 - TN-13 carries the geocentre only
+%     shLowLevel:readTN13:badLine
+%         a GRCOF2 line does not parse into its nine numeric fields
+%     shLowLevel:readTN13:fileNotFound
+%         the file does not exist
+%     shLowLevel:readTN13:noData
+%         no GRCOF2 record was found
+%
 %   Claude (Fable 5), 2026-08-07.
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 

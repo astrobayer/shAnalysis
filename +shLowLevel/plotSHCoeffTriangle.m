@@ -25,6 +25,10 @@ function h = plotSHCoeffTriangle(C, S, opts)
 %   Outputs
 %     h          (1 x 1) graphics handle   butterfly triangle image (abs log10 or signed diff with RefC/RefS)
 %
+%   Error identifiers
+%     shLowLevel:plotSHCoeffTriangle:needRefS
+%         RefC was given without RefS
+%
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 
 arguments

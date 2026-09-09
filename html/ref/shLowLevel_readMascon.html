@@ -24,12 +24,12 @@
 <h2>Output Arguments</h2>
 <table><tr><th>Name</th><th>Description</th></tr><tr><td><code>mas</code></td><td class="desc">(1 x 1) struct  fields lat    (nlat,1) double [deg]  as stored - typically GEODETIC; convert with <a href="shLowLevel_geodetic2geocentric.html"><code>shLowLevel.geodetic2geocentric</code></a> before synthesizing SH fields on this grid! lon    (nlon,1) double [deg, 0..360) epoch  (T,1) double  decimal years ewh    (nlat,nlon,T) double  [cm or m AS STORED - check mas.units] units, name  (1,1) string</td></tr></table>
 <h2>Error Identifiers</h2>
-<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<table><tr><th>Identifier</th><th>Raised when</th></tr><tr><td><code>shLowLevel:readMascon:ambiguousShape</code></td><td class="desc">a square grid cannot be oriented without named dimensions</td></tr><tr><td><code>shLowLevel:readMascon:badShape</code></td><td class="desc">the EWH variable has neither the lat x lon nor the lon x lat shape of the coordinate vectors</td></tr><tr><td><code>shLowLevel:readMascon:fileNotFound</code></td><td class="desc">the file does not exist</td></tr><tr><td><code>shLowLevel:readMascon:noTimeUnits</code></td><td class="desc">the time variable carries no units attribute, so it cannot be converted to decimal years</td></tr><tr><td><code>shLowLevel:readMascon:unknownLayout</code></td><td class="desc">no EWH, lat, lon and time variable could be recognised</td></tr><tr><td><code>shLowLevel:readMascon:unknownTimeUnits</code></td><td class="desc">the time units are not &quot;days since YYYY-MM-DD&quot;</td></tr></table>
 <h2>Version History</h2>
 <p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
 <h2>See Also</h2>
 <p class="none">No other entity is named in this help block.</p>
-<p class="prov">shAnalysis v4.0.0 (09-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+<p class="prov">shAnalysis v4.0.2 (09-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
 </div>
 </body>
 </html>

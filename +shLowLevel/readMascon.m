@@ -51,6 +51,22 @@ function mas = readMascon(filename)
 %   grid orientation all raise identified errors instead of returning a
 %   plausible-looking wrong result.
 %
+%   Error identifiers
+%     shLowLevel:readMascon:ambiguousShape
+%         a square grid cannot be oriented without named dimensions
+%     shLowLevel:readMascon:badShape
+%         the EWH variable has neither the lat x lon nor the lon x lat
+%         shape of the coordinate vectors
+%     shLowLevel:readMascon:fileNotFound
+%         the file does not exist
+%     shLowLevel:readMascon:noTimeUnits
+%         the time variable carries no units attribute, so it cannot be
+%         converted to decimal years
+%     shLowLevel:readMascon:unknownLayout
+%         no EWH, lat, lon and time variable could be recognised
+%     shLowLevel:readMascon:unknownTimeUnits
+%         the time units are not "days since YYYY-MM-DD"
+%
 %   Claude (Fable 5), 2026-08-07; CSR support + loud time units: 2026-08-12 (v3.8.6).
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 arguments

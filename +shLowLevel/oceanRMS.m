@@ -60,6 +60,14 @@ function [rmsVal, info] = oceanRMS(grid, latDeg, lonDeg, ocean, opts)
 %
 %   See also shLowLevel.leakageCorrect, shLowLevel.spatialStats.
 %
+%   Error identifiers
+%     shLowLevel:oceanRMS:badMask
+%         ocean is neither a function handle nor an nLat x nLon mask
+%     shLowLevel:oceanRMS:badSize
+%         grid is not nLat x nLon for the given latDeg and lonDeg
+%     shLowLevel:oceanRMS:emptyOcean
+%         the ocean mask selects no grid point
+%
 %   Developed by Matthias Weigelt with the help of Claude (Opus 5),
 %   2026-08-11 (v3.5.1).
 arguments

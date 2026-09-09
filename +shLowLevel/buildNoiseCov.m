@@ -43,6 +43,14 @@ function [N, info] = buildNoiseCov(Xres, idx, opts)
 %           T          (1,1) double  epochs used; mode 'empirical' only
 %           shrinkage  (1,1) double  the gamma applied; 'empirical' only
 %
+%   Error identifiers
+%     shLowLevel:buildNoiseCov:allZeroVariance
+%         every coefficient residual series is exactly constant - there is
+%         no noise to estimate
+%     shLowLevel:buildNoiseCov:notBlockDiagonal
+%         the supplied NoiseCov is not block-diagonal in the (order, C/S,
+%         parity) partition the fast path assumes
+%
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 
 arguments

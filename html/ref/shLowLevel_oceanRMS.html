@@ -30,12 +30,12 @@ m = shLowLevel.leakageCorrect(ewh, -89:89, 0:359, Mask = basin, NoiseLevel = noi
 <h2>Output Arguments</h2>
 <table><tr><th>Name</th><th>Description</th></tr><tr><td><code>rmsVal</code></td><td class="desc">(1,1) double  open-ocean RMS, in GRID&#x27;s units. NaN when the erosion leaves no points</td></tr><tr><td><code>info</code></td><td class="desc">(1,1) struct  fields nPixels       (1,1) double   points that entered the RMS fractionUsed  (1,1) double   those as a fraction of the grid mask          (nLat x nLon) logical  the eroded region - plot it once before trusting the number minDistanceKm (1,1) double   erosion distance applied [km] weighted      (1,1) logical  whether area weights were used</td></tr></table>
 <h2>Error Identifiers</h2>
-<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<table><tr><th>Identifier</th><th>Raised when</th></tr><tr><td><code>shLowLevel:oceanRMS:badMask</code></td><td class="desc">ocean is neither a function handle nor an nLat x nLon mask</td></tr><tr><td><code>shLowLevel:oceanRMS:badSize</code></td><td class="desc">grid is not nLat x nLon for the given latDeg and lonDeg</td></tr><tr><td><code>shLowLevel:oceanRMS:emptyOcean</code></td><td class="desc">the ocean mask selects no grid point</td></tr></table>
 <h2>Version History</h2>
 <p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
 <h2>See Also</h2>
 <ul class="seealso"><li><a href="shLowLevel_leakageCorrect.html"><code>shLowLevel.leakageCorrect</code></a></li></ul>
-<p class="prov">shAnalysis v4.0.0 (09-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+<p class="prov">shAnalysis v4.0.2 (09-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
 </div>
 </body>
 </html>

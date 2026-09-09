@@ -24,6 +24,13 @@ function out = threeCorneredHat(X)
 %     out = shLowLevel.threeCorneredHat(Y3);   % T x 3 basin series (CSR/GFZ/JPL)
 %     fprintf("noise levels: %s\n", sprintf("%.3g ", out.sigma))
 %
+%   Error identifiers
+%     shLowLevel:threeCorneredHat:needThree
+%         fewer than 3 series - the method resolves N variances from the
+%         N(N-1)/2 pairwise differences and needs N >= 3
+%     shLowLevel:threeCorneredHat:tooShort
+%         fewer than 12 epochs
+%
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5),
 %   2026-08-08 (v2.6.0).
 arguments

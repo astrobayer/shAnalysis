@@ -25,12 +25,12 @@ errorbar(op.tYears, avg(1,:), out.sigma(1,:))</code></pre></div></details>
 <h2>Output Arguments</h2>
 <table><tr><th>Name</th><th>Description</th></tr><tr><td><code>avgHat</code></td><td class="desc">(K x T) double  deconvolved basin averages, ((B&#x27;B)*c + B&#x27;model) ./ diag(B&#x27;B)</td></tr><tr><td><code>out</code></td><td class="desc">(1,1) struct  fields c         (K x T) double  span coefficients sigma     (K x T) double  1-sigma of avgHat, deterministic term included (v2.5) avgNaive  (K x T) double  naive averages of the filtered field (attenuated and leaky) for comparison attn      (K x T) double  diag(A_t) ./ diag(B&#x27;B) attenuation factors condA     (T x 1) double  cond(A_t) per month</td></tr></table>
 <h2>Error Identifiers</h2>
-<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<table><tr><th>Identifier</th><th>Raised when</th></tr><tr><td><code>shLowLevel:basinDeconvolve:nonFiniteA</code></td><td class="desc">B&#x27;W_t B is non-finite at one month - the damping s(t) or the gain g went non-finite</td></tr><tr><td><code>shLowLevel:basinDeconvolve:nonFiniteOperator</code></td><td class="desc">a field of the filter operator holds non-finite entries; the operator is corrupt and would poison every epoch</td></tr><tr><td><code>shLowLevel:basinDeconvolve:zeroA</code></td><td class="desc">B&#x27;W_t B vanished at one month: the filter removed the whole basin signal, so there is nothing left to deconvolve</td></tr></table>
 <h2>Version History</h2>
 <p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
 <h2>See Also</h2>
 <p class="none">No other entity is named in this help block.</p>
-<p class="prov">shAnalysis v4.0.0 (09-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+<p class="prov">shAnalysis v4.0.2 (09-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
 </div>
 </body>
 </html>

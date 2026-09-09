@@ -38,6 +38,18 @@ function h = plotSHSpectrum(specs, opts)
 %   Outputs
 %     h          (1 x 1) graphics handle   log-log spectrum axes
 %
+%   Error identifiers
+%     shLowLevel:plotSHSpectrum:badQuantity
+%         Quantity is not one of the supported spectrum quantities
+%     shLowLevel:plotSHSpectrum:kaulaDomain
+%         Kaula= was given for something other than a degree-domain
+%         amplitude plot, where the rule has no meaning
+%     shLowLevel:plotSHSpectrum:missingField
+%         a spectrum has no field for the chosen Quantity - it probably
+%         came from the other domain
+%     shLowLevel:plotSHSpectrum:mixedDomains
+%         the spectra do not all share one domain (degree or order)
+%
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 
 arguments

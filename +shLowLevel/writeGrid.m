@@ -20,6 +20,12 @@ function writeGrid(filename, grid, latDeg, lonDeg, opts)
 %     LatType ("geocentric"), Description ("")
 %     Sidecar (true)  write <file>.provenance.json alongside the output
 %
+%   Error identifiers
+%     shLowLevel:writeGrid:badEpochs
+%         a 3-D stack was given without one entry of Epochs per layer
+%     shLowLevel:writeGrid:badSize
+%         GRID is not nlat x nlon (x T)
+%
 %   Claude (Fable 5), 2026-08-07 (v2.4).
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 arguments

@@ -58,6 +58,29 @@ function W = readDDK(source, opts)
 %                with m (1,1 double), cs ('c'|'s'), n (1,B double, the
 %                degrees) and M (B x B double, the square block matrix)
 %
+%   Error identifiers
+%     shLowLevel:readDDK:badBinary
+%         the GROOPS binary is not a readable block-diagonal matrix: the
+%         endian marker, the matrix type, the Lmax metadata, a block size
+%         or the pack-vector length disagrees with the header
+%     shLowLevel:readDDK:badContainer
+%         the W struct lacks nmax or blocks(m, cs, n, M)
+%     shLowLevel:readDDK:badLine
+%         an ASCII block header is not "block m cs n1 n2"
+%     shLowLevel:readDDK:badMatrixRow
+%         an ASCII block row does not have the block's number of values
+%     shLowLevel:readDDK:badSource
+%         SOURCE is neither a W struct, a .mat file nor an ASCII file
+%     shLowLevel:readDDK:emptyMat
+%         the .mat file holds no variable
+%     shLowLevel:readDDK:fileNotFound
+%         the file does not exist or cannot be opened
+%     shLowLevel:readDDK:noData
+%         the ASCII file holds no block
+%     shLowLevel:readDDK:notFetched
+%         the named DDK file is in neither the data folder nor the shipped
+%         test data - run shLowLevel.fetchDDK first
+%
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 arguments
     source

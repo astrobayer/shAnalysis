@@ -67,6 +67,25 @@ function [file, info] = fetchICGEM(model, opts)
 %   Cite the model's reference (listICGEM carries it in 'data'/ICGEM
 %   pages) when publishing.
 %
+%   Error identifiers
+%     shLowLevel:fetchICGEM:ambiguous
+%         the name matches more than one model or series - be more specific
+%     shLowLevel:fetchICGEM:badIdx
+%         a numeric selection is not a set of catalogue rows 1..height(T)
+%     shLowLevel:fetchICGEM:badRow
+%         a table input is not exactly ONE listICGEM row with a url column
+%     shLowLevel:fetchICGEM:emptySeries
+%         the downloaded archive, or the server listing, holds no file
+%         matching Files=
+%     shLowLevel:fetchICGEM:legacyLayout
+%         warning - pre-v3.16 data was found in the old folder; move it to
+%         the new layout to avoid downloading everything again
+%     shLowLevel:fetchICGEM:notFound
+%         no ICGEM model of that name exists (see shLowLevel.listICGEM)
+%     shLowLevel:fetchICGEM:updateFailed
+%         warning - a refresh download failed; the file already on disk
+%         stays authoritative
+%
 %   Claude (Fable 5), 2026-08-07 (v2.4.1).
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 arguments

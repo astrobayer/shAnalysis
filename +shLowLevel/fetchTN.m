@@ -47,6 +47,13 @@ function [files, info] = fetchTN(opts)
 %                "TN-13_GEOC_CSR_RL06.3.txt"));
 %     g1 = g.applyTN14(tn14).addDegree1(tn13);
 %
+%   Error identifiers
+%     shLowLevel:fetchTN:failed
+%         warning - one or more files failed to download or to parse; the
+%         message names them
+%     shLowLevel:fetchTN:mirrorMissing
+%         Mirror= was given but does not hold the requested file
+%
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5),
 %   2026-08-08 (v2.5.1).
 arguments

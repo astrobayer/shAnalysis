@@ -42,6 +42,19 @@ function [k, info] = basinScaling(op, b, tsModel, opts)
 %           aTrue     (T x 1) double  basin average of the model field
 %           aFilt     (T x 1) double  basin average after filtering
 %
+%   Error identifiers
+%     shLowLevel:basinScaling:badKernel
+%         the basin kernel is not P x 1 in idx ordering
+%     shLowLevel:basinScaling:badOp
+%         OP is neither a tvANS struct, a P x P matrix nor a function
+%         handle, or the matrix is not P x P
+%     shLowLevel:basinScaling:needIdx
+%         a matrix or handle operator was given without Idx= and TYears=;
+%         only a tvANS struct carries them itself
+%     shLowLevel:basinScaling:tooFewMatches
+%         fewer than 3 model epochs matched TYears within 0.05 yr - the
+%         scaling regression has too little to fit
+%
 %   Claude (Fable 5), 2026-08-07 (v2.4).
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 arguments

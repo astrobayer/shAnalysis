@@ -13,6 +13,10 @@ function Y = ylm(latRad, lonRad, idx)
 %   Outputs
 %     Y       (nPts x idx.P) double
 %
+%   Error identifiers
+%     shLowLevel:ylm:sizeMismatch
+%         latRad and lonRad differ in length
+%
 %   Claude (Fable 5), 2026-08-07.
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 

@@ -91,6 +91,20 @@ function model = estimateVAR(X, opts)
 %   PhD thesis (2019), Secs. 2.3-2.4; Luetkepohl (2005).
 %   Numerics pre-validated in Python (tools/dev/validate_kalman.py).
 %
+%   Error identifiers
+%     shLowLevel:estimateVAR:badBlocks
+%         Blocks do not partition 1:P exactly
+%     shLowLevel:estimateVAR:needBlocks
+%         Structure="orderblock" without Blocks
+%     shLowLevel:estimateVAR:shortSeries
+%         warning - T < 3P with Structure="full" and no shrinkage: the
+%         empirical covariance is rank deficient
+%     shLowLevel:estimateVAR:tooShort
+%         fewer than Order + 2 epochs
+%     shLowLevel:estimateVAR:unstable
+%         warning - the companion spectral radius is >= 1, so the
+%         estimated process does not decay
+%
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5),
 %   2026-08-17, 20:10 UTC.
 

@@ -34,6 +34,17 @@ function out = mcPropagate(fun, g, opts)
 %
 %   MC error of sigma itself ~ sigma/sqrt(2N) (~3%% at N=500).
 %
+%   Error identifiers
+%     shLowLevel:mcPropagate:badCov
+%         Cov is not P x P for the supplied Idx
+%     shLowLevel:mcPropagate:covNotPD
+%         Cov is not positive definite, so it has no Cholesky factor
+%     shLowLevel:mcPropagate:needIdx
+%         Cov= was given without the matching Idx= (shLowLevel.shIndex),
+%         so the sample ordering is unknown
+%     shLowLevel:mcPropagate:noSigmas
+%         G carries no formal errors and no Cov/Idx was given
+%
 %   Claude (Fable 5), 2026-08-07.
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 arguments

@@ -30,12 +30,12 @@ plot(out.epochs, out.series); legend(out.name)</code></pre></div></details>
 <h2>Output Arguments</h2>
 <table><tr><th>Name</th><th>Description</th></tr><tr><td><code>out</code></td><td class="desc">(1,1) struct  fields name       (K,1) string  basin names, in the row order below epochs     (T,1) double  the epoch grid [decimal years] series     (K x T) double  basin means [cm EWH] trend      (K,1) double  per-basin trend [cm/yr] amplitude  (K,1) double  annual amplitude [cm] phase      (K,1) double  annual phase [rad]</td></tr><tr><td><code>rep</code></td><td class="desc">(1,1) struct  fields steps    (1,K) string  the stages applied, with parameters filter   (1,1) string  the filter actually used l2b      (1,1) struct  the <a href="shLowLevel_gravisL2B.html"><code>shLowLevel.gravisL2B</code></a> report version  (1,1) string  <a href="shLowLevel_version.html"><code>shLowLevel.version</code></a> at run time created  (1,1) string  when the run happened</td></tr></table>
 <h2>Error Identifiers</h2>
-<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<table><tr><th>Identifier</th><th>Raised when</th></tr><tr><td><code>shLowLevel:twsChain:badFilter</code></td><td class="desc">Filter is not &quot;none&quot;, &quot;gauss&lt;radiusKm&gt;&quot; or &quot;DDKn&quot; with n in 1..8</td></tr><tr><td><code>shLowLevel:twsChain:emptyBasin</code></td><td class="desc">a basin covers no grid point at the chosen GridStep</td></tr><tr><td><code>shLowLevel:twsChain:missingBasins</code></td><td class="desc">the basin GeoJSON was not found</td></tr><tr><td><code>shLowLevel:twsChain:missingDDK</code></td><td class="desc">the DDK binary was in none of the searched folders</td></tr><tr><td><code>shLowLevel:twsChain:noKn</code></td><td class="desc">kn was not supplied; the chain will not assume a reference frame</td></tr><tr><td><code>shLowLevel:twsChain:unknownBasin</code></td><td class="desc">a requested basin name is not in the GeoJSON</td></tr></table>
 <h2>Version History</h2>
 <p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
 <h2>See Also</h2>
 <p class="none">No other entity is named in this help block.</p>
-<p class="prov">shAnalysis v4.0.0 (09-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+<p class="prov">shAnalysis v4.0.2 (09-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
 </div>
 </body>
 </html>

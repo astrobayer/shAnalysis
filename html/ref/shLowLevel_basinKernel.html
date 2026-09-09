@@ -24,12 +24,12 @@
 <h2>Output Arguments</h2>
 <table><tr><th>Name</th><th>Description</th></tr><tr><td><code>b</code></td><td class="desc">(P,1) double     kernel in IDX ordering</td></tr><tr><td><code>info</code></td><td class="desc">(1,1) struct  fields areaFraction  (1,1) double   quadrature area of the mask / 4pi nGridPoints   (1,1) double   grid points the mask was evaluated on buffered      (1,1) logical  BufferKm was non-zero tapered       (1,1) logical  TaperKm was positive</td></tr></table>
 <h2>Error Identifiers</h2>
-<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<table><tr><th>Identifier</th><th>Raised when</th></tr><tr><td><code>shLowLevel:basinKernel:zeroArea</code></td><td class="desc">warning - the region has zero area on the sphere, so the kernel is 0 and a basin average built from it divides by nothing</td></tr></table>
 <h2>Version History</h2>
 <p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
 <h2>See Also</h2>
 <ul class="seealso"><li><a href="shSeries_basinAverage.html"><code>shSeries.basinAverage</code></a></li><li><a href="shLowLevel_basinDeconvolve.html"><code>shLowLevel.basinDeconvolve</code></a></li></ul>
-<p class="prov">shAnalysis v4.0.0 (09-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+<p class="prov">shAnalysis v4.0.2 (09-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
 </div>
 </body>
 </html>

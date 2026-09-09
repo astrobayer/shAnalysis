@@ -18,6 +18,12 @@ function writeGFC(filename, C, S, GM, R, opts)
 %   Outputs: none (file on disk; plus <file>.provenance.json sidecar
 %   with tool version/MATLAB/metadata unless Sidecar (true) = false, v2.7.0)
 %
+%   Error identifiers
+%     shLowLevel:writeGFC:badInput
+%         C and S are not square and equally sized
+%     shLowLevel:writeGFC:cannotOpen
+%         the output file could not be opened for writing
+%
 %   Claude (Fable 5), 2026-08-07.
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 

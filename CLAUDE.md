@@ -118,9 +118,13 @@ CF-1.8 export, provenance sidecars, geoMap bridge (`toGrid`, `gridHandover`).
    `python tools/dev/api_audit.py`, `python tools/dev/attribution_sweep.py`,
    `python tools/dev/refpages_audit.py`, `python tools/dev/name_coverage.py`,
    `python tools/error_id_audit.py`,
+   `python tools/dev/option_values_audit.py`,
+   `python tools/dev/count_tests.py` (also §5's prediction),
    `python tools/dev/make_demos.py --check`; then every `tools/tests/test_*.py`.
-   **This list must equal what `ci.yml` runs.** It did not, and CI failed on
-   `make_demos --check` at `0ab29b5` while eleven local gates were green.
+   **This list must CONTAIN what `ci.yml` runs.** It did not, and CI failed
+   on `make_demos --check` at `0ab29b5` while eleven local gates were green.
+   Four entries are local-only by design and have no CI step: `mlint_lite`
+   (run on changed files), `check_api`, `api_audit`, `attribution_sweep`.
    Regenerate before auditing when help blocks changed:
    `api_extract.py` -> `make_apiref.py` -> `make_refpages.py` -> `make_guide.py`.
 5. Predict the test count before running (`runAllTests`) with
@@ -174,8 +178,9 @@ do not see; **L** = polish.
 | A10 | L | **CLOSED v3.34.1** — and the finding was **larger than recorded**: 13 package functions plus **22 public class methods** (A18). `tools/dev/name_coverage.py` measures it now, over the whole public surface, with comments stripped so a name in a `% see also` line does not count; it states its own reach in its last line (naming is not exercise). 32 new tests, each asserting a property the function's own help states. One allowed exception, `runAllTests`, with its reason in the gate. Original finding: package functions never named in `tests/`, coverage by name not measured. | `python3 tools/dev/name_coverage.py` |
 | A17 | M | **CLOSED v3.34.1** — `gridHandover` continues its signature with `...`, so `api_extract.py` (single-line regex) parsed the file to NOTHING: no entity in `api_data.py`, no reference page, while `apiReference.html` sent the reader to "as built by shLowLevel.gridHandover, which documents every field". `refpages_audit`'s COVER check compares pages against that same artifact, so it was silent by construction. **Four parsers of the public surface exist; two were blind the same way and agreed with each other** — which is why the new SURFACE check in `doc_sync_audit.py` compares against the FILESYSTEM (MATLAB's file/function rule is ground truth), not a second parser. `api_extract` now refuses to write an incomplete artifact. Pinned by `tools/tests/test_api_extract.py` (5 of 7 fail pre-fix). | `python3 tools/doc_sync_audit.py` |
 | A18 | M | **CLOSED v3.34.1** — A10's blind spot was not only the package: **22 public class methods** were named by no test either — every operator (`plus`, `minus`, `uminus`, `mtimes`, `times`), `disp` on all three classes, `compare`, `fan`, `spectrum`, `triangle`, and eight `shClimatology` methods. Operators were deliberately NOT allowlisted: they are callable by name, and a test checking `plus(a,b)` against `a + b` is stronger than one checking either alone. | `python3 tools/dev/name_coverage.py` |
-| A19 | M | **OPEN, partially closed.** `opApply`'s help offered `mode` values `'apply' | 'applyT'` that the arguments block rejects (`'forward' | 'transp'`) — the same help block's syntax lines had it right. Fixed and pinned in v3.34.1, found while writing the A10 test, not by any gate. **The general check is not built**: a crude scan (any quoted word on a comment line naming the option) produced 25 hits of which 24 were false positives — output-field docs, prose, and the wrong method's options in a class file. A correct gate must scope each help row to its OWN arguments block; `api_data.py` already carries exactly that pairing (`args[].validators` + `args[].desc`), so the instrument is cheap — it just has to be written against the scoped data, not by grepping. | `grep -n "mustBeMember" +shLowLevel/*.m` |
-| A20 | M | **OPEN.** 61 of the 84 package files that raise an identifier have no `Error identifiers` help block (165 identifiers). They are named in `error_id_audit.py`'s UNDOCUMENTED backlog, which the gate reports every run and which only shrinks; ownership is already gated with no backlog, so this is documentation debt, not correctness debt. Root functions were left alone deliberately: `shAnalysis:setup:*`, `shAnalysis:test:*` and `shAnalysis:acceptance:*` name the toolbox, which is a defensible owner for a toolbox-level function, but `demo:casesFailed` has no namespace at all and should get one. | `python3 tools/error_id_audit.py --list` |
+| A19 | M | **CLOSED v4.0.1** — `tools/dev/option_values_audit.py` reads `api_data.py`, where each option already carries its OWN `allowed` set and its OWN help row, so the scoping problem that made the grep useless disappears. The rule is deliberately narrow: only a row's LEADING ALTERNATIVES RUN (pipe-separated quoted values, the house way of writing the choices) is compared against `mustBeMember`; a row without one documents prose and is not checked. 42 of the 61 restricted options carry such a run. Verified against the historical defect: fed `opApply`'s pre-v3.34.1 row it fires, fed the fixed row it is silent, and it stays silent on the three shapes that made the naive version lie — another option's value quoted in prose, a parenthetical inside the run, and a numeric member list. **A false finding was nearly recorded here**: a probe of mine reported `readLoveNumbers`' allowed set as `[', ']`, which looked like an extractor bug; it was my own regex matching the gap between `""` and `"CE"`. The stored value was correct all along. Original finding: | `opApply`'s help offered `mode` values `'apply' | 'applyT'` that the arguments block rejects (`'forward' | 'transp'`) — the same help block's syntax lines had it right. Fixed and pinned in v3.34.1, found while writing the A10 test, not by any gate. **The general check is not built**: a crude scan (any quoted word on a comment line naming the option) produced 25 hits of which 24 were false positives — output-field docs, prose, and the wrong method's options in a class file. A correct gate must scope each help row to its OWN arguments block; `api_data.py` already carries exactly that pairing (`args[].validators` + `args[].desc`), so the instrument is cheap — it just has to be written against the scoped data, not by grepping. | `grep -n "mustBeMember" +shLowLevel/*.m` |
+| A20 | M | **CLOSED v4.0.2** — and the recorded count was wrong: the backlog held **208** identifiers, not 165; nobody had measured it. All 61 files carry an `Error identifiers` block written against the raise site and its guard, the writer refusing any file whose documented set was not exactly the set the file raises. `UNDOCUMENTED` is drained to empty, so the DOCUMENTED rule holds with no exemption, and the gate now reads the root functions too. Two things surfaced that the finding did not name: `demo_shAnalysis` raises `demo:unknownCase` as well as `demo:casesFailed` (both now `shAnalysis:demo:*`, a PATCH — neither was documented anywhere), and `setup_shAnalysis` BUILDS five identifiers at runtime (`"shAnalysis:setup:no" + locs(li,1)`) that no scan of the file can name. Read as a literal that invents `shAnalysis:setup:no`, which nothing raises — which is exactly what the extended gate reported first. A concatenated literal is now a PREFIX: the help must document at least one identifier under it, because the gate cannot enumerate them. | `python3 tools/error_id_audit.py` |
+| A21 | M | **OPEN, measured.** The three CLASS files are outside every gate: `shCoefficients`, `shSeries` and `shClimatology` raise **32** identifiers between them and carry **no** `Error identifiers` section at all. Worse than the count: **29 of the 32 are two-part** (`shSeries:badInput`, `shCoefficients:sizeMismatch`), so a caller cannot tell which of the 35 methods raised — only three (`shSeries:removeAlias:tooShort`, `shSeries:toGrid:empty`, `shSeries:toGrid:tooLarge`) name their method. `error_id_audit.py` does not read them and SAYS SO in its own last line rather than implying a reach it does not have. Closing this needs a per-method owner rule — a different instrument, not a wider loop — and renaming 29 documented-by-test identifiers is a MAJOR change. | `python3 -c` over the three class files, 2026-09-09 |
 | A15 | M | **CLOSED v4.0.0** with A3 — `kernelFactors`, `shSynthesisGradient` and `seaLevelFingerprint` now own their identifiers, and the tests that pinned the old names were remapped per raising file (the same old id mapped to two different owners, so a global replace would have been wrong). Original finding: A3 is **wider than the audit's 12**: `kernelFactors` (`shSynthesis:missingLoveNumbers`, `:badQuantity`, `:heightInvalid`), `shSynthesisGradient` (`shSynthesis:badInput`) and `seaLevelFingerprint` (`shSynthesis:missingLoveNumbers`) also raise identifiers they do not own. Unlike `shSynthesisDeformation`'s, these ARE documented and pinned by `testContract`/`testCorrectness`, so renaming them is a MAJOR change. Belongs in WP1's identifier sweep, not in a patch. | `grep -rn "shSynthesis:" --include=*.m` |
 | A14 | M | **CLOSED v3.33.1** — the three gate self-tests in `tools/tests/` (committed in v3.32/v3.33) were **never run by CI**, and `test_legacy_name_tolerated` had been broken since the v3.33.0 sweep drained `LEGACY` to empty — an untested instrument, silently. CI now runs `tools/tests/`; the stale test asserts the mechanism with a temporary entry instead of pinning a member name. | `.github/workflows/ci.yml` before/after |
 | A13 | L | **CLOSED v3.34.0** — the km conversion is the `RadiusKm` option, default unchanged at 6371 so no number moves, documented as the MEAN radius (deliberately not the coefficients' reference radius 6378.1363 km) and overridable. Pinned by `testResolutionMapRadiusIsAChoice`, a metamorphic test: the angular half-widths are radius-invariant, every km figure scales exactly with it, and `anisotropy` — a ratio — does not. That test also removes `resolutionMap` from A10's never-named list. | `+shLowLevel/resolutionMap.m` |
@@ -456,6 +461,81 @@ Original scope below.
 ## 6. Records
 
 ### 6.1 Decisions (append-only; date, decision, evidence)
+- 2026-09-09 — **The writer put twelve blocks in the wrong place and no
+  gate saw it.** The first anchor was the FIRST provenance line, but
+  `readDDK` and eleven others carry a `Claude (...)` credit line in the
+  MIDDLE of the help, so the section landed above `Inputs`/`Outputs`.
+  `help_audit` was silent because its footer is `Developed by`, not
+  `Claude (` — the two instruments disagreed on where a help block ends
+  and neither said so. Caught in the diff, not by a check. The writer now
+  anchors on the trailing provenance run AND asserts that its section is
+  the last heading; that assertion immediately found a thirteenth file,
+  `tvANSFilter`, whose `Options` section was itself stranded BELOW a
+  credit line. Its layout was repaired rather than worked around.
+  (`httpFetch`, `readSHM` and `safeMove` put `Example` last; that
+  predates this work and was left alone.)
+- 2026-09-09 — **A20 is closed, and the number in this file was wrong.**
+  The backlog was recorded as 165 identifiers; it was **208**. That
+  figure was never measured, only carried forward — the same fault §6.3
+  already names ("do not write a number into this file that you did not
+  just read"), committed inside the very finding that tracked the debt.
+  The count now comes from the tree.
+- 2026-09-09 — **`demo:casesFailed` and `demo:unknownCase` renamed to
+  `shAnalysis:demo:*` as a PATCH, not a MAJOR.** Neither appears in any
+  help block, `html/` page, the guide or the changelog — only at the
+  raise site and in two `testContract` pins. The toolbox's rule is that
+  an undocumented identifier is not part of the contract, which is the
+  same reasoning that made `shSynthesisDeformation`'s rename a PATCH in
+  v3.33.1 while `kernelFactors`' had to wait for 4.0.0. The audit named
+  only `casesFailed`; `unknownCase` was found by reading the file.
+- 2026-09-09 — **A gate that reads a computed identifier as a literal
+  invents a finding.** `setup_shAnalysis` raises
+  `"shAnalysis:setup:no" + locs(li, 1)` for five option names. Extending
+  the gate to root functions made it report `shAnalysis:setup:no`, an
+  identifier nothing raises. The rule now distinguishes a concatenated
+  literal (a PREFIX — the help must name at least one member, since the
+  gate cannot enumerate them) from a whole identifier. This is the A12
+  lesson again: the checker lied before it told the truth, and the
+  source settled it.
+- 2026-09-09 — **The class files were NOT swept, and the gate says so.**
+  A21 is measured (32 identifiers, 29 of them two-part) and left open on
+  purpose: a class needs a per-METHOD owner rule, and renaming 29
+  identifiers that `testContract` pins is a MAJOR change, not a PATCH
+  ridealong. `error_id_audit.py`'s last line names its own reach rather
+  than implying the whole toolbox is covered — the instrument states
+  what it inspects, as `help_audit.py` and `name_coverage.py` already do.
+- 2026-09-09 — **The drained backlog would have made its own test
+  vacuous.** `test_backlog_only_names_files_without_a_section` looped
+  over `UNDOCUMENTED`; emptying it leaves an assertion that cannot fail
+  — exactly how A14's `test_legacy_name_tolerated` sat broken for a
+  release after the v3.33.0 sweep drained `LEGACY`. The mechanism is now
+  asserted with a TEMPORARY entry, and the no-section rule is
+  fault-injected on a synthetic tree in both directions.
+- 2026-09-09 — **CORRECTION, and it invalidates a decision below: CI IS the
+  oracle tier.** The 2026-09-08 entry "WP3/WP4/WP5 (new numerics — the
+  Python oracle can be written but nothing can be checked against it)" is
+  WRONG and blocked four packages for a day. The oracle is a Python script
+  that runs in any sandbox; the COMPARISON is a MATLAB test that runs on
+  A8 through CI. Neither half needs a local interpreter. §2 already says
+  "Python numerical pre-validation before MATLAB; the oracle is committed
+  under `tools/dev/validate_*.py` in the same PR" — that is the whole
+  mechanism, and it has always worked. WP3, WP5 and WP7 are unblocked and
+  always were; they wait on approval, not on a bridge.
+- 2026-09-09 — **WP2 is the only partial exception, and only in half.**
+  Its acceptance calls for budgets calibrated on the acceptance machine
+  AND A8 in the same repeat. The A8 half is available through CI, so step
+  1 (making speed measurable: the budget harness, A8 baselines recorded
+  in `tests/perf_log.csv`) can proceed. Only the two-machine calibration
+  needs the bridge.
+- 2026-09-09 — **A session created on the bridge and continued remotely
+  does not go back.** This session was started on the bridge; when the
+  computer restarted it was re-homed to the `anthropic_cloud`
+  environment, and `list_environments` then offers only that one. The
+  bridge agent being up again does not re-attach it — the container the
+  tools execute in is fixed. Tier A locally requires a NEW session
+  started on the bridge. Do not read "no MATLAB here" as "no MATLAB
+  anywhere": check which of the three it is (this container, the bridge,
+  CI).
 - 2026-09-09 — **WP1 approved as 4.0.0, hard break, no shim** (Matthias:
   "4.0.0 is approved"). Executed the same session.
 - 2026-09-09 — **The release notes state what actually breaks, which is
@@ -560,18 +640,21 @@ Original scope below.
 | WP | Static gates | Tier A (MATLAB) | CI | Merged |
 |---|---|---|---|---|
 | audit 2026-09-08 | ☑ read | — | — | — |
-| WP0 (v3.33.1) | ☑ 9 gates + 4 self-test suites, 0 findings | ☑ CI self-hosted (A8), green — 268 runs | ☑ PR #95 | ◐ pending |
-| v3.34.0 (A7, A8, A12, A13, A16, WP6.1+2) | ☑ 12 gate steps + 6 self-test suites, 0 findings | ☑ **CI self-hosted (A8), green — 269 runs, 265 passed, 4 filtered** | ☑ PR #95 | ◐ pending |
-| v4.0.0 (WP1: A2, A3, A15) | ☑ 14 gates + 10 self-test suites + mlint, 0 findings | ☑ **CI self-hosted (A8) at `5452938`, green — 304 runs, 300 passed, 0 failed, 4 filtered**; `count_tests.py` matched EXACTLY for the third release running, per class as well as in total. First run (`ab52d4f`) also executed 304 but had 5 failures, all one cause: `plotSHSpectrum`'s `arguments` block sat below its `if ~iscell(specs)` guard, so the function did not parse. mlint_lite R6 now catches it. | ☑ PR #96 | ◐ pending |
-| v3.34.1 (A10, A17, A18, A19-partial) | ☑ 13 gates + 8 self-test suites + mlint, 0 findings | ☑ **CI self-hosted (A8) at `7c8cb4c`, green — 301 runs, 297 passed, 0 failed, 4 filtered**; the `count_tests.py` prediction matched EXACTLY, and all 32 new tests pass. First run (`0ab29b5`) also executed 301 but had 1 failure — `testCompareDelegatesToCompareSolutions` gave `compareSeries` 8 epochs where it needs >= 12 common ones. | ☑ PR #95 | ◐ pending |
+| WP0 (v3.33.1) | ☑ 9 gates + 4 self-test suites, 0 findings | ☑ CI self-hosted (A8), green — 268 runs | ☑ PR #95 | ☑ 2026-09-09 |
+| v3.34.0 (A7, A8, A12, A13, A16, WP6.1+2) | ☑ 12 gate steps + 6 self-test suites, 0 findings | ☑ **CI self-hosted (A8), green — 269 runs, 265 passed, 4 filtered** | ☑ PR #95 | ☑ 2026-09-09 |
+| v4.0.0 (WP1: A2, A3, A15) | ☑ 14 gates + 10 self-test suites + mlint, 0 findings | ☑ **CI self-hosted (A8) at `5452938`, green — 304 runs, 300 passed, 0 failed, 4 filtered**; `count_tests.py` matched EXACTLY for the third release running, per class as well as in total. First run (`ab52d4f`) also executed 304 but had 5 failures, all one cause: `plotSHSpectrum`'s `arguments` block sat below its `if ~iscell(specs)` guard, so the function did not parse. mlint_lite R6 now catches it. | ☑ PR #96 | ☑ 2026-09-09 |
+| v3.34.1 (A10, A17, A18, A19-partial) | ☑ 13 gates + 8 self-test suites + mlint, 0 findings | ☑ **CI self-hosted (A8) at `7c8cb4c`, green — 301 runs, 297 passed, 0 failed, 4 filtered**; the `count_tests.py` prediction matched EXACTLY, and all 32 new tests pass. First run (`0ab29b5`) also executed 301 but had 1 failure — `testCompareDelegatesToCompareSolutions` gave `compareSeries` 8 epochs where it needs >= 12 common ones. | ☑ PR #95 | ☑ 2026-09-09 |
+| v4.0.1 (A19) | ☑ 13 gates + mlint + make_demos + 11 self-test suites, 0 findings | ☑ **CI self-hosted (A8) at `0b4fb3b`, green — 304 runs, 300 passed, 0 failed, 4 filtered** (shared run with 4.0.2; both releases are on the one head) | ☑ PR #97 | ◐ pending |
+| v4.0.2 (A20; A21 opened) | ☑ 13 gates + mlint + make_demos + 11 self-test suites, 0 findings; `count_tests.py` predicts 303 methods / 304 runs, unchanged (the two `testContract` pins changed an identifier STRING, not a method count) | ☑ **CI self-hosted (A8) at `0b4fb3b`, green — 304 runs, 300 passed, 0 failed, 4 filtered**; the prediction matched EXACTLY for the fourth release running, per class as well as in total (Contract 73, Correctness 159, Performance 12 runs, Robustness 53, Science 7). First run, no red round. | ☑ PR #97 | ◐ pending |
 
-**Tier A debt: DISCHARGED for all four releases.** The local MATLAB
+**Tier A debt: DISCHARGED for all six releases.** The local MATLAB
 bridge is gone, but the self-hosted runner A8 is not: `runAllTests
 (self-hosted)` went green on PR #95 at `fcaddd2` (268 runs), `5acf14c`
 (**269 runs, 265 passed, 4 filtered**) and `7c8cb4c` (**301 runs, 297
-passed, 4 filtered**), and on PR #96 at `5452938` (**304 runs, 300
-passed, 4 filtered**). The four filtered are the absent optional
-real-data fixtures throughout — `testGravisChainsRealData`,
+passed, 4 filtered**), on PR #96 at `5452938` (**304 runs, 300
+passed, 4 filtered**), and on PR #97 at `0b4fb3b` (**304 runs, 300
+passed, 4 filtered**, covering 4.0.1 and 4.0.2 together). The four
+filtered are the absent optional real-data fixtures throughout — `testGravisChainsRealData`,
 `testUserSuppliedSINEXFiles`, `testMasconReaderOnARealFile`,
 `testPublishedTrendOnARealSeries`.
 
@@ -583,6 +666,18 @@ confirmation that the counter is right about a real run and not only
 about the source.
 
 ### 6.3 What the next session could be wrong for not reading
+- **An identifier can be BUILT, and then no scan can name it.**
+  `setup_shAnalysis` raises `"shAnalysis:setup:no" + locs(li, 1)` for
+  five option names. Every static instrument here — grep, the gate, the
+  reader — sees the literal and not the identifier. Treat a concatenated
+  literal as a prefix and make the HELP carry the real names; do not let
+  a checker report the fragment as if it were an identifier, which is
+  what it did first.
+- **Draining a backlog can silently disarm the test that guards it.**
+  Any test that loops over the backlog becomes vacuous the moment the
+  backlog is empty — A14 already happened once this way. When you empty
+  one, re-express its test as a mechanism assertion with a temporary
+  entry, and fault-inject the rule the backlog exempted.
 - **§1 is the only place in this file that states the version.** This
   bullet used to repeat it and went stale three times running (3.33.1 when
   the tree was 3.34.0, then 3.34.0 when it was 3.34.1) — a duplicated fact
@@ -691,28 +786,33 @@ Done and on PR #95: WP0, WP6 stages 1-2, and findings A1, A3 (partial),
 A4, A5, A6, A7, A8, A10, A11, A12, A13, A14, A16, A17, A18 closed;
 A19 partially.
 
-**WP1 is done; 4.0.0 is green on PR #96 and awaiting merge.** Remaining
-Tier-B work, both needing a decision rather than a keyboard:
+**Four releases are merged to `main` (PR #95 and #96); 4.0.1 and 4.0.2
+are on the branch and not yet on a PR.** Seventeen of the twenty-one
+audit findings are closed (A19 in 4.0.1, A20 in 4.0.2; A21 is new and
+open). Remaining Tier-B work:
 
-1. **WP6 stage 3** — retiring the narrative pages a generated page
+1. **A21** — the three class files. 32 identifiers, no `Error
+   identifiers` section, 29 of them two-part so the raising method
+   cannot be recovered from the identifier. Needs a per-METHOD owner
+   rule in `error_id_audit.py`, and the rename half is MAJOR because
+   `testContract` pins the current names — so it is two rows, not one:
+   the documentation sweep is a PATCH and can go first.
+2. **WP6 stage 3** — retiring the narrative pages a generated page
    supersedes; needs a decision on what `doc_sync_audit`'s COVERAGE check
    should mean afterwards. (Note A17 made this sharper: `gridHandover` is
    named only by `html/mapBridge.html`, so deleting narrative pages can
    silently drop entities out of COVERAGE.)
-2. **A19** — the scoped "documented option values must be accepted"
-   gate. Buildable from `api_data.py` without MATLAB; left unbuilt here
-   because a crude version was 96% false positives and the A12 lesson
-   says do not ship a checker that lies first.
 
-Everything else open (A9/WP2 budgets, WP3, WP4, WP5, WP7) needs either a
-MATLAB measurement or WP1's decision.
+**WP3, WP5 and WP7 are NOT blocked** — see the 2026-09-09 correction in
+§6.1. Their acceptance is a MATLAB test comparing against a committed
+Python oracle, and CI runs exactly that. They wait on approval only.
+WP2 step 1 (the budget harness and A8 baselines) is likewise reachable
+through CI; only its two-machine calibration needs the bridge.
 
-3. **A20** — the 61-file `Error identifiers` documentation backlog.
-   Tier-B work, deliberately not bundled into 4.0.0.
-
-Nothing is blocked on Matthias any more. The next MATLAB-dependent
-package is **WP2** (speed budgets), which needs Tier A measurement;
-**WP3/WP4/WP5/WP7** need new numerics checked against an oracle.
+**PR #97 carries both releases** (opened 2026-09-09 at `0b4fb3b`) and is
+GREEN on both jobs: `gates` and `runAllTests (self-hosted)` — 304 runs,
+300 passed, 0 failed, 4 filtered, first try. Tier A debt discharged for
+4.0.1 and 4.0.2; only the merge is outstanding, which is Matthias's.
 
 To re-run the gates and the prediction from a fresh sandbox:
 ```
@@ -725,8 +825,11 @@ pip install reportlab matplotlib && \
 ---
 *shAnalysis v3.33.0 audited | 2026-09-08 18:30 UTC | Claude Fable 5.1 |
 WP0 (v3.33.1), A7/A8/A12/A13/A14/A16 + WP6.1-2 (v3.34.0),
-A10/A17/A18 (v3.34.1) and WP1/A2/A3/A15 (v4.0.0) |
+A10/A17/A18 (v3.34.1), WP1/A2/A3/A15 (v4.0.0), A19 (v4.0.1)
+and A20 (v4.0.2, A21 opened) |
 2026-09-08..09 | Claude Opus 5 |
-all four releases green on A8 via CI — 4.0.0 at `5452938`:
-304 runs, 300 passed, 0 failed, 4 filtered |
+the first four releases green on A8 via CI — 4.0.0 at `5452938`:
+304 runs, 300 passed, 0 failed, 4 filtered.
+4.0.1 and 4.0.2 green on A8 at `0b4fb3b` via PR #97: 304 runs,
+300 passed, 0 failed, 4 filtered, no red round. |
 Developed by Matthias Weigelt with the help of Claude.*

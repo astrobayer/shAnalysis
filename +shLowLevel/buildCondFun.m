@@ -82,6 +82,13 @@ function [f, info] = buildCondFun(idx, opts)
 %   Reference: Kvas, TU Graz PhD thesis (2019), Sec. 2.4, eqs.
 %   (2.117)-(2.120); Schur product theorem e.g. Horn & Johnson.
 %
+%   Error identifiers
+%     shLowLevel:buildCondFun:badRegions
+%         the Regions vector does not have one entry per grid point
+%     shLowLevel:buildCondFun:zeroKernel
+%         the EWH kernel vanishes at some index entry (1 + kn = 0), so the
+%         conditioning function would divide by zero
+%
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5),
 %   2026-08-17, 21:30 UTC.
 

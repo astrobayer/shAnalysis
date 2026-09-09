@@ -25,6 +25,12 @@ function tn = readTN14(filename)
 %         sigmaC20, sigmaC30 (T x 1 double)  1-sigma, scaled out of the
 %                    file's 1e-10 units
 %
+%   Error identifiers
+%     shLowLevel:readTN14:fileNotFound
+%         the file cannot be opened
+%     shLowLevel:readTN14:noData
+%         no 10-column numeric data line was found
+%
 %   Claude (Fable 5), 2026-08-07.
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 

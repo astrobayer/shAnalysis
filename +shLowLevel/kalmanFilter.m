@@ -99,6 +99,13 @@ function filt = kalmanFilter(model, obs, opts)
 %   PhD thesis (2019), Secs. 2.2-2.3.
 %   Numerics pre-validated in Python (tools/dev/validate_kalman.py).
 %
+%   Error identifiers
+%     shLowLevel:kalmanFilter:ambiguousObs
+%         an epoch carries both l/R and N/b - give one observation mode
+%         per epoch
+%     shLowLevel:kalmanFilter:sizeMismatch
+%         an epoch's l/R or N/b does not have the state dimension P
+%
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5),
 %   2026-08-17, 20:10 UTC.
 

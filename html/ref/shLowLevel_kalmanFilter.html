@@ -33,12 +33,12 @@
 <h2>Output Arguments</h2>
 <table><tr><th>Name</th><th>Description</th></tr><tr><td><code>filt</code></td><td class="desc">(1,1) struct  companion-space filter results. The PHYSICAL state is the first block, xf(1:P, :). Fields xf, xp    (pP x T) double  filtered and predicted states Pf, Pp    (pP x pP x T) double  covariances, StoreCov=&quot;full&quot; dPf, dPp  (pP x T) double  their diagonals instead, for StoreCov=&quot;diag&quot; or &quot;matfile&quot; covFile   (1,1) string  path of the v7.3 MAT holding Pf/Pp, StoreCov=&quot;matfile&quot; only, else &quot;&quot; - delete it when you are done with it B         (pP x P) double  the companion selection matrix contrib   (P x T) double   data share per coefficient, NaN in gaps gap       (1 x T) logical  which epochs had no data qcStat    (1 x T) double   innovation statistic; NaN when QC=&quot;none&quot; or in a gap qcDof     (1 x T) double   its degrees of freedom qcReject  (1 x T) logical  epochs rejected; always all-false unless QC=&quot;reject&quot; P         (1,1) double  block size order     (1,1) double  the VAR order storeCov  (1,1) string  which of the three layouts above is filled</td></tr></table>
 <h2>Error Identifiers</h2>
-<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<table><tr><th>Identifier</th><th>Raised when</th></tr><tr><td><code>shLowLevel:kalmanFilter:ambiguousObs</code></td><td class="desc">an epoch carries both l/R and N/b - give one observation mode per epoch</td></tr><tr><td><code>shLowLevel:kalmanFilter:sizeMismatch</code></td><td class="desc">an epoch&#x27;s l/R or N/b does not have the state dimension P</td></tr></table>
 <h2>Version History</h2>
 <p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
 <h2>See Also</h2>
 <ul class="seealso"><li><a href="shLowLevel_estimateVAR.html"><code>shLowLevel.estimateVAR</code></a></li><li><a href="shLowLevel_readSINEX.html"><code>shLowLevel.readSINEX</code></a></li></ul>
-<p class="prov">shAnalysis v4.0.0 (09-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+<p class="prov">shAnalysis v4.0.2 (09-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
 </div>
 </body>
 </html>

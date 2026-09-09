@@ -150,6 +150,32 @@ function [mCorr, info] = leakageCorrect(grid, latDeg, lonDeg, opts)
 %   See also shLowLevel.gridScaling, shLowLevel.basinDeconvolve,
 %   shLowLevel.basinScaling.
 %
+%   Error identifiers
+%     shLowLevel:leakageCorrect:badFilter
+%         Filter is not a W struct, "none", "gauss<radiusKm>" or "DDKn"
+%     shLowLevel:leakageCorrect:badMask
+%         Mask does not have the size of grid
+%     shLowLevel:leakageCorrect:badNmax
+%         the grid supports nmax < 2; give at least 3 latitudes
+%     shLowLevel:leakageCorrect:badResidualRegion
+%         ResidualRegion does not have the size of grid
+%     shLowLevel:leakageCorrect:badSize
+%         grid is not nLat x nLon for the given latDeg and lonDeg
+%     shLowLevel:leakageCorrect:diverged
+%         the iteration diverged - Gain is past the stability bound. The
+%         function refuses rather than return a field that looks like a
+%         result
+%     shLowLevel:leakageCorrect:emptyMask
+%         Mask selects no pixel - there is nothing to solve for
+%     shLowLevel:leakageCorrect:emptyResidualRegion
+%         ResidualRegion selects no pixel
+%     shLowLevel:leakageCorrect:nanInput
+%         a non-finite pixel lies inside Mask or ResidualRegion; NaN
+%         outside both is tolerated
+%     shLowLevel:leakageCorrect:unregularised
+%         warning - NoiseLevel=0, so the iteration is unregularised and
+%         the answer depends on where it happens to stop
+%
 %   Developed by Matthias Weigelt with the help of Claude (Opus 5),
 %   2026-08-11 (v3.2.0).
 arguments

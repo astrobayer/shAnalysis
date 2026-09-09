@@ -50,6 +50,16 @@ function [T, info] = listICGEM(opts)
 %   the /sp/ series-page catalogue entirely; single files ARE statically
 %   listed on the series pages (the old "JS-only" caveat is obsolete).
 %
+%   Error identifiers
+%     shLowLevel:listICGEM:noFiles
+%         no file parsed for that Series - check the path against the
+%         catalogue
+%     shLowLevel:listICGEM:parseFailed
+%         no model or series parsed from the page - the ICGEM layout may
+%         have changed
+%     shLowLevel:listICGEM:seriesNeedsTemporal
+%         Series= was given with a Type other than "temporal"
+%
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5),
 %   2026-08-07 (v2.4.1; temporal catalogue + Series listing v2.4.2).
 arguments

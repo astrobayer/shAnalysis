@@ -117,6 +117,27 @@ function summary = setup_shAnalysis(opts)
 %     setup_shAnalysis(SeriesFolder = "D:/grace/itsg", ...
 %         MasconFile = "D:/grace/GRCTellus_JPL.nc")   % opt-in test data
 %
+%   Error identifiers
+%     shAnalysis:setup:docsFailed
+%         warning - builddocsearchdb could not build the help-browser search
+%         index; the pages themselves are still installed
+%     shAnalysis:setup:noDDKFolder
+%         warning - DDKFolder does not exist
+%     shAnalysis:setup:noGravisFolder
+%         warning - GravisFolder does not exist
+%     shAnalysis:setup:noMasconFile
+%         warning - MasconFile is not a file
+%     shAnalysis:setup:noSeriesFolder
+%         warning - SeriesFolder does not exist. This identifier and the four
+%         below are BUILT from the option name ("shAnalysis:setup:no" + name),
+%         so no static scan of this file can find them - they are listed here
+%         because a caller cannot otherwise learn what to catch
+%     shAnalysis:setup:noTestDataFolder
+%         warning - TestDataFolder does not exist
+%     shAnalysis:setup:savepathFailed
+%         warning - Permanent=true could not write pathdef.m (no write
+%         permission on the MATLAB installation is the usual cause)
+%
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5),
 %   2026-08-07 (v2.5).
 arguments

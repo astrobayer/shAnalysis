@@ -40,6 +40,17 @@ function [avgHat, out] = basinDeconvolve(B, op, opts)
 %                       attenuation factors
 %             condA     (T x 1) double  cond(A_t) per month
 %
+%   Error identifiers
+%     shLowLevel:basinDeconvolve:nonFiniteA
+%         B'W_t B is non-finite at one month - the damping s(t) or the
+%         gain g went non-finite
+%     shLowLevel:basinDeconvolve:nonFiniteOperator
+%         a field of the filter operator holds non-finite entries; the
+%         operator is corrupt and would poison every epoch
+%     shLowLevel:basinDeconvolve:zeroA
+%         B'W_t B vanished at one month: the filter removed the whole
+%         basin signal, so there is nothing left to deconvolve
+%
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 
 arguments

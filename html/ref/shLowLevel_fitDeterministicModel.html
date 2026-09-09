@@ -24,12 +24,12 @@
 <h2>Output Arguments</h2>
 <table><tr><th>Name</th><th>Description</th></tr><tr><td><code>model</code></td><td class="desc">P x T          fitted deterministic part</td></tr><tr><td><code>Xres</code></td><td class="desc">P x T          X - model</td></tr><tr><td><code>coef</code></td><td class="desc">ncol x P       [bias; trend; cosA; sinA; cosSA; sinSA; cosP1; sinP1; ...], ncol = 6 + 2*numel(Periods)</td></tr><tr><td><code>A</code></td><td class="desc">T x ncol       design matrix (unweighted)</td></tr><tr><td><code>coefSigma</code></td><td class="desc">ncol x P       1-sigma per coefficient: sqrt(resVar_p * diag(inv(A&#x27;WA))); OLS formula, validated by Monte Carlo (ratios 0.99-1.02). For Robust=true the final IRLS weights enter W (approximation, documented).</td></tr><tr><td><code>resVar</code></td><td class="desc">1 x P          residual variance rss/(T - ncol)</td></tr><tr><td><code>ar1</code></td><td class="desc">1 x P          bias-corrected lag-1 residual auto- correlation actually applied (clamped to [0, 0.99]; 0 when ARCorrect=false)</td></tr></table>
 <h2>Error Identifiers</h2>
-<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<table><tr><th>Identifier</th><th>Raised when</th></tr><tr><td><code>shLowLevel:fitDeterministicModel:fewEpochs</code></td><td class="desc">warning - fewer epochs than model parameters, so the fit has no redundancy and the sigmas come back NaN</td></tr></table>
 <h2>Version History</h2>
 <p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
 <h2>See Also</h2>
 <p class="none">No other entity is named in this help block.</p>
-<p class="prov">shAnalysis v4.0.0 (09-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+<p class="prov">shAnalysis v4.0.2 (09-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
 </div>
 </body>
 </html>

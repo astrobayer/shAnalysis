@@ -43,6 +43,18 @@ function [gt, rep] = gravisRegionChain(region, folder, gravisFolder, opts)
 %     % called for you by the wrappers; direct use mirrors them:
 %     % [gt, rep] = shLowLevel.gravisRegionChain("greenland", ser, gd, opts)
 %
+%   Error identifiers
+%     shLowLevel:gravisRegionChain:badFilter
+%         Filter is neither "none" nor "gauss<radiusKm>" for the grid stage
+%     shLowLevel:gravisRegionChain:missingBasins
+%         the basin GeoJSON was not found
+%     shLowLevel:gravisRegionChain:noKn
+%         kn was not supplied; the chain will not assume a reference frame
+%     shLowLevel:gravisRegionChain:noOcean
+%         the default noise policy derives sigma_trend from the open-ocean
+%         residual RMS, so OceanMask= or a numeric NoiseLevel= is required
+%         - no coastline is ever assumed
+%
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5),
 %   2026-08-12 (v3.8.8).
 arguments

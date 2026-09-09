@@ -84,6 +84,22 @@ function [d1, info] = estimateDegree1(ts, ocean, opts)
 %   See also shLowLevel.readTN13, shSeries.addDegree1,
 %   shLowLevel.oceanRMS.
 %
+%   Error identifiers
+%     shLowLevel:estimateDegree1:badMask
+%         ocean is neither a function handle nor a mask of the grid size
+%     shLowLevel:estimateDegree1:badModel
+%         OceanModel is not nLat x nLon or nLat x nLon x nEpochs
+%     shLowLevel:estimateDegree1:emptyOcean
+%         the ocean mask selects no grid point
+%     shLowLevel:estimateDegree1:noLoveNumbers
+%         kn was not supplied; the degree-1 value is frame dependent
+%         (CE/CF/CM) and the toolbox never assumes a frame
+%     shLowLevel:estimateDegree1:noOceanModel
+%         warning - no OceanModel was given, so real ocean signal is
+%         attributed to the geocentre and biases the estimate
+%     shLowLevel:estimateDegree1:shortLoveNumbers
+%         kn does not cover degrees 0 and 1
+%
 %   Developed by Matthias Weigelt with the help of Claude (Opus 5),
 %   2026-08-11 (v3.6.0).
 arguments

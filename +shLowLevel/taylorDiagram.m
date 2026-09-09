@@ -28,6 +28,10 @@ function h = taylorDiagram(refStd, stds, corrs, opts)
 %     st = shLowLevel.spatialStats(grid, 0.8 * grid, lat, lon);
 %     shLowLevel.taylorDiagram(st.stdA, st.stdB, st.corr, Labels = "damped");
 %
+%   Error identifiers
+%     shLowLevel:taylorDiagram:sizeMismatch
+%         STDS and CORRS differ in length
+%
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5),
 %   2026-08-08 (v2.6.0).
 arguments

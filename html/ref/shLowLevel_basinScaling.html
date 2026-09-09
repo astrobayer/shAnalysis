@@ -24,12 +24,12 @@
 <h2>Output Arguments</h2>
 <table><tr><th>Name</th><th>Description</th></tr><tr><td><code>k</code></td><td class="desc">(1,1) double  regression scaling factor</td></tr><tr><td><code>info</code></td><td class="desc">(1,1) struct  fields sigmaK    (1,1) double   1-sigma of the regression factor kMonthly  (T x 1) double  per-month factors; present only with PerMonth matched   (T x 1) logical  which epochs matched between the two series nMatched  (1,1) double   nnz(matched), the epochs the regression actually used aTrue     (T x 1) double  basin average of the model field aFilt     (T x 1) double  basin average after filtering</td></tr></table>
 <h2>Error Identifiers</h2>
-<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<table><tr><th>Identifier</th><th>Raised when</th></tr><tr><td><code>shLowLevel:basinScaling:badKernel</code></td><td class="desc">the basin kernel is not P x 1 in idx ordering</td></tr><tr><td><code>shLowLevel:basinScaling:badOp</code></td><td class="desc">OP is neither a tvANS struct, a P x P matrix nor a function handle, or the matrix is not P x P</td></tr><tr><td><code>shLowLevel:basinScaling:needIdx</code></td><td class="desc">a matrix or handle operator was given without Idx= and TYears=; only a tvANS struct carries them itself</td></tr><tr><td><code>shLowLevel:basinScaling:tooFewMatches</code></td><td class="desc">fewer than 3 model epochs matched TYears within 0.05 yr - the scaling regression has too little to fit</td></tr></table>
 <h2>Version History</h2>
 <p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
 <h2>See Also</h2>
 <ul class="seealso"><li><a href="shLowLevel_basinDeconvolve.html"><code>shLowLevel.basinDeconvolve</code></a></li></ul>
-<p class="prov">shAnalysis v4.0.0 (09-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+<p class="prov">shAnalysis v4.0.2 (09-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
 </div>
 </body>
 </html>
