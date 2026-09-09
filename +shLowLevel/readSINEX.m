@@ -59,6 +59,28 @@ function snx = readSINEX(filename, opts)
 %   reads the whole file into memory - fine for monthly solution SINEX
 %   up to Lmax ~ 120, not tuned for multi-GB normal-equation archives.
 %
+%   Error identifiers
+%     shLowLevel:readSINEX:badEstimateLine
+%         a SOLUTION/ESTIMATE line carries no CN/SN parameter or does not
+%         parse
+%     shLowLevel:readSINEX:badMatrixIndex
+%         the matrix references a parameter beyond the estimate block
+%     shLowLevel:readSINEX:badMatrixLine
+%         a matrix line has fewer than three numbers
+%     shLowLevel:readSINEX:badMatrixType
+%         the matrix block is not a COVA estimate
+%     shLowLevel:readSINEX:fileNotFound
+%         the file does not exist or cannot be opened
+%     shLowLevel:readSINEX:missingParam
+%         a coefficient of the supplied Index is not in the file
+%     shLowLevel:readSINEX:neqNotPD
+%         Output="covariance" was asked of a normal-equation matrix that
+%         is not positive definite
+%     shLowLevel:readSINEX:noData
+%         the file holds no SOLUTION/ESTIMATE block
+%     shLowLevel:readSINEX:noEstimates
+%         streaming mode found no SOLUTION/ESTIMATE CN/SN line
+%
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5),
 %   2026-08-07.
 

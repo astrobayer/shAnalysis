@@ -46,6 +46,13 @@ function varargout = poleTideConvert(varargin)
 %     g18 = shLowLevel.poleTideConvert(g, From = "IERS2010", To = "IERS2018");
 %     dC21 = g18.C(3, 2) - g.C(3, 2)     % ~1e-10 level, trend-like in t
 %
+%   Error identifiers
+%     shLowLevel:poleTideConvert:badSize
+%         C and S are not equal-size triangles with nmax >= 2
+%     shLowLevel:poleTideConvert:noEpoch
+%         the shCoefficients object has no finite epoch; use the
+%         (C, S, EPOCH) form
+%
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5),
 %   2026-08-10 (v2.7.0).
 if nargin >= 1 && isa(varargin{1}, 'shCoefficients')

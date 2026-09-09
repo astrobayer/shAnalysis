@@ -132,6 +132,22 @@ function [ts, rep] = kalmanChain(obsIn, opts)
 %   (2019). Numerics pre-validated in Python
 %   (tools/dev/validate_kalman.py).
 %
+%   Error identifiers
+%     shLowLevel:kalmanChain:badInput
+%         OBSIN is neither an shSeries nor a SINEX folder path
+%     shLowLevel:kalmanChain:badNeqWeights
+%         NeqWeights does not have one entry per center
+%     shLowLevel:kalmanChain:nmaxMismatch
+%         the observation series and the model differ in nmax - truncate
+%         first
+%     shLowLevel:kalmanChain:noFiles
+%         a SINEX folder holds no file matching Pattern
+%     shLowLevel:kalmanChain:noNoise
+%         an epoch has no formal sigmas and NoiseCov is empty - the update
+%         has no weight to use
+%     shLowLevel:kalmanChain:notNEQ
+%         a SINEX file carries no normal-equation block
+%
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5),
 %   2026-08-17, 20:10 UTC.
 

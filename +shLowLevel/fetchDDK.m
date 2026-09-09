@@ -34,6 +34,11 @@ function [files, info] = fetchDDK(which, opts)
 %   Load with W = shLowLevel.readDDK("DDK5") (resolves against Dest) or with
 %   the explicit path. Cite Kusche et al. when publishing.
 %
+%   Error identifiers
+%     shLowLevel:fetchDDK:updateFailed
+%         warning - a refresh download failed verification; the file
+%         already on disk stays authoritative
+%
 %   Claude (Fable 5), 2026-08-07 (v2.4.1).
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 arguments

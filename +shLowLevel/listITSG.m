@@ -31,6 +31,10 @@ function [T, info] = listITSG(opts)
 %     T = shLowLevel.listITSG();
 %     disp(T)     % pick rows, then fetch via Catalog= in fetchITSG
 %
+%   Error identifiers
+%     shLowLevel:listITSG:empty
+%         no ITSG release was found under the base URL
+%
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5),
 %   2026-08-10 (v3.0.0).
 arguments

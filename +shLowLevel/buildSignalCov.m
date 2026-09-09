@@ -44,6 +44,10 @@ function [S, info] = buildSignalCov(Xres, N, idx, opts)
 %           varMap  (Ngrid x 1) double  spatial variance map, weighted
 %                   global mean 1; Mode='inhomogeneous' only
 %
+%   Error identifiers
+%     shLowLevel:buildSignalCov:blocksIsotropicOnly
+%         a block-form N was given with a Mode other than "isotropic"
+%
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 
 arguments

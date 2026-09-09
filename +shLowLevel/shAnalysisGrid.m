@@ -66,6 +66,19 @@ function [C, S, info] = shAnalysisGrid(grid, latVec, lonVec, nmax, opts)
 %   NMAX to what the sampling supports) is used. S_n0 does not exist
 %   (sin 0 = 0) and is always returned 0.
 %
+%   Error identifiers
+%     shLowLevel:shAnalysisGrid:badGrid
+%         the rings method needs a uniform full-circle longitude vector
+%         with nlon > 2*nmax, or the orders alias
+%     shLowLevel:shAnalysisGrid:badInput
+%         GRID is neither numel(lat) x numel(lon) nor a vector matching the
+%         lat/lon point lists; Method="rings" got a scattered set; or
+%         Method="ls" got nmax = 0
+%     shLowLevel:shAnalysisGrid:rankDeficient
+%         the sampling does not determine all coefficients: the normal
+%         equations are singular or numerically so. Reduce nmax or set
+%         Kaula > 0
+%
 %   Claude (Fable 5), 2026-08-07.
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 

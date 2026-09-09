@@ -65,6 +65,22 @@ function [ts, rep] = standardChain(folder, opts)
 %         Filter = "DDK3", Degree1 = "GFZ");
 %     disp(rep.steps')
 %
+%   Error identifiers
+%     shLowLevel:standardChain:badFilter
+%         Filter is not a W struct, "none", "gauss<radiusKm>" or "DDKn"
+%     shLowLevel:standardChain:badGIA
+%         GIA is not an shCoefficients trend field [1/yr]
+%     shLowLevel:standardChain:noCoveredEpochs
+%         no solution epoch falls inside a correction table at all, so
+%         OnMissing="drop" would leave nothing
+%     shLowLevel:standardChain:noTN13
+%         the TN-13 file was not found - run setup_shAnalysis or name it
+%     shLowLevel:standardChain:noTN14
+%         the TN-14 file was not found - run setup_shAnalysis or name it
+%     shLowLevel:standardChain:uncoveredEpochs
+%         solution epochs lie outside a correction table and
+%         OnMissing="error"
+%
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5),
 %   2026-08-10 (v3.1.0).
 arguments

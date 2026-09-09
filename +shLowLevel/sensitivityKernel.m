@@ -92,6 +92,12 @@ function [k, info] = sensitivityKernel(idx, region, opts)
 %   See also shLowLevel.basinKernel, shLowLevel.basinDeconvolve,
 %   shLowLevel.leakageCorrect.
 %
+%   Error identifiers
+%     shLowLevel:sensitivityKernel:badFarField
+%         FarField does not have idx.P entries, or a weight is negative
+%     shLowLevel:sensitivityKernel:badNoise
+%         Noise is neither a P-vector nor a P x P matrix
+%
 %   Developed by Matthias Weigelt with the help of Claude (Opus 5),
 %   2026-08-11 (v3.7.0).
 arguments

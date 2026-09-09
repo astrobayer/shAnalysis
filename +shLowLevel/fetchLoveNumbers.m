@@ -36,6 +36,13 @@ function [files, info] = fetchLoveNumbers(names, opts)
 %     [f, inf] = shLowLevel.fetchLoveNumbers();
 %     kn = inf.parsed(1).kn(1:61);        % degrees 0..60 for an n60 field
 %
+%   Error identifiers
+%     shLowLevel:fetchLoveNumbers:badFormat
+%         the downloaded file is neither an N x 1 GROOPS matrix file nor a
+%         bare finite numeric column
+%     shLowLevel:fetchLoveNumbers:unknownName
+%         the requested file is not one of the known Love-number files
+%
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5),
 %   2026-08-10 (v3.0.0).
 arguments

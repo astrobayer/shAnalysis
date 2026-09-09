@@ -67,6 +67,31 @@ function [LN, info] = readLoveNumbers(filename, opts)
 %     [up, no, ea] = g.deformation(latPts, lonPts, kn=LN.kn, hn=LN.hn, ...
 %              ln=LN.ln, Mode="points");
 %
+%   Error identifiers
+%     shLowLevel:readLoveNumbers:ambiguousColumns
+%         the file has no recognizable header and no default ordering
+%         applies - pass Columns= explicitly
+%     shLowLevel:readLoveNumbers:badColumns
+%         the Columns= mapping does not fit the file: it omits n or k, has
+%         the wrong number of entries, or makes the degree column
+%         non-integer
+%     shLowLevel:readLoveNumbers:badFrame
+%         InFrame and OutFrame must be given together, or neither
+%     shLowLevel:readLoveNumbers:degreeGap
+%         the table does not cover 0..Nmax, or a degree is missing and
+%         Interp="none"; interpolation never extrapolates
+%     shLowLevel:readLoveNumbers:fileNotFound
+%         the file does not exist
+%     shLowLevel:readLoveNumbers:frameNotRecoverable
+%         CE values cannot be recovered from CF or CM; only the
+%         conversions the load Love numbers determine are offered
+%     shLowLevel:readLoveNumbers:needsDegree1
+%         the frame conversion needs degree 1, or the h and l columns it
+%         uses, and the table has neither
+%     shLowLevel:readLoveNumbers:noData
+%         no numeric row was found, or the rows disagree on the column
+%         count
+%
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5),
 %   2026-08-07 (v2.5).
 arguments

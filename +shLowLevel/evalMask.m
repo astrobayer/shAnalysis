@@ -30,6 +30,14 @@ function [mask, grid] = evalMask(idx, region, opts)
 %     mask  (Ngrid,1) double in [0,1]
 %     grid  struct from shLowLevel.synthesisMatrix (latDeg, lonDeg per ring)
 %
+%   Error identifiers
+%     shLowLevel:evalMask:badPolygon
+%         a polygon vertex has |lat| > 90 - the house convention is
+%         [latDeg lonDeg]; a GeoJSON-ordered [lon lat] polygon lands here
+%     shLowLevel:evalMask:badRegion
+%         REGION is neither a function handle, a Kx2 [lat lon] polygon nor
+%         an nGrid x 1 mask
+%
 %   Claude (Fable 5), 2026-08-07.
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 arguments

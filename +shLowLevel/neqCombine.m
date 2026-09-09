@@ -70,6 +70,29 @@ function [x, out] = neqCombine(neqs, opts)
 %   (1979); Kvas, TU Graz PhD thesis (2019), Secs. 2.1-2.2; the
 %   COST-G combination concept (Jaeggi et al.).
 %
+%   Error identifiers
+%     shLowLevel:neqCombine:badInput
+%         a contribution carries neither N/b nor a readSINEX M/x
+%     shLowLevel:neqCombine:badWeights
+%         Weights does not have one entry per contribution
+%     shLowLevel:neqCombine:empty
+%         no contribution was given
+%     shLowLevel:neqCombine:needStats
+%         VCE needs ltpl and nobs on every contribution; supply them or
+%         pass fixed Weights
+%     shLowLevel:neqCombine:noConvergence
+%         warning - VCE did not converge within MaxIter
+%     shLowLevel:neqCombine:nonpositiveRedundancy
+%         a contribution's partial redundancy is <= 0, so its variance
+%         factor is undefined - fix nobs or pass fixed Weights
+%     shLowLevel:neqCombine:notNEQ
+%         a readSINEX struct carries no normal-equation block
+%     shLowLevel:neqCombine:redundancyInvariant
+%         sum(redundancy) ~= sum(nobs) - P: a numerical breakdown inside
+%         the VCE iteration, checked because it is cheap
+%     shLowLevel:neqCombine:sizeMismatch
+%         a contribution's N or b does not have the dimension of the first
+%
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5),
 %   2026-08-17, 22:40 UTC.
 

@@ -60,6 +60,15 @@ function reg = demo_shAnalysis(cases, opts)
 %                 the fail-and-continue contract the suite exercises
 %
 %
+%   Error identifiers
+%     shAnalysis:demo:casesFailed
+%         warning - one or more cases failed and the run continued. Raised
+%         only when nargout == 0; ask for the report struct, or set
+%         StopOnError=true, to handle failures yourself
+%     shAnalysis:demo:unknownCase
+%         the requested case id is not in the registry; demo_shAnalysis("list")
+%         names them
+%
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 arguments
     cases (1,:) string = "core"
@@ -80,7 +89,7 @@ if any(cases == "all"),  cases = [reg.id]; end
 okList = strings(1, 0); failList = strings(1, 0);
 for c = cases
     k = find([reg.id] == c, 1);
-    assert(~isempty(k), 'demo:unknownCase', 'Unknown case %s (try "list").', c);
+    assert(~isempty(k), 'shAnalysis:demo:unknownCase', 'Unknown case %s (try "list").', c);
     fprintf('\n=== %s: %s ===\n', reg(k).id, reg(k).title);
     try
         reg(k).run(opts.Visible, char(opts.OutDir));
@@ -105,7 +114,7 @@ v = shLowLevel.version();
 fprintf('Provenance: %s v%s, Claude (Fable 5), %s.\n', ...
     v.Name, v.Version, v.Date);
 if ~isempty(failList) && nargout == 0
-    warning('demo:casesFailed', 'Failed cases: %s. Rerun individually or with StopOnError=true for debugging.', ...
+    warning('shAnalysis:demo:casesFailed', 'Failed cases: %s. Rerun individually or with StopOnError=true for debugging.', ...
         strjoin(failList, ', '));
 end
 end

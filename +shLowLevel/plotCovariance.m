@@ -20,6 +20,10 @@ function h = plotCovariance(M, idx, opts)
 %   Outputs
 %     h          (1 x 1) graphics handle   image of the covariance/correlation structure
 %
+%   Error identifiers
+%     shLowLevel:plotCovariance:badSize
+%         M is not P x P for the supplied idx
+%
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 arguments
     M double

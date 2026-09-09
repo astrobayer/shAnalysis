@@ -32,6 +32,13 @@ function [modes, pcs, varExplained, info] = eofAnalysis(ts, opts)
 %           centered        (1,1) logical   whether the temporal mean was
 %                           removed (= the Center option)
 %
+%   Error identifiers
+%     shLowLevel:eofAnalysis:nanInSeries
+%         the series carries NaN - bridge the gap with shSeries.dropNaN
+%         first, the SVD has no meaning otherwise
+%     shLowLevel:eofAnalysis:tooFewEpochs
+%         fewer than 3 epochs
+%
 %   Claude (Fable 5), 2026-08-07 (v2.4).
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 arguments

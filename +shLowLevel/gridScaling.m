@@ -73,6 +73,16 @@ function [k, info] = gridScaling(model, latDeg, lonDeg, opts)
 %
 %   See also shLowLevel.leakageCorrect, shLowLevel.basinScaling.
 %
+%   Error identifiers
+%     shLowLevel:gridScaling:badClip
+%         Clip is not [lo hi] with lo < hi
+%     shLowLevel:gridScaling:badFilter
+%         Filter is not a W struct, "none", "gauss<radiusKm>" or "DDKn"
+%     shLowLevel:gridScaling:badNmax
+%         the grid supports nmax < 2; give at least 3 latitudes
+%     shLowLevel:gridScaling:badSize
+%         model is not nLat x nLon x T for the given latDeg and lonDeg
+%
 %   Developed by Matthias Weigelt with the help of Claude (Opus 5),
 %   2026-08-11 (v3.2.0).
 arguments

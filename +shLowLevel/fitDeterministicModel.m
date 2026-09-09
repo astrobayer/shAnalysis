@@ -46,6 +46,11 @@ function [model, Xres, coef, A, coefSigma, resVar, ar1] = fitDeterministicModel(
 %                               correlation actually applied (clamped to
 %                               [0, 0.99]; 0 when ARCorrect=false)
 %
+%   Error identifiers
+%     shLowLevel:fitDeterministicModel:fewEpochs
+%         warning - fewer epochs than model parameters, so the fit has no
+%         redundancy and the sigmas come back NaN
+%
 %   Claude (Fable 5), 2026-08-07 (extends the 2026-08-07 6-parameter fit).
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 

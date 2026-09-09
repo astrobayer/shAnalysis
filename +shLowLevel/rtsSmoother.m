@@ -60,6 +60,13 @@ function smo = rtsSmoother(filt, opts)
 %   (2012), Sec. 3.3.3; Kvas, TU Graz PhD thesis (2019), Sec. 2.3.
 %   Numerics pre-validated in Python (tools/dev/validate_kalman.py).
 %
+%   Error identifiers
+%     shLowLevel:rtsSmoother:covFileMissing
+%         the matfile covariance store named by the filter no longer exists
+%     shLowLevel:rtsSmoother:needFullCov
+%         the filter ran with StoreCov="diag"; the backward gain needs the
+%         full predicted covariances, so "full" or "matfile" is required
+%
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5),
 %   2026-08-17, 20:10 UTC.
 

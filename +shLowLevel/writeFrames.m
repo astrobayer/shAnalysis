@@ -37,6 +37,16 @@ function writeFrames(frames, filename, opts)
 %
 %   See also SHLOWLEVEL/WRITEANIMATION, SHSERIES/TOGRID.
 %
+%   Error identifiers
+%     shLowLevel:writeFrames:badExtension
+%         the filename ends in neither .mp4 nor .avi
+%     shLowLevel:writeFrames:badSize
+%         FRAMES is not H x W x 3 x T
+%     shLowLevel:writeFrames:mp4Unsupported
+%         MPEG-4 is not available on this platform; use an .avi filename
+%     shLowLevel:writeFrames:noFrames
+%         FRAMES holds no frame
+%
 %   Claude (Opus 5), 2026-08-23 (v3.32.0).
 %   Developed by Matthias Weigelt with the help of Claude (Opus 5).
 arguments

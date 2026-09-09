@@ -64,6 +64,20 @@ function [out, rep] = twsChain(folder, gravisFolder, opts)
 %         kn = kn, Basins = ["Amazonas", "Congo", "Danube"]);
 %     plot(out.epochs, out.series); legend(out.name)
 %
+%   Error identifiers
+%     shLowLevel:twsChain:badFilter
+%         Filter is not "none", "gauss<radiusKm>" or "DDKn" with n in 1..8
+%     shLowLevel:twsChain:emptyBasin
+%         a basin covers no grid point at the chosen GridStep
+%     shLowLevel:twsChain:missingBasins
+%         the basin GeoJSON was not found
+%     shLowLevel:twsChain:missingDDK
+%         the DDK binary was in none of the searched folders
+%     shLowLevel:twsChain:noKn
+%         kn was not supplied; the chain will not assume a reference frame
+%     shLowLevel:twsChain:unknownBasin
+%         a requested basin name is not in the GeoJSON
+%
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5),
 %   2026-08-12 (v3.8.8).
 arguments

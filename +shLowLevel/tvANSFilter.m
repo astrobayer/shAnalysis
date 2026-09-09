@@ -91,14 +91,30 @@ function [Xf, op, info] = tvANSFilter(X, tYears, idx, opts)
 %                      earlier unconstrained formula underestimated
 %                      along constrained directions
 %
-%   Claude (Fable 5), 2026-08-07.
-%
 %   Options
 %     VCEBands ([]) (1,:) double  order-band edges, e.g. [0 16 33 61]:
 %         one monthly VCE factor per order band instead of a single
 %         s(t) for the whole field. Requires the block path
 %         (Blocks="on"/"auto"); the edges must be ascending and cover
 %         0..Lmax. [] (default) = one factor per month (v2.2).
+%
+%   Error identifiers
+%     shLowLevel:tvANSFilter:badBands
+%         VCEBands are not ascending order-edges covering 0..idx.Lmax
+%     shLowLevel:tvANSFilter:badSize
+%         X is not P x T in idx ordering
+%     shLowLevel:tvANSFilter:bandsNeedBlocks
+%         VCEBands requires the block path: band-wise noise scaling breaks
+%         the single global eigendecomposition
+%     shLowLevel:tvANSFilter:blocksUnavailable
+%         Blocks="on" was asked for with an anisotropic signal mode or with
+%         constraints, which the block partition does not survive
+%     shLowLevel:tvANSFilter:nonFiniteEig
+%         a block eigendecomposition produced non-finite factors
+%     shLowLevel:tvANSFilter:nonFiniteVCE
+%         a monthly or band VCE factor came back non-finite
+%
+%   Claude (Fable 5), 2026-08-07.
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 
 arguments

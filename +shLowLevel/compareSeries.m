@@ -65,6 +65,17 @@ function [rep, h] = compareSeries(tsList, opts)
 %         Names = ["CSR", "GFZ", "JPL"]);
 %     fprintf("TCH noise: %s\n", sprintf("%.3g ", rep.tch.sigma))
 %
+%   Error identifiers
+%     shLowLevel:compareSeries:badInput
+%         an entry of tsList is not an shSeries
+%     shLowLevel:compareSeries:basinNeedsIdx
+%         Basin= was given without the matching Idx= (shLowLevel.shIndex)
+%     shLowLevel:compareSeries:needTwo
+%         fewer than 2 series were given
+%     shLowLevel:compareSeries:tooFewEpochs
+%         fewer than 12 epochs are common to all series - the temporal
+%         metrics need them
+%
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5),
 %   2026-08-08 (v2.6.0).
 arguments

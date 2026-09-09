@@ -30,12 +30,12 @@
 <h2>Output Arguments</h2>
 <table><tr><th>Name</th><th>Description</th></tr><tr><td><code>smo</code></td><td class="desc">(1,1) struct  smoothed results, PHYSICAL block only. Fields xs      (P x T) double  smoothed states sig     (P x T) double  formal 1-sigma per coefficient, the square root of the smoothed covariance diagonal PsLast  (P x P) double  the full smoothed covariance of the LAST epoch, which equals the filtered one there P       (1,1) double  block size order   (1,1) double  the VAR order</td></tr></table>
 <h2>Error Identifiers</h2>
-<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<table><tr><th>Identifier</th><th>Raised when</th></tr><tr><td><code>shLowLevel:rtsSmoother:covFileMissing</code></td><td class="desc">the matfile covariance store named by the filter no longer exists</td></tr><tr><td><code>shLowLevel:rtsSmoother:needFullCov</code></td><td class="desc">the filter ran with StoreCov=&quot;diag&quot;; the backward gain needs the full predicted covariances, so &quot;full&quot; or &quot;matfile&quot; is required</td></tr></table>
 <h2>Version History</h2>
 <p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
 <h2>See Also</h2>
 <ul class="seealso"><li><a href="shLowLevel_kalmanFilter.html"><code>shLowLevel.kalmanFilter</code></a></li></ul>
-<p class="prov">shAnalysis v4.0.1 (09-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+<p class="prov">shAnalysis v4.0.2 (09-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
 </div>
 </body>
 </html>

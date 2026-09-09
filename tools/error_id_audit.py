@@ -15,9 +15,10 @@ Three checks:
               No backlog: the v4.0.0 sweep made this true everywhere, so
               a new violation is a new defect, not inherited debt.
   DOCUMENTED  every raised identifier appears in that file's
-              "Error identifiers" help section. 61 files predate the
-              convention and are listed in UNDOCUMENTED; that list only
-              ever shrinks, and the gate reports its size every run.
+              "Error identifiers" help section. 61 files predated the
+              convention and sat in UNDOCUMENTED, a list that only ever
+              shrinks; A20 drained it in v4.0.2, so this rule now holds
+              with no exemption at all.
   GHOSTS      every identifier the help documents is actually raised.
               A12's lesson: documentation drifts in BOTH directions.
 
@@ -40,44 +41,67 @@ import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PKG = os.path.join(ROOT, "+shLowLevel")
+# A class raises per-METHOD identifiers, so the file-level owner rule
+# this gate applies does not fit them. Named, not forgotten: A21.
+CLASS_FILES = {"shCoefficients.m", "shSeries.m", "shClimatology.m"}
 
 # error('id', ...) / warning('id', ...) -> identifier is argument 1.
 # assert(cond, 'id', ...)               -> identifier is argument 2.
 # Continuations are folded first, so the id may sit on the next line.
 RAISE = re.compile(
-    r"\b(?:error|warning)\s*\(\s*['\"]([A-Za-z][\w]*(?::[\w]+)+)['\"]"
-    r"|\bassert\s*\([^;]*?,\s*['\"]([A-Za-z][\w]*(?::[\w]+)+)['\"]")
+    r"\b(?:error|warning)\s*\(\s*['\"]([A-Za-z][\w]*(?::[\w]+)+)['\"](\s*\+)?"
+    r"|\bassert\s*\([^;]*?,\s*['\"]([A-Za-z][\w]*(?::[\w]+)+)['\"](\s*\+)?")
+
+# An identifier BUILT at runtime. setup_shAnalysis raises
+#     warning("shAnalysis:setup:no" + locs(li, 1), ...)
+# for five option names, so no scan of that file can name what it raises.
+# Reading the literal as if it were the identifier is worse than useless:
+# it invents `shAnalysis:setup:no`, which nothing ever raises. Such a
+# literal is treated as a PREFIX - the help must document at least one
+# identifier under it, and says so, since the gate cannot enumerate them.
 
 # Both house styles: the id alone on its line with the reason indented
 # below, and "id  reason" on one line. Requiring the first spelling
-DOC_ID = re.compile(r"^%\s+(shLowLevel:[\w:]+)(?:\s|$)", re.M)
+DOC_ID = re.compile(r"^%\s+((?:shLowLevel|shAnalysis):[\w:]+)(?:\s|$)", re.M)
 SECTION = "%   Error identifiers"
 
 # Files that raise identifiers but predate the "Error identifiers" help
-# section. A backlog, not an exemption: entries leave and never return.
-UNDOCUMENTED = {
-    "basinDeconvolve", "basinKernel", "basinScaling", "buildCondFun",
-    "buildNoiseCov", "buildSignalCov", "combineCenters", "compareSeries",
-    "designFilter", "diffSpectrum", "effectiveCorr", "eofAnalysis",
-    "errorMap", "estimateDegree1", "estimateVAR", "evalMask", "fetchDDK",
-    "fetchICGEM", "fetchITSG", "fetchLoveNumbers", "fetchTN",
-    "fitDeterministicModel", "gravisDataFolder", "gravisL2B",
-    "gravisRegionChain", "gridScaling", "kalmanChain", "kalmanFilter",
-    "leakageCorrect", "listICGEM", "listITSG", "makeTutorials",
-    "mcPropagate", "nashSutcliffe", "neqCombine", "oceanRMS",
-    "plotCovariance", "plotSHCoeffTriangle", "plotSHSpectrum",
-    "poleTideConvert", "readDDK", "readLoveNumbers", "readMascon",
-    "readSINEX", "readTN13", "readTN14", "rtsSmoother",
-    "sensitivityKernel", "shAnalysisGrid", "spatialStats",
-    "standardChain", "synthesisPoints", "taylorDiagram",
-    "threeCorneredHat", "tvANSFilter", "twsChain", "writeAnimation",
-    "writeFrames", "writeGFC", "writeGrid", "ylm"
-}
+# section. DRAINED in v4.0.2 (A20): all 61 files, 208 identifiers, were
+# documented against their raise sites. The set stays as the mechanism -
+# a new file may earn a temporary entry with a dated reason - but it is
+# empty, so the DOCUMENTED rule now holds with no exemption. An empty
+# backlog is exactly how A14's LEGACY test rotted into a no-op, so the
+# self-test asserts the mechanism with a TEMPORARY entry rather than
+# pinning a member name.
+UNDOCUMENTED = set()
 
 
 def fold(text):
     """Join MATLAB ... continuations so a raise can be read on one line."""
     return re.sub(r"\.\.\.[^\n]*\n\s*", " ", text)
+
+
+def surface():
+    """(path, stem, owner prefix) of every file this gate reads.
+
+    +shLowLevel/X.m owns shLowLevel:X:*. A root function owns
+    shAnalysis:<tag>:* where <tag> is its name without the toolbox
+    suffix - setup_shAnalysis -> shAnalysis:setup:*, demo_shAnalysis ->
+    shAnalysis:demo:*. The three class files are deliberately absent:
+    their identifiers are per-METHOD, so the file-level owner rule does
+    not apply to them (A21).
+    """
+    out = []
+    for f in sorted(os.listdir(PKG)):
+        if f.endswith(".m"):
+            out.append((os.path.join(PKG, f), f[:-2],
+                        "shLowLevel:%s:" % f[:-2]))
+    for f in sorted(os.listdir(ROOT)):
+        if not f.endswith(".m") or f in CLASS_FILES or f == "Contents.m":
+            continue
+        tag = f[:-2].replace("_shAnalysis", "")
+        out.append((os.path.join(ROOT, f), f[:-2], "shAnalysis:%s:" % tag))
+    return out
 
 
 def code_of(path):
@@ -89,10 +113,13 @@ def code_of(path):
 
 
 def raised_in(code):
-    out = set()
+    """-> (literal identifiers, prefixes of runtime-built identifiers)"""
+    ids, prefixes = set(), set()
     for m in RAISE.finditer(code):
-        out.add(m.group(1) or m.group(2))
-    return out
+        ident = m.group(1) or m.group(3)
+        built = m.group(2) or m.group(4)
+        (prefixes if built else ids).add(ident)
+    return ids, prefixes
 
 
 def documented_in(src):
@@ -104,20 +131,19 @@ def documented_in(src):
 def main(argv=None):
     argv = argv if argv is not None else sys.argv[1:]
     probs, backlog, checked = [], [], 0
-    for f in sorted(os.listdir(PKG)):
-        if not f.endswith(".m"):
-            continue
-        stem = f[:-2]
-        src, code = code_of(os.path.join(PKG, f))
-        ids = raised_in(code)
-        if not ids:
+    for path, stem, own in surface():
+        src, code = code_of(path)
+        ids, prefixes = raised_in(code)
+        if not ids and not prefixes:
             continue
         checked += 1
-        own = "shLowLevel:%s:" % stem
-        for i in sorted(ids):
+        for i in sorted(ids | prefixes):
             if not i.startswith(own):
                 probs.append("%s.m raises %s - it owns %s* only" % (stem, i, own))
         doc = documented_in(src)
+        for i in sorted(ids & prefixes):
+            probs.append("%s.m raises %s both as a whole identifier and as a "
+                         "prefix - one of the two is a typo" % (stem, i))
         if doc is None:
             if stem in UNDOCUMENTED:
                 backlog.append(stem)
@@ -133,7 +159,16 @@ def main(argv=None):
             probs.append("%s.m raises %s but its help does not document it"
                          % (stem, i))
         for i in sorted(doc - ids):
-            probs.append("%s.m documents %s but never raises it" % (stem, i))
+            # a documented id under a runtime-built prefix is exactly what
+            # that prefix asks for; it cannot be matched to a raise site
+            if not any(i.startswith(pre) for pre in prefixes):
+                probs.append("%s.m documents %s but never raises it"
+                             % (stem, i))
+        for pre in sorted(prefixes):
+            if not any(i.startswith(pre) and i != pre for i in doc):
+                probs.append("%s.m builds identifiers as \"%s\" + <name> and "
+                             "documents none of them - the gate cannot "
+                             "enumerate them, so the help must" % (stem, pre))
 
     if "--list" in argv:
         for s in sorted(backlog):
@@ -143,10 +178,13 @@ def main(argv=None):
         for p in probs:
             print("  - " + p, file=sys.stderr)
         return 1
-    print("error_id_audit: 0 findings - %d package files raise identifiers, "
-          "every one owned by the file that raises it; %d document them, "
-          "%d in the shrinking UNDOCUMENTED backlog."
-          % (checked, checked - len(backlog), len(backlog)))
+    tail = ("no backlog left (A20 drained it in v4.0.2)" if not backlog
+            else "%d in the shrinking UNDOCUMENTED backlog" % len(backlog))
+    print("error_id_audit: 0 findings - %d files raise identifiers, every one "
+          "owned by the file that raises it; %d document them, %s. Reach: "
+          "+shLowLevel and the root functions. The three CLASS files are NOT "
+          "read - see CLAUDE.md A21."
+          % (checked, checked - len(backlog), tail))
     return 0
 
 

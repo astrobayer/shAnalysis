@@ -58,6 +58,28 @@ function [files, info] = fetchITSG(months, opts)
 %   ftp.tugraz.at/pub/ITSG/GRACE (Mayer-Guerr et al.); cite the ITSG
 %   release when publishing.
 %
+%   Error identifiers
+%     shLowLevel:fetchITSG:allDaily
+%         months = "all" with the daily product refuses to run - it would
+%         fetch tens of GB; name the months or years
+%     shLowLevel:fetchITSG:badCatalog
+%         a Catalog index lies outside 1..height(listITSG)
+%     shLowLevel:fetchITSG:badMonth
+%         a year is outside 2002..2100, or a month is not "YYYY-MM"
+%     shLowLevel:fetchITSG:badNmax
+%         Nmax is not one the release publishes (daily: 40; monthly: 60,
+%         96 or 120)
+%     shLowLevel:fetchITSG:emptyFolder
+%         the server folder for that release and nmax holds no .gfc file
+%     shLowLevel:fetchITSG:legacyLayout
+%         warning - pre-v3.16 data was found in the old folder; move it to
+%         the new layout to avoid downloading everything again
+%     shLowLevel:fetchITSG:noSelection
+%         neither months/years, "all" nor Catalog= was given
+%     shLowLevel:fetchITSG:staticSkipped
+%         warning - a Catalog row names a static model folder; fetch those
+%         with shLowLevel.fetchICGEM
+%
 %   Claude (Fable 5), 2026-08-07 (v2.4).
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 arguments

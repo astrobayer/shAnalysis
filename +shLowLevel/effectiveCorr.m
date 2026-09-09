@@ -26,6 +26,10 @@ function out = effectiveCorr(x, y)
 %     ec = shLowLevel.effectiveCorr(avg(1,:)', avg(2,:)');   % two basin series
 %     fprintf("r = %.3f (p = %.3g, Neff = %.0f)\n", ec.r, ec.p, ec.neff)
 %
+%   Error identifiers
+%     shLowLevel:effectiveCorr:tooShort
+%         fewer than 8 finite pairs remain after the NaN mask
+%
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5),
 %   2026-08-08 (v2.6.0).
 arguments

@@ -19,10 +19,7 @@
 <details class="example"><summary>From the help block</summary><div><pre><code>    shLowLevel.writeAnimation(ts, fullfile(tempdir, &#x27;ewh.avi&#x27;), ...
         Quantity = &quot;ewh&quot;, kn = kn, FrameRate = 6);
 
-  See also SHSERIES/TOGRID, SHLOWLEVEL/WRITEFRAMES, REQUIREGEOMAP.
-
-  Claude (Fable 5), 2026-08-07 (v2.4); routed through geoMap
-  Claude (Opus 5), 2026-08-23 (v3.32.0).</code></pre></div></details><details class="example"><summary>Runnable (docs/apiExamples.json)</summary><div><pre><code>shLowLevel.writeAnimation(ts, &quot;ewh.avi&quot;, Quantity = &quot;ewh&quot;, kn = kn);   % needs geoMap on the path</code></pre></div></details>
+  See also SHSERIES/TOGRID, SHLOWLEVEL/WRITEFRAMES, REQUIREGEOMAP.</code></pre></div></details><details class="example"><summary>Runnable (docs/apiExamples.json)</summary><div><pre><code>shLowLevel.writeAnimation(ts, &quot;ewh.avi&quot;, Quantity = &quot;ewh&quot;, kn = kn);   % needs geoMap on the path</code></pre></div></details>
 <h2>Input Arguments</h2>
 <table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>ts</code></td><td>1 x 1</td><td>shSeries</td><td><code>required</code></td><td class="desc"><a href="shSeries.html"><code>shSeries</code></a>    the series to animate</td></tr><tr><td><code>filename</code></td><td>1 x 1</td><td>string</td><td><code>required</code></td><td class="desc">string      .mp4 (Windows/macOS) or .avi (portable)</td></tr></table>
 <h2>Name-Value Arguments</h2>
@@ -30,12 +27,12 @@
 <h2>Output Arguments</h2>
 <p class="none">None.</p>
 <h2>Error Identifiers</h2>
-<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<table><tr><th>Identifier</th><th>Raised when</th></tr><tr><td><code>shLowLevel:writeAnimation:captureMismatch</code></td><td class="desc">eight attempts did not settle the figure at the required capture size</td></tr><tr><td><code>shLowLevel:writeAnimation:frameSizeChanged</code></td><td class="desc">a frame came back a different size than frame 1 and could not be re-captured at the pinned size</td></tr></table>
 <h2>Version History</h2>
 <p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
 <h2>See Also</h2>
 <p class="none">No other entity is named in this help block.</p>
-<p class="prov">shAnalysis v4.0.1 (09-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+<p class="prov">shAnalysis v4.0.2 (09-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
 </div>
 </body>
 </html>

@@ -17,6 +17,10 @@ function p = gravisDataFolder()
 %   Example
 %     dir(shLowLevel.gravisDataFolder())
 %
+%   Error identifiers
+%     shLowLevel:gravisDataFolder:missing
+%         the shipped data/gravis folder is absent - a broken installation
+%
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5),
 %   2026-08-12 (v3.8.8).
 here = fileparts(mfilename('fullpath'));           % .../+shLowLevel

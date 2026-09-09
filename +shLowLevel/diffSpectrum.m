@@ -30,6 +30,10 @@ function spec = diffSpectrum(C1, S1, C2, S2)
 %     spec = shLowLevel.diffSpectrum(g.C, g.S, gF.C, gF.S);
 %     semilogy(spec.n, [spec.amp1, spec.diffAmp]); grid on
 %
+%   Error identifiers
+%     shLowLevel:diffSpectrum:sizeMismatch
+%         the four coefficient matrices do not share the same size
+%
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5),
 %   2026-08-08 (v2.6.0).
 arguments

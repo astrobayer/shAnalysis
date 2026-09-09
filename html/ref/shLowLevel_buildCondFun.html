@@ -36,12 +36,12 @@
 <h2>Output Arguments</h2>
 <table><tr><th>Name</th><th>Description</th></tr><tr><td><code>f</code></td><td class="desc">function handle  Sigma~ = f(Sigma) for (P x P) covariances in IDX ordering - pass as estimateVAR(..., CondFun=f)</td></tr><tr><td><code>info</code></td><td class="desc">(1,1) struct  fields grid    (1,1) struct   the synthesisMatrix grid struct M       (1,1) double   number of grid points region  (M x 1) double or []  the region weight, empty when none was given W       (M x M) double  the elementwise spatial weight Z .* T memGB   (1,1) double   storage of the precomputed operators</td></tr></table>
 <h2>Error Identifiers</h2>
-<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<table><tr><th>Identifier</th><th>Raised when</th></tr><tr><td><code>shLowLevel:buildCondFun:badRegions</code></td><td class="desc">the Regions vector does not have one entry per grid point</td></tr><tr><td><code>shLowLevel:buildCondFun:zeroKernel</code></td><td class="desc">the EWH kernel vanishes at some index entry (1 + kn = 0), so the conditioning function would divide by zero</td></tr></table>
 <h2>Version History</h2>
 <p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
 <h2>See Also</h2>
 <ul class="seealso"><li><a href="shLowLevel_estimateVAR.html"><code>shLowLevel.estimateVAR</code></a></li><li><a href="shLowLevel_kernelFactors.html"><code>shLowLevel.kernelFactors</code></a></li></ul>
-<p class="prov">shAnalysis v4.0.1 (09-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+<p class="prov">shAnalysis v4.0.2 (09-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
 </div>
 </body>
 </html>

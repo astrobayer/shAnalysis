@@ -58,6 +58,14 @@ function writeAnimation(ts, filename, opts)
 %
 %   See also SHSERIES/TOGRID, SHLOWLEVEL/WRITEFRAMES, REQUIREGEOMAP.
 %
+%   Error identifiers
+%     shLowLevel:writeAnimation:captureMismatch
+%         eight attempts did not settle the figure at the required capture
+%         size
+%     shLowLevel:writeAnimation:frameSizeChanged
+%         a frame came back a different size than frame 1 and could not be
+%         re-captured at the pinned size
+%
 %   Claude (Fable 5), 2026-08-07 (v2.4); routed through geoMap
 %   Claude (Opus 5), 2026-08-23 (v3.32.0).
 %   Developed by Matthias Weigelt with the help of Claude.

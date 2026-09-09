@@ -52,6 +52,19 @@ function [W, info] = designFilter(SigmaC, SigmaS, opts)
 %     W = shLowLevel.designFilter(g.sigmaC, g.sigmaS, Alpha = 1);
 %     gF = g.applyDDK(W);                % apply like any DDK
 %
+%   Error identifiers
+%     shLowLevel:designFilter:badDegVar
+%         DegVar does not have nmax+1 entries (degrees 0..nmax)
+%     shLowLevel:designFilter:badSigma
+%         a filtered degree has a non-positive sigma - the Wiener weight
+%         would divide by zero
+%     shLowLevel:designFilter:idxMiss
+%         Idx has no entry for a (n, m, C/S) triple the filter needs
+%     shLowLevel:designFilter:needIdx
+%         Noise= or Signal= was given without the matching Idx=
+%     shLowLevel:designFilter:sizeMismatch
+%         SigmaC and SigmaS differ in size
+%
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5),
 %   2026-08-10 (v3.1.0).
 arguments

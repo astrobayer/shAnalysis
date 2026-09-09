@@ -22,6 +22,10 @@ function [sig, latDeg, lonDeg] = errorMap(M, idx, latDeg, lonDeg, opts)
 %   Cost: O(nlat * nlon * P^2) after one Cholesky; at n96 (P ~ 9400)
 %   budget minutes for a 1-degree grid - truncate M/idx for quick looks.
 %
+%   Error identifiers
+%     shLowLevel:errorMap:badSize
+%         M is not P x P for the supplied idx
+%
 %   Claude (Fable 5), 2026-08-07 (v2.4).
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 arguments

@@ -31,6 +31,14 @@ function stats = spatialStats(A, B, latDeg, lonDeg, opts)
 %     st = shLowLevel.spatialStats(A1, A2, lat, lon);
 %     fprintf("rmsd %.3g, corr %.3f\n", st.rmsd, st.corr)
 %
+%   Error identifiers
+%     shLowLevel:spatialStats:badWeights
+%         Weights does not have the grid size
+%     shLowLevel:spatialStats:emptyMask
+%         no grid point is finite in both fields and inside the mask
+%     shLowLevel:spatialStats:sizeMismatch
+%         A and B are not both numel(lat) x numel(lon)
+%
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5),
 %   2026-08-08 (v2.6.0).
 arguments
