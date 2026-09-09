@@ -725,17 +725,19 @@ Original scope below.
 | v4.0.1 (A19) | ☑ 13 gates + mlint + make_demos + 11 self-test suites, 0 findings | ☑ **CI self-hosted (A8) at `0b4fb3b`, green — 304 runs, 300 passed, 0 failed, 4 filtered** (shared run with 4.0.2; both releases are on the one head) | ☑ PR #97 | ☑ 2026-09-09 |
 | v4.0.2 (A20; A21 opened) | ☑ 13 gates + mlint + make_demos + 11 self-test suites, 0 findings; `count_tests.py` predicts 303 methods / 304 runs, unchanged (the two `testContract` pins changed an identifier STRING, not a method count) | ☑ **CI self-hosted (A8) at `0b4fb3b`, green — 304 runs, 300 passed, 0 failed, 4 filtered**; the prediction matched EXACTLY for the fourth release running, per class as well as in total (Contract 73, Correctness 159, Performance 12 runs, Robustness 53, Science 7). First run, no red round. | ☑ PR #97 | ☑ 2026-09-09 |
 | v4.0.3 (A21a; A21b opened) | ☑ 13 gates + mlint + make_demos + 11 self-test suites, 0 findings | ☑ **CI self-hosted (A8) at `0d06e14`, green — 305 runs, 301 passed, 0 failed, 4 filtered**; the prediction matched EXACTLY for the FIFTH release running, per class as well as in total (Contract 74, Correctness 159, Performance 12 runs, Robustness 53, Science 7), and `testMinusDoesNotEnforceEpochAgreement` ran and passed. First run, no red round. | ☑ PR #98 | ☑ 2026-09-09 |
-| v5.0.0 (A21b) | ☑ 13 gates + mlint + make_demos + 11 self-test suites, 0 findings | ◐ awaiting the A8 run | ◐ no PR yet | ◐ pending |
-| v5.0.1 (WP6 stage 3) | ☑ 13 gates + mlint + make_demos + 11 self-test suites, 0 findings; 50 hand-written pages -> 26, no entity lost COVERAGE | ◐ awaiting the A8 run | ◐ no PR yet | ◐ pending |
+| v5.0.0 (A21b) | ☑ 13 gates + mlint + make_demos + 11 self-test suites, 0 findings | ☑ **CI self-hosted (A8) at `631d524`, green — 305 runs, 301 passed, 0 failed, 4 filtered** (shared run with 5.0.1). **TWO red rounds first, both mine, both pin errors** — see the row below. | ☑ PR #99 | ◐ pending |
+| v5.0.1 (WP6 stage 3) | ☑ 13 gates + mlint + make_demos + 12 self-test suites, 0 findings; 50 hand-written pages -> 26, no entity lost COVERAGE | ☑ **CI self-hosted (A8) at `631d524`, green — 305 runs, 301 passed, 0 failed, 4 filtered**; the count prediction matched EXACTLY for the sixth release running. Round 1 (`2530e9f`) failed `testGravisChainsContract`: a pin mapped by call graph, not by which GUARD fires — `fromFolder` asserts `isfolder` (the temp folder EXISTS) then delegates to `read`. Round 2 (`f6481d7`) failed `testTN14IDs`: the pin-enumerating grep used `[A-Za-z]*` and `noC30` HAS DIGITS, so it was never rewritten — and the verification grep repeated the same character class. The new PINS rule closes the second shape. | ☑ PR #99 | ◐ pending |
 
-**Tier A debt: DISCHARGED for all seven releases.** The local MATLAB
+**Tier A debt: DISCHARGED for all nine releases.** The local MATLAB
 bridge is gone, but the self-hosted runner A8 is not: `runAllTests
 (self-hosted)` went green on PR #95 at `fcaddd2` (268 runs), `5acf14c`
 (**269 runs, 265 passed, 4 filtered**) and `7c8cb4c` (**301 runs, 297
 passed, 4 filtered**), on PR #96 at `5452938` (**304 runs, 300
 passed, 4 filtered**), on PR #97 at `0b4fb3b` (**304 runs, 300
-passed, 4 filtered**, covering 4.0.1 and 4.0.2 together), and on PR #98
-at `0d06e14` (**305 runs, 301 passed, 4 filtered**). The four
+passed, 4 filtered**, covering 4.0.1 and 4.0.2 together), on PR #98
+at `0d06e14` (**305 runs, 301 passed, 4 filtered**), and on PR #99 at
+`631d524` (**305 runs, 301 passed, 4 filtered**, covering 5.0.0 and
+5.0.1 — after two red rounds, both pin errors of mine). The four
 filtered are the absent optional real-data fixtures throughout — `testGravisChainsRealData`,
 `testUserSuppliedSINEXFiles`, `testMasconReaderOnARealFile`,
 `testPublishedTrendOnARealSeries`.
@@ -748,6 +750,26 @@ confirmation that the counter is right about a real run and not only
 about the source.
 
 ### 6.3 What the next session could be wrong for not reading
+- **A character class is an enumeration, and a narrow one silently
+  shortens the list.** A21b's pins were enumerated with
+  `[A-Za-z]*` for the reason segment, so `shCoefficients:noC30` — digits
+  — was never in the list, never rewritten, and cost a CI round. The
+  grep written to VERIFY the sweep used the same class and confirmed the
+  same blind spot. When a sweep is driven by a pattern, test the pattern
+  against a known member of the awkward class before trusting its count.
+- **Nothing read `tests/` until v5.0.1.** `error_id_audit`'s PINS rule
+  now checks that every toolbox identifier a test names is one something
+  raises. Its reach is stated in its own docstring and is narrower than
+  it sounds: it catches a pin naming an identifier that exists NOWHERE,
+  not a pin naming a REAL identifier the call under test cannot reach —
+  that needs per-call guard analysis. Of A21b's two red rounds it
+  prevents the second, not the first, and the gate says so.
+- **A gate can be silenced by its own inputs.** The PINS rule first
+  harvested prefix literals from `tests/` as well as the toolbox, so the
+  bad pin was read as its OWN prefix and the rule went quiet on exactly
+  the defect it was written for. The injection not firing is what
+  revealed it. Ask what a rule reads, and whether the thing being
+  checked is inside that set.
 - **Check BOTH quotings when rewriting HTML links.** WP6 stage 3's first
   pass rewrote `href="x.html"` and missed `href='x.html'`; the See-also
   lines of `shSynthesis` and `legendreALF` use single quotes, and the
@@ -919,10 +941,10 @@ correction in §6.1. Their acceptance is a MATLAB test against a committed
 Python oracle, and CI runs exactly that. WP2 step 1 is likewise reachable
 through CI; only its two-machine calibration needs the bridge.
 
-**5.0.0 and 5.0.1 have no PR, so CI has not run on either.** The
-prediction to check against the runner is **304 methods / 305 runs**,
-unchanged across both: 5.0.0 renames identifier STRINGS and 5.0.1 touches
-documentation only.
+**5.0.0 and 5.0.1 are GREEN on A8 at `631d524` via PR #99** — 305 runs,
+301 passed, 0 failed, 4 filtered; the count prediction matched exactly
+for the sixth release running. Two red rounds preceded it, both mine and
+both pin errors; the second shape is now gated by the PINS rule.
 
 To re-run the gates and the prediction from a fresh sandbox:
 ```
@@ -945,5 +967,6 @@ the first four releases green on A8 via CI — 4.0.0 at `5452938`:
 300 passed, 0 failed, 4 filtered, no red round.
 4.0.3 green on A8 at `0d06e14` via PR #98: 305 runs, 301 passed,
 0 failed, 4 filtered - the fifth exact count prediction running.
-5.0.0 and 5.0.1 are static-gate green only; no PR, so no CI run yet. |
+5.0.0 and 5.0.1 green on A8 at `631d524` via PR #99: 305 runs,
+301 passed, 0 failed, 4 filtered, after two red rounds. |
 Developed by Matthias Weigelt with the help of Claude.*
