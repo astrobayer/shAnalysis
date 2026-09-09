@@ -133,10 +133,10 @@ E = zeros(numel(lat), numel(lon), T); Pl = [];
 for k = 1:T
     if isempty(Pl)
         [E(:,:,k), ~, ~, Pl] = shLowLevel.shSynthesis(Cs(:,:,k), ...
-            Ss(:,:,k), GM, R, lat, lon, 'quantity','ewh', 'kn',kn, 'nmin',0);
+            Ss(:,:,k), GM, R, lat, lon, 'Quantity','ewh', 'kn',kn, 'Nmin',0);
     else
         E(:,:,k) = shLowLevel.shSynthesis(Cs(:,:,k), Ss(:,:,k), ...
-            GM, R, lat, lon, 'quantity','ewh', 'kn',kn, 'nmin',0, 'P',Pl);
+            GM, R, lat, lon, 'Quantity','ewh', 'kn',kn, 'Nmin',0, 'P',Pl);
     end
 end
 E = E * 100;                                              % m -> cm

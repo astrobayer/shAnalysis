@@ -12,16 +12,16 @@
 <h1>shLowLevel.plotSHSpectrum</h1>
 <p class="h1line">Log-log degree-amplitude spectrum plot.</p>
 <h2>Syntax</h2>
-<div class="syntax"><code>h = shLowLevel.plotSHSpectrum(specs, varargin)</code></div>
+<div class="syntax"><code>h = shLowLevel.plotSHSpectrum(specs)</code><code>h = shLowLevel.plotSHSpectrum(specs, Names={}, Units=&#x27;mm&#x27;, Field=&#x27;&#x27;, ...)</code></div>
 <h2>Description</h2>
 <p>PLOTSHSPECTRUM(SPEC) plots SPEC.degree vs SPEC.degAmplitude (from SHDEGREERMS) on a log-log scale, in mm geoid-height-equivalent.</p>
 <h2>Examples</h2>
 <details class="example"><summary>Runnable (docs/apiExamples.json)</summary><div><pre><code>spec = shLowLevel.shDegreeRMS(g.C, g.S);
 shLowLevel.plotSHSpectrum(spec, Kaula = true, MarkCrossover = true);</code></pre></div></details>
 <h2>Input Arguments</h2>
-<p class="none">None.</p>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>specs</code></td><td>n x m</td><td>-</td><td><code>required</code></td><td class="desc">struct or struct array  spectrum struct(s) from <a href="shLowLevel_shDegreeRMS.html"><code>shLowLevel.shDegreeRMS</code></a> (overlaid when several)</td></tr></table>
 <h2>Name-Value Arguments</h2>
-<p class="none">None.</p>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>Names</code></td><td>n x m</td><td>-</td><td><code>{}</code></td><td class="desc">cell array of legend labels</td></tr><tr><td><code>Units</code></td><td>n x m</td><td>-</td><td><code>&#x27;mm&#x27;</code></td><td class="desc">&#x27;mm&#x27; or &#x27;m&#x27; for the y-axis</td></tr><tr><td><code>Field</code></td><td>n x m</td><td>-</td><td><code>&#x27;&#x27;</code></td><td class="desc">LEGACY override: plot this spec field directly and ignore Quantity. Empty means &quot;not supplied&quot; - the sentinel that replaces inputParser&#x27;s UsingDefaults. (also accepts &#x27;errAmplitude&#x27; to overlay error spectra)</td></tr><tr><td><code>Ax</code></td><td>n x m</td><td>-</td><td><code>[]</code></td><td class="desc">axes handle to plot into; empty uses the current axes</td></tr><tr><td><code>Kaula</code></td><td>n x m</td><td>-</td><td><code>[]</code></td><td class="desc">scalar K: overlay the Kaula-rule reference degree amplitude R*sqrt(2n+1)*K/n^2 (typical K ~ 1e-5) as a dashed grey line - the sanity yardstick for signal decay</td></tr><tr><td><code>MarkCrossover</code></td><td>false</td><td>-</td><td><code>false</code></td><td class="desc">with exactly TWO spectra, mark the signal/error crossover degree found by <a href="shLowLevel_shSpectralCrossover.html"><code>shLowLevel.shSpectralCrossover</code></a> with a vertical line</td></tr><tr><td><code>Quantity</code></td><td>n x m</td><td>-</td><td><code>&#x27;amplitude&#x27;</code></td><td class="desc">&quot;amplitude&quot; ([m]) | &quot;rms&quot; | &quot;variance&quot; | &quot;cumamplitude&quot; | &quot;cumrms&quot; | &quot;cumvariance&quot; - which spectral quantity to draw; error overlays ride along when the spec carries the matching err* field</td></tr></table>
 <h2>Output Arguments</h2>
 <table><tr><th>Name</th><th>Description</th></tr><tr><td><code>h</code></td><td class="desc">(1 x 1) graphics handle   log-log spectrum axes</td></tr></table>
 <h2>Error Identifiers</h2>
@@ -30,7 +30,7 @@ shLowLevel.plotSHSpectrum(spec, Kaula = true, MarkCrossover = true);</code></pre
 <p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
 <h2>See Also</h2>
 <p class="none">No other entity is named in this help block.</p>
-<p class="prov">shAnalysis v3.34.1 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+<p class="prov">shAnalysis v4.0.0 (09-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
 </div>
 </body>
 </html>

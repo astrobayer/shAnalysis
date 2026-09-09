@@ -32,7 +32,7 @@ probe('B4 truncated .gz -> readSHM', @() shLowLevel.readSHM(f4), []);
 % B5 leakageCorrect: empty mask
 g = shCoefficients.read(gfc);
 lat=(-89:2:89)'; lon=(1:2:359)';
-obs = shLowLevel.shSynthesis(g.C, g.S, g.GM, g.R, lat, lon, 'quantity','ewh','kn',kn);
+obs = shLowLevel.shSynthesis(g.C, g.S, g.GM, g.R, lat, lon, 'Quantity','ewh','kn',kn);
 mk0 = false(numel(lat), numel(lon));
 probe('B5 leakage empty mask', @() shLowLevel.leakageCorrect(obs, lat, lon, ...
     Mask=mk0, Filter="gauss500", NoiseLevel=1e-4, Quiet=true), []);
@@ -66,11 +66,11 @@ probe('B11 basin empty mask', @() shLowLevel.basinKernel(idx, false(91,180)), @(
 
 % B12 synthesis: kn too short for ewh at nmax
 probe('B12 ewh kn too short', @() shLowLevel.shSynthesis(g.C, g.S, g.GM, g.R, ...
-    lat, lon, 'quantity','ewh','kn',kn(1:31)), []);
+    lat, lon, 'Quantity','ewh','kn',kn(1:31)), []);
 
 % B13 synthesis: nmax option > size(C)
 probe('B13 nmax > size(C)', @() shLowLevel.shSynthesis(g.C, g.S, g.GM, g.R, ...
-    lat, lon, 'quantity','geoid','nmax',120), []);
+    lat, lon, 'Quantity','geoid','Nmax',120), []);
 
 % B14 estimateDegree1 without kn (documented: must error)
 probe('B14 degree1 without kn', @() shLowLevel.estimateDegree1(ts2, true(90,180)), []);

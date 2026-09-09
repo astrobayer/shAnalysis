@@ -76,7 +76,7 @@ class TestCounting(unittest.TestCase):
         self.assertEqual(c["runs"], c["methods"])
 
 
-EXPECTED_RUNS = 301          # v3.34.1: 269 + 32 for A10/A18
+EXPECTED_RUNS = 304          # v4.0.0: 301 + 3 for WP1's contract tests
 
 
 class TestRepository(unittest.TestCase):

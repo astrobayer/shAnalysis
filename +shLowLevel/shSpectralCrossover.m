@@ -5,7 +5,7 @@ function [nCrossover, degreeInterp] = shSpectralCrossover(spec)
 %
 %   [NCROSSOVER, DEGREEINTERP] = SHSPECTRALCROSSOVER(SPEC) requires SPEC
 %   to have both '.degAmplitude' and '.errAmplitude' fields (i.e. SPEC was
-%   produced by SHDEGREERMS called with 'sigmaC'/'sigmaS'). NCROSSOVER is
+%   produced by SHDEGREERMS called with SigmaC/SigmaS). NCROSSOVER is
 %   the first integer degree n where errAmplitude(n) > degAmplitude(n).
 %   DEGREEINTERP is a sub-degree estimate via linear interpolation in
 %   log-amplitude space between that degree and the one before it (more

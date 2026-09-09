@@ -1,4 +1,4 @@
-function Wn = shGaussianWeights(nmax, radius_km, varargin)
+function Wn = shGaussianWeights(nmax, radius_km, opts)
 %SHGAUSSIANWEIGHTS Degree-domain weights for isotropic Gaussian smoothing.
 %
 %   WN = SHGAUSSIANWEIGHTS(NMAX, RADIUS_KM) computes the Jekeli (1981)
@@ -6,8 +6,11 @@ function Wn = shGaussianWeights(nmax, radius_km, varargin)
 %   radius RADIUS_KM [km] (half-width at which the spatial weighting
 %   function drops to 1/2). Standard GRACE/GRACE-FO mass-change smoothing.
 %
-%   WN = SHGAUSSIANWEIGHTS(..., 'R', R_km) sets the sphere radius used in
+%   WN = SHGAUSSIANWEIGHTS(..., R=R_km) sets the sphere radius used in
 %   b = ln(2)/(1-cos(radius/R)), default R = 6378.1363 km.
+%
+%   Options
+%     R (6378.1363)  (1,1) double  sphere radius [km] in the b formula
 %
 %   Recursion (Jekeli 1981 / Wahr et al. 1998):
 %     b   = ln(2) / (1 - cos(radius/R))
@@ -28,10 +31,12 @@ function Wn = shGaussianWeights(nmax, radius_km, varargin)
 %
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 
-p = inputParser;
-addParameter(p, 'R', 6378.1363);
-parse(p, varargin{:});
-R = p.Results.R;
+arguments
+    nmax (1,1) double
+    radius_km (1,1) double
+    opts.R (1,1) double = 6378.1363
+end
+R = opts.R;
 
 b = log(2) / (1 - cos(radius_km / R));
 

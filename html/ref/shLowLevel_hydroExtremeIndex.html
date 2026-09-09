@@ -26,12 +26,12 @@
 <h2>Output Arguments</h2>
 <table><tr><th>Name</th><th>Description</th></tr><tr><td><code>Z</code></td><td class="desc">same shape as X  the index (DSI/WSDI z-scores; Sdef in the unit of X; FPI dimensionless in [-inf, 1] when PrecipGrid) info (1 x 1) struct  mode, detrended, clim (12 x cells, DSI), sigma, trendPerYr, category (same shape as Z, int8 -5..+5, DSI only; edges [-2 -1.6 -1.3 -0.8 -0.5 .5 .8 1.3 1.6 2]), categoryNames (11 x 1 string, &quot;D4&quot;..&quot;W4&quot;), nPerMonth</td></tr></table>
 <h2>Error Identifiers</h2>
-<table><tr><th>Identifier</th><th>Raised when</th></tr><tr><td><code>shLowLevel:hydroExtremeIndex:badSize</code></td><td class="desc">epochs vs X mismatch</td></tr><tr><td><code>shLowLevel:hydroExtremeIndex:badPrecip</code></td><td class="desc">PrecipGrid shape/mode</td></tr></table>
+<table><tr><th>Identifier</th><th>Raised when</th></tr><tr><td><code>shLowLevel:hydroExtremeIndex:badSize</code></td><td class="desc">epochs vs X mismatch</td></tr><tr><td><code>shLowLevel:hydroExtremeIndex:badPrecip</code></td><td class="desc">PrecipGrid shape/mode</td></tr><tr><td><code>shLowLevel:hydroExtremeIndex:shortMonths</code></td><td class="desc">warning: a calendar month has too few epochs</td></tr></table>
 <h2>Version History</h2>
 <p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
 <h2>See Also</h2>
 <p class="none">No other entity is named in this help block.</p>
-<p class="prov">shAnalysis v3.34.1 (08-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+<p class="prov">shAnalysis v4.0.0 (09-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
 </div>
 </body>
 </html>

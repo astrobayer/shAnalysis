@@ -181,10 +181,10 @@ for k = 1:K
     for t = 1:T
         if isempty(P)
             [E, ~, ~, P] = shLowLevel.shSynthesis(Cs(:,:,t), Ss(:,:,t), ...
-                opts.GM, opts.R, latB, lonB, 'quantity','ewh','kn',opts.kn,'nmin',0);
+                opts.GM, opts.R, latB, lonB, 'Quantity','ewh','kn',opts.kn,'Nmin',0);
         else
             E = shLowLevel.shSynthesis(Cs(:,:,t), Ss(:,:,t), opts.GM, ...
-                opts.R, latB, lonB, 'quantity','ewh','kn',opts.kn,'nmin',0,'P',P);
+                opts.R, latB, lonB, 'Quantity','ewh','kn',opts.kn,'Nmin',0,'P',P);
         end
         series(k, t) = sum(E(mkB) .* wB(mkB)) / sum(wB(mkB)) * 100;
     end

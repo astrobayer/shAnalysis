@@ -199,13 +199,13 @@ if opts.RemoveLandLeakage
         Lc = zeros(size(Cs, 1)); Ls = Lc; Oc = Lc; Os = Lc;
         for it = 1:opts.LandLeakIter
             EL = shLowLevel.shSynthesis(Cs(:,:,k) - Oc, Ss(:,:,k) - Os, ...
-                GM, R, lat, lon, 'quantity','ewh', 'kn',kn1, 'nmin',0);
+                GM, R, lat, lon, 'Quantity','ewh', 'kn',kn1, 'Nmin',0);
             EL(mk) = 0;
             gL = shCoefficients.analysis(EL, lat, lon, nmaxC, ...
                 kn = kn1, Quantity = "ewh");
             Lc = gL.C; Ls = gL.S;
             EO = shLowLevel.shSynthesis(Cs(:,:,k) - Lc, Ss(:,:,k) - Ls, ...
-                GM, R, lat, lon, 'quantity','ewh', 'kn',kn1, 'nmin',0);
+                GM, R, lat, lon, 'Quantity','ewh', 'kn',kn1, 'Nmin',0);
             EO(~mk) = 0;
             gO = shCoefficients.analysis(EO, lat, lon, nmaxC, ...
                 kn = kn1, Quantity = "ewh");
@@ -238,10 +238,10 @@ E = zeros(numel(lat), numel(lon), T); Pl = [];
 for k = 1:T
     if isempty(Pl)
         [E(:,:,k), ~, ~, Pl] = shLowLevel.shSynthesis(Cs(:,:,k), ...
-            Ss(:,:,k), GM, R, lat, lon, 'quantity','ewh', 'kn',kn, 'nmin',0);
+            Ss(:,:,k), GM, R, lat, lon, 'Quantity','ewh', 'kn',kn, 'Nmin',0);
     else
         E(:,:,k) = shLowLevel.shSynthesis(Cs(:,:,k), Ss(:,:,k), ...
-            GM, R, lat, lon, 'quantity','ewh', 'kn',kn, 'nmin',0, 'P',Pl);
+            GM, R, lat, lon, 'Quantity','ewh', 'kn',kn, 'Nmin',0, 'P',Pl);
     end
 end
 steps(end+1) = sprintf("EWH synthesis %d epochs, %g-deg grid, nmax %d", ...
@@ -324,10 +324,10 @@ for k = 1:T
     g = shCoefficients.read(fullfile(df(j).folder, df(j).name));
     if isempty(Pl)
         [E, ~, ~, Pl] = shLowLevel.shSynthesis(g.C, g.S, GM, R, lat, lon, ...
-            'quantity', 'ewh', 'kn', kn(1:size(g.C,1)), 'nmin', 0);
+            'Quantity', 'ewh', 'kn', kn(1:size(g.C,1)), 'Nmin', 0);
     else
         E = shLowLevel.shSynthesis(g.C, g.S, GM, R, lat, lon, ...
-            'quantity', 'ewh', 'kn', kn(1:size(g.C,1)), 'nmin', 0, 'P', Pl);
+            'Quantity', 'ewh', 'kn', kn(1:size(g.C,1)), 'Nmin', 0, 'P', Pl);
     end
     gaaM(k) = (wA' * E(mk)) / oceanArea * 100;
     nGaa = nGaa + 1;

@@ -33,6 +33,14 @@ PascalCase or promoted to SYMBOLS with a reason. The list only ever
 shrinks; a name removed from it can never come back, because the gate
 then rejects it.
 
+A fourth consequence, learned from A2: this gate reads ARGUMENTS BLOCKS,
+so for six v1-era functions it had nothing to look at. They parsed with
+inputParser, whose names it cannot see and which is itself
+case-insensitive, so lowercase 'quantity' and 'nmin' survived the
+v3.33.0 sweep unnoticed. v4.0.0 converted all six; INPUTPARSER now
+rejects the construct outright, because a function that reappears with
+one is invisible to every other check here.
+
 Developed by Matthias Weigelt with the help of Claude (Sonnet 5),
 2026-09-05.
 """
@@ -179,12 +187,29 @@ def walk(root):
                 yield rel, fh.read()
 
 
+PARSER_USE = re.compile(r"\binputParser\s*[;(]|\badd(?:Parameter|Optional"
+                        r"|Required)\s*\(|\bp\.Results\.")
+
+
 def main():
     findings, declared = [], set()
     for rel, src in walk(ROOT):
         for line, names in blocks_in(src):
             declared.update(names)
             findings.extend(audit_block(rel, line, names))
+        # INPUTPARSER: the construct this gate cannot inspect (A2).
+        # Scan the real lines, skipping comments, so the reported line
+        # number points at the file and not at a stripped copy of it.
+        hit = next((i for i, l in enumerate(src.splitlines(), 1)
+                    if not l.lstrip().startswith("%")
+                    and PARSER_USE.search(l)), None)
+        if hit:
+            findings.append(
+                f"{rel}:{hit}: parses with "
+                f"inputParser. Its Name-Value names are invisible to this "
+                f"gate and match case-insensitively, which is how six "
+                f"functions kept lowercase options through v3.33.0's sweep. "
+                f"Use an arguments block.")
 
     # a backlog entry that no longer exists is stale bookkeeping: it
     # would silently re-permit the name if it ever came back

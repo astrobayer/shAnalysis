@@ -94,7 +94,7 @@ verifyError(tc, ...
     @() g.synthesis(-80:10:80, 0:10:350, Quantity = "ewh"), ...
     'shLowLevel:kernelFactors:missingLoveNumbers');
 verifyError(tc, ...
-    @() shLowLevel.shSynthesis(g.C, g.S, g.GM, g.R, 0, 0, 'quantity', 'nonsense'), ...
+    @() shLowLevel.shSynthesis(g.C, g.S, g.GM, g.R, 0, 0, 'Quantity', 'nonsense'), ...
     'shLowLevel:kernelFactors:badQuantity');
 end
 
@@ -266,7 +266,7 @@ end
 function testSynthesisBadMethodID(testCase)
 C = zeros(3); S = zeros(3);
 verifyError(testCase, @() shLowLevel.shSynthesis(C, S, 1, 1, 0, [0 10 50], ...
-    'method', 'fft'), 'shLowLevel:shSynthesis:badMethod');
+    'Method', 'fft'), 'shLowLevel:shSynthesis:badMethod');
 end
 
 function testReadTN13ErrorIDs(testCase)
@@ -361,7 +361,7 @@ L = 8; n1 = L + 1;
 C = tril(ones(n1));                              % all valid cells nonzero
 S = tril(ones(n1)); S(:, 1) = 0;                 % incl. sectorals S_nn
 ax = axes('Parent', fig);
-shLowLevel.plotSHCoeffTriangle(C, S, 'RefC', 0*C, 'RefS', 0*S, 'ax', ax);
+shLowLevel.plotSHCoeffTriangle(C, S, 'RefC', 0*C, 'RefS', 0*S, 'Ax', ax);
 im = findobj(ax, 'Type', 'image');
 verifyNotEmpty(testCase, im, 'no image object rendered');
 img = im(1).CData;                               % (L+1) x (2L+1)
@@ -440,9 +440,9 @@ C = tril(randn(n1)) * 1e-9 ./ max(1, (0:L)').^2;
 S = tril(randn(n1), -1) * 1e-9 ./ max(1, (0:L)').^2; S(:, 1) = 0;
 sC = 1e-11 * max(1, (0:L)') / 10 .* ones(n1) .* tril(ones(n1));
 spec = shLowLevel.shDegreeRMS(C, S, 'R', 6378136.3, ...
-    'sigmaC', sC, 'sigmaS', sC);
+    'SigmaC', sC, 'SigmaS', sC);
 ax = axes('Parent', fig);
-h = shLowLevel.plotSHSpectrum(spec, 'ax', ax, 'Kaula', 1e-5, 'MarkCrossover', true);
+h = shLowLevel.plotSHSpectrum(spec, 'Ax', ax, 'Kaula', 1e-5, 'MarkCrossover', true);
 verifyClass(testCase, h(1), 'matlab.graphics.chart.primitive.Line');
 end
 
@@ -856,32 +856,32 @@ fig = figure('Visible', 'off');
 cleanup = onCleanup(@() close(fig)); %#ok<NASGU>
 L = 15; n1 = L + 1;
 C = tril(randn(n1)) * 1e-9; S = tril(randn(n1), -1) * 1e-9; S(:, 1) = 0;
-sd = shLowLevel.shDegreeRMS(C, S, 'sigmaC', abs(C)*0.1, 'sigmaS', abs(S)*0.1);
+sd = shLowLevel.shDegreeRMS(C, S, 'SigmaC', abs(C)*0.1, 'SigmaS', abs(S)*0.1);
 so = shLowLevel.shOrderRMS(C, S);
 ax = axes('Parent', fig);
 % linear x-axis contract (v2.4.1)
-shLowLevel.plotSHSpectrum(sd, 'ax', ax);
+shLowLevel.plotSHSpectrum(sd, 'Ax', ax);
 verifyEqual(testCase, ax.XScale, 'linear');
 verifyEqual(testCase, ax.YScale, 'log');
 % every quantity renders, degree and order domain
 for q = ["amplitude", "rms", "variance", "cumamplitude", "cumrms", "cumvariance"]
-    cla(ax); shLowLevel.plotSHSpectrum(sd, 'ax', ax, 'Quantity', char(q));
-    cla(ax); shLowLevel.plotSHSpectrum(so, 'ax', ax, 'Quantity', char(q));
+    cla(ax); shLowLevel.plotSHSpectrum(sd, 'Ax', ax, 'Quantity', char(q));
+    cla(ax); shLowLevel.plotSHSpectrum(so, 'Ax', ax, 'Quantity', char(q));
 end
 % contracts
 verifyError(testCase, ...
-    @() shLowLevel.plotSHSpectrum({sd, so}, 'ax', axes('Parent', fig)), ...
+    @() shLowLevel.plotSHSpectrum({sd, so}, 'Ax', axes('Parent', fig)), ...
     'shLowLevel:plotSHSpectrum:mixedDomains');
 verifyError(testCase, ...
-    @() shLowLevel.plotSHSpectrum(sd, 'ax', axes('Parent', fig), ...
+    @() shLowLevel.plotSHSpectrum(sd, 'Ax', axes('Parent', fig), ...
     'Quantity', 'variance', 'Kaula', 1e-5), ...
     'shLowLevel:plotSHSpectrum:kaulaDomain');
 verifyError(testCase, ...
-    @() shLowLevel.plotSHSpectrum(sd, 'ax', axes('Parent', fig), 'Quantity', 'xxx'), ...
+    @() shLowLevel.plotSHSpectrum(sd, 'Ax', axes('Parent', fig), 'Quantity', 'xxx'), ...
     'shLowLevel:plotSHSpectrum:badQuantity');
 % triangle: no center line anymore (v2.4.1)
 ax2 = axes('Parent', fig);
-shLowLevel.plotSHCoeffTriangle(C, S, 'ax', ax2);
+shLowLevel.plotSHCoeffTriangle(C, S, 'Ax', ax2);
 verifyEmpty(testCase, findobj(ax2, 'Type', 'constantline'));
 end
 
@@ -1816,4 +1816,93 @@ verifyEqual(testCase, climK.extraSinC(:, :, 1), 8 * ones(n1));
 verifyError(testCase, ...
     @() shClimatology.fromCoef(coef, 2016.0, ts, Periods = 1.5), ...
     'shClimatology:badInput');
+end
+
+% ---------------------------------------------------------------- WP1 (v4.0.0)
+% The six v1-era functions now take arguments blocks with house-cased
+% Name=value options. MATLAB matches Name-Value names case-insensitively,
+% so the OLD lowercase spellings still reach the same option - that is
+% measured, not assumed (tools/nv_casing_audit.py documents the probe).
+% Only n0 -> Nmin is a real rename, and only the error identifiers are a
+% breaking change. These tests pin both halves.
+
+function testRenamedOptionsAreAcceptedInHouseCasing(testCase)
+rng(4000);
+L = 12;
+C = tril(randn(L+1)) * 1e-9;  S = tril(randn(L+1), -1) * 1e-9;
+GM = 3.986004415e14;  R = 6378136.3;
+lat = -60:30:60;  lon = 0:60:300;
+
+% shSynthesis: Quantity / Nmin / Nmax / Method
+g1 = shLowLevel.shSynthesis(C, S, GM, R, lat, lon, Quantity = 'geoid', ...
+    Nmin = 0, Nmax = L, Method = 'direct');
+verifyEqual(testCase, size(g1), [numel(lat) numel(lon)]);
+% case-insensitive matching means the pre-4.0.0 spelling still lands on
+% the same option - the same numbers, not merely a working call
+g1old = shLowLevel.shSynthesis(C, S, GM, R, lat, lon, quantity = 'geoid', ...
+    nmin = 0, nmax = L, method = 'direct');
+verifyEqual(testCase, g1old, g1);
+
+% shDegreeRMS: R / Nmin / SigmaC / SigmaS
+sC = abs(C) * 0.1;  sS = abs(S) * 0.1;
+sd = shLowLevel.shDegreeRMS(C, S, R = R, Nmin = 2, SigmaC = sC, SigmaS = sS);
+verifyTrue(testCase, isfield(sd, 'errAmplitude'));
+verifyEqual(testCase, sd.R, R);
+% Nmin zeroes the degrees below it, so degree 0 and 1 carry no variance
+verifyEqual(testCase, sd.degVariance(1:2), [0; 0], 'AbsTol', 0);
+
+% shDestripe: MinOrder / PolyOrder / WindowLength
+[Cd, Sd] = shLowLevel.shDestripe(C, S, MinOrder = 8, PolyOrder = 3);
+verifyEqual(testCase, Cd(:, 1:8), C(:, 1:8));
+verifyEqual(testCase, Sd(:, 1:8), S(:, 1:8));
+
+% shGaussianWeights: R stays R
+w1 = shLowLevel.shGaussianWeights(L, 400);
+w2 = shLowLevel.shGaussianWeights(L, 400, R = 6378.1363);
+verifyEqual(testCase, w2, w1);
+
+% shOrderRMS and shCoefficients.degreeRMS/crossover took N0; all three
+% spectral entry points now spell the same concept Nmin
+so = shLowLevel.shOrderRMS(C, S, Nmin = 2);
+verifyTrue(testCase, isfield(so, 'ordVariance'));
+end
+
+function testRenamedOptionsMatchTheClassMethods(testCase)
+% the class methods forward to the renamed options; a name that did not
+% arrive would silently take the default, so compare the NUMBERS
+rng(4001);
+L = 10;
+C = tril(randn(L+1)) * 1e-9;  S = tril(randn(L+1), -1) * 1e-9;
+g = shCoefficients(C, S, SigmaC = abs(C)*0.1, SigmaS = abs(S)*0.1, ...
+    Epoch = 2024.1);
+
+sdClass = g.degreeRMS(Nmin = 2);
+sdLow = shLowLevel.shDegreeRMS(C, S, R = g.R, Nmin = 2, ...
+    SigmaC = g.sigmaC, SigmaS = g.sigmaS);
+verifyEqual(testCase, sdClass.degVariance, sdLow.degVariance);
+verifyEqual(testCase, sdClass.errAmplitude, sdLow.errAmplitude);
+
+gd = g.destripe(MinOrder = 8, PolyOrder = 3);
+[Cd, Sd] = shLowLevel.shDestripe(C, S, MinOrder = 8, PolyOrder = 3);
+verifyEqual(testCase, gd.C, Cd);
+verifyEqual(testCase, gd.S, Sd);
+end
+
+function testSynthesisOwnsItsOwnIdentifiers(testCase)
+% shSynthesis raised bare shSynthesis:* until v4.0.0. badInput and badP
+% had no test at all; badMethod is pinned above.
+rng(4002);
+L = 8;
+C = tril(randn(L+1));  S = tril(randn(L+1), -1);
+GM = 1;  R = 1;  lat = [-30 0 30];  lon = 0:90:270;
+verifyError(testCase, ...
+    @() shLowLevel.shSynthesis(C, S(:, 1:end-1), GM, R, lat, lon), ...
+    'shLowLevel:shSynthesis:badInput');
+verifyError(testCase, ...
+    @() shLowLevel.shSynthesis(C, S, GM, R, lat, lon, Nmax = L + 5), ...
+    'shLowLevel:shSynthesis:badInput');
+% a P that does not match nmax/latVec is refused rather than used
+verifyError(testCase, ...
+    @() shLowLevel.shSynthesis(C, S, GM, R, lat, lon, P = zeros(2, 2, 1)), ...
+    'shLowLevel:shSynthesis:badP');
 end

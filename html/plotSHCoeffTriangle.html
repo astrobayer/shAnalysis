@@ -7,7 +7,7 @@
 <h1>plotSHCoeffTriangle</h1>
 <p>Degree/order 'butterfly' triangle image of log|Cnm| (left half) and log|Snm| (right half) -- the standard first diagnostic for spotting striping, leakage, or bad coefficients.</p>
 <h2>Syntax</h2>
-<pre>plotSHCoeffTriangle(C, S)</pre><pre>plotSHCoeffTriangle(C, S, 'nmax', n, 'clim', [lo hi])</pre>
+<pre>plotSHCoeffTriangle(C, S)</pre><pre>plotSHCoeffTriangle(C, S, Nmax=n, CLim=[lo hi])</pre>
 <h2>Description</h2>
 
 <p>Displays |Cnm| and |Snm| together as a single mirrored image, degree n on the vertical axis (n=0 at top),
@@ -24,14 +24,14 @@ error growth with degree, motivating Gaussian smoothing.</li>
 
 
 <h2>Input Arguments</h2>
-<table><tr><th>Argument</th><th>Description</th></tr><tr><td><code class='inline'>C, S</code></td><td>(nmax+1)x(nmax+1) Stokes coefficient matrices.</td></tr><tr><td><code class='inline'>'nmax'</code></td><td>Max degree to display, default size(C,1)-1.</td></tr><tr><td><code class='inline'>'clim'</code></td><td>[min max] log10(|value|) color limits; default auto-scaled.</td></tr><tr><td><code class='inline'>'ax'</code></td><td>Axes handle to plot into (default: new figure).</td></tr></table>
+<table><tr><th>Argument</th><th>Description</th></tr><tr><td><code class='inline'>C, S</code></td><td>(nmax+1)x(nmax+1) Stokes coefficient matrices.</td></tr><tr><td><code class='inline'>Nmax</code></td><td>Max degree to display, default size(C,1)-1.</td></tr><tr><td><code class='inline'>CLim</code></td><td>[min max] log10(|value|) color limits; default auto-scaled.</td></tr><tr><td><code class='inline'>Ax</code></td><td>Axes handle to plot into (default: new figure).</td></tr></table>
 <h2>Output Arguments</h2>
 <table><tr><th>Argument</th><th>Description</th></tr><tr><td><code class='inline'>h</code></td><td>The axes handle used.</td></tr></table>
 <h2>Examples</h2>
-<h3>Basic triangle plot of a monthly gravity-change field</h3><pre>plotSHCoeffTriangle(dC, dS, 'nmax', 60);</pre><p>Look for vertical banding at high order -- if present, destripe before proceeding to spatial synthesis.</p><h3>Before/after destriping comparison</h3><pre>figure;
-subplot(1,2,1); plotSHCoeffTriangle(dC, dS, 'nmax', 60, 'ax', gca); title('before');
-[dCf, dSf] = shDestripe(dC, dS, 'minOrder', 6);
-subplot(1,2,2); plotSHCoeffTriangle(dCf, dSf, 'nmax', 60, 'ax', gca); title('after');</pre><p>The vertical banding at high order should be visibly reduced after destriping, without the low-order coefficients (real signal) changing noticeably.</p>
+<h3>Basic triangle plot of a monthly gravity-change field</h3><pre>plotSHCoeffTriangle(dC, dS, Nmax=60);</pre><p>Look for vertical banding at high order -- if present, destripe before proceeding to spatial synthesis.</p><h3>Before/after destriping comparison</h3><pre>figure;
+subplot(1,2,1); plotSHCoeffTriangle(dC, dS, Nmax=60, Ax=gca); title('before');
+[dCf, dSf] = shDestripe(dC, dS, MinOrder=6);
+subplot(1,2,2); plotSHCoeffTriangle(dCf, dSf, Nmax=60, Ax=gca); title('after');</pre><p>The vertical banding at high order should be visibly reduced after destriping, without the low-order coefficients (real signal) changing noticeably.</p>
 <h2>See Also</h2>
 <p class="seealso"><a href='shDestripe.html'>shDestripe</a> <a href='plotSHSpectrum.html'>plotSHSpectrum</a></p>
 </div><p class="provenance">Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>

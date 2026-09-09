@@ -23,13 +23,13 @@ says whether it was *read* or *inferred*.
 
 | Fact | Value | Evidence |
 |---|---|---|
-| Version | **3.34.1**, 08-Sep-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
+| Version | **4.0.0**, 09-Sep-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
 | Branches | `main` only; `claude/getframe-recapture` and `claude/readshm` are gone (merged/deleted) | `GET /branches` |
 | Public surface | 3 classes / 71 methods, 122 `+shLowLevel` functions (+4 private), 3 root functions | `tools/dev/api_extract.py` run in sandbox |
-| Tests | 5 classes, **300 methods / 301 runs**: Correctness 159, Contract 70, Robustness 53, Science 7, Performance 11 methods (12 runs, `nmaxP` x2). 4 filter out without the optional real-data fixtures. v3.34.1 added 32 for A10/A18; the 268/269 baseline before it was confirmed exactly by the self-hosted run at `5acf14c`. | `python3 tools/dev/count_tests.py` |
+| Tests | 5 classes, **303 methods / 304 runs**: Correctness 159, Contract 73, Robustness 53, Science 7, Performance 11 methods (12 runs, `nmaxP` x2). 4 filter out without the optional real-data fixtures. The counter has now matched the runner exactly on two consecutive releases. | `python3 tools/dev/count_tests.py` |
 | Python oracles | 16 `tools/dev/validate_*.py` + `tools/audit/*` | listing |
 | Docs | 50 hand-written `html/*.html` + **200 generated `html/ref/*.html`** (one per entity + index, `make_refpages.py`), one shared `html/shAnalysis.css`, `helptoc.xml`, `info.xml`, guide PDF, generated `html/apiReference.html`. `docs/` holds the PDF and `apiExamples.json` only - no HTML page lives outside `html/` (gated). | listing |
-| CI | `gates` job on ubuntu (help_audit, doc_sync_audit, no_map_renderer, toolbox_dependency_audit, nv_casing_audit, fixture_tag_audit, gate self-tests `tools/tests/`, `count_tests`, `name_coverage`, `refpages_audit`) + `runAllTests (self-hosted)` on A8/R2026a; fixtures from tag `fixtures-2026-08` | `.github/workflows/ci.yml` |
+| CI | `gates` job on ubuntu (help_audit, doc_sync_audit, no_map_renderer, toolbox_dependency_audit, nv_casing_audit, fixture_tag_audit, gate self-tests `tools/tests/`, `count_tests`, `name_coverage`, `error_id_audit`, `refpages_audit`, `make_demos --check`) + `runAllTests (self-hosted)` on A8/R2026a; fixtures from tag `fixtures-2026-08` | `.github/workflows/ci.yml` |
 | Namespace | `+shLowLevel` (renamed from `+shx` in v3.0.0). Any memory saying `shx.*` is stale. | README §History |
 
 ### 1.1 Already implemented — do NOT propose again
@@ -163,8 +163,8 @@ do not see; **L** = polish.
 | # | Sev | Finding | Evidence |
 |---|---|---|---|
 | A1 | H | **CLOSED v3.33.1** — guide PDF rebuilt at the current version; `doc_sync_audit.py` now reads its page-1 running head (standard library, ASCII85+Flate) and fails on disagreement, fault-injected both ways. Original finding: Shipped guide PDF is stamped **v3.28.0** while the toolbox is v3.33.0. Five releases missing, including the BREAKING `MinDegree`→`Nmin` rename of v3.33.0. The doc_sync VERSION check covers `apiReference.html`, not the PDF. "Stamps are not content" — but here even the stamp is stale. | `docs/shAnalysis_workflow_guide.pdf` page 1 footer |
-| A2 | M | Six v1-era functions still use `inputParser` with lowercase option names (`'quantity'`, `'nmin'`, `'nmax'`, `'method'`, `'minOrder'`, ...): `shSynthesis`, `shDestripe`, `shGaussianWeights`, `shDegreeRMS`, `plotSHSpectrum`, `plotSHCoeffTriangle`. The v3.33.0 casing sweep did not reach them (inputParser is case-insensitive, so the NV gate has nothing to flag). Their `html/` syntax blocks (9 pages) still show `'quantity', q`. | `grep -l inputParser +shLowLevel/*.m` |
-| A3 | M | **PARTIALLY CLOSED v3.33.1** — `shSynthesisDeformation` now raises `shLowLevel:shSynthesisDeformation:*`, documented in its own ERRORS block and pinned by `testDeformationIDs`. The rest stays open, and is wider than stated: see A15. Original finding: Error-identifier ownership is inconsistent: 147 identifiers are `shLowLevel:<fn>:<reason>`, but 12 are two-part (`shSynthesis:badP`, `shReadGFC:noData`, `shEvalGFCT:epochOutside`, `shSpectralCrossover:missingField`, `shAnalysis:geoMapRequired`), and `shSynthesisDeformation` raises `shSynthesis:*` identifiers — a caller cannot catch by owner. | `grep -ho "error('[A-Za-z:]*'"` |
+| A2 | M | **CLOSED v4.0.0** — all six take `arguments` blocks in house casing, and seven `html/` pages were rewritten to `Name=value`. The important measurement: **only `n0`/`N0` -> `Nmin` actually breaks a caller.** Every other rename is case-only, and MATLAB matches Name-Value names case-insensitively, so old call sites keep working — pinned by a test that the old spelling returns the IDENTICAL numbers. `nv_casing_audit.py` now rejects `inputParser` outright, since a function using it is invisible to that gate (which is exactly how these six survived v3.33.0's sweep). `plotSHSpectrum` was the one non-mechanical case: it used `p.UsingDefaults`, which an arguments block has no equivalent of; the legacy `Field` override keeps its behaviour through an empty-string sentinel. | `python3 tools/nv_casing_audit.py` |
+| A3 | M | **CLOSED v4.0.0** — the remaining 17 raise sites were swept, all nine affected files gained an `Error identifiers` help block, and `tools/error_id_audit.py` gates ownership with no backlog. Two were wrong in ways the audit had not seen: `gridHandover`'s warning named `shCoefficients:toGrid` although `shSeries.toGrid` calls it too, and `writeFrames` raised `shLowLevel:writeAnimation:*` beside its own `shLowLevel:writeFrames:badSize`. **PARTIALLY CLOSED v3.33.1** — `shSynthesisDeformation` now raises `shLowLevel:shSynthesisDeformation:*`, documented in its own ERRORS block and pinned by `testDeformationIDs`. The rest stays open, and is wider than stated: see A15. Original finding: Error-identifier ownership is inconsistent: 147 identifiers are `shLowLevel:<fn>:<reason>`, but 12 are two-part (`shSynthesis:badP`, `shReadGFC:noData`, `shEvalGFCT:epochOutside`, `shSpectralCrossover:missingField`, `shAnalysis:geoMapRequired`), and `shSynthesisDeformation` raises `shSynthesis:*` identifiers — a caller cannot catch by owner. | `grep -ho "error('[A-Za-z:]*'"` |
 | A4 | M | **CLOSED v3.33.1** — and much wider than stated — 13 files in `+shLowLevel` (Outputs, Options AND Inputs) and 52 class methods, 65 help blocks in all. Repaired against the source, not against either block: `readTN14`, `parseGraceFilename`, `resolutionMap`, `shAnalysisGrid`, `basinDeconvolve`, `buildSignalCov`, `vceRescale`, `mcPropagate` all documented fields, shapes or formulas the code does not produce. `help_audit.py` v3.0.2 rejects duplicate and below-the-footer sections; `fix_help.py` (the writer that injected them) refuses to add a second one. Original finding: Seven help blocks contain **two** `Outputs` sections (`errorMap`, `mcPropagate`, `parseGraceFilename`, `readTN14`, `resolutionMap`, `shSynthesis`, `shSynthesisDeformation`). `help_audit.py` checks presence, not uniqueness, so this passed. | sandbox scan of help blocks |
 | A5 | M | **CLOSED v3.33.1** — `docs/apiReference.html` deleted — nothing wrote it or read it. `doc_sync_audit.py` now fails on any HTML page outside `html/`, fault-injected. Original finding: `docs/apiReference.html` is a byte-identical copy of `html/apiReference.html`. Two locations, one authority rule violated; nothing compares them. | `cmp` |
 | A6 | L | **CLOSED v3.33.1** — README points at `ci.yml` instead of naming a tag it would have to keep in step (`fixture_tag_audit.py` already gates the tag itself). Original finding: README line 108 still says CI "pulls the orphan branch 'testdata'"; CI has pinned the tag `fixtures-2026-08` since v3.26.1/ci v2.9.0. | `README.md`, `ci.yml` |
@@ -175,7 +175,8 @@ do not see; **L** = polish.
 | A17 | M | **CLOSED v3.34.1** — `gridHandover` continues its signature with `...`, so `api_extract.py` (single-line regex) parsed the file to NOTHING: no entity in `api_data.py`, no reference page, while `apiReference.html` sent the reader to "as built by shLowLevel.gridHandover, which documents every field". `refpages_audit`'s COVER check compares pages against that same artifact, so it was silent by construction. **Four parsers of the public surface exist; two were blind the same way and agreed with each other** — which is why the new SURFACE check in `doc_sync_audit.py` compares against the FILESYSTEM (MATLAB's file/function rule is ground truth), not a second parser. `api_extract` now refuses to write an incomplete artifact. Pinned by `tools/tests/test_api_extract.py` (5 of 7 fail pre-fix). | `python3 tools/doc_sync_audit.py` |
 | A18 | M | **CLOSED v3.34.1** — A10's blind spot was not only the package: **22 public class methods** were named by no test either — every operator (`plus`, `minus`, `uminus`, `mtimes`, `times`), `disp` on all three classes, `compare`, `fan`, `spectrum`, `triangle`, and eight `shClimatology` methods. Operators were deliberately NOT allowlisted: they are callable by name, and a test checking `plus(a,b)` against `a + b` is stronger than one checking either alone. | `python3 tools/dev/name_coverage.py` |
 | A19 | M | **OPEN, partially closed.** `opApply`'s help offered `mode` values `'apply' | 'applyT'` that the arguments block rejects (`'forward' | 'transp'`) — the same help block's syntax lines had it right. Fixed and pinned in v3.34.1, found while writing the A10 test, not by any gate. **The general check is not built**: a crude scan (any quoted word on a comment line naming the option) produced 25 hits of which 24 were false positives — output-field docs, prose, and the wrong method's options in a class file. A correct gate must scope each help row to its OWN arguments block; `api_data.py` already carries exactly that pairing (`args[].validators` + `args[].desc`), so the instrument is cheap — it just has to be written against the scoped data, not by grepping. | `grep -n "mustBeMember" +shLowLevel/*.m` |
-| A15 | M | A3 is **wider than the audit's 12**: `kernelFactors` (`shSynthesis:missingLoveNumbers`, `:badQuantity`, `:heightInvalid`), `shSynthesisGradient` (`shSynthesis:badInput`) and `seaLevelFingerprint` (`shSynthesis:missingLoveNumbers`) also raise identifiers they do not own. Unlike `shSynthesisDeformation`'s, these ARE documented and pinned by `testContract`/`testCorrectness`, so renaming them is a MAJOR change. Belongs in WP1's identifier sweep, not in a patch. | `grep -rn "shSynthesis:" --include=*.m` |
+| A20 | M | **OPEN.** 61 of the 84 package files that raise an identifier have no `Error identifiers` help block (165 identifiers). They are named in `error_id_audit.py`'s UNDOCUMENTED backlog, which the gate reports every run and which only shrinks; ownership is already gated with no backlog, so this is documentation debt, not correctness debt. Root functions were left alone deliberately: `shAnalysis:setup:*`, `shAnalysis:test:*` and `shAnalysis:acceptance:*` name the toolbox, which is a defensible owner for a toolbox-level function, but `demo:casesFailed` has no namespace at all and should get one. | `python3 tools/error_id_audit.py --list` |
+| A15 | M | **CLOSED v4.0.0** with A3 — `kernelFactors`, `shSynthesisGradient` and `seaLevelFingerprint` now own their identifiers, and the tests that pinned the old names were remapped per raising file (the same old id mapped to two different owners, so a global replace would have been wrong). Original finding: A3 is **wider than the audit's 12**: `kernelFactors` (`shSynthesis:missingLoveNumbers`, `:badQuantity`, `:heightInvalid`), `shSynthesisGradient` (`shSynthesis:badInput`) and `seaLevelFingerprint` (`shSynthesis:missingLoveNumbers`) also raise identifiers they do not own. Unlike `shSynthesisDeformation`'s, these ARE documented and pinned by `testContract`/`testCorrectness`, so renaming them is a MAJOR change. Belongs in WP1's identifier sweep, not in a patch. | `grep -rn "shSynthesis:" --include=*.m` |
 | A14 | M | **CLOSED v3.33.1** — the three gate self-tests in `tools/tests/` (committed in v3.32/v3.33) were **never run by CI**, and `test_legacy_name_tolerated` had been broken since the v3.33.0 sweep drained `LEGACY` to empty — an untested instrument, silently. CI now runs `tools/tests/`; the stale test asserts the mechanism with a temporary entry instead of pinning a member name. | `.github/workflows/ci.yml` before/after |
 | A13 | L | **CLOSED v3.34.0** — the km conversion is the `RadiusKm` option, default unchanged at 6371 so no number moves, documented as the MEAN radius (deliberately not the coefficients' reference radius 6378.1363 km) and overridable. Pinned by `testResolutionMapRadiusIsAChoice`, a metamorphic test: the angular half-widths are radius-invariant, every km figure scales exactly with it, and `anisotropy` — a ratio — does not. That test also removes `resolutionMap` from A10's never-named list. | `+shLowLevel/resolutionMap.m` |
 | A16 | M | **CLOSED v3.34.0** — the **test count in this file was wrong** and so was the v3.33.1 prediction. `grep -c '^function test'` counts the script-based harness entry point as a test and misses every `bench*` method and every parameterised expansion: it said 261, the prediction said 262, the self-hosted runner ran **268**. `tools/dev/count_tests.py` now reports methods and runs per class, expands `TestParameter`, and exits non-zero on `--executed` mismatch; CI prints it. | PR #95 `runAllTests (self-hosted)` log vs `count_tests.py` |
@@ -252,7 +253,8 @@ are hygiene and can run in one release train (3.34.0 or 4.0.0, see WP1).
 - **Oracle**: none needed (documentation and tooling).
 - **Size**: S–M. **Version**: PATCH (3.33.1) unless bundled with WP1.
 
-### WP1 — Legacy-core modernisation   `[ ] approved`
+### WP1 — Legacy-core modernisation   `[x] DONE in v4.0.0` (2026-09-09)
+Approved by Matthias on 2026-09-09 as option (a), the hard break.
 - **Goal**: A2 + A3. The six `inputParser` functions get `arguments` blocks,
   `Name=value` options in the house casing (`Quantity`, `Nmin`, `Nmax`,
   `Method`, `MinOrder`, `PolyOrder`, `WindowLength`, `Units`, …) and
@@ -454,6 +456,32 @@ Original scope below.
 ## 6. Records
 
 ### 6.1 Decisions (append-only; date, decision, evidence)
+- 2026-09-09 — **WP1 approved as 4.0.0, hard break, no shim** (Matthias:
+  "4.0.0 is approved"). Executed the same session.
+- 2026-09-09 — **The release notes state what actually breaks, which is
+  less than the diff suggests.** `nv_casing_audit.py` measured against
+  R2026a that Name-Value matching is CASE-INSENSITIVE, so renaming
+  `'quantity'` to `Quantity` breaks no caller. Only `n0`/`N0` -> `Nmin`
+  and the error identifiers are breaking. Claiming otherwise would have
+  been a false alarm in a MAJOR release; a contract test pins that the
+  old spelling still returns the identical numbers.
+- 2026-09-09 — **No new value validators were added during the
+  conversion.** `inputParser` validated nothing, so typing the options
+  (`mustBePositive`, `mustBeMember`) would have rejected input the old
+  code accepted — a behaviour change smuggled in under a mechanical
+  refactor. The arguments blocks declare defaults and, where safe, size
+  and class only. Tightening them is its own decision.
+- 2026-09-09 — **`plotSHSpectrum`'s legacy `Field` option was kept, not
+  dropped.** 4.0.0 would have been the moment to remove it, but WP1's
+  scope is the parsing mechanism and the casing; removing a documented
+  option is a separate call for Matthias. It survives as an
+  empty-string sentinel because an arguments block has no
+  `p.UsingDefaults`.
+- 2026-09-09 — **A20's documentation backlog was NOT swept.** Writing
+  165 identifier descriptions across 61 files in the same release that
+  changed their names would have buried the breaking change in noise.
+  Ownership is gated with no backlog; the documentation half carries a
+  named, shrinking list instead.
 - 2026-09-08 — **A10 was closed over the WHOLE public surface, not the 13
   recorded.** Measuring it turned up 22 more (A18). The gate covers package
   functions, root functions and public class methods together, because a
@@ -534,6 +562,7 @@ Original scope below.
 | audit 2026-09-08 | ☑ read | — | — | — |
 | WP0 (v3.33.1) | ☑ 9 gates + 4 self-test suites, 0 findings | ☑ CI self-hosted (A8), green — 268 runs | ☑ PR #95 | ◐ pending |
 | v3.34.0 (A7, A8, A12, A13, A16, WP6.1+2) | ☑ 12 gate steps + 6 self-test suites, 0 findings | ☑ **CI self-hosted (A8), green — 269 runs, 265 passed, 4 filtered** | ☑ PR #95 | ◐ pending |
+| v4.0.0 (WP1: A2, A3, A15) | ☑ 14 gates + 9 self-test suites + mlint, 0 findings | ◐ **PREDICTED 303 methods / 304 runs — not yet run** | ◐ pending | ◐ pending |
 | v3.34.1 (A10, A17, A18, A19-partial) | ☑ 13 gates + 8 self-test suites + mlint, 0 findings | ☑ **CI self-hosted (A8) at `7c8cb4c`, green — 301 runs, 297 passed, 0 failed, 4 filtered**; the `count_tests.py` prediction matched EXACTLY, and all 32 new tests pass. First run (`0ab29b5`) also executed 301 but had 1 failure — `testCompareDelegatesToCompareSolutions` gave `compareSeries` 8 epochs where it needs >= 12 common ones. | ☑ PR #95 | ◐ pending |
 
 **Tier A debt: DISCHARGED for all three releases.** The local MATLAB
@@ -624,6 +653,24 @@ about the source.
   §3.4 is now the authority and must equal `ci.yml`; `doc_sync_audit.py`
   gained the `demos.xml` VERSION check so the omission cannot cost a CI
   round-trip again.
+- **A gate that cannot see a construct is not evidence about it.**
+  `nv_casing_audit` reads arguments blocks, so six functions using
+  `inputParser` sailed through v3.33.0's casing sweep with lowercase
+  options. Before trusting "0 findings", ask what the instrument
+  parses, not what it is named after.
+- **Check whether a rename actually breaks anything before calling it
+  breaking.** MATLAB matches Name-Value names case-insensitively
+  (measured, see `nv_casing_audit.py`'s header), so most of WP1's
+  option sweep is not a break at all. The MAJOR bump is earned by the
+  error identifiers and by `n0`/`N0` -> `Nmin`, nothing else.
+- **A mechanical refactor must not smuggle in validation.**
+  `inputParser` validated nothing; adding `mustBePositive` or
+  `mustBeMember` while converting would reject input the old code
+  accepted, under cover of a "no behaviour change" commit.
+- **Rename identifiers per file, never globally.** The same old id
+  (`shSynthesis:missingLoveNumbers`, `shSynthesis:badInput`) mapped to
+  two different owners depending on which file raised it. A repo-wide
+  sed would have produced confident nonsense.
 - Do not re-propose what §1.1 lists. The first audit draft did, without
   repository access; that draft is superseded by this file.
 - Tier B sessions cannot measure B1–B3 or set WP2 budgets. Say so; do not
@@ -635,8 +682,8 @@ Done and on PR #95: WP0, WP6 stages 1-2, and findings A1, A3 (partial),
 A4, A5, A6, A7, A8, A10, A11, A12, A13, A14, A16, A17, A18 closed;
 A19 partially.
 
-**Tier-B work is now exhausted except for two rows, both needing a
-decision rather than a keyboard:**
+**WP1 is done and 4.0.0 is on the branch.** Remaining Tier-B work,
+both needing a decision rather than a keyboard:
 
 1. **WP6 stage 3** — retiring the narrative pages a generated page
    supersedes; needs a decision on what `doc_sync_audit`'s COVERAGE check
@@ -651,13 +698,12 @@ decision rather than a keyboard:**
 Everything else open (A9/WP2 budgets, WP3, WP4, WP5, WP7) needs either a
 MATLAB measurement or WP1's decision.
 
-The one thing that needs Matthias:
+3. **A20** — the 61-file `Error identifiers` documentation backlog.
+   Tier-B work, deliberately not bundled into 4.0.0.
 
-**Decide WP1's shape.** Hard break in **4.0.0** (recommended, consistent
-with the v3.0.0 and v3.33.0 precedents) or one release with a deprecation
-shim. A15 (the documented `shSynthesis:*` identifiers in `kernelFactors`,
-`shSynthesisGradient`, `seaLevelFingerprint`) rides on the same decision —
-MAJOR either way. Nothing else is blocked on it.
+Nothing is blocked on Matthias any more. The next MATLAB-dependent
+package is **WP2** (speed budgets), which needs Tier A measurement;
+**WP3/WP4/WP5/WP7** need new numerics checked against an oracle.
 
 To re-run the gates and the prediction from a fresh sandbox:
 ```
@@ -669,8 +715,9 @@ pip install reportlab matplotlib && \
 
 ---
 *shAnalysis v3.33.0 audited | 2026-09-08 18:30 UTC | Claude Fable 5.1 |
-WP0 (v3.33.1), A7/A8/A12/A13/A14/A16 + WP6.1-2 (v3.34.0), and
-A10/A17/A18 (v3.34.1) | 2026-09-08 | Claude Opus 5 |
-all three releases green on A8 via CI — v3.34.1 at `7c8cb4c`,
-301 runs, 297 passed, 4 filtered |
+WP0 (v3.33.1), A7/A8/A12/A13/A14/A16 + WP6.1-2 (v3.34.0),
+A10/A17/A18 (v3.34.1) and WP1/A2/A3/A15 (v4.0.0) |
+2026-09-08..09 | Claude Opus 5 |
+3.33.1/3.34.0/3.34.1 green on A8 via CI (v3.34.1 at `7c8cb4c`: 301 runs,
+297 passed, 4 filtered); 4.0.0 predicts 303 methods / 304 runs, NOT yet run |
 Developed by Matthias Weigelt with the help of Claude.*

@@ -96,10 +96,10 @@ else
         Ck = ts.Cs(:,:,k) .* w; Sk = ts.Ss(:,:,k) .* w;
         if isempty(P)
             [E(:,:,k), ~, ~, P] = shLowLevel.shSynthesis(Ck, Sk, opts.GM, ...
-                opts.R, lat, lon, 'quantity','ewh','kn',opts.kn,'nmin',0);
+                opts.R, lat, lon, 'Quantity','ewh','kn',opts.kn,'Nmin',0);
         else
             E(:,:,k) = shLowLevel.shSynthesis(Ck, Sk, opts.GM, opts.R, ...
-                lat, lon, 'quantity','ewh','kn',opts.kn,'nmin',0,'P',P);
+                lat, lon, 'Quantity','ewh','kn',opts.kn,'Nmin',0,'P',P);
         end
     end
     steps(end+1) = sprintf("synthesized %d EWH grids (%s, %g deg)", ...
