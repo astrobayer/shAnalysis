@@ -138,6 +138,20 @@ while the empty-window case goes to `shSeries:mean:emptyRange`. Three
 No numerical behaviour changed; no signature changed; the test count is
 unchanged at 304 methods / 305 runs.
 
+**One pin was wrong and CI caught it** (`testGravisChainsContract`, first
+run of PR #99). The two chain pins were mapped to
+`shSeries:fromFolder:noFiles` by tracing the call graph -
+`twsChain` -> `gravisL2B` -> `fromFolder` - but `fromFolder` asserts
+`isfolder` and then DELEGATES to `shSeries.read`: the temp folder EXISTS,
+so that guard passes and the empty folder is caught by `read`'s pattern
+check. Corrected to `shSeries:read:noFiles`. Which guard fires depends on
+the input, not only on which function is called.
+
+The other 45 pins were then re-verified against the guard ORDER of every
+method they exercise. `noFiles` is the only reason raised by two
+functions that a test reaches through a delegation, so this was the one
+instance of the shape rather than the first of several.
+
 ## [4.0.3] - 2026-09-09 - The class surface joins the identifier gate (A21a)
 
 A21's documentation half. The three class files raised **32** error

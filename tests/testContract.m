@@ -1346,10 +1346,14 @@ verifyError(testCase, @() shLowLevel.twsChain(tmp, tmp), ...
     'shLowLevel:twsChain:noKn');
 % an empty series folder fails loudly at the first stage (the aux-file
 % check with its fetch hint sits behind the series read by design)
+% shSeries.fromFolder asserts isfolder and then DELEGATES to
+% shSeries.read: tmp exists, so the isfolder guard passes and the empty
+% folder is caught by read's pattern check. Which guard fires depends on
+% the input, not only on which function is called (v5.0.1).
 verifyError(testCase, @() shLowLevel.twsChain(tmp, tmp, kn = kn), ...
-    'shSeries:fromFolder:noFiles');
+    'shSeries:read:noFiles');
 verifyError(testCase, @() shLowLevel.gravisL2B(tmp, tmp), ...
-    'shSeries:fromFolder:noFiles');
+    'shSeries:read:noFiles');
 end
 
 function testGravisChainsRealData(testCase)
