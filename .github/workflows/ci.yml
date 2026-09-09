@@ -197,6 +197,13 @@ jobs:
       - name: Examples tab matches the demo registry
         run: python3 tools/dev/make_demos.py --check
 
+      # WP2 step 1: the speed budgets are only as good as their
+      # bookkeeping. A budgetCase declared without a workload() arm passes
+      # every other static check here and then fails on the runner with
+      # unknownCase - a CI round a Tier-B session cannot see coming.
+      - name: Speed budgets are declared, armed and baselined
+        run: python3 tools/dev/perf_baseline_audit.py
+
   test:
     name: runAllTests (${{ matrix.os }})
     strategy:

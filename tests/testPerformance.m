@@ -14,8 +14,30 @@ classdef testPerformance < matlab.perftest.TestCase
 %     * classic chain (destripe + Gaussian) on a monthly stack
 %     * tvANS filter pipeline at L=20, T=60
 %
-%   Absolute times are hardware-dependent; only the cache ratio is
-%   asserted. Treat the rest as tracked benchmarks (runperf history).
+%   Speed budgets (WP2 step 1, v5.0.2)
+%     testSpeedBudget asserts ten workloads against a per-machine
+%     baseline committed in tests/perf_baseline.csv:
+%       legendre_n96 / _n360 / _n720   the Holmes-Featherstone recursion
+%       synthesis_direct_n60           reduction only (cache primed)
+%       synthesis_fft_n60              the FFT-along-longitude path
+%       synthesis_points_n60           2000 scattered points
+%       analysis_rings_n60             exact per-order ring analysis
+%       apply_ddk_n96                  order-block filter application
+%       leakage_1iter_n24              one leakageCorrect step
+%       kalman_step_p40                a 12-epoch VAR(1) filter chain
+%     Each is timed Repeats times after one untimed warm-up; the MEDIAN
+%     is compared against BudgetFactor x the baseline for THIS machine.
+%     A machine with no baseline row FILTERS the budget (assumeNotEmpty)
+%     and prints a PERFBASE,... line - that line is a ready-made
+%     perf_baseline.csv row, which is how a new machine is adopted.
+%     Baselines are per machine on purpose: a ratio against a
+%     calibration workload would only be machine-independent if the
+%     calibration scaled like the workload, and a BLAS-bound calibration
+%     does not track a memory-bound recursion.
+%
+%   Absolute times are hardware-dependent; only the cache ratio and the
+%   budgets are asserted. Treat the rest as tracked benchmarks (runperf
+%   history).
 %   testLoggedBaselines additionally appends one-shot wall times to
 %   tests/perf_log.csv (date, MATLAB release, benchmark, seconds) -
 %   a growing machine-local regression record without brittle absolute
@@ -26,6 +48,30 @@ classdef testPerformance < matlab.perftest.TestCase
 
 properties (TestParameter)
     nmaxP = struct('n60', 60, 'n120', 120);
+    % one budgeted workload per entry; the field name IS the benchmark
+    % name in perf_baseline.csv and perf_log.csv (WP2 step 1)
+    budgetCase = struct( ...
+        'legendre_n96',         'legendre_n96', ...
+        'legendre_n360',        'legendre_n360', ...
+        'legendre_n720',        'legendre_n720', ...
+        'synthesis_direct_n60', 'synthesis_direct_n60', ...
+        'synthesis_fft_n60',    'synthesis_fft_n60', ...
+        'synthesis_points_n60', 'synthesis_points_n60', ...
+        'analysis_rings_n60',   'analysis_rings_n60', ...
+        'apply_ddk_n96',        'apply_ddk_n96', ...
+        'leakage_1iter_n24',    'leakage_1iter_n24', ...
+        'kalman_step_p40',      'kalman_step_p40');
+end
+
+properties (Constant)
+    % Bounds run-to-run and machine-load variation, NOT a measured
+    % spread: WP2 specifies "3 x a baseline", and no spread had been
+    % measured when the harness was written (there was no baseline to
+    % measure one against - that is the finding A9 records). Every run
+    % logs the median AND the min, so the next session can replace this
+    % choice with the observed A8 spread instead of inheriting it.
+    BudgetFactor = 3;
+    Repeats = 15;               % WP2: 15 repeats, median of the samples
 end
 
 methods (TestClassSetup)
@@ -114,6 +160,44 @@ methods (Test)
             min(tWarm), min(tCold), nRep));
     end
 
+    function testSpeedBudget(tc, budgetCase)
+        %TESTSPEEDBUDGET One workload, timed Repeats times, median vs the
+        %   committed per-machine baseline. See the class help.
+        % leakage_1iter runs unregularised on purpose (one step is not a
+        % converged solution), so its warning would clutter every log
+        ws = warning('off', 'shLowLevel:leakageCorrect:unregularised');
+        cw = onCleanup(@() warning(ws)); %#ok<NASGU>
+
+        fcn = tc.workload(budgetCase);
+        fcn();                              % warm-up, not timed
+        t = zeros(tc.Repeats, 1);
+        for k = 1:tc.Repeats
+            t0 = tic; fcn(); t(k) = toc(t0);
+        end
+        med = median(t);
+        mn = min(t);
+
+        mach = tc.machineId();
+        rel = version('-release');
+        stamp = char(datetime('now', 'Format', 'yyyy-MM-dd'));
+        % a ready-made perf_baseline.csv row: this is how a machine that
+        % has no baseline yet gets one, straight out of the CI log
+        fprintf('PERFBASE,%s,%s,%s,%.6g,%.6g,%d,%s\n', ...
+            mach, rel, budgetCase, med, mn, tc.Repeats, stamp);
+        tc.appendPerfLog(budgetCase, med);
+
+        base = tc.baselineFor(mach, budgetCase);
+        tc.assumeNotEmpty(base, sprintf( ...
+            ['no baseline for machine "%s", benchmark "%s" - copy the ' ...
+             'PERFBASE line above into tests/perf_baseline.csv'], ...
+            mach, budgetCase));
+        tc.verifyLessThan(med, tc.BudgetFactor * base, sprintf( ...
+            ['%s: median %.4f s over %d repeats exceeds %g x the %s ' ...
+             'baseline %.4f s (min this run %.4f s)'], ...
+            budgetCase, med, tc.Repeats, tc.BudgetFactor, mach, ...
+            base, mn));
+    end
+
     function benchClassicChain(tc)
         ts = tc.randomSeries(60, 24);
         while tc.keepMeasuring
@@ -183,6 +267,168 @@ function benchAnalysisRings(tc)
 end
 
 methods
+    function fcn = workload(tc, name)
+        %WORKLOAD Function handle for one budgeted benchmark.
+        %   Every fixture is built HERE, outside the timed handle, so the
+        %   budget bounds the operation and not its setup.
+        GM = 3.986004415e14; R = 6378136.3;
+        switch name
+            case 'legendre_n96'
+                lat = deg2rad(-90:1:90);            % 181 rings, ~14 MB
+                fcn = @() shLowLevel.legendreALF(96, lat);
+            case 'legendre_n360'
+                lat = deg2rad(-90:2:90);            % 91 rings, ~95 MB
+                fcn = @() shLowLevel.legendreALF(360, lat);
+            case 'legendre_n720'
+                % 31 rings: P is (nmax+1)^2 x nlat doubles, so the ring
+                % count is set by memory (~129 MB), not by taste
+                lat = deg2rad(linspace(-89, 89, 31));
+                fcn = @() shLowLevel.legendreALF(720, lat);
+            case 'synthesis_direct_n60'
+                g = tc.randomField(60);
+                la = -90:1:90; lo = 0:1:359;
+                g.synthesis(la, lo, Method = "direct");   % prime the cache
+                fcn = @() g.synthesis(la, lo, Method = "direct");
+            case 'synthesis_fft_n60'
+                g = tc.randomField(60);
+                la = -90:1:90; lo = 0:1:359;
+                g.synthesis(la, lo, Method = "fft");
+                fcn = @() g.synthesis(la, lo, Method = "fft");
+            case 'synthesis_points_n60'
+                g = tc.randomField(60);
+                rng(11);
+                % 2000 points, ~0.3 s: synthesisPoints calls legendreALF
+                % once PER POINT, so this is the B2 candidate's workload.
+                % Small enough to repeat 15 times, large enough to sit
+                % well clear of timer noise - the failure mode the
+                % testCacheSpeedup comment above records.
+                np = 2000;
+                la = (rand(np, 1) - 0.5) * 178;
+                lo = rand(np, 1) * 360;
+                rr = R + rand(np, 1) * 1000;
+                C = g.C; S = g.S;
+                fcn = @() shLowLevel.synthesisPoints(C, S, GM, R, ...
+                    la, lo, rr);
+            case 'analysis_rings_n60'
+                rng(9);
+                L = 60;
+                C = tril(randn(L+1)) * 1e-9;
+                S = tril(randn(L+1), -1) * 1e-9;
+                la = linspace(-89, 89, 140); lo = (0:239) * 1.5;
+                gr = shLowLevel.shSynthesis(C, S, GM, R, la, lo);
+                fcn = @() shLowLevel.shAnalysisGrid(gr, la, lo, L, ...
+                    Method = "rings");
+            case 'apply_ddk_n96'
+                L = 96;
+                sc = 3e-11 * ones(L+1);
+                W = shLowLevel.designFilter(sc, sc, Alpha = 1, ...
+                    Kaula = 1e-6);
+                g = tc.randomField(L);
+                C = g.C; S = g.S;
+                fcn = @() shLowLevel.applyDDK(C, S, W);
+            case 'leakage_1iter_n24'
+                [la, lo, obs, mask, nmax] = tc.leakageFixture();
+                fcn = @() shLowLevel.leakageCorrect(obs, la, lo, ...
+                    Filter = "gauss500", Mask = mask, Nmax = nmax, ...
+                    MaxIter = 1, Quiet = true);
+            case 'kalman_step_p40'
+                [model, obs] = tc.kalmanFixture(40, 12);
+                fcn = @() shLowLevel.kalmanFilter(model, obs);
+            otherwise
+                error('testPerformance:workload:unknownCase', ...
+                    'no workload for budget case "%s"', name);
+        end
+    end
+
+    function [lat, lon, obs, mask, nmax] = leakageFixture(~)
+        % the 6-degree disc of tools/dev/validate_leakage.py, filtered
+        % with a 500 km Gaussian - the same problem testCorrectness uses
+        nmax = 24;
+        lat = linspace(-89, 89, 2 * nmax + 1);
+        nlon = 2 * nmax + 2;
+        lon = (0:nlon - 1) * (360 / nlon);
+        [LO, LA] = meshgrid(lon, lat);
+        psi = acosd(sind(15) * sind(LA) + ...
+            cosd(15) * cosd(LA) .* cosd(LO - 300));
+        truth = double(psi <= 6);
+        mask = truth > 0;
+        GM = 3.986004415e14; R = 6378136.3;
+        [C, S] = shLowLevel.shAnalysisGrid(truth, lat, lon, nmax, ...
+            GM = GM, R = R);
+        w = shLowLevel.shGaussianWeights(nmax, 500);
+        obs = shLowLevel.shSynthesis(C .* w(:), S .* w(:), GM, R, ...
+            lat, lon);
+    end
+
+    function [model, obs] = kalmanFixture(~, P, T)
+        % stationary VAR(1) at the Lyapunov fixed point, one solution
+        % record per epoch - the shape testCorrectness filters
+        rng(23);
+        A = randn(P); A = 0.8 * A / max(abs(eig(A)));
+        Q = 0.2 * eye(P) + 0.05 * ones(P);
+        S0 = Q;
+        for k = 1:200, S0 = A * S0 * A.' + Q; end
+        S0 = (S0 + S0.') / 2;
+        model = struct('Phi', {{A}}, 'Q', Q, 'Sigma0', S0, ...
+            'order', 1, 'P', P, 'specRadius', max(abs(eig(A))));
+        obs = repmat(struct('l', [], 'R', [], 'N', [], 'b', []), 1, T);
+        for t = 1:T
+            obs(t).l = randn(P, 1);
+            obs(t).R = diag(0.3 + rand(P, 1));
+        end
+    end
+
+    function id = machineId(~)
+        %MACHINEID Stable label for the machine a baseline belongs to.
+        %   SHANALYSIS_PERF_MACHINE wins so a runner can name itself;
+        %   COMPUTERNAME covers Windows, `hostname` covers the rest.
+        h = getenv('SHANALYSIS_PERF_MACHINE');
+        if isempty(h), h = getenv('COMPUTERNAME'); end
+        if isempty(h), h = getenv('HOSTNAME'); end
+        if isempty(h)
+            [st, out] = system('hostname');
+            if st == 0, h = strtrim(out); end
+        end
+        if isempty(h), h = 'unknown'; end
+        id = regexprep(strtrim(h), '[^A-Za-z0-9_.-]', '_');
+    end
+
+    function base = baselineFor(~, machine, bench)
+        %BASELINEFOR Median seconds committed for this machine, or [].
+        here = fileparts(mfilename('fullpath'));
+        f = fullfile(here, 'perf_baseline.csv');
+        base = [];
+        if ~isfile(f), return; end
+        lines = strsplit(fileread(f), newline);
+        for k = 1:numel(lines)
+            row = strtrim(lines{k});
+            if isempty(row) || startsWith(row, '#'), continue; end
+            c = strsplit(row, ',');
+            if numel(c) < 4, continue; end
+            if strcmp(strtrim(c{1}), machine) && ...
+                    strcmp(strtrim(c{3}), bench)
+                base = str2double(c{4});
+                return
+            end
+        end
+    end
+
+    function appendPerfLog(~, bench, sec)
+        %APPENDPERFLOG One row in the machine-local perf_log.csv.
+        here = fileparts(mfilename('fullpath'));
+        logf = fullfile(here, 'perf_log.csv');
+        newFile = ~isfile(logf);
+        fid = fopen(logf, 'a');
+        if fid < 0, return; end            % a read-only tree is not a failure
+        cl = onCleanup(@() fclose(fid)); %#ok<NASGU>
+        if newFile
+            fprintf(fid, 'date,matlab,bench,seconds\n');
+        end
+        fprintf(fid, '%s,%s,%s,%.6f\n', ...
+            char(datetime('now', 'Format', 'yyyy-MM-dd HH:mm')), ...
+            version('-release'), bench, sec);
+    end
+
     function g = randomField(~, nmax)
         rng(7);
         C = tril(randn(nmax+1)) * 1e-9; S = tril(randn(nmax+1), -1) * 1e-9;

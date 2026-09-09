@@ -23,13 +23,13 @@ says whether it was *read* or *inferred*.
 
 | Fact | Value | Evidence |
 |---|---|---|
-| Version | **4.0.0**, 09-Sep-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
+| Version | **5.0.2**, 09-Sep-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
 | Branches | `main` only; `claude/getframe-recapture` and `claude/readshm` are gone (merged/deleted) | `GET /branches` |
 | Public surface | 3 classes / 71 methods, 122 `+shLowLevel` functions (+4 private), 3 root functions | `tools/dev/api_extract.py` run in sandbox |
-| Tests | 5 classes, **304 methods / 305 runs**: Correctness 159, Contract 74, Robustness 53, Science 7, Performance 11 methods (12 runs, `nmaxP` x2). 4 filter out without the optional real-data fixtures. The counter has matched the runner EXACTLY on the last four green A8 runs (269, 301, 304, 304); the one time it did not was A16, before it existed. | `python3 tools/dev/count_tests.py` |
+| Tests | 5 classes, **305 methods / 315 runs**: Correctness 159, Contract 74, Robustness 53, Science 7, Performance 12 methods (22 runs, `budgetCase` x10 + `nmaxP` x2). 4 filter out without the optional real-data fixtures; from v5.0.2 the 10 speed budgets also filter on a machine with no baseline. The counter has matched the runner EXACTLY on the last six green A8 runs (269, 301, 304, 304, 305, 305); the one time it did not was A16, before it existed. | `python3 tools/dev/count_tests.py` |
 | Python oracles | 16 `tools/dev/validate_*.py` + `tools/audit/*` | listing |
 | Docs | **26** hand-written `html/*.html` (24 per-entity duplicates retired in v5.0.1, WP6 stage 3) + **200 generated `html/ref/*.html`** (one per entity + index, `make_refpages.py`), one shared `html/shAnalysis.css`, `helptoc.xml`, `info.xml`, guide PDF, generated `html/apiReference.html`. `docs/` holds the PDF and `apiExamples.json` only - no HTML page lives outside `html/` (gated). | listing |
-| CI | `gates` job on ubuntu (help_audit, doc_sync_audit, no_map_renderer, toolbox_dependency_audit, nv_casing_audit, fixture_tag_audit, gate self-tests `tools/tests/`, `count_tests`, `name_coverage`, `error_id_audit`, `refpages_audit`, `make_demos --check`) + `runAllTests (self-hosted)` on A8/R2026a; fixtures from tag `fixtures-2026-08` | `.github/workflows/ci.yml` |
+| CI | `gates` job on ubuntu (help_audit, doc_sync_audit, no_map_renderer, toolbox_dependency_audit, nv_casing_audit, fixture_tag_audit, gate self-tests `tools/tests/`, `count_tests`, `name_coverage`, `error_id_audit`, `option_values_audit`, `refpages_audit`, `make_demos --check`, `perf_baseline_audit`) + `runAllTests (self-hosted)` on A8/R2026a; fixtures from tag `fixtures-2026-08` | `.github/workflows/ci.yml` |
 | Namespace | `+shLowLevel` (renamed from `+shx` in v3.0.0). Any memory saying `shx.*` is stale. | README §History |
 
 ### 1.1 Already implemented — do NOT propose again
@@ -120,7 +120,9 @@ CF-1.8 export, provenance sidecars, geoMap bridge (`toGrid`, `gridHandover`).
    `python tools/error_id_audit.py`,
    `python tools/dev/option_values_audit.py`,
    `python tools/dev/count_tests.py` (also §5's prediction),
-   `python tools/dev/make_demos.py --check`; then every `tools/tests/test_*.py`.
+   `python tools/dev/make_demos.py --check`,
+   `python tools/dev/perf_baseline_audit.py`;
+   then every `tools/tests/test_*.py`.
    **This list must CONTAIN what `ci.yml` runs.** It did not, and CI failed
    on `make_demos --check` at `0ab29b5` while eleven local gates were green.
    Four entries are local-only by design and have no CI step: `mlint_lite`
@@ -174,7 +176,7 @@ do not see; **L** = polish.
 | A6 | L | **CLOSED v3.33.1** — README points at `ci.yml` instead of naming a tag it would have to keep in step (`fixture_tag_audit.py` already gates the tag itself). Original finding: README line 108 still says CI "pulls the orphan branch 'testdata'"; CI has pinned the tag `fixtures-2026-08` since v3.26.1/ci v2.9.0. | `README.md`, `ci.yml` |
 | A7 | M | **CLOSED v3.34.0**, and partly wrong as written — `demos.xml` now exists, generated from the `demo_shAnalysis` registry (16 cases, gated both ways), and the Help browser reaches a page per entity via `html/ref/index.html`. The search database was **never missing as a capability**: `setup_shAnalysis(Docs=true)` has always run `builddocsearchdb` on `html/`; only the built index is absent from the repo, deliberately (a binary artifact belongs on the machine that searches it). No second option was added. **Unverified in Tier B**: whether `builddocsearchdb` descends into `html/ref/` — confirm on the acceptance machine. Original finding: `doc` integration is incomplete: no `helpsearch-v*` database, no `demos.xml`, `info.xml` present. | `ls html/` |
 | A8 | M | **CLOSED v3.34.0** — all 250 pages link one `html/shAnalysis.css`; the inline blocks turned out to be ONE stylesheet copied fifty times (49 byte-identical + one in the generated reference), so merging them lost nothing, and `make_apiref.py` emits the link so the copy cannot return. 46 structural headings renamed to one spelling. `doc_sync_audit.py` gates the stylesheet, the link and the heading vocabulary; `refpages_audit.py` gates the generated skeleton. Original finding: The 50 hand-written `html/` pages use five different heading vocabularies for the same thing ("See also"/"See Also", "Outputs"/"Output Arguments", "Example"/"Examples", "Inputs / Outputs", "Options") and each page inlines its own `<style>` block (no shared stylesheet). 196 API entities have a dedicated page only inside the 304 KB monolith. | heading histogram over `html/*.html` |
-| A9 | M | `testPerformance` asserts exactly one ratio (cache warm/cold) and one absolute bound (`dt < 5 s`); everything else is logged, not gated. There is no speed budget for `legendreALF`, `shSynthesis`, `shAnalysisGrid`, `applyDDK`, `leakageCorrect` or the Kalman step, so a 1.3× regression ships unnoticed. | `tests/testPerformance.m` |
+| A9 | M | **REOPENED and HALF-CLOSED in v5.0.2** — accepted as it stood on 2026-09-09, then approved as WP2 the same day. Step 1 makes speed MEASURABLE: ten budgets (`legendreALF` n96/n360/n720, `shSynthesis` direct and fft, `synthesisPoints`, `shAnalysisGrid` rings, `applyDDK`, one `leakageCorrect` step, one Kalman chain), 15 repeats, median against 3x a per-machine baseline in `tests/perf_baseline.csv`. **The budgets do not yet GUARD anything**: no baseline exists, so all ten filter, and the gate carries them as a named backlog rather than pretending otherwise. The finding closes when the A8 baselines are committed and `NO_BASELINE` is empty. Original finding: `testPerformance` asserts exactly one ratio (cache warm/cold) and one absolute bound (`dt < 5 s`); everything else is logged, not gated. | `python3 tools/dev/perf_baseline_audit.py` |
 | A10 | L | **CLOSED v3.34.1** — and the finding was **larger than recorded**: 13 package functions plus **22 public class methods** (A18). `tools/dev/name_coverage.py` measures it now, over the whole public surface, with comments stripped so a name in a `% see also` line does not count; it states its own reach in its last line (naming is not exercise). 32 new tests, each asserting a property the function's own help states. One allowed exception, `runAllTests`, with its reason in the gate. Original finding: package functions never named in `tests/`, coverage by name not measured. | `python3 tools/dev/name_coverage.py` |
 | A17 | M | **CLOSED v3.34.1** — `gridHandover` continues its signature with `...`, so `api_extract.py` (single-line regex) parsed the file to NOTHING: no entity in `api_data.py`, no reference page, while `apiReference.html` sent the reader to "as built by shLowLevel.gridHandover, which documents every field". `refpages_audit`'s COVER check compares pages against that same artifact, so it was silent by construction. **Four parsers of the public surface exist; two were blind the same way and agreed with each other** — which is why the new SURFACE check in `doc_sync_audit.py` compares against the FILESYSTEM (MATLAB's file/function rule is ground truth), not a second parser. `api_extract` now refuses to write an incomplete artifact. Pinned by `tools/tests/test_api_extract.py` (5 of 7 fail pre-fix). | `python3 tools/doc_sync_audit.py` |
 | A18 | M | **CLOSED v3.34.1** — A10's blind spot was not only the package: **22 public class methods** were named by no test either — every operator (`plus`, `minus`, `uminus`, `mtimes`, `times`), `disp` on all three classes, `compare`, `fan`, `spectrum`, `triangle`, and eight `shClimatology` methods. Operators were deliberately NOT allowlisted: they are callable by name, and a test checking `plus(a,b)` against `a + b` is stronger than one checking either alone. | `python3 tools/dev/name_coverage.py` |
@@ -284,7 +286,29 @@ Approved by Matthias on 2026-09-09 as option (a), the hard break.
   bump `fixtures-2026-09`).
 - **Size**: M. **Version**: MAJOR (4.0.0) under (a).
 
-### WP2 — Speed budgets, then speed   `[ ] approved`
+### WP2 — Speed budgets, then speed   `[~] STEP 1 HARNESS DONE in v5.0.2`
+Approved by Matthias on 2026-09-09 ("Go ahead with WP2"), which
+supersedes the "A9 is ok" acceptance recorded the same day.
+
+**Step 1 is in two halves, and only the first has shipped.**
+The HARNESS is built (v5.0.2): ten budgets, 15 repeats, median against
+3x a per-machine baseline, plus `perf_baseline_audit.py` and 24
+self-tests. The BASELINES are not: no machine has a row in
+`tests/perf_baseline.csv`, so every budget currently FILTERS and guards
+nothing. That is deliberate — a budget cannot be asserted before it has
+been measured, and pretending otherwise is how a green gate comes to
+mean nothing. The next A8 run prints one `PERFBASE,...` line per
+budget; committing those ten lines drains `NO_BASELINE` and turns the
+gate live. **Only then is step 1 done and A9 closed.**
+
+Two deviations from the scope below, both stated rather than smuggled:
+the budget is an absolute median per machine, NOT a per-repeat ratio
+against a calibration workload (a ratio is machine-independent only if
+the calibration scales like the workload, and none tracks both a
+BLAS-bound reduction and a memory-bound recursion); and the acceptance
+machine half of "both machines" is unreachable while the bridge is
+gone, so A8 is the only machine that can be calibrated from here.
+
 - **Goal**: A9 + B1/B2. First make speed measurable, then only what the
   measurement justifies.
 - **Scope, step 1 (budgets)**: `testPerformance` gains ratio budgets for
@@ -468,6 +492,41 @@ Original scope below.
 ## 6. Records
 
 ### 6.1 Decisions (append-only; date, decision, evidence)
+- 2026-09-09 — **WP2 approved, superseding the "A9 is ok" acceptance**
+  (Matthias: "Go ahead with WP2"). The earlier entry stays below as the
+  record it is; the risk it accepted is now being closed instead.
+- 2026-09-09 — **A budget that cannot be measured yet FILTERS; it does
+  not pass.** No baseline existed for any machine, and there are only
+  three ways to ship that: assert against a guessed number, assert
+  nothing and call it green, or say out loud that nothing is guarded.
+  The third is the only honest one, so a machine with no baseline row
+  raises an assumption failure — the same mechanism the four real-data
+  fixtures already use — and the gate carries all ten budgets in a
+  named `NO_BASELINE` backlog that may only shrink. A filtered budget
+  guards nothing, and the run counter says so in the open.
+- 2026-09-09 — **Baselines are per machine, not ratios against a
+  calibration workload.** WP2's wording ("median of per-repeat ratios")
+  suggests a dimensionless budget that would survive a machine change.
+  It only would if the calibration scaled like the workload, and no one
+  calibration tracks both a BLAS-bound reduction and a memory-bound
+  Legendre recursion — a matmul on 16 OpenMP threads and a scalar
+  column recursion do not move together. So the CSV is keyed by machine
+  and the deviation from the WP is recorded here rather than in a
+  comment nobody reads.
+- 2026-09-09 — **The factor 3 is a specification, not a measurement,
+  and is labelled as one.** §3.6 requires every tolerance to name the
+  oracle it was measured against. This one has none: there was no
+  baseline to measure a spread against, which is exactly the state A9
+  records. The comment on `BudgetFactor` says so, and every run logs
+  the min beside the median so the next session can replace the choice
+  with the observed spread instead of inheriting it.
+- 2026-09-09 — **`count_tests.py` counted a char-valued TestParameter
+  twice, and the fix was to delete a parser, not to write one.** Adding
+  `budgetCase` made it predict 19 runs where the runner runs 10: its
+  rule was "a quoted word followed by a comma", correct only while the
+  VALUES are unquoted. `help_audit.struct_field_names` already answers
+  "what are this struct's fields" correctly, transpose heuristic and
+  all, so the counter now calls it. Two parsers of one fact is A17.
 - 2026-09-09 — **WP6 stage 3 approved and executed as 5.0.1** (Matthias:
   "WP6 is approved as suggested", then "retire the 24").
 - 2026-09-09 — **The COVERAGE check did NOT have to be redefined, and
@@ -727,6 +786,7 @@ Original scope below.
 | v4.0.3 (A21a; A21b opened) | ☑ 13 gates + mlint + make_demos + 11 self-test suites, 0 findings | ☑ **CI self-hosted (A8) at `0d06e14`, green — 305 runs, 301 passed, 0 failed, 4 filtered**; the prediction matched EXACTLY for the FIFTH release running, per class as well as in total (Contract 74, Correctness 159, Performance 12 runs, Robustness 53, Science 7), and `testMinusDoesNotEnforceEpochAgreement` ran and passed. First run, no red round. | ☑ PR #98 | ☑ 2026-09-09 |
 | v5.0.0 (A21b) | ☑ 13 gates + mlint + make_demos + 11 self-test suites, 0 findings | ☑ **CI self-hosted (A8) at `631d524`, green — 305 runs, 301 passed, 0 failed, 4 filtered** (shared run with 5.0.1). **TWO red rounds first, both mine, both pin errors** — see the row below. | ☑ PR #99 | ◐ pending |
 | v5.0.1 (WP6 stage 3) | ☑ 13 gates + mlint + make_demos + 12 self-test suites, 0 findings; 50 hand-written pages -> 26, no entity lost COVERAGE | ☑ **CI self-hosted (A8) at `631d524`, green — 305 runs, 301 passed, 0 failed, 4 filtered**; the count prediction matched EXACTLY for the sixth release running. Round 1 (`2530e9f`) failed `testGravisChainsContract`: a pin mapped by call graph, not by which GUARD fires — `fromFolder` asserts `isfolder` (the temp folder EXISTS) then delegates to `read`. Round 2 (`f6481d7`) failed `testTN14IDs`: the pin-enumerating grep used `[A-Za-z]*` and `noC30` HAS DIGITS, so it was never rewritten — and the verification grep repeated the same character class. The new PINS rule closes the second shape. | ☑ PR #99 | ◐ pending |
+| v5.0.2 (WP2 step 1 harness) | ☑ 14 gates + mlint + make_demos + 13 self-test suites, 0 findings; `count_tests.py` predicts 305 methods / **315 runs** (305 + `testSpeedBudget` x 10) | ◐ pending — this is the run that MEASURES the baselines. Expect **315 runs, 301 passed, 14 filtered** (the 4 real-data fixtures + all 10 budgets, which have no baseline yet); a budget that FAILS instead of filtering means the workload errored, not that the machine is slow. | ◐ pending | ◐ pending |
 
 **Tier A debt: DISCHARGED for all nine releases.** The local MATLAB
 bridge is gone, but the self-hosted runner A8 is not: `runAllTests
@@ -750,6 +810,26 @@ confirmation that the counter is right about a real run and not only
 about the source.
 
 ### 6.3 What the next session could be wrong for not reading
+- **A green harness is not a guarded budget.** v5.0.2 ships ten speed
+  budgets and guards nothing: no baseline exists, so all ten filter.
+  `perf_baseline_audit` says so in its own last line and carries them
+  as debt. Read "0 findings" as "the books balance", never as "the
+  budgets hold" — the CI run count is the tell: 14 filtered, not 4.
+- **Read the CI log for `PERFBASE,` after the next A8 run.** Those ten
+  lines ARE `tests/perf_baseline.csv` rows. Paste them under the
+  header, drain `NO_BASELINE`, and the budgets go live on the run
+  after. Nothing else about the harness needs to change.
+- **A parser you write beside one that already exists will disagree
+  with it, and the cheap one will be wrong.** `count_tests.py` counted
+  TestParameter values by regex; `help_audit.struct_field_names` counts
+  struct fields properly (even arguments only, transpose-aware). They
+  agreed for two releases because no parameter had quoted VALUES. The
+  first one that did made the prediction 19 against a real 10 — and a
+  missed prediction is a finding by §3.5, discovered on the runner.
+- **A cost model beats a taste.** The Legendre budgets use 181 / 91 /
+  31 rings because `P` is `(nmax+1)^2 x nlat` doubles: n720 over the
+  1441 rings B1's protocol names would allocate about 6 TB. Compute
+  the array before choosing the fixture, not after the runner dies.
 - **A character class is an enumeration, and a narrow one silently
   shortens the list.** A21b's pins were enumerated with
   `[A-Za-z]*` for the reason segment, so `shCoefficients:noC30` — digits
@@ -925,26 +1005,46 @@ Done and on PR #95: WP0, WP6 stages 1-2, and findings A1, A3 (partial),
 A4, A5, A6, A7, A8, A10, A11, A12, A13, A14, A16, A17, A18 closed;
 A19 partially.
 
-**Seven releases are merged to `main` (PR #95..#98); 5.0.0 and 5.0.1 are
-on the branch.** **All twenty-two audit findings are now closed or
-accepted**, and WP6 is complete:
+**Seven releases are merged to `main` (PR #95..#98). PR #99 is still
+OPEN** — it was believed merged on 2026-09-09; `state: open`,
+`merged: false`, `mergeable_state: clean`, and `origin/main` is still
+`a3fa54b`, the #98 merge. Both of its jobs are green at `631d524` and
+again at `d110752`. 5.0.0, 5.0.1 and now 5.0.2 sit on the branch behind
+it. **Do not treat the branch as merged; check `git ls-remote` first.**
 
-- **A9** — accepted as it stands (2026-09-09, Matthias: "A9 is ok"). No
-  speed budget exists; a 1.3x regression in `legendreALF`,
-  `shSynthesis`, `shAnalysisGrid`, `applyDDK`, `leakageCorrect` or the
-  Kalman step still ships unnoticed. A known, accepted risk — reopen it
-  by ticking WP2.
+**All twenty-two audit findings are closed except A9, which WP2 reopened
+the same day it was accepted**, and WP6 is complete:
+
+- **A9** — half-closed in v5.0.2. The measuring harness exists; the
+  baselines do not, so all ten budgets FILTER and a 1.3x regression in
+  `legendreALF`, `shSynthesis`, `shAnalysisGrid`, `applyDDK`,
+  `leakageCorrect` or the Kalman step *still* ships unnoticed. The
+  finding closes when the A8 baselines are committed.
 - Everything else in §4.1 is CLOSED.
 
 **WP3, WP4, WP5 and WP7 wait on approval only** — see the 2026-09-09
 correction in §6.1. Their acceptance is a MATLAB test against a committed
-Python oracle, and CI runs exactly that. WP2 step 1 is likewise reachable
-through CI; only its two-machine calibration needs the bridge.
+Python oracle, and CI runs exactly that. What each additionally needs
+from Matthias was measured on 2026-09-09: WP7 and WP5 5b/5c need only the
+tick (5b uses the shipped `data/gravis/basins_*.json`); WP3 needs either
+published EGM2008 undulations as a fixture or permission to drop that
+half of its acceptance (`tests/test_data` does not exist and no EGM2008,
+GLDAS, tenv3 or GNET file is in the tree); WP5 5a/5d/5e need a reference
+series, a Swarm fetch policy and one GLDAS file; WP4 needs the five
+signatures signed off and a real GNSS network.
 
 **5.0.0 and 5.0.1 are GREEN on A8 at `631d524` via PR #99** — 305 runs,
 301 passed, 0 failed, 4 filtered; the count prediction matched exactly
 for the sixth release running. Two red rounds preceded it, both mine and
 both pin errors; the second shape is now gated by the PINS rule.
+
+**Next concrete action for 5.0.2**: read the `PERFBASE,` lines out of the
+next `runAllTests (self-hosted)` log, paste them into
+`tests/perf_baseline.csv`, empty `NO_BASELINE` in
+`tools/dev/perf_baseline_audit.py`, and push. That single commit turns
+ten filtered budgets into ten assertions and closes A9. Only then does
+WP2 step 2 (B1 packed Legendre, B2 Clenshaw) have anything to be
+measured against.
 
 To re-run the gates and the prediction from a fresh sandbox:
 ```
@@ -959,7 +1059,7 @@ pip install reportlab matplotlib && \
 WP0 (v3.33.1), A7/A8/A12/A13/A14/A16 + WP6.1-2 (v3.34.0),
 A10/A17/A18 (v3.34.1), WP1/A2/A3/A15 (v4.0.0), A19 (v4.0.1),
 A20 (v4.0.2), A21a (v4.0.3), A21b (v5.0.0)
-and WP6 stage 3 (v5.0.1) |
+WP6 stage 3 (v5.0.1) and WP2 step 1 (v5.0.2) |
 2026-09-08..09 | Claude Opus 5 |
 the first four releases green on A8 via CI — 4.0.0 at `5452938`:
 304 runs, 300 passed, 0 failed, 4 filtered.
@@ -968,5 +1068,7 @@ the first four releases green on A8 via CI — 4.0.0 at `5452938`:
 4.0.3 green on A8 at `0d06e14` via PR #98: 305 runs, 301 passed,
 0 failed, 4 filtered - the fifth exact count prediction running.
 5.0.0 and 5.0.1 green on A8 at `631d524` via PR #99: 305 runs,
-301 passed, 0 failed, 4 filtered, after two red rounds. |
+301 passed, 0 failed, 4 filtered, after two red rounds.
+5.0.2 is not yet on A8: its run is the one that measures the ten
+speed baselines. |
 Developed by Matthias Weigelt with the help of Claude.*

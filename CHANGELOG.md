@@ -1,5 +1,89 @@
 # Changelog
 
+## [5.0.2] - 2026-09-09 - WP2 step 1: speed becomes measurable
+
+A9 recorded that the toolbox has no speed budget, so a 1.3x regression in
+`legendreALF`, `shSynthesis`, `shAnalysisGrid`, `applyDDK`,
+`leakageCorrect` or the Kalman step ships unnoticed. WP2 says: make speed
+measurable first, and build only what the measurement justifies. This is
+the measuring half. **No numerical behaviour changes and no public call
+changes** - the release is a PATCH.
+
+### Ten budgets, one harness
+
+`testPerformance` gains `testSpeedBudget`, a parameterised method with one
+run per workload:
+
+| benchmark | what it bounds |
+|---|---|
+| `legendre_n96` / `_n360` / `_n720` | the Holmes-Featherstone recursion at 181 / 91 / 31 rings |
+| `synthesis_direct_n60` | the reduction only - the Legendre cache is primed first |
+| `synthesis_fft_n60` | the FFT-along-longitude path |
+| `synthesis_points_n60` | 2000 scattered points |
+| `analysis_rings_n60` | exact per-order ring analysis |
+| `apply_ddk_n96` | order-block filter application |
+| `leakage_1iter_n24` | one `leakageCorrect` step |
+| `kalman_step_p40` | a 12-epoch VAR(1) filter chain |
+
+Each is timed 15 times after one untimed warm-up, and the MEDIAN is
+compared against `BudgetFactor` (3) times the baseline for this machine
+in the new, committed `tests/perf_baseline.csv`.
+
+### A budget cannot be asserted before it has been measured
+
+So it is not. A machine with no baseline row FILTERS the budget rather
+than failing it, and prints a `PERFBASE,...` line that is already a
+`perf_baseline.csv` row. That is how a machine is adopted: run once, paste
+the lines, and the budgets go live on the next run. All ten sit in the
+gate's `NO_BASELINE` backlog today, which is honest debt - a filtered
+budget guards nothing.
+
+Baselines are per machine rather than ratios against a calibration
+workload. A ratio is machine-independent only when the calibration scales
+like the workload, and no one calibration tracks both a BLAS-bound
+reduction and a memory-bound recursion.
+
+The factor 3 is WP2's specification, not a measured spread - there was no
+baseline to measure a spread against, which is precisely what A9 records.
+Every run logs the median AND the min, so the choice can be replaced with
+the observed spread rather than inherited.
+
+### The bookkeeping is gated
+
+`tools/dev/perf_baseline_audit.py` (new, in `ci.yml`) checks that the CSV,
+the `budgetCase` parameter and the `workload()` switch agree: row shape and
+uniqueness, no orphan baselines, field names equal their values, **every
+declared case has a case arm**, and the backlog holds neither a stale entry
+nor a case that already has a baseline. The arm rule is the one that earns
+its place - a case without an arm passes every other static check here and
+then fails on the runner with `unknownCase`. 24 self-tests, every rule
+fault-injected in both directions; the backlog rule is asserted with a
+TEMPORARY entry, per A14.
+
+### Fixed: `count_tests.py` counted a char-valued parameter twice
+
+Adding `budgetCase` made the counter say 19 where the runner runs 10. Its
+rule was "count every quoted word followed by a comma", which is right only
+while the parameter's VALUES are not themselves quoted. It now counts
+struct FIELDS through `help_audit.struct_field_names` - the one authority
+in this repository for that question - instead of a second, weaker parser
+of the same fact. That is A17's lesson: the failure would otherwise have
+surfaced as a red `--executed` check on the runner, a full CI round later.
+
+### Files
+
+- `tests/testPerformance.m` - `testSpeedBudget`, `workload`, the two
+  fixtures, `machineId`, `baselineFor`, `appendPerfLog`
+- `tests/perf_baseline.csv` - new, committed (the machine-local
+  `perf_log.csv` stays git-ignored)
+- `tools/dev/perf_baseline_audit.py`,
+  `tools/tests/test_perf_baseline_audit.py` - new
+- `tools/dev/count_tests.py`, `tools/tests/test_count_tests.py` - the
+  cardinality fix and its regression tests
+- `.github/workflows/ci.yml` - the new gate step
+
+Test count: 305 methods / **315 runs** (305 + `testSpeedBudget` x 10).
+
 ## [5.0.1] - 2026-09-09 - WP6 stage 3: 24 duplicate pages retired
 
 The hand-written page per package function existed because
