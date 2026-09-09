@@ -1,5 +1,68 @@
 # Changelog
 
+## [5.0.3] - 2026-09-09 - WP2 step 1: the budgets go live
+
+v5.0.2 built the harness and measured nothing; A8 has now measured it.
+The ten `PERFBASE` lines from the `runAllTests (self-hosted)` run at
+`f6d5529` are committed as `tests/perf_baseline.csv` rows and
+`NO_BASELINE` is **empty**, so every budget asserts instead of filtering.
+
+| benchmark | median (s) | min (s) |
+|---|---|---|
+| `synthesis_points_n60` | 2.2829 | 2.26137 |
+| `legendre_n720` | 0.284863 | 0.281566 |
+| `legendre_n360` | 0.0883628 | 0.0873293 |
+| `analysis_rings_n60` | 0.069954 | 0.0687578 |
+| `leakage_1iter_n24` | 0.0231963 | 0.0222312 |
+| `legendre_n96` | 0.012063 | 0.01194 |
+| `synthesis_direct_n60` | 0.0042843 | 0.0039347 |
+| `synthesis_fft_n60` | 0.0030666 | 0.0029098 |
+| `apply_ddk_n96` | 0.0018487 | 0.0016592 |
+| `kalman_step_p40` | 0.0016711 | 0.0016445 |
+
+A8, R2026a, 15 repeats each, median of the samples.
+
+### A9 is only PARTLY closed, and the factor is why
+
+The budgets now guard something, which they did not yesterday. But 3x
+catches a workload that blows up - a lost fast path, an accidental
+O(n^2) - and it does **not** catch the 1.3x creep A9 actually names. The
+finding is downgraded, not closed, and the comment on `BudgetFactor`
+says so in the file rather than only here.
+
+Tightening it needs a statistic this release cannot supply. The run
+measured the WITHIN-run spread: median/min <= 1.043 over 15 repeats for
+every workload above 20 ms, 1.114 for `apply_ddk_n96` at 1.8 ms where
+the timer dominates. A budget needs the BETWEEN-run spread, and one run
+cannot measure it. Several runs of logged medians can, and then the
+factor is a decision with evidence behind it.
+
+### Two things the first measurement contradicted
+
+**`synthesisPoints` is the hot spot, by a wide margin.** 2.28 s against
+1.7-88 ms for everything else, and 36.65 s of the job's 4:51 - because
+it calls `legendreALF` once PER POINT (1.14 ms per point at n60). That
+is B2's premise, now measured rather than inferred, and it is the
+strongest candidate for WP2 step 2.
+
+**The FFT path is 1.40x, not "5-20x".** `benchSynthesisFFTvsDirect`
+carried the claim "typical gain: 5-20x at nmax=60, 1 deg" - exactly the
+configuration measured here, which came out 4.28 ms direct against
+3.07 ms fft with the cache primed identically. The old figure was never
+measured against the direct path in the same cache state, which is the
+only comparison that isolates the FFT. The comment now carries the
+measured number and its provenance.
+
+### Verification
+
+`runAllTests (self-hosted)` at `f6d5529`: **315 runs, 301 passed, 0
+failed, 14 filtered** - the count prediction matched EXACTLY for the
+seventh release running, per class as well as in total (Contract 74,
+Correctness 159, Performance 22, Robustness 53, Science 7). Counts
+parsed from the 315-row results table, not a log tail. The 14 filtered
+were the 4 real-data fixtures plus the 10 budgets, which is what this
+release removes: the next run should filter 4.
+
 ## [5.0.2] - 2026-09-09 - WP2 step 1: speed becomes measurable
 
 A9 recorded that the toolbox has no speed budget, so a 1.3x regression in

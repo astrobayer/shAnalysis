@@ -64,12 +64,20 @@ properties (TestParameter)
 end
 
 properties (Constant)
-    % Bounds run-to-run and machine-load variation, NOT a measured
-    % spread: WP2 specifies "3 x a baseline", and no spread had been
-    % measured when the harness was written (there was no baseline to
-    % measure one against - that is the finding A9 records). Every run
-    % logs the median AND the min, so the next session can replace this
-    % choice with the observed A8 spread instead of inheriting it.
+    % WP2 specifies "3 x a baseline". Read what that does and does not
+    % buy, because the two are easy to confuse:
+    %   IT CATCHES a workload that blows up - a wrong algorithm, an
+    %     accidental O(n^2), a lost fast path.
+    %   IT DOES NOT CATCH the 1.3x creep A9 actually names. A9 is
+    %     therefore only PARTLY closed by this factor, and saying so is
+    %     the point of this comment.
+    % The first A8 run (2026-09-09, f6d5529) measured the WITHIN-run
+    % spread: median/min <= 1.043 over 15 repeats for every workload
+    % above 20 ms, 1.114 for apply_ddk_n96 at 1.8 ms where the timer
+    % itself dominates. That is not the statistic a budget needs. The
+    % BETWEEN-run spread is - and one run cannot measure it. Tighten
+    % this factor only against several runs' medians, never against the
+    % within-run figures above.
     BudgetFactor = 3;
     Repeats = 15;               % WP2: 15 repeats, median of the samples
 end
@@ -214,8 +222,16 @@ methods (Test)
 
     % ------------------------------------------------------------- v2.1
     function benchSynthesisFFTvsDirect(tc)
-        % FFT path on a 1-degree global grid; compare against benchSynthesisWarm
-        % results externally. Typical gain: 5-20x at nmax=60, 1 deg.
+        % FFT path on a 1-degree global grid; compare against
+        % benchSynthesisWarm results externally.
+        % The claim here used to be "typical gain: 5-20x at nmax=60,
+        % 1 deg". The first controlled measurement of exactly that
+        % configuration - synthesis_fft_n60 against synthesis_direct_n60,
+        % same primed cache, 15 repeats, A8 2026-09-09 - says 4.28 ms
+        % against 3.07 ms, a gain of 1.40x. The old figure was never
+        % measured against the direct path with the cache in the same
+        % state, which is the only comparison that isolates the FFT.
+        % One machine, one configuration: the number, not a law.
         g = tc.randomField(60);
         lat = -90:1:90; lon = 0:1:359;
         g.synthesis(lat, lon);                      % prime Legendre cache

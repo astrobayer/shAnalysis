@@ -18,3 +18,13 @@
 # workload, and no single calibration tracks both a BLAS-bound reduction and
 # a memory-bound recursion.
 machine,matlab,benchmark,median_s,min_s,samples,measured
+A8,2026a,analysis_rings_n60,0.069954,0.0687578,15,2026-09-09
+A8,2026a,apply_ddk_n96,0.0018487,0.0016592,15,2026-09-09
+A8,2026a,kalman_step_p40,0.0016711,0.0016445,15,2026-09-09
+A8,2026a,leakage_1iter_n24,0.0231963,0.0222312,15,2026-09-09
+A8,2026a,legendre_n360,0.0883628,0.0873293,15,2026-09-09
+A8,2026a,legendre_n720,0.284863,0.281566,15,2026-09-09
+A8,2026a,legendre_n96,0.012063,0.01194,15,2026-09-09
+A8,2026a,synthesis_direct_n60,0.0042843,0.0039347,15,2026-09-09
+A8,2026a,synthesis_fft_n60,0.0030666,0.0029098,15,2026-09-09
+A8,2026a,synthesis_points_n60,2.2829,2.26137,15,2026-09-09

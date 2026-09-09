@@ -23,10 +23,10 @@ says whether it was *read* or *inferred*.
 
 | Fact | Value | Evidence |
 |---|---|---|
-| Version | **5.0.2**, 09-Sep-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
+| Version | **5.0.3**, 09-Sep-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
 | Branches | `main` only; `claude/getframe-recapture` and `claude/readshm` are gone (merged/deleted) | `GET /branches` |
 | Public surface | 3 classes / 71 methods, 122 `+shLowLevel` functions (+4 private), 3 root functions | `tools/dev/api_extract.py` run in sandbox |
-| Tests | 5 classes, **305 methods / 315 runs**: Correctness 159, Contract 74, Robustness 53, Science 7, Performance 12 methods (22 runs, `budgetCase` x10 + `nmaxP` x2). 4 filter out without the optional real-data fixtures; from v5.0.2 the 10 speed budgets also filter on a machine with no baseline. The counter has matched the runner EXACTLY on the last six green A8 runs (269, 301, 304, 304, 305, 305); the one time it did not was A16, before it existed. | `python3 tools/dev/count_tests.py` |
+| Tests | 5 classes, **305 methods / 315 runs**: Correctness 159, Contract 74, Robustness 53, Science 7, Performance 12 methods (22 runs, `budgetCase` x10 + `nmaxP` x2). 4 filter out without the optional real-data fixtures; the 10 speed budgets ALSO filtered in v5.0.2 (14 filtered) and stop doing so in v5.0.3, now that A8 has a baseline. The counter has matched the runner EXACTLY on the last seven green A8 runs (269, 301, 304, 304, 305, 305, 315); the one time it did not was A16, before it existed. | `python3 tools/dev/count_tests.py` |
 | Python oracles | 16 `tools/dev/validate_*.py` + `tools/audit/*` | listing |
 | Docs | **26** hand-written `html/*.html` (24 per-entity duplicates retired in v5.0.1, WP6 stage 3) + **200 generated `html/ref/*.html`** (one per entity + index, `make_refpages.py`), one shared `html/shAnalysis.css`, `helptoc.xml`, `info.xml`, guide PDF, generated `html/apiReference.html`. `docs/` holds the PDF and `apiExamples.json` only - no HTML page lives outside `html/` (gated). | listing |
 | CI | `gates` job on ubuntu (help_audit, doc_sync_audit, no_map_renderer, toolbox_dependency_audit, nv_casing_audit, fixture_tag_audit, gate self-tests `tools/tests/`, `count_tests`, `name_coverage`, `error_id_audit`, `option_values_audit`, `refpages_audit`, `make_demos --check`, `perf_baseline_audit`) + `runAllTests (self-hosted)` on A8/R2026a; fixtures from tag `fixtures-2026-08` | `.github/workflows/ci.yml` |
@@ -176,7 +176,7 @@ do not see; **L** = polish.
 | A6 | L | **CLOSED v3.33.1** — README points at `ci.yml` instead of naming a tag it would have to keep in step (`fixture_tag_audit.py` already gates the tag itself). Original finding: README line 108 still says CI "pulls the orphan branch 'testdata'"; CI has pinned the tag `fixtures-2026-08` since v3.26.1/ci v2.9.0. | `README.md`, `ci.yml` |
 | A7 | M | **CLOSED v3.34.0**, and partly wrong as written — `demos.xml` now exists, generated from the `demo_shAnalysis` registry (16 cases, gated both ways), and the Help browser reaches a page per entity via `html/ref/index.html`. The search database was **never missing as a capability**: `setup_shAnalysis(Docs=true)` has always run `builddocsearchdb` on `html/`; only the built index is absent from the repo, deliberately (a binary artifact belongs on the machine that searches it). No second option was added. **Unverified in Tier B**: whether `builddocsearchdb` descends into `html/ref/` — confirm on the acceptance machine. Original finding: `doc` integration is incomplete: no `helpsearch-v*` database, no `demos.xml`, `info.xml` present. | `ls html/` |
 | A8 | M | **CLOSED v3.34.0** — all 250 pages link one `html/shAnalysis.css`; the inline blocks turned out to be ONE stylesheet copied fifty times (49 byte-identical + one in the generated reference), so merging them lost nothing, and `make_apiref.py` emits the link so the copy cannot return. 46 structural headings renamed to one spelling. `doc_sync_audit.py` gates the stylesheet, the link and the heading vocabulary; `refpages_audit.py` gates the generated skeleton. Original finding: The 50 hand-written `html/` pages use five different heading vocabularies for the same thing ("See also"/"See Also", "Outputs"/"Output Arguments", "Example"/"Examples", "Inputs / Outputs", "Options") and each page inlines its own `<style>` block (no shared stylesheet). 196 API entities have a dedicated page only inside the 304 KB monolith. | heading histogram over `html/*.html` |
-| A9 | M | **REOPENED and HALF-CLOSED in v5.0.2** — accepted as it stood on 2026-09-09, then approved as WP2 the same day. Step 1 makes speed MEASURABLE: ten budgets (`legendreALF` n96/n360/n720, `shSynthesis` direct and fft, `synthesisPoints`, `shAnalysisGrid` rings, `applyDDK`, one `leakageCorrect` step, one Kalman chain), 15 repeats, median against 3x a per-machine baseline in `tests/perf_baseline.csv`. **The budgets do not yet GUARD anything**: no baseline exists, so all ten filter, and the gate carries them as a named backlog rather than pretending otherwise. The finding closes when the A8 baselines are committed and `NO_BASELINE` is empty. Original finding: `testPerformance` asserts exactly one ratio (cache warm/cold) and one absolute bound (`dt < 5 s`); everything else is logged, not gated. | `python3 tools/dev/perf_baseline_audit.py` |
+| A9 | M | **DOWNGRADED, not closed, in v5.0.3.** The ten budgets now ASSERT: A8's baselines are committed (`tests/perf_baseline.csv`) and `NO_BASELINE` is empty, so a workload that blows up fails CI. What is still open is the size of the threshold: **3x does not catch the 1.3x creep this finding names.** Tightening it needs the BETWEEN-run spread, which one run cannot give; the within-run spread was measured (median/min <= 1.043 above 20 ms, 1.114 at 1.8 ms where the timer dominates) and is the wrong statistic for the job. A9 closes when the factor is set from several runs' medians. v5.0.2 built the harness; v5.0.3 gave it teeth. Original finding: `testPerformance` asserts exactly one ratio (cache warm/cold) and one absolute bound (`dt < 5 s`); everything else is logged, not gated. | `tests/perf_baseline.csv` |
 | A10 | L | **CLOSED v3.34.1** — and the finding was **larger than recorded**: 13 package functions plus **22 public class methods** (A18). `tools/dev/name_coverage.py` measures it now, over the whole public surface, with comments stripped so a name in a `% see also` line does not count; it states its own reach in its last line (naming is not exercise). 32 new tests, each asserting a property the function's own help states. One allowed exception, `runAllTests`, with its reason in the gate. Original finding: package functions never named in `tests/`, coverage by name not measured. | `python3 tools/dev/name_coverage.py` |
 | A17 | M | **CLOSED v3.34.1** — `gridHandover` continues its signature with `...`, so `api_extract.py` (single-line regex) parsed the file to NOTHING: no entity in `api_data.py`, no reference page, while `apiReference.html` sent the reader to "as built by shLowLevel.gridHandover, which documents every field". `refpages_audit`'s COVER check compares pages against that same artifact, so it was silent by construction. **Four parsers of the public surface exist; two were blind the same way and agreed with each other** — which is why the new SURFACE check in `doc_sync_audit.py` compares against the FILESYSTEM (MATLAB's file/function rule is ground truth), not a second parser. `api_extract` now refuses to write an incomplete artifact. Pinned by `tools/tests/test_api_extract.py` (5 of 7 fail pre-fix). | `python3 tools/doc_sync_audit.py` |
 | A18 | M | **CLOSED v3.34.1** — A10's blind spot was not only the package: **22 public class methods** were named by no test either — every operator (`plus`, `minus`, `uminus`, `mtimes`, `times`), `disp` on all three classes, `compare`, `fan`, `spectrum`, `triangle`, and eight `shClimatology` methods. Operators were deliberately NOT allowlisted: they are callable by name, and a test checking `plus(a,b)` against `a + b` is stronger than one checking either alone. | `python3 tools/dev/name_coverage.py` |
@@ -286,20 +286,31 @@ Approved by Matthias on 2026-09-09 as option (a), the hard break.
   bump `fixtures-2026-09`).
 - **Size**: M. **Version**: MAJOR (4.0.0) under (a).
 
-### WP2 — Speed budgets, then speed   `[~] STEP 1 HARNESS DONE in v5.0.2`
+### WP2 — Speed budgets, then speed   `[~] STEP 1 DONE in v5.0.2 + v5.0.3`
 Approved by Matthias on 2026-09-09 ("Go ahead with WP2"), which
 supersedes the "A9 is ok" acceptance recorded the same day.
 
-**Step 1 is in two halves, and only the first has shipped.**
-The HARNESS is built (v5.0.2): ten budgets, 15 repeats, median against
-3x a per-machine baseline, plus `perf_baseline_audit.py` and 24
-self-tests. The BASELINES are not: no machine has a row in
-`tests/perf_baseline.csv`, so every budget currently FILTERS and guards
-nothing. That is deliberate — a budget cannot be asserted before it has
-been measured, and pretending otherwise is how a green gate comes to
-mean nothing. The next A8 run prints one `PERFBASE,...` line per
-budget; committing those ten lines drains `NO_BASELINE` and turns the
-gate live. **Only then is step 1 done and A9 closed.**
+**Step 1 shipped in two halves.** v5.0.2 built the HARNESS (ten
+budgets, 15 repeats, median against 3x a per-machine baseline,
+`perf_baseline_audit.py`, 24 self-tests) with every budget FILTERING,
+because a budget cannot be asserted before it has been measured.
+v5.0.3 committed the BASELINES that A8 then measured, drained
+`NO_BASELINE`, and the budgets assert.
+
+**A9 is downgraded, not closed**, and the reason is the factor rather
+than the machinery: 3x catches a blow-up, not the 1.3x creep A9 names.
+The statistic that would justify tightening it is the BETWEEN-run
+spread, and one run cannot measure it. Do not tighten from the
+within-run figures the first run produced (median/min <= 1.043 above
+20 ms) — they describe 15 repeats inside one process, not two runs on
+a shared machine.
+
+**Step 2 now has a measured target.** `synthesis_points_n60` cost
+2.28 s against 1.7-88 ms for every other budget, and 36.65 s of the
+job's 4:51, because `synthesisPoints` calls `legendreALF` once PER
+POINT. B2's premise is measured, not inferred. A second measurement
+worth keeping: the FFT path is **1.40x** the direct path at n60/1 deg,
+where `benchSynthesisFFTvsDirect`'s comment had claimed 5-20x.
 
 Two deviations from the scope below, both stated rather than smuggled:
 the budget is an absolute median per machine, NOT a per-repeat ratio
@@ -492,6 +503,35 @@ Original scope below.
 ## 6. Records
 
 ### 6.1 Decisions (append-only; date, decision, evidence)
+- 2026-09-09 — **A9 is DOWNGRADED, not closed, and the difference is
+  the whole point.** The budgets assert now, which is real: a lost
+  fast path or an accidental O(n^2) fails CI. But A9's own words are
+  "a 1.3x regression ships unnoticed", and a 3x threshold still lets
+  one through. Marking the finding CLOSED because the machinery works
+  would have been the most tempting sentence in this file and the
+  least true one. It closes when the factor is set from evidence.
+- 2026-09-09 — **The spread the first run measured is the WRONG one,
+  and it must not be used to tighten the factor.** 15 repeats inside
+  one process gave median/min <= 1.043 above 20 ms (1.114 at 1.8 ms,
+  where the timer dominates). That is within-run scatter on a quiet
+  machine. A budget is threatened by BETWEEN-run variation — a
+  different runner load, a background job, a MATLAB update — which one
+  run cannot show. Tightening from 1.04 would produce a gate that
+  fails on noise, and a gate that cries wolf is worse than none.
+- 2026-09-09 — **`synthesisPoints` is the measured hot spot, so B2
+  stops being a hypothesis.** 2.28 s against 1.7-88 ms for every other
+  budget, and 36.65 s of a 4:51 job, because it calls `legendreALF`
+  once per point — 1.14 ms per point at n60. WP2 step 2 has a target
+  and a number to beat, which is exactly what step 1 was for.
+- 2026-09-09 — **A comment claimed 5-20x and the measurement says
+  1.40x.** `benchSynthesisFFTvsDirect` documented the FFT gain at
+  nmax=60, 1 deg — the exact configuration now measured as 4.28 ms
+  direct against 3.07 ms fft with the cache primed identically. The
+  old figure was never measured against the direct path in the same
+  cache state. Corrected in place with its provenance rather than
+  deleted, because the next reader deserves to know it was checked.
+  This is what a budget harness is FOR: it measures the things the
+  comments assert.
 - 2026-09-09 — **WP2 approved, superseding the "A9 is ok" acceptance**
   (Matthias: "Go ahead with WP2"). The earlier entry stays below as the
   record it is; the risk it accepted is now being closed instead.
@@ -786,7 +826,8 @@ Original scope below.
 | v4.0.3 (A21a; A21b opened) | ☑ 13 gates + mlint + make_demos + 11 self-test suites, 0 findings | ☑ **CI self-hosted (A8) at `0d06e14`, green — 305 runs, 301 passed, 0 failed, 4 filtered**; the prediction matched EXACTLY for the FIFTH release running, per class as well as in total (Contract 74, Correctness 159, Performance 12 runs, Robustness 53, Science 7), and `testMinusDoesNotEnforceEpochAgreement` ran and passed. First run, no red round. | ☑ PR #98 | ☑ 2026-09-09 |
 | v5.0.0 (A21b) | ☑ 13 gates + mlint + make_demos + 11 self-test suites, 0 findings | ☑ **CI self-hosted (A8) at `631d524`, green — 305 runs, 301 passed, 0 failed, 4 filtered** (shared run with 5.0.1). **TWO red rounds first, both mine, both pin errors** — see the row below. | ☑ PR #99 | ◐ pending |
 | v5.0.1 (WP6 stage 3) | ☑ 13 gates + mlint + make_demos + 12 self-test suites, 0 findings; 50 hand-written pages -> 26, no entity lost COVERAGE | ☑ **CI self-hosted (A8) at `631d524`, green — 305 runs, 301 passed, 0 failed, 4 filtered**; the count prediction matched EXACTLY for the sixth release running. Round 1 (`2530e9f`) failed `testGravisChainsContract`: a pin mapped by call graph, not by which GUARD fires — `fromFolder` asserts `isfolder` (the temp folder EXISTS) then delegates to `read`. Round 2 (`f6481d7`) failed `testTN14IDs`: the pin-enumerating grep used `[A-Za-z]*` and `noC30` HAS DIGITS, so it was never rewritten — and the verification grep repeated the same character class. The new PINS rule closes the second shape. | ☑ PR #99 | ◐ pending |
-| v5.0.2 (WP2 step 1 harness) | ☑ 14 gates + mlint + make_demos + 13 self-test suites, 0 findings; `count_tests.py` predicts 305 methods / **315 runs** (305 + `testSpeedBudget` x 10) | ◐ pending — this is the run that MEASURES the baselines. Expect **315 runs, 301 passed, 14 filtered** (the 4 real-data fixtures + all 10 budgets, which have no baseline yet); a budget that FAILS instead of filtering means the workload errored, not that the machine is slow. | ◐ pending | ◐ pending |
+| v5.0.2 (WP2 step 1 harness) | ☑ 14 gates + mlint + make_demos + 13 self-test suites, 0 findings | ☑ **CI self-hosted (A8) at `f6d5529`, green — 315 runs, 301 passed, 0 failed, 14 filtered**; the prediction matched EXACTLY for the SEVENTH release running, per class as well as in total (Contract 74, Correctness 159, Performance 22, Robustness 53, Science 7), counts parsed from the 315-row results table. The 14 filtered were the 4 real-data fixtures plus all 10 budgets, exactly as designed — and this is the run that measured the baselines. First run, no red round. | ☑ PR #99 | ◐ pending |
+| v5.0.3 (WP2 step 1 baselines) | ☑ 14 gates + mlint + make_demos + 13 self-test suites, 0 findings; `NO_BASELINE` empty | ◐ pending — expect **315 runs, 301 passed, 4 filtered**: the budgets now ASSERT, so a filtered budget here would mean the machine label changed, and a FAILED one means either a real regression or a loaded runner. | ◐ pending | ◐ pending |
 
 **Tier A debt: DISCHARGED for all nine releases.** The local MATLAB
 bridge is gone, but the self-hosted runner A8 is not: `runAllTests
@@ -810,15 +851,25 @@ confirmation that the counter is right about a real run and not only
 about the source.
 
 ### 6.3 What the next session could be wrong for not reading
-- **A green harness is not a guarded budget.** v5.0.2 ships ten speed
-  budgets and guards nothing: no baseline exists, so all ten filter.
-  `perf_baseline_audit` says so in its own last line and carries them
-  as debt. Read "0 findings" as "the books balance", never as "the
-  budgets hold" — the CI run count is the tell: 14 filtered, not 4.
-- **Read the CI log for `PERFBASE,` after the next A8 run.** Those ten
-  lines ARE `tests/perf_baseline.csv` rows. Paste them under the
-  header, drain `NO_BASELINE`, and the budgets go live on the run
-  after. Nothing else about the harness needs to change.
+- **A budget that asserts is not the same as a budget that catches
+  what you care about.** The ten budgets are live (v5.0.3), and A9 is
+  still open, because 3x does not catch A9's own 1.3x. Two different
+  questions — does the gate fire at all, and does it fire at the
+  right place — and only the first is answered.
+- **Do not tighten `BudgetFactor` from the within-run spread.** The
+  first run's median/min (<= 1.043 above 20 ms) describes 15 repeats
+  in one process on a quiet machine. What can break a budget is
+  between-run variation, which needs several runs' medians. Tightening
+  from 1.04 buys a gate that fails on noise.
+- **The log is the artifact; the artifact is not reachable.** The A8
+  `PERFBASE,` lines had to come from the job log, because
+  `actions/upload-artifact` and the raw-log redirect both land on
+  `*.blob.core.windows.net`, which the egress proxy refuses. Use
+  `mcp__github__get_job_logs` with a large `tail_lines`; it saves
+  oversized output to a file that CAN be grepped, which is better than
+  paging it into context. And note the suite order is ALPHABETICAL —
+  testPerformance runs third, so its stdout is in the MIDDLE of the
+  log, not near the end where the results table sits.
 - **A parser you write beside one that already exists will disagree
   with it, and the cheap one will be wrong.** `count_tests.py` counted
   TestParameter values by regex; `help_audit.struct_field_names` counts
@@ -1015,11 +1066,13 @@ it. **Do not treat the branch as merged; check `git ls-remote` first.**
 **All twenty-two audit findings are closed except A9, which WP2 reopened
 the same day it was accepted**, and WP6 is complete:
 
-- **A9** — half-closed in v5.0.2. The measuring harness exists; the
-  baselines do not, so all ten budgets FILTER and a 1.3x regression in
-  `legendreALF`, `shSynthesis`, `shAnalysisGrid`, `applyDDK`,
-  `leakageCorrect` or the Kalman step *still* ships unnoticed. The
-  finding closes when the A8 baselines are committed.
+- **A9** — DOWNGRADED in v5.0.3, not closed. The ten budgets assert (A8
+  baselines committed, `NO_BASELINE` empty), so a workload that blows up
+  fails CI. A **1.3x** creep in `legendreALF`, `shSynthesis`,
+  `shAnalysisGrid`, `applyDDK`, `leakageCorrect` or the Kalman step
+  still ships unnoticed, because the threshold is 3x. It closes when
+  that factor is set from several runs' medians — NOT from the
+  within-run spread the first run produced.
 - Everything else in §4.1 is CLOSED.
 
 **WP3, WP4, WP5 and WP7 wait on approval only** — see the 2026-09-09
@@ -1038,13 +1091,22 @@ signatures signed off and a real GNSS network.
 for the sixth release running. Two red rounds preceded it, both mine and
 both pin errors; the second shape is now gated by the PINS rule.
 
-**Next concrete action for 5.0.2**: read the `PERFBASE,` lines out of the
-next `runAllTests (self-hosted)` log, paste them into
-`tests/perf_baseline.csv`, empty `NO_BASELINE` in
-`tools/dev/perf_baseline_audit.py`, and push. That single commit turns
-ten filtered budgets into ten assertions and closes A9. Only then does
-WP2 step 2 (B1 packed Legendre, B2 Clenshaw) have anything to be
-measured against.
+**Done for 5.0.3**: the ten `PERFBASE` lines from A8 at `f6d5529` are
+committed and `NO_BASELINE` is empty. The budgets assert.
+
+**Next concrete actions, in order of what they buy:**
+1. **WP2 step 2, B2 first.** `synthesisPoints` is the measured hot spot
+   — 2.28 s against 1.7-88 ms for every other budget, because it calls
+   `legendreALF` once per point (1.14 ms/point at n60). A Clenshaw path
+   needs no `P` at all. Oracle: `tools/dev/validate_gradient.py` plus
+   the existing `testCorrectness` pins; acceptance is bitwise, or <= 4
+   eps with the term named. B1 (packed Legendre) is the weaker candidate
+   on this evidence — `legendre_n720` is 0.285 s.
+2. **Let two or three more A8 runs log their medians, then set
+   `BudgetFactor` from the between-run spread and close A9.** Nothing
+   needs to be built for this; it needs runs.
+3. **WP3/WP4/WP5/WP7 wait on Matthias's tick** (and, for some rows, on
+   data — see above).
 
 To re-run the gates and the prediction from a fresh sandbox:
 ```
@@ -1059,7 +1121,7 @@ pip install reportlab matplotlib && \
 WP0 (v3.33.1), A7/A8/A12/A13/A14/A16 + WP6.1-2 (v3.34.0),
 A10/A17/A18 (v3.34.1), WP1/A2/A3/A15 (v4.0.0), A19 (v4.0.1),
 A20 (v4.0.2), A21a (v4.0.3), A21b (v5.0.0)
-WP6 stage 3 (v5.0.1) and WP2 step 1 (v5.0.2) |
+WP6 stage 3 (v5.0.1) and WP2 step 1 (v5.0.2 + v5.0.3) |
 2026-09-08..09 | Claude Opus 5 |
 the first four releases green on A8 via CI — 4.0.0 at `5452938`:
 304 runs, 300 passed, 0 failed, 4 filtered.
@@ -1069,6 +1131,8 @@ the first four releases green on A8 via CI — 4.0.0 at `5452938`:
 0 failed, 4 filtered - the fifth exact count prediction running.
 5.0.0 and 5.0.1 green on A8 at `631d524` via PR #99: 305 runs,
 301 passed, 0 failed, 4 filtered, after two red rounds.
-5.0.2 is not yet on A8: its run is the one that measures the ten
-speed baselines. |
+5.0.2 green on A8 at `f6d5529` via PR #99: 315 runs, 301 passed,
+0 failed, 14 filtered - the SEVENTH exact count prediction running,
+and the run that measured the ten speed baselines now committed in
+5.0.3. |
 Developed by Matthias Weigelt with the help of Claude.*
