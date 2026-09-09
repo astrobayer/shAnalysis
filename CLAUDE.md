@@ -23,10 +23,10 @@ says whether it was *read* or *inferred*.
 
 | Fact | Value | Evidence |
 |---|---|---|
-| Version | **5.1.1**, 09-Sep-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
+| Version | **5.2.0**, 09-Sep-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
 | Branches | `main` only; `claude/getframe-recapture` and `claude/readshm` are gone (merged/deleted) | `GET /branches` |
 | Public surface | 3 classes / 71 methods, 122 `+shLowLevel` functions (+4 private), 3 root functions | `tools/dev/api_extract.py` run in sandbox |
-| Tests | 5 classes, **308 methods / 320 runs**: Correctness 161, Contract 75, Robustness 53, Science 7, Performance 12 methods (24 runs, `budgetCase` x12 + `nmaxP` x2). 4 filter out without the optional real-data fixtures; the 10 speed budgets ALSO filtered in v5.0.2 (14 filtered) and stop doing so in v5.0.3, now that A8 has a baseline. The counter has matched the runner EXACTLY on the last seven green A8 runs (269, 301, 304, 304, 305, 305, 315); the one time it did not was A16, before it existed. | `python3 tools/dev/count_tests.py` |
+| Tests | 5 classes, **312 methods / 326 runs**: Correctness 164, Contract 76, Robustness 53, Science 7, Performance 12 methods (26 runs, `budgetCase` x14 + `nmaxP` x2). 4 filter out without the optional real-data fixtures; the 10 speed budgets ALSO filtered in v5.0.2 (14 filtered) and stop doing so in v5.0.3, now that A8 has a baseline. The counter has matched the runner EXACTLY on the last seven green A8 runs (269, 301, 304, 304, 305, 305, 315); the one time it did not was A16, before it existed. | `python3 tools/dev/count_tests.py` |
 | Python oracles | 16 `tools/dev/validate_*.py` + `tools/audit/*` | listing |
 | Docs | **26** hand-written `html/*.html` (24 per-entity duplicates retired in v5.0.1, WP6 stage 3) + **200 generated `html/ref/*.html`** (one per entity + index, `make_refpages.py`), one shared `html/shAnalysis.css`, `helptoc.xml`, `info.xml`, guide PDF, generated `html/apiReference.html`. `docs/` holds the PDF and `apiExamples.json` only - no HTML page lives outside `html/` (gated). | listing |
 | CI | `gates` job on ubuntu (help_audit, doc_sync_audit, no_map_renderer, toolbox_dependency_audit, nv_casing_audit, fixture_tag_audit, gate self-tests `tools/tests/`, `count_tests`, `name_coverage`, `error_id_audit`, `option_values_audit`, `refpages_audit`, `make_demos --check`, `perf_baseline_audit`) + `runAllTests (self-hosted)` on A8/R2026a; fixtures from tag `fixtures-2026-08` | `.github/workflows/ci.yml` |
@@ -522,6 +522,48 @@ Original scope below.
 ## 6. Records
 
 ### 6.1 Decisions (append-only; date, decision, evidence)
+- 2026-09-09 — **WP5 5c approved and shipped as 5.2.0** (Matthias:
+  "WP5 5c approved"). `removeGIA` propagates the model's rate sigma;
+  the default call is bitwise unchanged.
+- 2026-09-09 — **The per-epoch stacks are the right answer to the
+  wrong question, and the help says so.** Quadrature gives correct
+  MARGINAL per-epoch sigmas, which is what `mcPropagate` and the
+  other sigma consumers need. It is NOT what a trend needs: one rate
+  error applies to every epoch, so the GIA term is perfectly
+  correlated in time and a trend fitted assuming independence
+  understates it by ~sqrt(T). `info.rateSigmaC/S` return the rate
+  sigma itself so a trend consumer can add it directly. Shipping the
+  stacks without that warning would have replaced one silent error
+  (GIA treated as exact) with a subtler one.
+- 2026-09-09 — **The oracle failed first, and the EXPERIMENT was
+  wrong, not the claim.** `validate_gia_sigma.py` initially tested
+  the correlation claim on an ensemble where per-epoch noise (2e-11)
+  swamped the GIA rate error (4e-12), and duly reported that
+  independence was no worse — true in that regime, and irrelevant.
+  Isolating the GIA component gives MC 4.03e-12 against sigmaRate
+  4.00e-12 and an independence estimate of 1.15e-12: a 3.49x
+  understatement against sqrt(T) = 3.46. Design the ensemble around
+  the term under test, or the null result is about the fixture.
+- 2026-09-09 — **A second `info` output exposed a deliberate
+  over-reach in `help_audit`.** It appended EVERY classdef local
+  function to EVERY method's source so `shSeries.mean` could see
+  `meanWindowInfo`. Harmless while one method had an `info` output;
+  `removeGIA` is the second and inherited all ten of that helper's
+  fields as false findings. A12's lesson one level out. The rule is
+  now REACHABILITY, transitive — the same idea A21a uses for
+  identifiers — pinned in both directions plus the local-calls-local
+  case.
+- 2026-09-09 — **The matched pair reversed my crossover guess, and
+  the number still is not set.** At the SAME 200 points A8 gives
+  direct 0.0155 s against clenshaw 0.0034 s: clenshaw is 4.5x
+  faster, so the crossover is BELOW 200 and `ClenshawFrom = 150` is
+  too HIGH. I had argued the opposite from direct@200 versus
+  clenshaw@2000 — different point counts, exactly the comparison the
+  matched pair exists to forbid. The implied ~44 is an
+  EXTRAPOLATION from two points at one size, so the default stays at
+  150 and a second pair at 50 points brackets it. Conservative is
+  not wrong: for 44 <= P < 150 `auto` returns the same answers by
+  the slower path.
 - 2026-09-09 — **Both paths stay, and `auto` DISPATCHES** (Matthias:
   "Keep both paths behind the Method option but make the faster one
   the default for each calculation type"). Neither path dominates:
@@ -892,7 +934,8 @@ Original scope below.
 | v5.0.1 (WP6 stage 3) | ☑ 13 gates + mlint + make_demos + 12 self-test suites, 0 findings; 50 hand-written pages -> 26, no entity lost COVERAGE | ☑ **CI self-hosted (A8) at `631d524`, green — 305 runs, 301 passed, 0 failed, 4 filtered**; the count prediction matched EXACTLY for the sixth release running. Round 1 (`2530e9f`) failed `testGravisChainsContract`: a pin mapped by call graph, not by which GUARD fires — `fromFolder` asserts `isfolder` (the temp folder EXISTS) then delegates to `read`. Round 2 (`f6481d7`) failed `testTN14IDs`: the pin-enumerating grep used `[A-Za-z]*` and `noC30` HAS DIGITS, so it was never rewritten — and the verification grep repeated the same character class. The new PINS rule closes the second shape. | ☑ PR #99 | ◐ pending |
 | v5.0.2 (WP2 step 1 harness) | ☑ 14 gates + mlint + make_demos + 13 self-test suites, 0 findings | ☑ **CI self-hosted (A8) at `f6d5529`, green — 315 runs, 301 passed, 0 failed, 14 filtered**; the prediction matched EXACTLY for the SEVENTH release running, per class as well as in total (Contract 74, Correctness 159, Performance 22, Robustness 53, Science 7), counts parsed from the 315-row results table. The 14 filtered were the 4 real-data fixtures plus all 10 budgets, exactly as designed — and this is the run that measured the baselines. First run, no red round. | ☑ PR #99 | ◐ pending |
 | v5.1.0 (WP2 step 2, B2) | ☑ 15 gates + mlint + make_demos + 13 self-test suites, 0 findings | ☑ **CI self-hosted (A8) at `640f3be` by workflow_dispatch, green — 319 runs, 313 passed, 0 failed, 6 filtered**; the NINTH exact count prediction running, per class as well as in total (Contract 75, Correctness 161, Performance 23, Robustness 53, Science 7). All three new tests passed, dispatch pin and bitwise-chunking pin included. | ☐ no PR (not asked) | ☐ |
-| v5.1.1 (A8 numbers + matched-pair budget) | ☑ 15 gates + mlint + make_demos + 13 self-test suites (26 in the perf gate), 0 findings | ◐ pending — expect **320 runs, 314 passed, 5 filtered**: the 4 fixtures plus the new clenshaw@200 budget. | ◐ pending | ◐ pending |
+| v5.1.1 (A8 numbers + matched-pair budget) | ☑ 15 gates + mlint + make_demos + 13 self-test suites, 0 findings | ☑ **CI self-hosted (A8) at `e8875fe`, green — 320 runs, 315 passed, 0 failed, 5 filtered**; the TENTH exact count prediction running. The matched pair measured: direct@200 0.0155142 s, clenshaw@200 0.0034370 s. | ☑ PR #101 | ◐ pending |
+| v5.2.0 (WP5 5c + help_audit scoping) | ☑ 15 gates + mlint + make_demos + 13 self-test suites, 0 findings | ◐ pending — expect **326 runs, 320 passed, 0 failed, 6 filtered**: the 4 real-data fixtures plus the 2 new P=50 crossover budgets, which have no baseline yet. 326 - 6 = 320. | ◐ pending | ◐ pending |
 | v5.0.3 (WP2 step 1 baselines) | ☑ 14 gates + mlint + make_demos + 13 self-test suites, 0 findings; `NO_BASELINE` empty | ☑ **CI self-hosted (A8) at `b70c947`, green — 315 runs, 311 passed, 0 failed, 4 filtered**; the EIGHTH exact count prediction running, per class as well as in total. All ten budgets PASSED (they filtered at `f6d5529`), and the only filtered are the four real-data fixtures. Triggered by `workflow_dispatch`, not a PR — #99 merged mid-session and `ci.yml` runs only on push-to-main, pull_request and workflow_dispatch. | ☐ no PR (#99 merged; not asked) | ☐ |
 
 **Tier A debt: DISCHARGED for all nine releases.** The local MATLAB
@@ -1202,7 +1245,8 @@ WP0 (v3.33.1), A7/A8/A12/A13/A14/A16 + WP6.1-2 (v3.34.0),
 A10/A17/A18 (v3.34.1), WP1/A2/A3/A15 (v4.0.0), A19 (v4.0.1),
 A20 (v4.0.2), A21a (v4.0.3), A21b (v5.0.0)
 WP6 stage 3 (v5.0.1), WP2 step 1 (v5.0.2 + v5.0.3)
-and WP2 step 2 B2 (v5.1.0) |
+WP2 step 2 B2 (v5.1.0 + v5.1.1)
+and WP5 5c (v5.2.0) |
 2026-09-08..09 | Claude Opus 5 |
 the first four releases green on A8 via CI — 4.0.0 at `5452938`:
 304 runs, 300 passed, 0 failed, 4 filtered.
@@ -1218,5 +1262,10 @@ and the run that measured the ten speed baselines now committed in
 5.0.3.
 5.0.3 green on A8 at `b70c947` by workflow_dispatch: 315 runs,
 311 passed, 0 failed, 4 filtered - the EIGHTH, and the first run in
-which all ten speed budgets ASSERT rather than filter. |
+which all ten speed budgets ASSERT rather than filter.
+5.1.0 green on A8 at `640f3be`: 319 runs, 313 passed, 6 filtered.
+5.1.1 green on A8 at `e8875fe` via PR #101: 320 runs, 315 passed,
+0 failed, 5 filtered - the TENTH exact count prediction running, and
+the run whose matched pair put clenshaw 4.5x ahead of direct at the
+same 200 points. |
 Developed by Matthias Weigelt with the help of Claude.*

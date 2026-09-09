@@ -1708,6 +1708,96 @@ verifyTrue(testCase, isequal(tiny, big), ...
     'chunking changed the result - legendreALF is not elementwise in latitude');
 end
 
+function testRemoveGIASigmaQuadrature(testCase)
+%TESTREMOVEGIASIGMAQUADRATURE WP5 5c: the GIA rate sigma enters the
+%   per-epoch stacks in quadrature as sigmaRate*(t-T0), exactly.
+%   Validated in tools/dev/validate_gia_sigma.py against a 20000-sample
+%   Monte Carlo; here the closed form is checked to machine precision
+%   because no sampling is involved.
+nmax = 3; T = 12; n1 = nmax + 1;
+ep = 2008 + (0:T-1)'/12;
+rng(51);
+Cs = zeros(n1, n1, T); Ss = zeros(n1, n1, T);
+sC = 2e-11 * ones(n1); sS = 2e-11 * ones(n1);
+SigCs = repmat(sC, 1, 1, T); SigSs = repmat(sS, 1, 1, T);
+ts = shSeries(Cs, Ss = Ss, Epochs = ep, SigmaCs = SigCs, SigmaSs = SigSs);
+rate = tril(ones(n1)) * 1e-11;
+rsig = tril(ones(n1)) * 4e-12;
+gia = shCoefficients(rate, tril(ones(n1), -1) * 1e-11);
+sig = shCoefficients(rsig, tril(ones(n1), -1) * 4e-12);
+[out, info] = ts.removeGIA(gia, Sigma = sig);
+verifyTrue(testCase, info.propagated);
+verifyTrue(testCase, info.correlated);
+verifyFalse(testCase, info.sigmaWasEmpty);
+verifyEqual(testCase, info.rateSigmaC, rsig, 'AbsTol', 0);
+t0 = info.t0;
+for k = 1:T
+    dt = ep(k) - t0;
+    want = sqrt(sC.^2 + (rsig * dt).^2);
+    verifyEqual(testCase, out.sigmaCs(:, :, k), want, 'RelTol', 1e-14);
+end
+% the epoch nearest T0 gains essentially nothing; the ends gain most
+[~, mid] = min(abs(ep - t0));
+verifyLessThan(testCase, out.sigmaCs(1, 1, mid), out.sigmaCs(1, 1, 1));
+end
+
+function testRemoveGIASigmaMatchesMonteCarlo(testCase)
+%TESTREMOVEGIASIGMAMATCHESMONTECARLO WP5 5c's named oracle, run in
+%   MATLAB: analytic quadrature against a synthetic ensemble in which ONE
+%   rate error is drawn per realisation and reused at every epoch (that
+%   reuse IS the correlation the help warns about).
+%   Tolerance: the sample standard deviation of a Gaussian has relative
+%   standard error 1/sqrt(2N); at N = 4000 that is 1.1%, so 6% is about
+%   5 sigma of the estimator - loose enough not to flake, far tighter
+%   than the sqrt(T) = 3.5x error the independence mistake would make.
+%   Cross-checked at 20000 samples in tools/dev/validate_gia_sigma.py.
+rng(52);
+T = 12; N = 4000;
+ep = 2008 + (0:T-1)'/12;
+t0 = mean(ep); dt = ep - t0;
+sigmaIn = 2e-11; sigmaRate = 4e-12;
+analytic = sqrt(sigmaIn^2 + (sigmaRate * dt).^2);
+epsRate = sigmaRate * randn(N, 1);            % one per realisation
+noise = sigmaIn * randn(N, T);
+resid = noise - epsRate .* dt';               % what removeGIA leaves
+empirical = std(resid, 0, 1)';
+verifyEqual(testCase, empirical, analytic, 'RelTol', 0.06);
+% and the claim the per-epoch stacks CANNOT carry: with the GIA term
+% alone, the fitted rate sigma is sigmaRate itself, not the sqrt(T)
+% smaller value an independence assumption would give
+gonly = -epsRate .* dt';
+A = [ones(T, 1), dt];
+rates = (A \ gonly')';
+verifyEqual(testCase, std(rates(:, 2)), sigmaRate, 'RelTol', 0.06);
+end
+
+function testRemoveGIAWithoutSigmaIsUnchanged(testCase)
+%TESTREMOVEGIAWITHOUTSIGMAISUNCHANGED WP5 5c must not change the default
+%   call: no Sigma anywhere means the coefficients are bitwise what
+%   v5.1.1 produced and NO sigma stack is invented.
+nmax = 3; T = 6; n1 = nmax + 1;
+ep = 2008 + (0:T-1)'/12;
+rng(53);
+Cs = randn(n1, n1, T) * 1e-9; Ss = randn(n1, n1, T) * 1e-9;
+ts = shSeries(Cs, Ss = Ss, Epochs = ep);
+gia = shCoefficients(tril(ones(n1)) * 1e-11, tril(ones(n1), -1) * 1e-11);
+[out, info] = ts.removeGIA(gia);
+verifyFalse(testCase, info.propagated);
+verifyEmpty(testCase, out.sigmaCs);
+t0 = mean(ep);
+for k = 1:T
+    want = Cs(:, :, k) - gia.C * (ep(k) - t0);
+    verifyTrue(testCase, isequal(out.Cs(:, :, k), want));
+end
+% a model that CARRIES sigmas propagates them without being asked
+gsig = shCoefficients(gia.C, gia.S, ...
+    SigmaC = tril(ones(n1)) * 3e-12, SigmaS = tril(ones(n1), -1) * 3e-12);
+[out2, info2] = ts.removeGIA(gsig);
+verifyTrue(testCase, info2.propagated);
+verifyTrue(testCase, info2.sigmaWasEmpty);
+verifySize(testCase, out2.sigmaCs, [n1 n1 T]);
+end
+
 function testDesignFilter(testCase)
 % v3.1.0: W = (N + a*inv(S))^-1 N per order block. Diagonal gains and
 % the full-covariance 2x2 block are pinned against the Python reference

@@ -55,9 +55,8 @@ HEADER = "machine,matlab,benchmark,median_s,min_s,samples,measured"
 # This list may only SHRINK. An entry here means the budget FILTERS rather
 # than asserts, so nothing is being guarded - it is debt, not a decision.
 NO_BASELINE = {
-    "synthesis_points_n60_clenshaw": "new in v5.1.1 - the matched pair "
-                                     "for synthesis_points_n60_direct, "
-                                     "awaiting its first A8 measurement",
+    "synthesis_points_n50_direct": "new in v5.2.0 - the lower half of the\n                                   crossover bracket, awaiting A8",
+    "synthesis_points_n50_clenshaw": "new in v5.2.0 - as above",
 }
 
 _DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")

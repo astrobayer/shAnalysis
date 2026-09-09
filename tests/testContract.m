@@ -1947,6 +1947,38 @@ verifyError(testCase, @() shLowLevel.synthesisPoints(C, S, GM, R, ...
     la, lo, rr, ClenshawFrom = 0), 'MATLAB:validators:mustBePositive');
 end
 
+function testRemoveGIASigmaContract(testCase)
+%TESTREMOVEGIASIGMACONTRACT WP5 5c: the Sigma option's surface and its
+%   one identifier. Sigma must match the GIA model in size - a mismatched
+%   sigma field silently zero-padded would attach the wrong uncertainty
+%   to the wrong degree, which is worse than refusing.
+nmax = 3; n1 = nmax + 1; T = 4;
+ep = 2008 + (0:T-1)'/12;
+ts = shSeries(zeros(n1, n1, T), Ss = zeros(n1, n1, T), Epochs = ep);
+gia = shCoefficients(tril(ones(n1)) * 1e-11, tril(ones(n1), -1) * 1e-11);
+bad = shCoefficients(tril(ones(n1 + 2)) * 1e-12, ...
+    tril(ones(n1 + 2), -1) * 1e-12);
+verifyError(testCase, @() ts.removeGIA(gia, Sigma = bad), ...
+    'shSeries:removeGIA:badSigma');
+verifyError(testCase, @() ts.removeGIA(gia, Sigma = 42), ...
+    'shSeries:removeGIA:badSigma');
+% info is a documented struct: every field the help names must exist
+sig = shCoefficients(tril(ones(n1)) * 4e-12, tril(ones(n1), -1) * 4e-12);
+[~, info] = ts.removeGIA(gia, Sigma = sig);
+for f = ["t0", "rateSigmaC", "rateSigmaS", "propagated", ...
+        "sigmaWasEmpty", "correlated"]
+    verifyTrue(testCase, isfield(info, f), ...
+        sprintf('info lacks the documented field %s', f));
+end
+% an explicit Sigma OVERRIDES the model's own
+gsig = shCoefficients(gia.C, gia.S, ...
+    SigmaC = tril(ones(n1)) * 9e-12, SigmaS = tril(ones(n1), -1) * 9e-12);
+[~, iOver] = ts.removeGIA(gsig, Sigma = sig);
+verifyEqual(testCase, iOver.rateSigmaC, sig.C, 'AbsTol', 0);
+[~, iOwn] = ts.removeGIA(gsig);
+verifyEqual(testCase, iOwn.rateSigmaC, gsig.sigmaC, 'AbsTol', 0);
+end
+
 function testSynthesisOwnsItsOwnIdentifiers(testCase)
 % shSynthesis raised bare shSynthesis:* until v4.0.0. badInput and badP
 % had no test at all; badMethod is pinned above.

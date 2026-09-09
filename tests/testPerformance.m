@@ -22,6 +22,10 @@ classdef testPerformance < matlab.perftest.TestCase
 %       synthesis_fft_n60              the FFT-along-longitude path
 %       synthesis_points_n60           2000 scattered points, clenshaw
 %       synthesis_points_n60_direct    200 scattered points, direct
+%       synthesis_points_n50_direct/_clenshaw  a SECOND matched pair at
+%         50 points, bracketing the crossover from below: the 200-point
+%         pair put clenshaw 4.5x ahead on A8, so the crossover is under
+%         200 and one pair alone cannot say where
 %       synthesis_points_n60_clenshaw  THE SAME 200 points, clenshaw -
 %         the two are a matched pair on purpose: a crossover can only
 %         be read off two paths measured at the SAME point count, and
@@ -64,6 +68,8 @@ properties (TestParameter)
         'synthesis_points_n60', 'synthesis_points_n60', ...
         'synthesis_points_n60_direct', 'synthesis_points_n60_direct', ...
         'synthesis_points_n60_clenshaw', 'synthesis_points_n60_clenshaw', ...
+        'synthesis_points_n50_direct', 'synthesis_points_n50_direct', ...
+        'synthesis_points_n50_clenshaw', 'synthesis_points_n50_clenshaw', ...
         'analysis_rings_n60',   'analysis_rings_n60', ...
         'apply_ddk_n96',        'apply_ddk_n96', ...
         'leakage_1iter_n24',    'leakage_1iter_n24', ...
@@ -347,7 +353,27 @@ methods
                 lo = rand(np, 1) * 360;
                 rr = R + rand(np, 1) * 1000;
                 C = g.C; S = g.S;
-                if strcmp(name, 'synthesis_points_n60_direct')
+                if endsWith(name, '_direct')
+                    how = "direct";
+                else
+                    how = "clenshaw";
+                end
+                fcn = @() shLowLevel.synthesisPoints(C, S, GM, R, ...
+                    la, lo, rr, Method = how);
+            case {'synthesis_points_n50_direct', ...
+                    'synthesis_points_n50_clenshaw'}
+                % the same shape at 50 points. Together with the
+                % 200-point pair this brackets the crossover, which the
+                % A8 numbers put well below 200 (clenshaw 4.5x ahead
+                % there) and therefore below ClenshawFrom's current 150.
+                g = tc.randomField(60);
+                rng(13);
+                np = 50;
+                la = (rand(np, 1) - 0.5) * 178;
+                lo = rand(np, 1) * 360;
+                rr = R + rand(np, 1) * 1000;
+                C = g.C; S = g.S;
+                if endsWith(name, '_direct')
                     how = "direct";
                 else
                     how = "clenshaw";

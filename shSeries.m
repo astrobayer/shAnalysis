@@ -808,30 +808,77 @@ methods
             opts.Period * 365.25, opts.PhaseOffset, opts.SplitEpoch);
     end
 
-    function out = removeGIA(obj, gia, opts)
+    function [out, info] = removeGIA(obj, gia, opts)
         %REMOVEGIA Subtract a glacial isostatic adjustment model.
         %   OUT = ts.removeGIA(GIA, T0 (NaN)=mean(epochs)) subtracts the linear
         %   GIA signal  giaRate * (t - T0)  from every epoch. GIA is an
         %   shCoefficients object holding RATE coefficients [1/yr] - read
         %   your model (ICE-6G_D, Caron et al., ...) from its gfc file
         %   with shCoefficients.read; models are ALWAYS user-supplied,
-        %   never embedded. Trends computed after this are GIA-corrected;
-        %   the model is treated as exact (its uncertainty, often the
-        %   dominant trend error over Laurentia/Fennoscandia/Antarctica,
-        %   is NOT propagated - documented limitation, see the guide).
+        %   never embedded. Trends computed after this are GIA-corrected.
         %   The GIA model is truncated to the series nmax; a model with
         %   smaller nmax is zero-padded with a note in history.
+        %
+        %   [OUT, INFO] = ts.removeGIA(GIA, Sigma ([])=SIG) also PROPAGATES the
+        %   model's own uncertainty (v5.2.0). Until v5.1.1 the model was
+        %   treated as exact, which understated the trend error wherever
+        %   GIA dominates it - Laurentia, Fennoscandia, Antarctica. SIG is
+        %   an shCoefficients holding the per-coefficient 1-sigma of the
+        %   RATE [1/yr] (an ensemble spread, e.g. Caron et al. 2018); when
+        %   Sigma is not given, GIA.sigmaC/sigmaS are used if it carries
+        %   them, and nothing is propagated if it does not.
+        %
+        %   WHAT IS ADDED, AND WHAT IT IS NOT
+        %     Per epoch the model contributes  sigmaRate * (t_k - T0)  in
+        %     quadrature to the coefficient sigmas, so OUT.sigmaCs/sigmaSs
+        %     are correct MARGINAL per-epoch sigmas and feed
+        %     shLowLevel.mcPropagate (via ts.at(k)) and every consumer of
+        %     the sigma stacks unchanged.
+        %     They are NOT enough for a trend. One rate error applies to
+        %     EVERY epoch, so the GIA component is perfectly CORRELATED in
+        %     time, and a trend fitted from per-epoch sigmas that assumes
+        %     independence understates it - by roughly sqrt(nEpochs). The
+        %     GIA contribution to a RATE is simply sigmaRate itself, which
+        %     is why INFO returns it: add INFO.rateSigmaC/rateSigmaS to a
+        %     fitted trend's sigma rather than deriving it from OUT.
+        %     A series that carried NO sigmas gets stacks holding the GIA
+        %     term ALONE; history says so, so they are not mistaken for
+        %     full formal errors.
+        %
         %   Inputs
         %     gia  GIA rate field: shCoefficients, coefficient struct or
         %          .gz/.gfc file path (subtracted as rate times (t - Epoch))
         %
+        %   Options
+        %     T0 (NaN)      reference epoch of the linear model; the series
+        %          mean epoch when not given
+        %     Sigma ([])    shCoefficients of per-coefficient 1-sigma RATE
+        %          uncertainties [1/yr]; defaults to gia's own sigmaC/sigmaS
+        %
         %   Outputs
         %     out        (1 x 1) shSeries   GIA trend removed about the series mean epoch
+        %     info       (1 x 1) struct   what was propagated, fields
+        %                t0            (1,1) double  reference epoch used
+        %                rateSigmaC    (n1 x n1) double  rate 1-sigma, cosine
+        %                rateSigmaS    (n1 x n1) double  rate 1-sigma, sine
+        %                propagated    (1,1) logical  false when no sigma
+        %                              was available and none was added
+        %                sigmaWasEmpty (1,1) logical  the series carried no
+        %                              sigmas, so the stacks hold the GIA
+        %                              term alone
+        %                correlated    (1,1) logical  always true - the GIA
+        %                              term is fully correlated across
+        %                              epochs; see the note above
+        %
+        %   Error identifiers
+        %     shSeries:removeGIA:badSigma
+        %         Sigma is not square or does not match gia in size
         %
         arguments
             obj
             gia (1,1) shCoefficients
             opts.T0 (1,1) double = NaN
+            opts.Sigma = []
         end
         t0 = opts.T0;
         if isnan(t0), t0 = mean(obj.epochs); end
@@ -840,6 +887,27 @@ methods
         nc = min(n1, size(gia.C, 1));
         gC(1:nc, 1:nc) = gia.C(1:nc, 1:nc);
         gS(1:nc, 1:nc) = gia.S(1:nc, 1:nc);
+
+        % rate sigmas: explicit Sigma wins, else the model's own
+        sC = []; sS = [];
+        if ~isempty(opts.Sigma)
+            sig = opts.Sigma;
+            if ~isa(sig, 'shCoefficients')
+                error('shSeries:removeGIA:badSigma', ...
+                    'Sigma must be an shCoefficients of rate uncertainties.');
+            end
+            if size(sig.C, 1) ~= size(sig.C, 2) || ...
+                    size(sig.C, 1) ~= size(gia.C, 1)
+                error('shSeries:removeGIA:badSigma', ...
+                    ['Sigma is %dx%d but the GIA model is %dx%d; they must ' ...
+                     'match.'], size(sig.C, 1), size(sig.C, 2), ...
+                    size(gia.C, 1), size(gia.C, 2));
+            end
+            sC = sig.C; sS = sig.S;
+        elseif ~isempty(gia.sigmaC)
+            sC = gia.sigmaC; sS = gia.sigmaS;
+        end
+
         out = obj;
         for k = 1:obj.nEpochs
             dt = obj.epochs(k) - t0;
@@ -847,12 +915,48 @@ methods
             out.Ss(:, :, k) = obj.Ss(:, :, k) - gS * dt;
         end
         out.history(end+1) = sprintf( ...
-            "GIA removed (model nmax=%d, T0=%.4f, rate applied as exact)", ...
+            "GIA removed (model nmax=%d, T0=%.4f)", ...
             min(size(gia.C, 1) - 1, obj.nmax), t0);
         if nc < n1
             out.history(end+1) = sprintf( ...
                 "GIA model zero-padded above degree %d", nc - 1);
         end
+
+        rC = zeros(n1); rS = zeros(n1);
+        emptyBefore = isempty(obj.sigmaCs);
+        if isempty(sC)
+            out.history(end+1) = ...
+                "GIA rate applied as EXACT - no model sigma was supplied";
+        else
+            ns = min(n1, size(sC, 1));
+            rC(1:ns, 1:ns) = sC(1:ns, 1:ns);
+            rS(1:ns, 1:ns) = sS(1:ns, 1:ns);
+            if emptyBefore
+                out.sigmaCs = zeros(n1, n1, obj.nEpochs);
+                out.sigmaSs = zeros(n1, n1, obj.nEpochs);
+            end
+            for k = 1:obj.nEpochs
+                dt = obj.epochs(k) - t0;
+                out.sigmaCs(:, :, k) = sqrt(out.sigmaCs(:, :, k).^2 ...
+                    + (rC * dt).^2);
+                out.sigmaSs(:, :, k) = sqrt(out.sigmaSs(:, :, k).^2 ...
+                    + (rS * dt).^2);
+            end
+            if emptyBefore
+                out.history(end+1) = ...
+                    "sigma stacks hold the GIA term ALONE (series had none)";
+            else
+                out.history(end+1) = ...
+                    "GIA rate sigma added in quadrature per epoch";
+            end
+            out.history(end+1) = ...
+                "GIA sigma is FULLY CORRELATED across epochs - use " + ...
+                "info.rateSigmaC/S for a trend, not the per-epoch stacks";
+        end
+        info = struct('t0', t0, 'rateSigmaC', rC, 'rateSigmaS', rS, ...
+            'propagated', ~isempty(sC), ...
+            'sigmaWasEmpty', emptyBefore && ~isempty(sC), ...
+            'correlated', true);
     end
 
     function out = applyDDK(obj, W)

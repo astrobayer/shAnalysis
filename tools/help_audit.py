@@ -88,17 +88,39 @@ def parse_from(lines, i0, expect):
         if mf and len(mf.group(1)) <= ind:
             end = k
             break
-    # In a classdef file the local functions after the class body are
-    # part of the implementation - shSeries.mean builds its info struct
-    # in meanWindowInfo - so they belong to every method's source. They
-    # sit at indentation 0, which inside a classdef only a local function
-    # can be.
+    # In a classdef file the local functions after the class body are part
+    # of the implementation - shSeries.mean builds its info struct in
+    # meanWindowInfo - so a method's source has to include them. But only
+    # the ones it actually REACHES: appending all of them to every method
+    # made every method with an `info` output inherit every other's
+    # fields, and the moment a second method grew one (removeGIA, WP5 5c)
+    # that produced ten false findings naming meanWindowInfo's fields.
+    # Same shape as A12's "a class method's source is not the whole class
+    # file", one level out. Reachability, transitively, as A21a does for
+    # identifiers.
     local = ""
     if any(re.match(r"^classdef\b", L) for L in lines[:40]):
+        locs, start, curname = {}, None, None
         for k, L in enumerate(lines):
             if re.match(r"^function\s", L):
-                local = "".join(lines[k:])
-                break
+                if start is not None and curname:
+                    locs[curname] = "".join(lines[start:k])
+                mm = re.match(
+                    r"^function\s+(?:(?:\[[^\]]*\]|\w+)\s*=\s*)?(\w+)", L)
+                curname = mm.group(1) if mm else None
+                start = k
+        if start is not None and curname:
+            locs[curname] = "".join(lines[start:])
+        want, frontier = set(), ["".join(lines[i:end])]
+        while frontier:
+            body = re.sub(r"%[^\n]*", "", frontier.pop())
+            for nm, sub in locs.items():
+                if nm in want:
+                    continue
+                if re.search(r"\b%s\s*\(" % re.escape(nm), body):
+                    want.add(nm)
+                    frontier.append(sub)
+        local = "".join(locs[n] for n in sorted(want))
     return {"name": m.group(2), "outs": outs, "ins": ins,
             "help": "\n".join(help_lines), "args": args, "line": i,
             "src": "".join(lines[i:end]) + local}

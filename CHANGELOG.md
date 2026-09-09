@@ -1,5 +1,102 @@
 # Changelog
 
+## [5.2.0] - 2026-09-09 - WP5 5c: the GIA model stops being exact
+
+`shSeries.removeGIA` gains `Sigma=` and a second output `info`. Until now
+its own help said the model "is treated as exact (its uncertainty, often
+the dominant trend error over Laurentia/Fennoscandia/Antarctica, is NOT
+propagated - documented limitation)". That limitation is closed.
+
+`Sigma` is an `shCoefficients` of per-coefficient 1-sigma RATE
+uncertainties [1/yr] - an ensemble spread such as Caron et al. 2018. When
+it is not given, the model's own `sigmaC`/`sigmaS` are used if it carries
+them, so a GIA file read with sigmas propagates without being asked.
+**The default call is unchanged**: no sigma anywhere means bitwise the
+same coefficients and no sigma stack invented.
+
+### What is added, and what it deliberately is not
+
+Per epoch the model contributes `sigmaRate * (t_k - T0)` in quadrature,
+so `sigmaCs`/`sigmaSs` are correct MARGINAL per-epoch sigmas and feed
+`shLowLevel.mcPropagate` (through `ts.at(k)`) and every other consumer of
+the stacks with no new plumbing.
+
+**They are not enough for a trend, and the help says so.** One rate error
+applies to every epoch, so the GIA component is perfectly CORRELATED in
+time. A trend fitted from per-epoch sigmas that assumes independence
+understates it. `info.rateSigmaC/rateSigmaS` return the rate sigma itself
+precisely so a trend consumer can add it directly.
+
+### The oracle failed first, and it was the experiment that was wrong
+
+`tools/dev/validate_gia_sigma.py` checks both claims against a
+20000-sample Monte Carlo. The first version tested the correlation claim
+on an ensemble where the per-epoch noise (2e-11) swamped the GIA rate
+error (4e-12), and it duly reported that the independence assumption was
+no worse - because in that regime the GIA component is invisible. The
+claim is about the GIA COMPONENT, so the experiment has to isolate it.
+On a GIA-only ensemble:
+
+```
+MC (truth, one rate error reused) : 4.029e-12
+sigmaRate itself                  : 4.000e-12
+assuming INDEPENDENCE             : 1.155e-12
+understatement                    : 3.49x   (sqrt(T) = 3.46)
+```
+
+So "roughly sqrt(nEpochs)" in the help is measured, not asserted. A
+badly-posed experiment that fails loudly is worth more than a
+well-posed one that was never run.
+
+### The second `info` output exposed a gate defect
+
+`help_audit` appended EVERY local function of a classdef to EVERY
+method's source, deliberately, so that `shSeries.mean` could see the
+`info` struct built in `meanWindowInfo`. That was harmless while exactly
+one method had an `info` output. `removeGIA` is the second, and it
+immediately inherited all ten of `meanWindowInfo`'s fields as false
+findings.
+
+Same shape as A12's "a class method's source is not the whole class
+file", one level out. A method now gets the local functions it actually
+REACHES, transitively - the reachability rule A21a already uses for
+identifiers. Pinned in both directions: a sibling that never calls the
+local does not inherit its fields, the caller still does (so the fix did
+not simply narrow the gate), and a local calling a local is followed.
+
+### Also
+
+A series carrying NO sigmas gets stacks holding the GIA term ALONE, and
+`history` plus `info.sigmaWasEmpty` say so, so they cannot be mistaken
+for full formal errors. `Sigma` must match the model in size -
+`shSeries:removeGIA:badSigma` - because a silently zero-padded sigma
+field would attach the wrong uncertainty to the wrong degree.
+
+### Carried along: the WP2 crossover, measured and pointing the other way
+
+v5.1.1's matched pair ran on A8, and it corrects a guess of mine. At the
+SAME 200 points:
+
+```
+direct   0.0155142 s
+clenshaw 0.0034370 s     clenshaw is 4.5x FASTER
+```
+
+I had speculated MATLAB's crossover was HIGHER than numpy's, reasoning
+from direct@200 against clenshaw@2000 - different point counts, which is
+precisely the mistake the matched pair was built to prevent. It is
+LOWER: clenshaw already wins comfortably at 200, so the crossover sits
+under 200 and `ClenshawFrom = 150` is too high, not too low.
+
+`ClenshawFrom` stays at 150 regardless, because 44 is an EXTRAPOLATION
+from two points at one size, and this release will not set a default
+from a number it did not measure. A second matched pair at 50 points
+brackets it from below; the next A8 run resolves it. Note the current
+default is conservative, not wrong: for 44 <= P < 150 `auto` returns the
+same answers by the slower path.
+
+Test count: 312 methods / **326 runs** (+4 tests, +2 budgets).
+
 ## [5.1.1] - 2026-09-09 - the A8 numbers, and a budget pair that can actually bracket the crossover
 
 v5.1.0 is green on A8: **319 runs, 313 passed, 0 failed, 6 filtered**, the
