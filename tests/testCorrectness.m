@@ -1026,11 +1026,11 @@ dH = shLowLevel.kernelFactors('gravity_disturbance', L, GM, R, Height = hgt);
 verifyEqual(testCase, dH, dis .* (R/r).^(n+2), 'RelTol', 1e-15);
 % error contracts
 verifyError(testCase, @() shLowLevel.kernelFactors('surface_density', L, GM, R), ...
-    'shSynthesis:missingLoveNumbers');
+    'shLowLevel:kernelFactors:missingLoveNumbers');
 verifyError(testCase, @() shLowLevel.kernelFactors('deformation_up', L, GM, R, ...
-    kn = kn), 'shSynthesis:missingLoveNumbers');
+    kn = kn), 'shLowLevel:kernelFactors:missingLoveNumbers');
 verifyError(testCase, @() shLowLevel.kernelFactors('ewh', L, GM, R, kn = kn, ...
-    Height = 1e5), 'shSynthesis:heightInvalid');
+    Height = 1e5), 'shLowLevel:kernelFactors:heightInvalid');
 end
 
 function testLegendreDerivativeIdentity(testCase)
@@ -2827,7 +2827,7 @@ k = shLowLevel.kernelFactors("none", 6, 3.986e14, 6.378e6);
 verifyEqual(testCase, k, ones(7, 1));
 % and no kn is required (would error for "ewh")
 verifyError(testCase, @() shLowLevel.kernelFactors("ewh", 6, 1, 1), ...
-    'shSynthesis:missingLoveNumbers');
+    'shLowLevel:kernelFactors:missingLoveNumbers');
 end
 
 function testHttpRetryDelaySchedule(testCase)

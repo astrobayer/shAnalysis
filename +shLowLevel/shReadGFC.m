@@ -44,6 +44,16 @@ function model = shReadGFC(filename)
 %            variableTerms  (1,:) struct array  trend/annual/semiannual
 %                    terms; empty when the file carries none
 %
+%   Error identifiers
+%     shLowLevel:shReadGFC:fileNotFound
+%         the file cannot be opened
+%     shLowLevel:shReadGFC:noData
+%         no gfc/gfct coefficient records were found in the file
+%     shLowLevel:shReadGFC:incomplete
+%         warning: fewer coefficient records than the header's degree
+%         range implies
+%     shLowLevel:shReadGFC:badRecord
+%         warning: unparseable C/S values, stored as NaN
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 
 readFilename = filename;
@@ -57,7 +67,7 @@ end
 
 fid = fopen(readFilename, 'r');
 if fid < 0
-    error('shReadGFC:fileNotFound', 'Cannot open file: %s', filename);
+    error('shLowLevel:shReadGFC:fileNotFound', 'Cannot open file: %s', filename);
 end
 
 header = struct();
@@ -167,7 +177,7 @@ if fastPath                                     %#ok<ALIGN>
     end
     if okBulk && isempty(Gv{1}) && isempty(Gv{2})
         fclose(fid);
-        error('shReadGFC:noData', ...
+        error('shLowLevel:shReadGFC:noData', ...
             'No gfc/gfct data records found in %s', filename);
     end
     varNum = zeros(0, 7);                       % n m C S t0 t1 period
@@ -347,7 +357,7 @@ fclose(fid);
 end                                             % fastPath / legacy
 
 if isempty(rows) && isempty(varRows)
-    error('shReadGFC:noData', 'No gfc/gfct data records found in %s', filename);
+    error('shLowLevel:shReadGFC:noData', 'No gfc/gfct data records found in %s', filename);
 end
 
 C = zeros(nmax+1, nmax+1);
@@ -397,7 +407,7 @@ if isfield(header, 'max_degree') && isnumeric(header.max_degree) && ...
     % (b) additionally requires a real-model-sized triangle: single-
     % record teaching fixtures (expect < 50) cannot be 'truncated'
     if nmaxSeen < hd || (expectRec >= 50 && frac >= 0.5 && frac <= 0.95)
-        warning('shReadGFC:incomplete', ...
+        warning('shLowLevel:shReadGFC:incomplete', ...
             ['%s: %d of %d coefficient records (degrees %d..%d) for ' ...
              'the header''s max_degree %d - truncated file?'], filename, ...
             got, expectRec, minSeen, nmaxSeen, hd);
@@ -411,7 +421,7 @@ if ~isempty(rows)
 end
 if any(badRec)
     kb = find(badRec, 1);
-    warning('shReadGFC:badRecord', ...
+    warning('shLowLevel:shReadGFC:badRecord', ...
         '%s: %d unparseable C/S value(s), first at n=%d m=%d (stored as NaN).', ...
         filename, nnz(badRec), rows(kb, 1), rows(kb, 2));
 end

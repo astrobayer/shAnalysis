@@ -172,6 +172,14 @@ jobs:
       - name: Public entities named by a test
         run: python3 tools/dev/name_coverage.py
 
+      # A3/A15: seventeen raise sites used another function's identifier,
+      # so a caller could not catch by owner. The v4.0.0 sweep fixed them;
+      # this keeps them fixed, and holds the same line for the help block
+      # in both directions - raised implies documented, documented implies
+      # raised.
+      - name: Error identifier ownership
+        run: python3 tools/error_id_audit.py
+
       # The generated reference pages are DERIVED from the help blocks.
       # A page that drifted from its source is the failure this toolbox
       # already shipped once: a correct version stamp on help text

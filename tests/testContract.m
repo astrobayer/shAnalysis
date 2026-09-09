@@ -92,10 +92,10 @@ function testSynthesisIDs(tc)
 g = randomField(10, 2020);
 verifyError(tc, ...
     @() g.synthesis(-80:10:80, 0:10:350, Quantity = "ewh"), ...
-    'shSynthesis:missingLoveNumbers');
+    'shLowLevel:kernelFactors:missingLoveNumbers');
 verifyError(tc, ...
     @() shLowLevel.shSynthesis(g.C, g.S, g.GM, g.R, 0, 0, 'quantity', 'nonsense'), ...
-    'shSynthesis:badQuantity');
+    'shLowLevel:kernelFactors:badQuantity');
 end
 
 function testDeformationIDs(tc)
@@ -124,7 +124,7 @@ end
 
 function testReadIDs(tc)
 verifyError(tc, @() shCoefficients.read('no_such_file.gfc'), ...
-    'shReadGFC:fileNotFound');
+    'shLowLevel:shReadGFC:fileNotFound');
 end
 
 % ---------------------------------------------------------- shSeries IDs
@@ -266,7 +266,7 @@ end
 function testSynthesisBadMethodID(testCase)
 C = zeros(3); S = zeros(3);
 verifyError(testCase, @() shLowLevel.shSynthesis(C, S, 1, 1, 0, [0 10 50], ...
-    'method', 'fft'), 'shSynthesis:badMethod');
+    'method', 'fft'), 'shLowLevel:shSynthesis:badMethod');
 end
 
 function testReadTN13ErrorIDs(testCase)
@@ -298,7 +298,7 @@ fclose(fid);
 cleanup = onCleanup(@() delete(f)); %#ok<NASGU>
 model = shLowLevel.shReadGFC(f);
 verifyError(testCase, @() shLowLevel.shEvalGFCT(model, 2020.0), ...
-    'shEvalGFCT:epochOutside');
+    'shLowLevel:shEvalGFCT:epochOutside');
 end
 
 function testTvANSBlocksUnavailableID(testCase)
@@ -412,9 +412,9 @@ g = shCoefficients(C, zeros(n1));
 lat = -60:30:60; lon = 0:90:270;
 
 verifyError(testCase, @() g.map(lat, lon, Quantity = "geoid"), ...
-    'shAnalysis:geoMapRequired');
+    'shLowLevel:requireGeoMap:geoMapRequired');
 verifyError(testCase, @() shLowLevel.requireGeoMap(), ...
-    'shAnalysis:geoMapRequired');
+    'shLowLevel:requireGeoMap:geoMapRequired');
 
 % the numbers are still available without geoMap - that is the point of
 % the bridge, and the error message says so
@@ -427,7 +427,7 @@ ts = shSeries(repmat(C, 1, 1, 2), Ss = zeros(n1, n1, 2), ...
     Epochs = [2010.1; 2010.2]);   % raw-stack form needs a matching Ss
 verifyError(testCase, @() shLowLevel.writeAnimation(ts, ...
     fullfile(tempdir, 'never_written.avi'), Quantity = "geoid"), ...
-    'shAnalysis:geoMapRequired');
+    'shLowLevel:requireGeoMap:geoMapRequired');
 verifyFalse(testCase, isfile(fullfile(tempdir, 'never_written.avi')));
 end
 
@@ -475,7 +475,7 @@ delete([tmp '.provenance.json']);
 
 % the named errors, not a codec complaint
 verifyError(testCase, @() shLowLevel.writeFrames(frames, ...
-    fullfile(tempdir, 'x.gif')), 'shLowLevel:writeAnimation:badExtension');
+    fullfile(tempdir, 'x.gif')), 'shLowLevel:writeFrames:badExtension');
 verifyError(testCase, @() shLowLevel.writeFrames(uint8(zeros(4, 4, 3)), ...
     tmp), 'shLowLevel:writeFrames:badSize');
 end
@@ -1471,15 +1471,15 @@ end
 % Height and d/dr are the same fact, so they are refused together
 verifyError(testCase, @() shLowLevel.shSynthesisGradient(C, S, GM, R, ...
     lat, lon, Quantity = "ewh", kn = kn, Height = 250e3), ...
-    'shSynthesis:heightInvalid');
+    'shLowLevel:kernelFactors:heightInvalid');
 % mass quantities still refuse to invent Love numbers
 verifyError(testCase, @() shLowLevel.shSynthesisGradient(C, S, GM, R, ...
-    lat, lon, Quantity = "ewh"), 'shSynthesis:missingLoveNumbers');
+    lat, lon, Quantity = "ewh"), 'shLowLevel:kernelFactors:missingLoveNumbers');
 % and the input gates hold
 verifyError(testCase, @() shLowLevel.shSynthesisGradient(C, S, GM, R, ...
-    lat, lon, Nmax = L + 3), 'shSynthesis:badInput');
+    lat, lon, Nmax = L + 3), 'shLowLevel:shSynthesisGradient:badInput');
 verifyError(testCase, @() shLowLevel.shSynthesisGradient(C, S, GM, R, ...
-    [0 10 20], [0 10], Mode = "points"), 'shSynthesis:badInput');
+    [0 10 20], [0 10], Mode = "points"), 'shLowLevel:shSynthesisGradient:badInput');
 verifyError(testCase, @() shLowLevel.shSynthesisGradient(C, S, GM, R, ...
     [0 95], lon), 'MATLAB:validators:mustBeInRange');
 end
@@ -1587,7 +1587,7 @@ verifyEqual(testCase, bOdd.FieldKind, "unknown", ...
 
 % a MASS quantity from a full field is the one case worth interrupting for
 verifyWarning(testCase, @() gFull.toGrid(lat, lon, Quantity = "ewh", ...
-    kn = kn), 'shCoefficients:toGrid:fullFieldAsMass');
+    kn = kn), 'shLowLevel:gridHandover:fullFieldAsMass');
 % ... and geoid from a full field is legitimate, so it must stay silent.
 % The warning is deliberately NOT disabled here - a suppressed warning
 % would make verifyWarningFree pass whatever the code did.
@@ -1659,7 +1659,7 @@ spec.degree = (0:10)';
 spec.degAmplitude = ones(11, 1);
 % no errAmplitude field: shDegreeRMS was called without sigmaC/sigmaS
 verifyError(testCase, @() shLowLevel.shSpectralCrossover(spec), ...
-    'shSpectralCrossover:missingField');
+    'shLowLevel:shSpectralCrossover:missingField');
 end
 
 function testPlotBasinSeriesReturnsAxesForTheStandardFigure(testCase)

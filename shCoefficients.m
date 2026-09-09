@@ -713,7 +713,7 @@ methods
         %   applies the same rule to its own elements.
         %
         %   Without geoMap on the path this raises
-        %   shAnalysis:geoMapRequired, whose message shows how to draw
+        %   shLowLevel:requireGeoMap:geoMapRequired, whose message shows how to draw
         %   the numbers yourself. g.toGrid needs no geoMap at all.
         %
         %   Inputs
@@ -979,7 +979,7 @@ methods
         %   the total mass and 0 for a residual - so "full" and "anomaly"
         %   are read off, and anything else is reported as "unknown"
         %   rather than decided. Synthesizing a MASS quantity from a full
-        %   field warns (shCoefficients:toGrid:fullFieldAsMass): it is the
+        %   field warns (shLowLevel:gridHandover:fullFieldAsMass): it is the
         %   static field expressed as water, not a mass change.
         %
         %   Handover into geoMap is then one line:

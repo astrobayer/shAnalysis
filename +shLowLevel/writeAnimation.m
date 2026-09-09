@@ -14,7 +14,7 @@ function writeAnimation(ts, filename, opts)
 %   GEOMAP DRAWS. Since v3.32.0 this function contains no cartography of
 %   its own - it assembles the stack (which is spherical-harmonic work),
 %   calls geo.map once per frame, and writes the container. If geoMap is
-%   absent it raises shAnalysis:geoMapRequired BEFORE synthesizing: a
+%   absent it raises shLowLevel:requireGeoMap:geoMapRequired BEFORE synthesizing: a
 %   two-minute stack followed by an undefined-function error is the
 %   wrong order to discover that in. The container mechanics live in
 %   shLowLevel.writeFrames, which has no graphics and therefore stays

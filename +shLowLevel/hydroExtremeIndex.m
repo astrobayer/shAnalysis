@@ -84,6 +84,8 @@ function [Z, info] = hydroExtremeIndex(X, epochs, opts)
 %   Error identifiers
 %     shLowLevel:hydroExtremeIndex:badSize     epochs vs X mismatch
 %     shLowLevel:hydroExtremeIndex:badPrecip   PrecipGrid shape/mode
+%     shLowLevel:hydroExtremeIndex:shortMonths warning: a calendar month
+%                                              has too few epochs
 %
 %   References: Zhao, A, Velicogna, Kimball (2017) J Hydrometeorol 18;
 %   Reager & Famiglietti (2009) GRL 36, L23402; Reager, Thomas,

@@ -2,7 +2,7 @@ function loc = requireGeoMap()
 %REQUIREGEOMAP Assert that geoMap is on the path; say where it is.
 %
 %   LOC = shLowLevel.requireGeoMap() returns the path of geo.map, or
-%   raises shAnalysis:geoMapRequired with a message that says what to do
+%   raises shLowLevel:requireGeoMap:geoMapRequired with a message that says what to do
 %   instead of reporting an undefined function three frames deeper.
 %
 %   WHY THIS EXISTS AS ITS OWN FUNCTION. Since v3.32.0 shAnalysis draws
@@ -27,11 +27,16 @@ function loc = requireGeoMap()
 %
 %   See also SHCOEFFICIENTS/MAP, SHCOEFFICIENTS/TOGRID, WRITEANIMATION.
 %
+%   Error identifiers
+%     shLowLevel:requireGeoMap:geoMapRequired
+%         geoMap is not on the MATLAB path; the message says what to do
+%         instead of failing three frames deeper
+%
 %   Claude (Opus 5), 2026-08-23 (v3.32.0).
 %   Developed by Matthias Weigelt with the help of Claude (Opus 5).
 loc = which('geo.map');
 if isempty(loc) || isempty(which('geo.grid'))
-    error('shAnalysis:geoMapRequired', ...
+    error('shLowLevel:requireGeoMap:geoMapRequired', ...
         ['This draws through geoMap, which is not on the MATLAB path.\n\n' ...
          'shAnalysis stopped carrying its own map renderer in v3.32.0: ' ...
          'there were two, in two toolboxes, in different projections, ' ...

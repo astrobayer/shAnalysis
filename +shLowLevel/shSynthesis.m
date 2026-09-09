@@ -59,6 +59,16 @@ function [grid, lat, lon, P] = shSynthesis(C, S, GM, R, latVec, lonVec, varargin
 %           are streamed and discarded, so request the 4th output only
 %           with a memory budget that fits the full array.
 %
+%   Error identifiers
+%     shLowLevel:shSynthesis:badInput
+%         C and S are not square matrices of equal size, or Nmax exceeds
+%         the coefficients supplied
+%     shLowLevel:shSynthesis:badP
+%         a precomputed P does not match Nmax and the latitude vector
+%     shLowLevel:shSynthesis:badMethod
+%         Method="fft" on a longitude vector that is not uniform and
+%         full-circle
+%
 %   Claude (Sonnet 4.6), 2026-07-11; merged into +shLowLevel and FFT/parity
 %   fast paths added: Claude (Fable 5), 2026-08-07.
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).
@@ -81,10 +91,10 @@ nmin = p.Results.nmin;
 nmax = p.Results.nmax;
 
 if size(C,1) ~= size(C,2) || size(S,1) ~= size(S,2) || size(C,1) ~= size(S,1)
-    error('shSynthesis:badInput', 'C and S must be square matrices of equal size.');
+    error('shLowLevel:shSynthesis:badInput', 'C and S must be square matrices of equal size.');
 end
 if nmax > size(C,1)-1
-    error('shSynthesis:badInput', ...
+    error('shLowLevel:shSynthesis:badInput', ...
         'Requested nmax (%d) exceeds available coefficients (max %d).', nmax, size(C,1)-1);
 end
 
@@ -103,7 +113,7 @@ if isempty(p.Results.P)
 else
     P = p.Results.P;
     if size(P,1) < nmax+1 || size(P,3) ~= nlat
-        error('shSynthesis:badP', ...
+        error('shLowLevel:shSynthesis:badP', ...
             'Supplied P is incompatible with nmax/latVec (size %s).', mat2str(size(P)));
     end
     banded = false;
@@ -187,7 +197,7 @@ elseif strcmp(method, 'fft')
     dl = diff(lonRad);
     if nlon < 2 || any(abs(dl - dl(1)) >= 1e-12) || dl(1) <= 0 ...
             || abs(nlon*dl(1) - 2*pi) >= 1e-9
-        error('shSynthesis:badMethod', ...
+        error('shLowLevel:shSynthesis:badMethod', ...
             'method=''fft'' requires a uniform, full-circle longitude vector.');
     end
     useFFT = true;

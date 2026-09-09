@@ -117,6 +117,7 @@ CF-1.8 export, provenance sidecars, geoMap bridge (`toGrid`, `gridHandover`).
    `python tools/dev/mlint_lite.py <changed files>`, `python tools/dev/check_api.py`,
    `python tools/dev/api_audit.py`, `python tools/dev/attribution_sweep.py`,
    `python tools/dev/refpages_audit.py`, `python tools/dev/name_coverage.py`,
+   `python tools/error_id_audit.py`,
    `python tools/dev/make_demos.py --check`; then every `tools/tests/test_*.py`.
    **This list must equal what `ci.yml` runs.** It did not, and CI failed on
    `make_demos --check` at `0ab29b5` while eleven local gates were green.

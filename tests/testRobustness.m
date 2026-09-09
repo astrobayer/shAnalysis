@@ -157,7 +157,7 @@ fid = fopen(f1, 'w');
 fprintf(fid, 'product_type gravity_field\nend_of_head\n');
 fclose(fid);
 tc.addTeardown(@() delete(f1));
-verifyError(tc, @() shCoefficients.read(f1), 'shReadGFC:noData');
+verifyError(tc, @() shCoefficients.read(f1), 'shLowLevel:shReadGFC:noData');
 
 % junk lines between valid records must be skipped, not crash
 f2 = fullfile(tempdir, 'robust_junk.gfc');
@@ -181,7 +181,7 @@ g = shCoefficients.read(f);
 % static model: evalAt must be an identity AND must say so - the warning
 % is part of the contract, so assert it (verifyWarning also captures it,
 % keeping the test log clean)
-g2 = verifyWarning(tc, @() g.evalAt(2020.0), 'shEvalGFCT:staticModel');
+g2 = verifyWarning(tc, @() g.evalAt(2020.0), 'shLowLevel:shEvalGFCT:staticModel');
 verifyEqual(tc, g2.C, g.C, AbsTol = 0);
 end
 
@@ -1432,11 +1432,11 @@ tmp = tempname; mkdir(tmp);
 cleanup = onCleanup(@() rmIfFolder(tmp)); %#ok<NASGU>
 f1 = fullfile(tmp, 'trunc.gfc');
 fid = fopen(f1, 'w'); fwrite(fid, raw(1:round(0.6*numel(raw)))); fclose(fid);
-verifyWarning(tc, @() shLowLevel.shReadGFC(f1), 'shReadGFC:incomplete');
+verifyWarning(tc, @() shLowLevel.shReadGFC(f1), 'shLowLevel:shReadGFC:incomplete');
 bad = regexprep(raw, '(gfc\s+3\s+1\s+)\S+', '$1NOTANUMBER', 'once');
 f2 = fullfile(tmp, 'corrupt.gfc');
 fid = fopen(f2, 'w'); fwrite(fid, bad); fclose(fid);
-verifyWarning(tc, @() shLowLevel.shReadGFC(f2), 'shReadGFC:badRecord');
+verifyWarning(tc, @() shLowLevel.shReadGFC(f2), 'shLowLevel:shReadGFC:badRecord');
 end
 
 function testFetchLoveNumbersHeaderlessColumn(tc)

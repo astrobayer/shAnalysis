@@ -137,6 +137,12 @@ function [dq, info] = shSynthesisGradient(C, S, GM, R, latDeg, lonDeg, opts)
 %   See also SHSYNTHESIS, SHSYNTHESISDEFORMATION, SHSYNTHESISGRADIENTTENSOR,
 %   KERNELFACTORS, LEGENDREALFDERIV.
 %
+%   Error identifiers
+%     shLowLevel:shSynthesisGradient:badInput
+%         C and S are not equally sized square matrices, Nmax exceeds the
+%         coefficients supplied, or Mode="points" got LAT and LON of
+%         unequal length
+%
 %   Claude (Opus 5), 2026-08-22 (v3.30.0).
 %   Developed by Matthias Weigelt with the help of Claude (Opus 5).
 arguments
@@ -161,16 +167,16 @@ arguments
 end
 
 assert(isequal(size(C), size(S)) && size(C, 1) == size(C, 2), ...
-    'shSynthesis:badInput', 'C and S must be equally sized square matrices.');
+    'shLowLevel:shSynthesisGradient:badInput', 'C and S must be equally sized square matrices.');
 nmax = opts.Nmax;
 if isnan(nmax), nmax = size(C, 1) - 1; end
-assert(nmax <= size(C, 1) - 1, 'shSynthesis:badInput', ...
+assert(nmax <= size(C, 1) - 1, 'shLowLevel:shSynthesisGradient:badInput', ...
     'Requested nmax (%d) exceeds available coefficients (max %d).', ...
     nmax, size(C, 1) - 1);
 N1 = nmax + 1;
 pts = opts.Mode == "points";
 if pts
-    assert(numel(latDeg) == numel(lonDeg), 'shSynthesis:badInput', ...
+    assert(numel(latDeg) == numel(lonDeg), 'shLowLevel:shSynthesisGradient:badInput', ...
         'Mode="points" needs equal-length LAT and LON.');
 end
 

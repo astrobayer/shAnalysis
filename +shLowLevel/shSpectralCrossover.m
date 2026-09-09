@@ -19,10 +19,14 @@ function [nCrossover, degreeInterp] = shSpectralCrossover(spec)
 %     nCrossover    (1,1) double  first degree with err >= signal (NaN if none)
 %     degreeInterp  (1,1) double  linearly interpolated crossing degree
 %
+%   Error identifiers
+%     shLowLevel:shSpectralCrossover:missingField
+%         SPEC has no errAmplitude field - shDegreeRMS was called without
+%         SigmaC/SigmaS
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 
 if ~isfield(spec, 'errAmplitude')
-    error('shSpectralCrossover:missingField', ...
+    error('shLowLevel:shSpectralCrossover:missingField', ...
         'SPEC has no ''errAmplitude'' field -- call shDegreeRMS with sigmaC/sigmaS.');
 end
 

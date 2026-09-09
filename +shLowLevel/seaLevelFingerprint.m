@@ -57,6 +57,14 @@ function [S, grid, info] = seaLevelFingerprint(loadRegion, ocean, idx, opts)
 %   no rotational feedback, fixed coastlines, band-limited load/ocean
 %   masks (Gibbs at coasts - OverSample and Lmax control it).
 %
+%   Error identifiers
+%     shLowLevel:seaLevelFingerprint:badIndex
+%         IDX must use Nmin = 0 - mass conservation needs degrees 0 and 1
+%     shLowLevel:seaLevelFingerprint:badLoad
+%         LOADREGION is not a function handle, polygon or Ngrid x 1 vector
+%     shLowLevel:seaLevelFingerprint:missingLoveNumbers
+%         the supplied Love numbers do not cover degrees 0..nmax
+%
 %   Claude (Fable 5), 2026-08-07 (v2.4).
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 arguments
@@ -77,7 +85,7 @@ assert(idx.minDegree == 0, 'shLowLevel:seaLevelFingerprint:badIndex', ...
     'idx must use Nmin = 0 (mass conservation needs degrees 0-1).');
 n1 = idx.Lmax + 1;
 for fld = ["kn", "hn"]
-    assert(numel(opts.(fld)) >= n1, 'shSynthesis:missingLoveNumbers', ...
+    assert(numel(opts.(fld)) >= n1, 'shLowLevel:seaLevelFingerprint:missingLoveNumbers', ...
         'Love numbers %s must cover degrees 0..%d.', fld, idx.Lmax);
 end
 [Y, w, grid] = shLowLevel.synthesisMatrix(idx, ...

@@ -57,7 +57,7 @@ switch lower(ext)
     case '.mp4'
         profs = VideoWriter.getProfiles;
         if ~any(strcmp({profs.Name}, 'MPEG-4'))
-            error('shLowLevel:writeAnimation:mp4Unsupported', ...
+            error('shLowLevel:writeFrames:mp4Unsupported', ...
                 ['MPEG-4 is not available on this platform (Linux). ', ...
                  'Use an .avi filename instead.']);
         end
@@ -65,7 +65,7 @@ switch lower(ext)
     case '.avi'
         vw = VideoWriter(char(filename), 'Motion JPEG AVI');
     otherwise
-        error('shLowLevel:writeAnimation:badExtension', ...
+        error('shLowLevel:writeFrames:badExtension', ...
             'Use an .mp4 or .avi filename (got %s).', ext);
 end
 vw.FrameRate = opts.FrameRate;
