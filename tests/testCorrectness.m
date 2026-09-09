@@ -1652,6 +1652,62 @@ verifyError(testCase, @() shLowLevel.synthesisPoints(C, S, GM, R, la, lo(1), r),
     'shLowLevel:synthesisPoints:sizeMismatch');
 end
 
+function testSynthesisPointsMethodsAgree(testCase)
+%TESTSYNTHESISPOINTSMETHODSAGREE v5.1.0 metamorphic: the two summations
+%   in synthesisPoints evaluate the SAME series, so they must agree - but
+%   they cannot agree bitwise, because Clenshaw sums the same terms in a
+%   different order. The bound is the one measured by the committed
+%   oracle tools/dev/validate_points_clenshaw.py, which reports 4e-15 at
+%   nmax 60 and 2.8e-14 at nmax 120 over these quantities and Nmin
+%   values; 5e-14 is about 2x that worst case, and bounds the reordering
+%   of a sum of (nmax+1)^2/2 terms whose partial sums cancel.
+tol = 5e-14;                                   % see the oracle, above
+GM = 3.986004415e14; R = 6378136.3;
+rng(31);
+for nmax = [5 20 60]
+    C = tril(randn(nmax+1)) * 1e-9;
+    S = tril(randn(nmax+1), -1) * 1e-9;
+    % near-pole latitudes included on purpose: that is where the u^m
+    % factor is smallest and the two paths are most likely to part
+    la = [89.9; -89.9; 0; 45.25; -12.5];
+    lo = [10; 123; 271; 200; 355];
+    rr = R + [0; 750; 100; 500; 1000];
+    for q = ["potential", "disturbance", "anomaly"]
+        for n0 = [0 2]
+            vd = shLowLevel.synthesisPoints(C, S, GM, R, la, lo, rr, ...
+                Quantity = q, Nmin = n0, Method = "direct");
+            vc = shLowLevel.synthesisPoints(C, S, GM, R, la, lo, rr, ...
+                Quantity = q, Nmin = n0, Method = "clenshaw");
+            sc = max(max(abs(vd)), realmin);
+            verifyLessThan(testCase, max(abs(vc - vd)) / sc, tol, ...
+                sprintf('nmax=%d %s Nmin=%d', nmax, q, n0));
+        end
+    end
+end
+end
+
+function testSynthesisPointsChunkingIsBitwise(testCase)
+%TESTSYNTHESISPOINTSCHUNKINGISBITWISE v5.1.0: the "direct" path batches
+%   legendreALF over a chunk of points. The recursion is elementwise in
+%   latitude, so the chunk size cannot change a single bit - and that is
+%   what makes "direct" the bitwise reference the pinned values in
+%   testSynthesisPoints still rest on. MaxMemGB sets the chunk, so
+%   driving it to one point per chunk and to all points at once must give
+%   identical bits, not merely equal numbers.
+GM = 3.986004415e14; R = 6378136.3;
+rng(32);
+nmax = 30;
+C = tril(randn(nmax+1)) * 1e-9; S = tril(randn(nmax+1), -1) * 1e-9;
+la = linspace(-88, 88, 40)'; lo = mod(7 * (1:40)', 360);
+rr = R + (1:40)' * 25;
+tiny = shLowLevel.synthesisPoints(C, S, GM, R, la, lo, rr, ...
+    Method = "direct", MaxMemGB = 8 * (nmax+1)^2 / 2^30);   % chunk = 1
+big  = shLowLevel.synthesisPoints(C, S, GM, R, la, lo, rr, ...
+    Method = "direct", MaxMemGB = 4);
+verifyTrue(testCase, isequal(tiny, big), ...
+    'chunking changed the result - legendreALF is not elementwise in latitude');
+end
+
 function testDesignFilter(testCase)
 % v3.1.0: W = (N + a*inv(S))^-1 N per order block. Diagonal gains and
 % the full-covariance 2x2 block are pinned against the Python reference

@@ -1907,6 +1907,46 @@ verifyEqual(testCase, gd.C, Cd);
 verifyEqual(testCase, gd.S, Sd);
 end
 
+function testSynthesisPointsAutoPicksTheFasterPath(testCase)
+%TESTSYNTHESISPOINTSAUTOPICKSTHEFASTERPATH v5.1.0: "auto" must DISPATCH,
+%   not merely be accepted. The whole point of the option is that the
+%   default is the faster summation for the calculation in hand, so the
+%   rule itself is pinned: below ClenshawFrom "auto" IS "direct", at or
+%   above it "auto" IS "clenshaw" - bitwise in both directions, because
+%   auto only chooses, it does not compute.
+%
+%   The crossover default (150) comes from the numpy prototype, not from
+%   MATLAB, so this test deliberately pins the DISPATCH RULE and not the
+%   number: it drives ClenshawFrom explicitly. Changing the default
+%   cannot silently break it, which is the point - the number is expected
+%   to move once A8 measures the real crossover.
+GM = 3.986004415e14; R = 6378136.3;
+rng(33);
+nmax = 12;
+C = tril(randn(nmax+1)) * 1e-9; S = tril(randn(nmax+1), -1) * 1e-9;
+n = 20;
+la = linspace(-80, 80, n)'; lo = mod(11 * (1:n)', 360); rr = R + (1:n)' * 10;
+% n = 20 points, threshold above it -> auto must be the direct path
+aLo = shLowLevel.synthesisPoints(C, S, GM, R, la, lo, rr, ClenshawFrom = 50);
+dir = shLowLevel.synthesisPoints(C, S, GM, R, la, lo, rr, Method = "direct");
+verifyTrue(testCase, isequal(aLo, dir), ...
+    'auto below ClenshawFrom must be exactly the direct path');
+% same points, threshold at or below the count -> auto must be clenshaw
+aHi = shLowLevel.synthesisPoints(C, S, GM, R, la, lo, rr, ClenshawFrom = n);
+cle = shLowLevel.synthesisPoints(C, S, GM, R, la, lo, rr, Method = "clenshaw");
+verifyTrue(testCase, isequal(aHi, cle), ...
+    'auto at or above ClenshawFrom must be exactly the clenshaw path');
+% and the two paths are genuinely different code, or the test above is
+% vacuous - they agree numerically but must not be bit-identical here
+verifyFalse(testCase, isequal(dir, cle), ...
+    'direct and clenshaw returned identical bits: one path is not running');
+% the option surface itself
+verifyError(testCase, @() shLowLevel.synthesisPoints(C, S, GM, R, ...
+    la, lo, rr, Method = "fft"), 'MATLAB:validators:mustBeMember');
+verifyError(testCase, @() shLowLevel.synthesisPoints(C, S, GM, R, ...
+    la, lo, rr, ClenshawFrom = 0), 'MATLAB:validators:mustBePositive');
+end
+
 function testSynthesisOwnsItsOwnIdentifiers(testCase)
 % shSynthesis raised bare shSynthesis:* until v4.0.0. badInput and badP
 % had no test at all; badMethod is pinned above.

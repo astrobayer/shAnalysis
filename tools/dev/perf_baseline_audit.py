@@ -55,6 +55,12 @@ HEADER = "machine,matlab,benchmark,median_s,min_s,samples,measured"
 # This list may only SHRINK. An entry here means the budget FILTERS rather
 # than asserts, so nothing is being guarded - it is debt, not a decision.
 NO_BASELINE = {
+    "synthesis_points_n60": "v5.1.0 changed which summation this runs "
+                            "(now clenshaw); the old 2.2829 s measured the "
+                            "retired per-point path and would pass "
+                            "vacuously",
+    "synthesis_points_n60_direct": "new in v5.1.0, awaiting its first A8 "
+                                   "measurement",
 }
 
 _DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")

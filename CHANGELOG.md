@@ -1,5 +1,98 @@
 # Changelog
 
+## [5.1.0] - 2026-09-09 - two summations for synthesisPoints, faster one by default
+
+WP2 step 2, row B2. `shLowLevel.synthesisPoints` gains `Method`,
+`ClenshawFrom` and `MaxMemGB`. Nothing existing changes its answer: the
+default path at the point counts the old tests use is BITWISE identical.
+
+### What was wrong
+
+`synthesisPoints` aggregated per point, and per point it built the FULL
+`(nmax+1)x(nmax+1)` Legendre matrix - calling `legendreALF` with a SCALAR
+latitude, though it accepts a vector - then formed three more full
+matrices before reducing. Four allocations and four passes over `nmax^2`
+per point. v5.0.3 measured the cost: 2.28 s for 2000 points at nmax 60,
+1.14 ms per point, 36.65 s of a 4:51 CI job.
+
+### Two paths, and the faster one is the default
+
+| `Method` | what it does | cost in the point count |
+|---|---|---|
+| `"direct"` | builds `Pbar`, contracts per point; the recursion now runs once per CHUNK of points instead of once per point | linear |
+| `"clenshaw"` | reorders the sum by ORDER and evaluates each order's degree sum by Clenshaw summation; `Pbar` is never formed | nearly flat |
+| `"auto"` (default) | `"clenshaw"` at or above `ClenshawFrom` points, `"direct"` below | - |
+
+Measured in the committed oracle `tools/dev/validate_points_clenshaw.py`
+(numpy, same recursion coefficients as `legendreALF.m`), against the
+per-point code it replaces:
+
+```
+nmax=60  P=2000    direct  52x faster    clenshaw 310x faster
+nmax=60  P=200     direct  61x           clenshaw  68x
+```
+
+and the crossover between the two shipped paths:
+
+```
+             P:    10     50    100    200    400
+nmax=60      direct wins  ---------|  clenshaw wins
+nmax=120     direct wins  ---------|  clenshaw wins
+```
+
+The crossover sits between 100 and 200 points at BOTH degrees - it barely
+moves with `nmax`, which is what makes one scalar `ClenshawFrom` (150)
+defensible instead of a rule in `nmax`. **That number is measured in
+numpy, not on MATLAB**, and the help says so; `tests/perf_baseline.csv`
+now budgets both paths so A8 can replace it.
+
+### `"direct"` is bitwise, `"clenshaw"` cannot be
+
+Batching only moves the `legendreALF` call out of the loop, and the
+recursion is elementwise in latitude, so the chunk size cannot change a
+bit - pinned by `testSynthesisPointsChunkingIsBitwise`, which drives
+`MaxMemGB` to one point per chunk and to all points at once and compares
+with `isequal`. That is why the pinned reference values in
+`testSynthesisPoints` still hold unchanged.
+
+Clenshaw sums the same terms in a different order, so **bitwise agreement
+is arithmetically impossible** and no test asserts it. WP2's "bitwise, or
+<= 4 eps" acceptance does not apply to it, and pretending otherwise would
+have meant writing an assertion that cannot hold. What is asserted
+instead: agreement with `"direct"` to 5e-14 relative (about 2x the worst
+case the oracle measures), and - in the oracle - that neither path
+dominates the other against a 60-digit `mpmath` reference:
+
+```
+lat      direct   clenshaw
+ 89.5   12.9 eps   89.0 eps
+ 12.3   52.7 eps   59.5 eps
+ 62.0    4.4 eps    0.5 eps
+```
+
+Both sit within tens of eps, which is what a sum of `nmax^2/2` terms with
+cancellation costs. Clenshaw is better at three of six points and worse
+at the near-pole one.
+
+### Budgets
+
+`synthesis_points_n60` now forces `"clenshaw"` at 2000 points, and its old
+2.2829 s baseline is RETIRED rather than kept: it measured the path that
+no longer runs, so it would have passed vacuously. A new
+`synthesis_points_n60_direct` budgets `"direct"` at 200 points - a
+GNSS-network-sized station list, the regime `"auto"` routes to `"direct"`.
+Both sit in `NO_BASELINE` until A8 measures them.
+
+### Not changed, and why
+
+The GRID default was already the faster one: `shSynthesis`'s `"auto"`
+picks the FFT path for any uniform full-circle longitude vector, and
+v5.0.3 measured that at 1.40x the direct path. Nothing to do.
+`shSynthesisDeformation` does NOT share the pathology - it calls
+`legendreALFDeriv` once with the whole latitude vector already.
+
+Test count: 308 methods / **319 runs** (305/315 + 3 tests + 1 budget).
+
 ## [5.0.3] - 2026-09-09 - WP2 step 1: the budgets go live
 
 v5.0.2 built the harness and measured nothing; A8 has now measured it.
