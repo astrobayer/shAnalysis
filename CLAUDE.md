@@ -28,7 +28,7 @@ says whether it was *read* or *inferred*.
 | Public surface | 3 classes / 71 methods, 122 `+shLowLevel` functions (+4 private), 3 root functions | `tools/dev/api_extract.py` run in sandbox |
 | Tests | 5 classes, **304 methods / 305 runs**: Correctness 159, Contract 74, Robustness 53, Science 7, Performance 11 methods (12 runs, `nmaxP` x2). 4 filter out without the optional real-data fixtures. The counter has matched the runner EXACTLY on the last four green A8 runs (269, 301, 304, 304); the one time it did not was A16, before it existed. | `python3 tools/dev/count_tests.py` |
 | Python oracles | 16 `tools/dev/validate_*.py` + `tools/audit/*` | listing |
-| Docs | 50 hand-written `html/*.html` + **200 generated `html/ref/*.html`** (one per entity + index, `make_refpages.py`), one shared `html/shAnalysis.css`, `helptoc.xml`, `info.xml`, guide PDF, generated `html/apiReference.html`. `docs/` holds the PDF and `apiExamples.json` only - no HTML page lives outside `html/` (gated). | listing |
+| Docs | **26** hand-written `html/*.html` (24 per-entity duplicates retired in v5.0.1, WP6 stage 3) + **200 generated `html/ref/*.html`** (one per entity + index, `make_refpages.py`), one shared `html/shAnalysis.css`, `helptoc.xml`, `info.xml`, guide PDF, generated `html/apiReference.html`. `docs/` holds the PDF and `apiExamples.json` only - no HTML page lives outside `html/` (gated). | listing |
 | CI | `gates` job on ubuntu (help_audit, doc_sync_audit, no_map_renderer, toolbox_dependency_audit, nv_casing_audit, fixture_tag_audit, gate self-tests `tools/tests/`, `count_tests`, `name_coverage`, `error_id_audit`, `refpages_audit`, `make_demos --check`) + `runAllTests (self-hosted)` on A8/R2026a; fixtures from tag `fixtures-2026-08` | `.github/workflows/ci.yml` |
 | Namespace | `+shLowLevel` (renamed from `+shx` in v3.0.0). Any memory saying `shx.*` is stale. | README §History |
 
@@ -387,10 +387,16 @@ stylesheet and use one structural heading vocabulary (A8 closed);
 `demos.xml` generated from the demo registry (A7's Examples tab);
 `setup_shAnalysis(Docs=true)` already built the search index, so no
 `BuildSearch` option was added — the WP proposed something that existed.
-**Stage 3 (open)**: retire the hand-written pages a generated page now
-supersedes. Deferred deliberately: `doc_sync_audit`'s COVERAGE check
-requires every entity to be named in a NARRATIVE page or the guide, so
-deleting pages changes what that check means and needs its own decision.
+**Stage 3 (DONE in v5.0.1)**: approved by Matthias 2026-09-09 as scope
+item (7). 24 of the 50 hand-written pages retired; 26 remain. The set was
+COMPUTED, not chosen by file name: retire a page only if every entity
+stays covered afterwards. 30 qualify; the other 6 are the last narrative
+mention of 11 entities. Of the 30, six read as narrative by the WP's own
+rule (`standardChain` a chain, `shSeries` a class overview,
+`legendreALF`/`seaLevelFingerprint`/`eofAnalysis`/`slepianBasis` theory)
+and were kept, leaving 24. **The COVERAGE question did not arise**: since
+no entity lost coverage, the check keeps its meaning unchanged. Every
+inbound link and helptoc target was repointed at `html/ref/` first.
 
 Original scope below.
 
@@ -462,6 +468,24 @@ Original scope below.
 ## 6. Records
 
 ### 6.1 Decisions (append-only; date, decision, evidence)
+- 2026-09-09 — **WP6 stage 3 approved and executed as 5.0.1** (Matthias:
+  "WP6 is approved as suggested", then "retire the 24").
+- 2026-09-09 — **The COVERAGE check did NOT have to be redefined, and
+  that was a measurement, not a hope.** §6.4 had recorded stage 3 as
+  blocked on deciding what COVERAGE should mean once per-entity pages
+  went. Computing the retirement set answered it instead: 30 pages can go
+  with ZERO entities losing narrative coverage, so the check keeps its
+  current meaning and its teeth. Only the 6 pages that ARE the last
+  mention of something were ever the problem, and they stay. A decision
+  that looked editorial turned out to be arithmetic.
+- 2026-09-09 — **`removeGIA.html` pointed at `shSeries.removeGIA` by
+  accident before it did so by decision.** Its short name matches two
+  entities (`shSeries.removeGIA`, `shClimatology.removeGIA`) and a
+  `setdefault` picked one. Reading the retired page settled it — it
+  documents both routes, `ts.removeGIA(gia)` first. The accident happened
+  to be right; the fix was to make it a decision rather than leave it to
+  ordering. It is the only ambiguous short name among the 24, which was
+  checked rather than assumed.
 - 2026-09-09 — **A21b approved and executed as 5.0.0** (Matthias:
   "A21b approved"). MAJOR: 29 documented, test-pinned identifiers stop
   working.
@@ -702,6 +726,7 @@ Original scope below.
 | v4.0.2 (A20; A21 opened) | ☑ 13 gates + mlint + make_demos + 11 self-test suites, 0 findings; `count_tests.py` predicts 303 methods / 304 runs, unchanged (the two `testContract` pins changed an identifier STRING, not a method count) | ☑ **CI self-hosted (A8) at `0b4fb3b`, green — 304 runs, 300 passed, 0 failed, 4 filtered**; the prediction matched EXACTLY for the fourth release running, per class as well as in total (Contract 73, Correctness 159, Performance 12 runs, Robustness 53, Science 7). First run, no red round. | ☑ PR #97 | ☑ 2026-09-09 |
 | v4.0.3 (A21a; A21b opened) | ☑ 13 gates + mlint + make_demos + 11 self-test suites, 0 findings | ☑ **CI self-hosted (A8) at `0d06e14`, green — 305 runs, 301 passed, 0 failed, 4 filtered**; the prediction matched EXACTLY for the FIFTH release running, per class as well as in total (Contract 74, Correctness 159, Performance 12 runs, Robustness 53, Science 7), and `testMinusDoesNotEnforceEpochAgreement` ran and passed. First run, no red round. | ☑ PR #98 | ☑ 2026-09-09 |
 | v5.0.0 (A21b) | ☑ 13 gates + mlint + make_demos + 11 self-test suites, 0 findings | ◐ awaiting the A8 run | ◐ no PR yet | ◐ pending |
+| v5.0.1 (WP6 stage 3) | ☑ 13 gates + mlint + make_demos + 11 self-test suites, 0 findings; 50 hand-written pages -> 26, no entity lost COVERAGE | ◐ awaiting the A8 run | ◐ no PR yet | ◐ pending |
 
 **Tier A debt: DISCHARGED for all seven releases.** The local MATLAB
 bridge is gone, but the self-hosted runner A8 is not: `runAllTests
@@ -723,6 +748,17 @@ confirmation that the counter is right about a real run and not only
 about the source.
 
 ### 6.3 What the next session could be wrong for not reading
+- **Check BOTH quotings when rewriting HTML links.** WP6 stage 3's first
+  pass rewrote `href="x.html"` and missed `href='x.html'`; the See-also
+  lines of `shSynthesis` and `legendreALF` use single quotes, and the
+  pages would have shipped with dead links that no gate then covered.
+  Verify a sweep by searching for what should be ABSENT afterwards, not
+  by trusting the count of what was changed.
+- **A decision that looks editorial may be arithmetic.** Stage 3 sat
+  blocked for two releases on "what should COVERAGE mean afterwards".
+  Measuring which pages could go without costing coverage dissolved the
+  question: 30 could, so the check never had to change. Measure before
+  asking for a decision — the measurement sometimes IS the decision.
 - **An identifier must not name something the user cannot see.** A21b's
   first instinct was `shSeries:assertClean:nanInSeries` — mechanical, and
   wrong: `assertClean` is private, so the contract would have been pinned
@@ -867,24 +903,26 @@ Done and on PR #95: WP0, WP6 stages 1-2, and findings A1, A3 (partial),
 A4, A5, A6, A7, A8, A10, A11, A12, A13, A14, A16, A17, A18 closed;
 A19 partially.
 
-**Seven releases are merged to `main` (PR #95..#98); 5.0.0 is on the
-branch.** Twenty of the twenty-two audit findings are closed. The two
-that remain are closed by DECISION, not by work:
+**Seven releases are merged to `main` (PR #95..#98); 5.0.0 and 5.0.1 are
+on the branch.** **All twenty-two audit findings are now closed or
+accepted**, and WP6 is complete:
 
-- **A9** — accepted as it stands (2026-09-09). No speed budget exists;
-  a 1.3x regression still ships unnoticed. Known and accepted, so WP2 is
-  not started. Reopen it by ticking WP2.
-- **WP6 stage 3** — approved 2026-09-09 as scope item (7): retire the
-  hand-written pages a generated `html/ref/` page supersedes, keep the
-  narrative pages (chains, theory) as More About links. In progress.
+- **A9** — accepted as it stands (2026-09-09, Matthias: "A9 is ok"). No
+  speed budget exists; a 1.3x regression in `legendreALF`,
+  `shSynthesis`, `shAnalysisGrid`, `applyDDK`, `leakageCorrect` or the
+  Kalman step still ships unnoticed. A known, accepted risk — reopen it
+  by ticking WP2.
+- Everything else in §4.1 is CLOSED.
 
 **WP3, WP4, WP5 and WP7 wait on approval only** — see the 2026-09-09
 correction in §6.1. Their acceptance is a MATLAB test against a committed
-Python oracle, and CI runs exactly that.
+Python oracle, and CI runs exactly that. WP2 step 1 is likewise reachable
+through CI; only its two-machine calibration needs the bridge.
 
-**5.0.0 has no PR, so CI has not run on it.** The prediction to check
-against the runner is **304 methods / 305 runs**, unchanged: the release
-renames identifier STRINGS and adds no test.
+**5.0.0 and 5.0.1 have no PR, so CI has not run on either.** The
+prediction to check against the runner is **304 methods / 305 runs**,
+unchanged across both: 5.0.0 renames identifier STRINGS and 5.0.1 touches
+documentation only.
 
 To re-run the gates and the prediction from a fresh sandbox:
 ```
@@ -898,7 +936,8 @@ pip install reportlab matplotlib && \
 *shAnalysis v3.33.0 audited | 2026-09-08 18:30 UTC | Claude Fable 5.1 |
 WP0 (v3.33.1), A7/A8/A12/A13/A14/A16 + WP6.1-2 (v3.34.0),
 A10/A17/A18 (v3.34.1), WP1/A2/A3/A15 (v4.0.0), A19 (v4.0.1),
-A20 (v4.0.2), A21a (v4.0.3) and A21b (v5.0.0) |
+A20 (v4.0.2), A21a (v4.0.3), A21b (v5.0.0)
+and WP6 stage 3 (v5.0.1) |
 2026-09-08..09 | Claude Opus 5 |
 the first four releases green on A8 via CI — 4.0.0 at `5452938`:
 304 runs, 300 passed, 0 failed, 4 filtered.
@@ -906,5 +945,5 @@ the first four releases green on A8 via CI — 4.0.0 at `5452938`:
 300 passed, 0 failed, 4 filtered, no red round.
 4.0.3 green on A8 at `0d06e14` via PR #98: 305 runs, 301 passed,
 0 failed, 4 filtered - the fifth exact count prediction running.
-5.0.0 is static-gate green only; no PR, so no CI run yet. |
+5.0.0 and 5.0.1 are static-gate green only; no PR, so no CI run yet. |
 Developed by Matthias Weigelt with the help of Claude.*

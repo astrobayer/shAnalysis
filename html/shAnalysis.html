@@ -5,7 +5,7 @@
 <body><div class="content">
 <span class="tag">Toolbox</span>
 <h1>shAnalysis &mdash; overview</h1>
-<p class="ver">Version 5.0.0 &mdash; the toolbox version is defined in
+<p class="ver">Version 5.0.1 &mdash; the toolbox version is defined in
 <code class="inline">Contents.m</code> and reported by
 <code class="inline">shLowLevel.version</code> and MATLAB's
 <code class="inline">ver</code>.</p>
@@ -40,11 +40,11 @@ avg = tsF.basinAverage(B, Deconvolve=true, Op=op);</pre>
 
 <h2>Package function pages</h2>
 <p class="seealso">
-<a href="shReadGFC.html">shReadGFC</a> <a href="shEvalGFCT.html">shEvalGFCT</a>
-<a href="legendreALF.html">legendreALF</a> <a href="shDegreeRMS.html">shDegreeRMS</a>
-<a href="shSpectralCrossover.html">shSpectralCrossover</a> <a href="plotSHSpectrum.html">plotSHSpectrum</a>
-<a href="plotSHCoeffTriangle.html">plotSHCoeffTriangle</a> <a href="shDestripe.html">shDestripe</a>
-<a href="shGaussianWeights.html">shGaussianWeights</a> <a href="shGaussianFilter.html">shGaussianFilter</a>
+<a href="ref/shLowLevel_shReadGFC.html">shReadGFC</a> <a href="ref/shLowLevel_shEvalGFCT.html">shEvalGFCT</a>
+<a href="legendreALF.html">legendreALF</a> <a href="ref/shLowLevel_shDegreeRMS.html">shDegreeRMS</a>
+<a href="ref/shLowLevel_shSpectralCrossover.html">shSpectralCrossover</a> <a href="ref/shLowLevel_plotSHSpectrum.html">plotSHSpectrum</a>
+<a href="ref/shLowLevel_plotSHCoeffTriangle.html">plotSHCoeffTriangle</a> <a href="ref/shLowLevel_shDestripe.html">shDestripe</a>
+<a href="ref/shLowLevel_shGaussianWeights.html">shGaussianWeights</a> <a href="ref/shLowLevel_shGaussianFilter.html">shGaussianFilter</a>
 <a href="shSynthesis.html">shSynthesis</a></p>
 <p>These are the numerical cores the classes call. Since v3.0.0 they are reached through the
 package namespace, e.g. <code class="inline">shLowLevel.shSynthesis(...)</code>; the pages document
@@ -53,7 +53,7 @@ the low-level contract, the <a href="apiReference.html">API reference</a> the ex
 <h2>New in v2.1</h2>
 <table>
 <tr><th>Area</th><th>What</th></tr>
-<tr><td>SH analysis</td><td><a href="shAnalysisGrid.html">shCoefficients.analysis / shLowLevel.shAnalysisGrid</a>:
+<tr><td>SH analysis</td><td><a href="ref/shLowLevel_shAnalysisGrid.html">shCoefficients.analysis / shLowLevel.shAnalysisGrid</a>:
 grid or scattered points &rarr; Stokes coefficients. Exact fast per-order solver for ring grids,
 chunked least squares with Kaula regularization for scattered data, quantity kernels inverted.</td></tr>
 <tr><td>Degree 1</td><td><a href="readTN13.html">readTN13</a> + <code class="inline">addDegree1</code>:

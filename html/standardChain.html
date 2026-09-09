@@ -45,13 +45,13 @@ disp(rep.steps')</pre>
 <a href="setup.html">setup_shAnalysis</a> populates. <code class="inline">Filter</code> accepts
 <code class="inline">"none"</code>, <code class="inline">"gaussN"</code> (N = radius in km),
 <code class="inline">"DDKn"</code> (fetched on demand), or a W struct from
-<a href="readDDK.html">readDDK</a> / <a href="designFilter.html">designFilter</a>.</p>
+<a href="ref/shLowLevel_readDDK.html">readDDK</a> / <a href="ref/shLowLevel_designFilter.html">designFilter</a>.</p>
 
 <h2>The provenance report</h2>
 <p>REP is the record you paste into a paper's data section: <code class="inline">files</code> (every
 input), <code class="inline">steps</code> (the applied stages <em>with their parameters</em>),
 <code class="inline">nmax</code>, <code class="inline">epochs</code>,
-<code class="inline">version</code> (from <a href="version.html">shLowLevel.version</a> at run time)
+<code class="inline">version</code> (from <a href="ref/shLowLevel_version.html">shLowLevel.version</a> at run time)
 and <code class="inline">created</code>. Skipped stages are reported as skipped rather than silently
 omitted &mdash; so a sensitivity study that turns off the GIA correction leaves a trace.</p>
 
@@ -61,7 +61,7 @@ omitted &mdash; so a sensitivity study that turns off the GIA correction leaves 
 
 <h2>See Also</h2>
 <p class="seealso"><a href="icgemSeries.html">ICGEM time series</a>
-<a href="designFilter.html">designFilter</a> <a href="readDDK.html">readDDK / applyDDK</a>
+<a href="ref/shLowLevel_designFilter.html">designFilter</a> <a href="ref/shLowLevel_readDDK.html">readDDK / applyDDK</a>
 <a href="readTN13.html">readTN13 / readTN14</a> <a href="shSeries.html">shSeries</a>
 <a href="apiReference.html">API reference</a></p>
 

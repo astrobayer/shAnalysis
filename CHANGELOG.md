@@ -1,5 +1,55 @@
 # Changelog
 
+## [5.0.1] - 2026-09-09 - WP6 stage 3: 24 duplicate pages retired
+
+The hand-written page per package function existed because
+`doc_sync_audit`'s COVERAGE check demanded a NARRATIVE mention of every
+entity, and before WP6 there was nowhere else to put one. There is now:
+`html/ref/` carries a generated page per entity. 24 of the 50
+hand-written pages were restating theirs.
+
+### Chosen by measurement, not by file name
+
+A17 left a warning: a narrative page can be the only mention of an
+entity, so deleting by name drops entities out of COVERAGE silently. So
+the set was computed - retire a page only if every entity stays covered
+afterwards. That is true of **30**; the other 6 are the last narrative
+mention of 11 entities (`fetchITSG.html` for `listITSG`,
+`shCoefficients.html` for six of its own methods, ...) and stay.
+
+Of the 30, six read as narrative rather than reference and were kept by
+the WP's own rule ("keep narrative pages (chains, theory)"):
+`standardChain` is a chain, `shSeries` a class overview, and
+`legendreALF`, `seaLevelFingerprint`, `eofAnalysis` and `slepianBasis`
+carry theory. **24 were retired.**
+
+COVERAGE therefore keeps its current meaning untouched - the question of
+what it should become does not arise, because nothing it guarantees was
+given up.
+
+### Retired, not deleted
+
+Every inbound link and every `helptoc.xml` target was REPOINTED at
+`html/ref/<entity>.html` before the files were removed, so nothing a
+reader could reach became unreachable. Four category headers pointed at
+a page in their own group that is now gone
+(`Reading and writing` -> `readSINEX`, `Filtering` -> `tvANS`,
+`Spectra and diagnostics` -> `comparison`,
+`Regional and geophysical analysis` -> `leakage`).
+
+Two link rewrites nearly escaped: the See-also lines of `shSynthesis` and
+`legendreALF` use `href='...'` with single quotes, and the first pass
+only matched double ones. Checking both quotings found them.
+
+`removeGIA.html` was the one page whose short name matched two entities
+(`shSeries.removeGIA` and `shClimatology.removeGIA`) - a `setdefault`
+picked one by accident. Reading the page settled it: it documents both
+routes with `ts.removeGIA(gia)` first, so it points at
+`ref/shSeries_removeGIA.html` by decision now rather than by luck.
+
+50 hand-written pages -> 26. No entity lost coverage; the test count is
+unchanged.
+
 ## [5.0.0] - 2026-09-09 - Every class identifier names its method (A21b)
 
 **BREAKING.** The 29 two-part identifiers the three classes raised are
