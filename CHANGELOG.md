@@ -1,5 +1,57 @@
 # Changelog
 
+## [4.0.1] - 2026-09-09 - The option-values gate, and a correction to the record
+
+A19 closed, and one decision in `CLAUDE.md` corrected because it was
+wrong in a way that blocked work.
+
+### Added - `tools/dev/option_values_audit.py` (A19)
+
+`opApply` documented `mode` values (`'apply' | 'applyT'`) that its
+arguments block rejected (`'forward' | 'transp'`). v3.34.1 fixed the row
+but left the general check unbuilt: the obvious implementation - grep
+help lines for quoted words near an option name - produced 25 hits of
+which 24 were false.
+
+The gate reads `api_data.py` instead, where each option already carries
+its own `allowed` set and its own help row, so the scoping problem
+disappears. The rule is deliberately narrow: only a row's LEADING
+ALTERNATIVES RUN - a pipe-separated list of quoted values, the house way
+of writing the choices - is compared against `mustBeMember`. A row
+without one documents prose and is not checked. 42 of the 61
+value-restricted options carry such a run.
+
+Verified against the historical defect rather than asserted: fed
+`opApply`'s pre-v3.34.1 row the gate fires; fed the fixed row it is
+silent; and it stays silent on the three shapes that made the naive
+version lie - another option's value quoted in prose
+(`SignalMode='isotropic'` inside `Blocks`' row), a parenthetical inside
+the run (`'auto' (default) | 'on'`), and a numeric member list
+(`[60, 96]`).
+
+### Fixed - CLAUDE.md said CI could not serve as an oracle. It can.
+
+The 2026-09-08 tier decision recorded that WP3/WP4/WP5 could not
+proceed because "the Python oracle can be written but nothing can be
+checked against it". That is false, and it blocked four packages for a
+day. The oracle is a Python script that runs in any sandbox; the
+comparison is a MATLAB test that runs on the self-hosted runner through
+CI. Neither half needs a local interpreter - which is exactly the
+mechanism §2 has always described. WP3, WP5 and WP7 wait on approval,
+not on a bridge. Only WP2's two-machine speed calibration genuinely
+needs the acceptance machine.
+
+### Changed - §3.4's invariant is now literally true
+
+It claimed the gate list "must equal what `ci.yml` runs" while omitting
+`count_tests.py` and including four local-only tools. It now says
+CONTAIN, names the four (`mlint_lite`, `check_api`, `api_audit`,
+`attribution_sweep`) as having no CI step by design, and lists
+`count_tests`.
+
+All four releases (3.33.1, 3.34.0, 3.34.1, 4.0.0) are merged; the
+verification board's Merged column is no longer pending.
+
 ## [4.0.0] - 2026-09-09 - Every identifier owned, every option in house casing
 
 WP1. The last six v1-era functions leave `inputParser`, and every error

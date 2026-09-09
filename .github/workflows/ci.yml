@@ -180,6 +180,13 @@ jobs:
       - name: Error identifier ownership
         run: python3 tools/error_id_audit.py
 
+      # A19: opApply documented mode values its arguments block rejected.
+      # Reads api_data.py, where each option is already paired with its own
+      # allowed set and its own help row - grepping the source for quoted
+      # words near an option name was 24/25 false positives.
+      - name: Documented option values are accepted
+        run: python3 tools/dev/option_values_audit.py
+
       # The generated reference pages are DERIVED from the help blocks.
       # A page that drifted from its source is the failure this toolbox
       # already shipped once: a correct version stamp on help text
