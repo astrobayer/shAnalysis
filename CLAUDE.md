@@ -522,6 +522,32 @@ Original scope below.
 ## 6. Records
 
 ### 6.1 Decisions (append-only; date, decision, evidence)
+- 2026-09-09 — **WP5 5b is STOPPED, not attempted, and the reason is
+  the right one.** The method of deviation is a PUBLISHED method
+  (Vishwakarma et al. 2017, WRR 53, 9824-9844) and its equations are
+  not reachable from this container: the paper (`agupubs.
+  onlinelibrary.wiley.com`) and an open-access restatement
+  (`hess.copernicus.org`) are both refused by the egress proxy, and a
+  web search returns the SHAPE ("twice-filtered fields give two
+  correction terms, the leakage and deviation integrals") but no
+  formulas. Implementing a published method from a half-remembered
+  description into a scientific toolbox is exactly the confident
+  nonsense §6.3 records twice already (the A12 checker's 67 invented
+  findings; the prose->field-list rewrite that was written and
+  DISCARDED). It waits for the equations, not for effort.
+  **What unblocks it**: the paper, the authors' own MATLAB scripts
+  (they published them), or a session with internet access.
+- 2026-09-09 — **This session cannot be moved to the bridge, and
+  cannot spawn one either** (Matthias asked). `list_environments`
+  offers exactly ONE environment, `env_017PPfKpV5xCVc3aD4pCGQ2w`,
+  kind `anthropic_cloud`. The container is fixed at session creation,
+  so there is nothing to re-home; and `create_session` needs an
+  `environment_id`, so with no bridge environment listed a new
+  session cannot be started on it FROM HERE either. Only Matthias can
+  start one, on the machine where the bridge runs. Note the
+  environment is named "trusted network access": the allowlist is a
+  deliberate policy, not a fault - github, pypi and Anthropic's own
+  services are reachable, which is why pushes and WebSearch work.
 - 2026-09-09 — **WP5 5c approved and shipped as 5.2.0** (Matthias:
   "WP5 5c approved"). `removeGIA` propagates the model's rate sigma;
   the default call is bitwise unchanged.
@@ -1214,6 +1240,35 @@ both pin errors; the second shape is now gated by the PINS rule.
 
 **Done for 5.0.3**: the ten `PERFBASE` lines from A8 at `f6d5529` are
 committed and `NO_BASELINE` is empty. The budgets assert.
+
+**HANDOVER — what a session ON THE BRIDGE should pick up first.**
+Everything is pushed; nothing lives only in the cloud container. The
+branch is `claude/scientific-toolbox-discipline-wps-17ssya` at
+`b65f9a2` (v5.2.0), two commits ahead of `main` at `ea816eb`.
+A bridge session gains BOTH Tier A locally (no CI round-trip) and
+internet, which unblocks all three stuck items at once:
+1. **WP5 5b** needs the Vishwakarma et al. 2017 equations — the
+   paper, or the authors' published MATLAB scripts. Nothing else
+   about the row is hard: `applyChain` (analysis -> filter ->
+   synthesis) inside `leakageCorrect.m` is the operator it needs,
+   and it is three lines to re-implement in a new file.
+   **Do not reconstruct the equations from memory.**
+2. **WP3** needs published EGM2008 undulations for its `reference`
+   half. Matthias approved dropping that half ("WP3 self-consistency
+   is fine"), so it can proceed WITHOUT the bridge — but with
+   internet the stronger acceptance is available again. The geometry
+   is settled: the ellipsoid's geocentric radius at geocentric
+   latitude phi is `r(phi) = R*sqrt((1-e^2)/(1-e^2*cos^2(phi)))`,
+   `e^2 = 2f - f^2`, and it enters the existing `(R/r)^p_n` law that
+   `kernelFactors` already applies for `Height` (line ~195,
+   `kernel .* (R/(R+Height)).^radialExp`). `Height` adds to `r(phi)`.
+3. **WP4 / WP5 5e** need `geodesy.unr.edu` (.tenv3, open) and a GLDAS
+   file (GES DISC needs an Earthdata login even with egress).
+   Remember the CORRECTED framing: a "fetch" in this toolbox is a
+   `Download` level in `setup_shAnalysis` plus a fetcher with
+   `BaseURL=`/`Mirror=`, tested offline against a temp directory
+   (`testFetchLoveNumbersMirror` is the pattern). The fetcher is
+   buildable and testable WITHOUT network; only the live URL needs it.
 
 **Next concrete actions, in order of what they buy:**
 1. **DONE in v5.1.0** — B2 shipped. What is left of it: commit the two
