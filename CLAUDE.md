@@ -562,13 +562,14 @@ Original scope below.
 | audit 2026-09-08 | ☑ read | — | — | — |
 | WP0 (v3.33.1) | ☑ 9 gates + 4 self-test suites, 0 findings | ☑ CI self-hosted (A8), green — 268 runs | ☑ PR #95 | ◐ pending |
 | v3.34.0 (A7, A8, A12, A13, A16, WP6.1+2) | ☑ 12 gate steps + 6 self-test suites, 0 findings | ☑ **CI self-hosted (A8), green — 269 runs, 265 passed, 4 filtered** | ☑ PR #95 | ◐ pending |
-| v4.0.0 (WP1: A2, A3, A15) | ☑ 14 gates + 9 self-test suites + mlint, 0 findings | ◐ **PREDICTED 303 methods / 304 runs — not yet run** | ◐ pending | ◐ pending |
+| v4.0.0 (WP1: A2, A3, A15) | ☑ 14 gates + 10 self-test suites + mlint, 0 findings | ☑ **CI self-hosted (A8) at `5452938`, green — 304 runs, 300 passed, 0 failed, 4 filtered**; `count_tests.py` matched EXACTLY for the third release running, per class as well as in total. First run (`ab52d4f`) also executed 304 but had 5 failures, all one cause: `plotSHSpectrum`'s `arguments` block sat below its `if ~iscell(specs)` guard, so the function did not parse. mlint_lite R6 now catches it. | ☑ PR #96 | ◐ pending |
 | v3.34.1 (A10, A17, A18, A19-partial) | ☑ 13 gates + 8 self-test suites + mlint, 0 findings | ☑ **CI self-hosted (A8) at `7c8cb4c`, green — 301 runs, 297 passed, 0 failed, 4 filtered**; the `count_tests.py` prediction matched EXACTLY, and all 32 new tests pass. First run (`0ab29b5`) also executed 301 but had 1 failure — `testCompareDelegatesToCompareSolutions` gave `compareSeries` 8 epochs where it needs >= 12 common ones. | ☑ PR #95 | ◐ pending |
 
-**Tier A debt: DISCHARGED for all three releases.** The local MATLAB
+**Tier A debt: DISCHARGED for all four releases.** The local MATLAB
 bridge is gone, but the self-hosted runner A8 is not: `runAllTests
 (self-hosted)` went green on PR #95 at `fcaddd2` (268 runs), `5acf14c`
 (**269 runs, 265 passed, 4 filtered**) and `7c8cb4c` (**301 runs, 297
+passed, 4 filtered**), and on PR #96 at `5452938` (**304 runs, 300
 passed, 4 filtered**). The four filtered are the absent optional
 real-data fixtures throughout — `testGravisChainsRealData`,
 `testUserSuppliedSINEXFiles`, `testMasconReaderOnARealFile`,
@@ -690,8 +691,8 @@ Done and on PR #95: WP0, WP6 stages 1-2, and findings A1, A3 (partial),
 A4, A5, A6, A7, A8, A10, A11, A12, A13, A14, A16, A17, A18 closed;
 A19 partially.
 
-**WP1 is done and 4.0.0 is on the branch.** Remaining Tier-B work,
-both needing a decision rather than a keyboard:
+**WP1 is done; 4.0.0 is green on PR #96 and awaiting merge.** Remaining
+Tier-B work, both needing a decision rather than a keyboard:
 
 1. **WP6 stage 3** — retiring the narrative pages a generated page
    supersedes; needs a decision on what `doc_sync_audit`'s COVERAGE check
@@ -726,6 +727,6 @@ pip install reportlab matplotlib && \
 WP0 (v3.33.1), A7/A8/A12/A13/A14/A16 + WP6.1-2 (v3.34.0),
 A10/A17/A18 (v3.34.1) and WP1/A2/A3/A15 (v4.0.0) |
 2026-09-08..09 | Claude Opus 5 |
-3.33.1/3.34.0/3.34.1 green on A8 via CI (v3.34.1 at `7c8cb4c`: 301 runs,
-297 passed, 4 filtered); 4.0.0 predicts 303 methods / 304 runs, NOT yet run |
+all four releases green on A8 via CI — 4.0.0 at `5452938`:
+304 runs, 300 passed, 0 failed, 4 filtered |
 Developed by Matthias Weigelt with the help of Claude.*
