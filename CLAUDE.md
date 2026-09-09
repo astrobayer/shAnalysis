@@ -23,11 +23,11 @@ says whether it was *read* or *inferred*.
 
 | Fact | Value | Evidence |
 |---|---|---|
-| Version | **5.2.0**, 09-Sep-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
+| Version | **5.3.0**, 09-Sep-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
 | Branches | `main` only; `claude/getframe-recapture` and `claude/readshm` are gone (merged/deleted) | `GET /branches` |
 | Public surface | 3 classes / 71 methods, 122 `+shLowLevel` functions (+4 private), 3 root functions | `tools/dev/api_extract.py` run in sandbox |
-| Tests | 5 classes, **312 methods / 326 runs**: Correctness 164, Contract 76, Robustness 53, Science 7, Performance 12 methods (26 runs, `budgetCase` x14 + `nmaxP` x2). 4 filter out without the optional real-data fixtures; the 10 speed budgets ALSO filtered in v5.0.2 (14 filtered) and stop doing so in v5.0.3, now that A8 has a baseline. The counter has matched the runner EXACTLY on the last seven green A8 runs (269, 301, 304, 304, 305, 305, 315); the one time it did not was A16, before it existed. | `python3 tools/dev/count_tests.py` |
-| Python oracles | 16 `tools/dev/validate_*.py` + `tools/audit/*` | listing |
+| Tests | 5 classes, **314 methods / 328 runs**: Correctness 164, Contract 77, Robustness 53, Science 7, Performance 13 methods (27 runs, `budgetCase` x14 + `nmaxP` x2). On A8 4 filter out without the optional real-data fixtures; on MATTHIASPC only 2 do, because `E:\DATAPOOL` supplies the SINEX and GravIS files. The counter has matched the runner EXACTLY on the last nine green A8 runs and on the first two local Tier-A runs (269, 301, 304, 304, 305, 305, 315, 315, 319, then 322 and 328 locally); the one time it did not was A16, before it existed. | `python3 tools/dev/count_tests.py` |
+| Python oracles | 17 `tools/dev/validate_*.py` + `tools/audit/*` | listing |
 | Docs | **26** hand-written `html/*.html` (24 per-entity duplicates retired in v5.0.1, WP6 stage 3) + **200 generated `html/ref/*.html`** (one per entity + index, `make_refpages.py`), one shared `html/shAnalysis.css`, `helptoc.xml`, `info.xml`, guide PDF, generated `html/apiReference.html`. `docs/` holds the PDF and `apiExamples.json` only - no HTML page lives outside `html/` (gated). | listing |
 | CI | `gates` job on ubuntu (help_audit, doc_sync_audit, no_map_renderer, toolbox_dependency_audit, nv_casing_audit, fixture_tag_audit, gate self-tests `tools/tests/`, `count_tests`, `name_coverage`, `error_id_audit`, `option_values_audit`, `refpages_audit`, `make_demos --check`, `perf_baseline_audit`) + `runAllTests (self-hosted)` on A8/R2026a; fixtures from tag `fixtures-2026-08` | `.github/workflows/ci.yml` |
 | Namespace | `+shLowLevel` (renamed from `+shx` in v3.0.0). Any memory saying `shx.*` is stale. | README §History |
@@ -176,7 +176,7 @@ do not see; **L** = polish.
 | A6 | L | **CLOSED v3.33.1** — README points at `ci.yml` instead of naming a tag it would have to keep in step (`fixture_tag_audit.py` already gates the tag itself). Original finding: README line 108 still says CI "pulls the orphan branch 'testdata'"; CI has pinned the tag `fixtures-2026-08` since v3.26.1/ci v2.9.0. | `README.md`, `ci.yml` |
 | A7 | M | **CLOSED v3.34.0**, and partly wrong as written — `demos.xml` now exists, generated from the `demo_shAnalysis` registry (16 cases, gated both ways), and the Help browser reaches a page per entity via `html/ref/index.html`. The search database was **never missing as a capability**: `setup_shAnalysis(Docs=true)` has always run `builddocsearchdb` on `html/`; only the built index is absent from the repo, deliberately (a binary artifact belongs on the machine that searches it). No second option was added. **Unverified in Tier B**: whether `builddocsearchdb` descends into `html/ref/` — confirm on the acceptance machine. Original finding: `doc` integration is incomplete: no `helpsearch-v*` database, no `demos.xml`, `info.xml` present. | `ls html/` |
 | A8 | M | **CLOSED v3.34.0** — all 250 pages link one `html/shAnalysis.css`; the inline blocks turned out to be ONE stylesheet copied fifty times (49 byte-identical + one in the generated reference), so merging them lost nothing, and `make_apiref.py` emits the link so the copy cannot return. 46 structural headings renamed to one spelling. `doc_sync_audit.py` gates the stylesheet, the link and the heading vocabulary; `refpages_audit.py` gates the generated skeleton. Original finding: The 50 hand-written `html/` pages use five different heading vocabularies for the same thing ("See also"/"See Also", "Outputs"/"Output Arguments", "Example"/"Examples", "Inputs / Outputs", "Options") and each page inlines its own `<style>` block (no shared stylesheet). 196 API entities have a dedicated page only inside the 304 KB monolith. | heading histogram over `html/*.html` |
-| A9 | M | **DOWNGRADED, not closed, in v5.0.3.** The ten budgets now ASSERT: A8's baselines are committed (`tests/perf_baseline.csv`) and `NO_BASELINE` is empty, so a workload that blows up fails CI. What is still open is the size of the threshold: **3x does not catch the 1.3x creep this finding names.** Tightening it needs the BETWEEN-run spread, which one run cannot give; the within-run spread was measured (median/min <= 1.043 above 20 ms, 1.114 at 1.8 ms where the timer dominates) and is the wrong statistic for the job. A9 closes when the factor is set from several runs' medians. v5.0.2 built the harness; v5.0.3 gave it teeth. Original finding: `testPerformance` asserts exactly one ratio (cache warm/cold) and one absolute bound (`dt < 5 s`); everything else is logged, not gated. | `tests/perf_baseline.csv` |
+| A9 | M | **STILL OPEN after v5.3.0, and for a reason that is now specific.** Fifteen runs of untouched code (12 MATTHIASPC, 3 A8) measured the BETWEEN-run spread A9 always needed. **A9's own 1.3x target is REFUTED**: `leakage_1iter_n24` measured 23.1, 23.1 and **30.2 ms** across three A8 runs — 1.306 on a 23 ms workload, so not a timer artefact and not fixable by enlarging it. A 1.3 budget would have gone red on untouched code. But the four workloads at 15 ms and above never moved past 1.079 over those fifteen runs, so one global factor was letting the worst member set every budget. The factor is now PER BENCHMARK against a stated criterion (worst observed ratio <= 1.1 earns `TightFactor` 1.5; the rest keep 3): `legendre_n360`, `legendre_n720`, `analysis_rings_n60`, `apply_ddk_n300` qualify — three of the six lanes A9 names. What remains: `leakageCorrect` and the Kalman step are still at 3x, and A9 closes by making THEM steady enough to budget, not by choosing a braver number. The small point-synthesis budgets cannot be enlarged — they are crossover BRACKETS. | `tests/perf_baseline.csv` |
 | A10 | L | **CLOSED v3.34.1** — and the finding was **larger than recorded**: 13 package functions plus **22 public class methods** (A18). `tools/dev/name_coverage.py` measures it now, over the whole public surface, with comments stripped so a name in a `% see also` line does not count; it states its own reach in its last line (naming is not exercise). 32 new tests, each asserting a property the function's own help states. One allowed exception, `runAllTests`, with its reason in the gate. Original finding: package functions never named in `tests/`, coverage by name not measured. | `python3 tools/dev/name_coverage.py` |
 | A17 | M | **CLOSED v3.34.1** — `gridHandover` continues its signature with `...`, so `api_extract.py` (single-line regex) parsed the file to NOTHING: no entity in `api_data.py`, no reference page, while `apiReference.html` sent the reader to "as built by shLowLevel.gridHandover, which documents every field". `refpages_audit`'s COVER check compares pages against that same artifact, so it was silent by construction. **Four parsers of the public surface exist; two were blind the same way and agreed with each other** — which is why the new SURFACE check in `doc_sync_audit.py` compares against the FILESYSTEM (MATLAB's file/function rule is ground truth), not a second parser. `api_extract` now refuses to write an incomplete artifact. Pinned by `tools/tests/test_api_extract.py` (5 of 7 fail pre-fix). | `python3 tools/doc_sync_audit.py` |
 | A18 | M | **CLOSED v3.34.1** — A10's blind spot was not only the package: **22 public class methods** were named by no test either — every operator (`plus`, `minus`, `uminus`, `mtimes`, `times`), `disp` on all three classes, `compare`, `fan`, `spectrum`, `triangle`, and eight `shClimatology` methods. Operators were deliberately NOT allowlisted: they are callable by name, and a test checking `plus(a,b)` against `a + b` is stronger than one checking either alone. | `python3 tools/dev/name_coverage.py` |
@@ -184,6 +184,9 @@ do not see; **L** = polish.
 | A20 | M | **CLOSED v4.0.2** — and the recorded count was wrong: the backlog held **208** identifiers, not 165; nobody had measured it. All 61 files carry an `Error identifiers` block written against the raise site and its guard, the writer refusing any file whose documented set was not exactly the set the file raises. `UNDOCUMENTED` is drained to empty, so the DOCUMENTED rule holds with no exemption, and the gate now reads the root functions too. Two things surfaced that the finding did not name: `demo_shAnalysis` raises `demo:unknownCase` as well as `demo:casesFailed` (both now `shAnalysis:demo:*`, a PATCH — neither was documented anywhere), and `setup_shAnalysis` BUILDS five identifiers at runtime (`"shAnalysis:setup:no" + locs(li,1)`) that no scan of the file can name. Read as a literal that invents `shAnalysis:setup:no`, which nothing raises — which is exactly what the extended gate reported first. A concatenated literal is now a PREFIX: the help must document at least one identifier under it, because the gate cannot enumerate them. | `python3 tools/error_id_audit.py` |
 | A21a | M | **CLOSED v4.0.3** — 31 public methods across the three classes document every identifier they can raise. A class needed a different instrument, not a wider loop: identifiers belong to METHODS, and four of them are raised by PRIVATE helpers (`checkPair`, `checkEpochs`, `assertClean`, `rangeToYears`) where `help` cannot reach. The rule follows REACHABILITY, one hop — a public method documents what it raises plus what the private helpers it calls raise — and the one-hop depth is CHECKED, not assumed: a private helper calling another makes the gate say the rule has gone too shallow. The map caught a distinction prose would have blurred: `plus` calls `checkEpochs`, `minus` does not (a difference has no single epoch, so it sets `epoch = NaN`). Nine fault injections, both directions. | `python3 tools/error_id_audit.py` |
 | A21b | M | **CLOSED v5.0.0** — 29 two-part identifiers became 46 three-part ones across 47 raise sites, each rewrite scoped to the function it sits in: one old id maps to SEVERAL new ones (`shSeries:noEpoch` to four, `shCoefficients:badInput` to four), which is why a repo-wide replace would have been wrong — A15's lesson, applied per raise site. The middle segment is the raising PUBLIC method, constructor included, with one deliberate exception: the four private shared checks carry a stable CONCEPT segment (`operands`, `stack`, `range`) instead of the helper's own name, so renaming a private function is not a breaking change. The gate now PROVES the middle segment names either a method of that class or a declared shared check, so three-part is a rule and not a spelling convention. 47 test pins were remapped BY LINE to the method each call actually reaches. | `python3 tools/error_id_audit.py` |
+| A22 | H | **CLOSED v5.3.0** — `synthesisPoints`'s `auto` sent every station list below 150 points down the SLOWER path. `ClenshawFrom = 150` was the crossover of the numpy prototype, transplanted to MATLAB where **there is no crossover at all**: `benchPointsCrossover` timed both summations on the SAME points and `clenshaw` won at every count measured — P = 1..2000 at nmax 60 and 120, P = 1..200 at nmax 360 — by 2.3x at the narrowest margin and 37x at a single point. The cause is structural: `direct` is bounded by `legendreALF`, which `clenshaw` never calls, so the margin GROWS with degree. Confirmed independently on A8 by the n50/n60 matched pairs (3.56x at 50 points, 4.61x at 200). Default is now 1, so `auto` is `clenshaw` everywhere; the option stays because `direct` is the bitwise path. `testSynthesisPointsAutoPicksTheFasterPath` needed NO edit — it pins the rule while driving `ClenshawFrom` by hand, which is exactly what that design bought. | `benchPointsCrossover` |
+| A23 | M | **CLOSED v5.3.0** — one machine had two labels. `machineId()` read `COMPUTERNAME` (`MATTHIASPC`) before falling back to `hostname` (`MatthiasPC`), so which label a baseline row needed depended on how MATLAB was launched. The failure is silent by construction: a row that misses does not FAIL its budget, it FILTERS it, so the machine looks green while guarding nothing. Label is now upper-cased (upper, so the committed `A8` rows are untouched) and `perf_baseline_audit.py` rejects a row that is not, fault-injected both ways plus a digits/punctuation case so the rule cannot reject legal names. | `python3 tools/dev/perf_baseline_audit.py` |
+| A24 | M | **CLOSED v5.3.0** — `mlint_lite` could not see a parse error. An edit put a real newline inside an `fprintf` format; the gate reported zero findings and MATLAB refused to parse the whole `testPerformance` class, so every test in it would have VANISHED rather than failed — and a Tier-B session has no other syntax check. **R7** reports a literal running off its line, read off the scanner that already had to know where a literal stops rather than from a second parser (the A17 lesson). Silent on the two legal shapes that look like it: a transpose after a value, and a literal split with `...`. Zero findings across all 149 `.m` files. | `python3 tools/dev/mlint_lite.py` |
 | A15 | M | **CLOSED v4.0.0** with A3 — `kernelFactors`, `shSynthesisGradient` and `seaLevelFingerprint` now own their identifiers, and the tests that pinned the old names were remapped per raising file (the same old id mapped to two different owners, so a global replace would have been wrong). Original finding: A3 is **wider than the audit's 12**: `kernelFactors` (`shSynthesis:missingLoveNumbers`, `:badQuantity`, `:heightInvalid`), `shSynthesisGradient` (`shSynthesis:badInput`) and `seaLevelFingerprint` (`shSynthesis:missingLoveNumbers`) also raise identifiers they do not own. Unlike `shSynthesisDeformation`'s, these ARE documented and pinned by `testContract`/`testCorrectness`, so renaming them is a MAJOR change. Belongs in WP1's identifier sweep, not in a patch. | `grep -rn "shSynthesis:" --include=*.m` |
 | A14 | M | **CLOSED v3.33.1** — the three gate self-tests in `tools/tests/` (committed in v3.32/v3.33) were **never run by CI**, and `test_legacy_name_tolerated` had been broken since the v3.33.0 sweep drained `LEGACY` to empty — an untested instrument, silently. CI now runs `tools/tests/`; the stale test asserts the mechanism with a temporary entry instead of pinning a member name. | `.github/workflows/ci.yml` before/after |
 | A13 | L | **CLOSED v3.34.0** — the km conversion is the `RadiusKm` option, default unchanged at 6371 so no number moves, documented as the MEAN radius (deliberately not the coefficients' reference radius 6378.1363 km) and overridable. Pinned by `testResolutionMapRadiusIsAChoice`, a metamorphic test: the angular half-widths are radius-invariant, every km figure scales exactly with it, and `anisotropy` — a ratio — does not. That test also removes `resolutionMap` from A10's never-named list. | `+shLowLevel/resolutionMap.m` |
@@ -286,9 +289,18 @@ Approved by Matthias on 2026-09-09 as option (a), the hard break.
   bump `fixtures-2026-09`).
 - **Size**: M. **Version**: MAJOR (4.0.0) under (a).
 
-### WP2 — Speed budgets, then speed   `[~] STEP 1 DONE (v5.0.2+v5.0.3); STEP 2 B2 DONE (v5.1.0)`
+### WP2 — Speed budgets, then speed   `[~] STEP 1 DONE (v5.0.2+v5.0.3+v5.3.0); STEP 2 B2 DONE (v5.1.0), CORRECTED (v5.3.0)`
 Approved by Matthias on 2026-09-09 ("Go ahead with WP2"), which
 supersedes the "A9 is ok" acceptance recorded the same day.
+
+**v5.3.0 closed the two halves that needed a machine.** The acceptance
+machine has baselines for all fourteen budgets, so WP2's "green on both
+machines" is satisfied for the first time; and B2's dispatch constant was
+re-measured IN MATLAB, where the crossover it encoded turns out not to
+exist (A22). The budget factor stopped being a specification and became a
+measurement — two of them, because one number could not serve a set that
+holds both 171 ms guards and 0.8 ms crossover brackets. A9 is still open;
+see its row for the specific remaining work.
 
 **Step 1 shipped in two halves.** v5.0.2 built the HARNESS (ten
 budgets, 15 repeats, median against 3x a per-machine baseline,
@@ -522,6 +534,66 @@ Original scope below.
 ## 6. Records
 
 ### 6.1 Decisions (append-only; date, decision, evidence)
+- 2026-09-09 — **TIER A IS BACK, on the acceptance machine.** The MATLAB
+  MCP bridge answers again (R2026a Update 4, 16 threads, working tree at
+  the acceptance path in §3), which retires the 2026-09-08 entry "Tier A
+  is gone for now" for a session started HERE. The 2026-09-09 note that a
+  re-homed session cannot go back still stands — it is about that
+  session, not about the machine. Consequence: WP2's two-machine
+  calibration, named all along as the one thing needing the bridge, is
+  done. Practical note: the MCP call times out on a full suite, so run it
+  with `matlab -batch` in the background and read the log.
+- 2026-09-09 — **A cloud session had already shipped a v5.2.0 that this
+  session did not know about.** `main` was `ea816eb` and the branch was
+  two commits ahead with WP5 5c (GIA sigma) plus a handover written FOR a
+  bridge session. This work was built on `main` and numbered 5.2.0 too.
+  Resolved by MERGING their branch and renumbering this release to
+  **5.3.0** — their commits are preserved, not rebased away. The lesson is
+  §6.4's own, unheeded for an hour: **check `git ls-remote` and read the
+  branch before choosing a version number**, not only before assuming a
+  PR merged.
+- 2026-09-09 — **The numpy crossover does not exist in MATLAB, and the
+  option's design is what made that cheap to fix.** `ClenshawFrom = 150`
+  was a real measurement — of numpy. In MATLAB `clenshaw` wins at every
+  point count from 1 to 2000, because `direct` is bounded by
+  `legendreALF` and `clenshaw` never calls it. The default is now 1.
+  `testSynthesisPointsAutoPicksTheFasterPath` needed NO edit, because
+  v5.1.0 deliberately pinned the RULE and drove the number by hand. That
+  is the decision paying off: a test that had pinned 150 would have had to
+  be rewritten by the person least able to judge whether the rewrite was
+  honest.
+- 2026-09-09 — **A9's own number is refuted, and the answer is two
+  factors rather than a braver one.** `leakage_1iter_n24` moved 1.306
+  across three A8 runs of untouched code, at 23 ms — so 1.3 is not
+  achievable and not a small-timer artefact. But `legendre_n720`,
+  `legendre_n360`, `analysis_rings_n60` and `apply_ddk_n300` never moved
+  past 1.079 over fifteen runs on two machines. One global factor must
+  serve the worst member, which is how ten noisy benchmarks were keeping
+  four steady ones at 3x. The factor is now per benchmark against a
+  STATED criterion (worst observed <= 1.1), not fitted per benchmark from
+  three runs each. A9 stays open and its remaining work is named: make
+  `leakageCorrect` and the Kalman step steady enough to budget.
+- 2026-09-09 — **Every baseline is now a median OVER RUNS.** A single
+  `PERFBASE` line can land at either end of a spread that reaches 1.7; a
+  baseline that landed at the fast end would silently turn a 1.5x budget
+  into a 1.1x one. A8 rows carry 45 samples (3 runs x 15), MATTHIASPC 60
+  (4 x 15). This changes what the column MEANS, so it is written in the
+  file's header rather than left to be inferred.
+- 2026-09-09 — **Two A8 baselines existed and nobody had read them.** The
+  n50 crossover pair sat in `NO_BASELINE` as "awaiting A8" while A8 had
+  already measured it at `b65f9a2` — the numbers were in the job log. A
+  measurement nobody reads back is not a measurement, and a backlog entry
+  is a claim about the world that can go stale like any other.
+- 2026-09-09 — **The agreement assertion in the new dispatch test was
+  REMOVED rather than loosened.** It failed at 6e-13 per element where the
+  documented bound is 5e-14 — but the two are different statistics: the
+  oracle normalises by `max|direct|`, and a white-spectrum fixture cancels
+  to a near-zero value whose per-element relative error means nothing.
+  `testSynthesisPointsMethodsAgree` already owns that property and bounds
+  it correctly, over three degrees, three quantities, both `Nmin` values
+  and near-pole latitudes. Widening the tolerance would have been the §3.6
+  violation; deleting a duplicate assertion that used the wrong
+  normalisation is not, and the property stays guarded.
 - 2026-09-09 — **WP5 5b is STOPPED, not attempted, and the reason is
   the right one.** The method of deviation is a PUBLISHED method
   (Vishwakarma et al. 2017, WRR 53, 9824-9844) and its equations are
@@ -961,7 +1033,8 @@ Original scope below.
 | v5.0.2 (WP2 step 1 harness) | ☑ 14 gates + mlint + make_demos + 13 self-test suites, 0 findings | ☑ **CI self-hosted (A8) at `f6d5529`, green — 315 runs, 301 passed, 0 failed, 14 filtered**; the prediction matched EXACTLY for the SEVENTH release running, per class as well as in total (Contract 74, Correctness 159, Performance 22, Robustness 53, Science 7), counts parsed from the 315-row results table. The 14 filtered were the 4 real-data fixtures plus all 10 budgets, exactly as designed — and this is the run that measured the baselines. First run, no red round. | ☑ PR #99 | ◐ pending |
 | v5.1.0 (WP2 step 2, B2) | ☑ 15 gates + mlint + make_demos + 13 self-test suites, 0 findings | ☑ **CI self-hosted (A8) at `640f3be` by workflow_dispatch, green — 319 runs, 313 passed, 0 failed, 6 filtered**; the NINTH exact count prediction running, per class as well as in total (Contract 75, Correctness 161, Performance 23, Robustness 53, Science 7). All three new tests passed, dispatch pin and bitwise-chunking pin included. | ☐ no PR (not asked) | ☐ |
 | v5.1.1 (A8 numbers + matched-pair budget) | ☑ 15 gates + mlint + make_demos + 13 self-test suites, 0 findings | ☑ **CI self-hosted (A8) at `e8875fe`, green — 320 runs, 315 passed, 0 failed, 5 filtered**; the TENTH exact count prediction running. The matched pair measured: direct@200 0.0155142 s, clenshaw@200 0.0034370 s. | ☑ PR #101 | ◐ pending |
-| v5.2.0 (WP5 5c + help_audit scoping) | ☑ 15 gates + mlint + make_demos + 13 self-test suites, 0 findings | ◐ pending — expect **326 runs, 320 passed, 0 failed, 6 filtered**: the 4 real-data fixtures plus the 2 new P=50 crossover budgets, which have no baseline yet. 326 - 6 = 320. | ◐ pending | ◐ pending |
+| v5.2.0 (WP5 5c + help_audit scoping) | ☑ 15 gates + mlint + make_demos + 13 self-test suites, 0 findings | ☑ **CI self-hosted (A8) at `b65f9a2` by workflow_dispatch, green — 326 runs, 320 passed, 0 failed, 6 filtered**; the ELEVENTH exact count prediction running, per class as well as in total (Contract 76, Correctness 164, Performance 26, Robustness 53, Science 7), and exactly the 6 the row predicted. Read back by the v5.3.0 session — the run had gone green and nobody had looked, which is also how the n50 baselines sat unused. | ☐ no PR (branch was unmerged) | ☐ |
+| v5.3.0 (A22, A23, A24; A9 two-factor; WP2 both machines) | ☑ 15 gates + mlint + make_demos + 13 self-test suites, 0 findings; `NO_BASELINE` empty, 14 budgets, both machines baselined | ☑ **Tier A LOCAL on MATTHIASPC (R2026a), the first since the bridge returned** — 328 runs, count prediction matched EXACTLY (Contract 77, Correctness 164, Performance 27, Robustness 53, Science 7). Only 2 filter here, not 4: `E:\DATAPOOL` supplies the SINEX and GravIS fixtures. | ◐ pending | ◐ pending |
 | v5.0.3 (WP2 step 1 baselines) | ☑ 14 gates + mlint + make_demos + 13 self-test suites, 0 findings; `NO_BASELINE` empty | ☑ **CI self-hosted (A8) at `b70c947`, green — 315 runs, 311 passed, 0 failed, 4 filtered**; the EIGHTH exact count prediction running, per class as well as in total. All ten budgets PASSED (they filtered at `f6d5529`), and the only filtered are the four real-data fixtures. Triggered by `workflow_dispatch`, not a PR — #99 merged mid-session and `ci.yml` runs only on push-to-main, pull_request and workflow_dispatch. | ☐ no PR (#99 merged; not asked) | ☐ |
 
 **Tier A debt: DISCHARGED for all nine releases.** The local MATLAB
@@ -986,6 +1059,46 @@ confirmation that the counter is right about a real run and not only
 about the source.
 
 ### 6.3 What the next session could be wrong for not reading
+- **Read the branch before you pick a version number.** This session
+  built a v5.2.0 on `main` while a cloud session's v5.2.0 sat unmerged
+  two commits ahead, with a handover addressed to exactly this kind of
+  session. §6.4 already said "do not treat the branch as merged; check
+  `git ls-remote` first" — that was read as a statement about PR status
+  and it is also a statement about what work exists. `git log
+  main..origin/<branch>` costs one command.
+- **A constant measured in the prototype is not a constant of the
+  product.** `ClenshawFrom = 150` was honestly measured — in numpy — and
+  documented as such, and it still sent every station list under 150
+  points down a path 2-4x slower for a whole release. When a number
+  crosses languages, re-measure it there or do not ship it as a default.
+- **A benchmark under ~3 ms measures the timer.** Four of them in one
+  set held the global budget factor at 3x for every workload. But note
+  the converse trap too: `leakage_1iter_n24` is 23 ms and still moved
+  1.306 between two A8 runs, so "big enough" is not sufficient either —
+  measure, do not assume from size.
+- **A backlog entry can be stale in the direction that looks safe.**
+  `NO_BASELINE` said the n50 pair was "awaiting A8" when A8 had already
+  measured it; the numbers were sitting in a job log nobody re-read. The
+  entry looked conservative and was simply wrong.
+- **A failing assertion is sometimes the wrong assertion, not a wrong
+  tolerance — and the difference is the normalisation.** The new
+  dispatch test compared two summations per element and failed at 6e-13,
+  where the documented 5e-14 is `max|diff| / max|direct|`. Widening the
+  number would have violated §3.6; the honest fix was that the assertion
+  duplicated a better one and should not have been written. Ask what
+  statistic a documented tolerance actually bounds before reusing it.
+- **`mlint_lite` now catches an unterminated literal (R7), and the gap
+  it filled is the shape to look for.** It reported zero findings on a
+  file MATLAB would not parse at all, so the tests in it would have
+  VANISHED rather than failed — a count mismatch, not a red test. When
+  adding a rule, prefer reading the fact off a scanner that already
+  computes it over writing a second parser.
+- **One machine can have two names.** `COMPUTERNAME` and `hostname`
+  disagreed in case on the acceptance machine, and the budget harness
+  keyed baselines on whichever MATLAB inherited. The failure mode was
+  silent: an unmatched row FILTERS a budget instead of failing it.
+  Whenever a lookup key comes from the environment, ask what happens
+  when it misses — and prefer a miss that is loud.
 - **A faster algorithm makes its own budget lie.** Changing which
   summation `synthesis_points_n60` runs made its committed baseline
   meaningless — the budget would still have gone green while
@@ -1271,20 +1384,39 @@ internet, which unblocks all three stuck items at once:
    buildable and testable WITHOUT network; only the live URL needs it.
 
 **Next concrete actions, in order of what they buy:**
-1. **DONE in v5.1.0** — B2 shipped. What is left of it: commit the two
-   A8 baselines the next run measures (`synthesis_points_n60`,
-   `synthesis_points_n60_direct`), and replace `ClenshawFrom = 150`
-   with the MATLAB crossover once both paths have run there. B1
-   (packed Legendre) remains the weaker candidate.
-2. **Two runs already point at the answer, and it is not the factor.**
-   Between-run medians: 0.979-1.060 for the eight workloads at 3 ms and
-   above, **1.519 for `apply_ddk_n96`** at 1.8 ms. So (a) enlarge
-   `apply_ddk_n96` until the timer stops dominating and re-measure its
-   baseline, then (b) with a couple more runs, a factor near 1.3 looks
-   defensible for the rest — which is the number A9 actually asks for.
-   Do NOT tighten while a 1.8 ms benchmark is in the set.
-3. **WP3/WP4/WP5/WP7 wait on Matthias's tick** (and, for some rows, on
-   data — see above).
+1. **Get v5.2.0 and v5.3.0 merged.** Both are green and neither is on
+   `main`. v5.2.0 (WP5 5c) went green on A8 at `b65f9a2` on 2026-09-09
+   and sat unread; v5.3.0 is green under local Tier A (328 runs, 0
+   failed) and needs one A8 run to confirm the budgets there. `main` is
+   `ea816eb`.
+2. **A9's remaining work is specific now, and it is not "more runs".**
+   `leakage_1iter_n24` moved 1.306 across three A8 runs of untouched code
+   at 23 ms, and the Kalman step 1.267 at 1.2 ms; both are still at the
+   loose 3x factor. A9 closes by making THOSE two steady enough to
+   budget — a bigger Kalman problem, and finding out why one
+   `leakageCorrect` iteration varies 30% on A8 — not by choosing a
+   braver number. The four tight budgets show the mechanism works.
+3. **`apply_ddk_n300` has no A8 baseline.** It filters there until the
+   next A8 run prints its `PERFBASE` line. Read the line back and commit
+   it — v5.2.0's n50 pair sat "awaiting A8" for a release while A8 had
+   already measured it.
+4. **B1 (packed Legendre) is still the open half of WP2 step 2**, and
+   still the weaker candidate: `legendre_n720` is 171 ms against
+   `synthesis_points_n60`'s 11 ms, and it is one of the four workloads
+   already steady enough for a 1.5x budget.
+5. **WP3/WP4/WP5/WP7 wait on Matthias's tick** (and, for some rows, on
+   data — see above). WP5 5b additionally waits on the Vishwakarma 2017
+   equations; a bridge session has internet and can fetch them.
+
+**What a Tier-A session should know about running the suite here.** The
+MATLAB MCP tool times out on anything suite-sized. Run it detached and
+read the log:
+```
+"/c/Program Files/MATLAB/R2026a/bin/matlab.exe" -batch "run('<script>.m')" > run.log 2>&1
+```
+The machine label for baselines is `MATTHIASPC` (upper-cased since
+v5.3.0). Only 2 tests filter here rather than A8's 4, because
+`E:\DATAPOOL` supplies the SINEX and GravIS fixtures.
 
 To re-run the gates and the prediction from a fresh sandbox:
 ```
@@ -1322,5 +1454,11 @@ which all ten speed budgets ASSERT rather than filter.
 5.1.1 green on A8 at `e8875fe` via PR #101: 320 runs, 315 passed,
 0 failed, 5 filtered - the TENTH exact count prediction running, and
 the run whose matched pair put clenshaw 4.5x ahead of direct at the
-same 200 points. |
+same 200 points.
+5.2.0 green on A8 at `b65f9a2` by workflow_dispatch: 326 runs,
+320 passed, 0 failed, 6 filtered - the ELEVENTH, read back a release
+late because nobody looked at a green run.
+5.3.0 green under LOCAL TIER A on MATTHIASPC: 328 runs, 326 passed,
+0 failed, 2 filtered - the twelfth exact prediction, and the first
+release since the bridge returned. Its A8 confirmation is pending. |
 Developed by Matthias Weigelt with the help of Claude.*

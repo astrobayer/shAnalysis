@@ -91,6 +91,32 @@ class TestHealthy(Base):
         self.assertEqual(self.run_on(csv=csv), [])
 
 
+NL = chr(10)
+
+
+class TestMachineCase(Base):
+    """v5.2.0 (A23). machineId() upper-cases the label, so a mixed-case row
+    can never match. It would not FAIL its budget - it would filter it, and
+    a filtered budget guards nothing while looking green. Both directions
+    are injected: the fold accepts what it should and rejects what it must.
+    """
+
+    def test_a_lower_case_machine_fires(self):
+        csv = HEAD + NL.join(["A8,2026a,alpha,1,1,15,2026-09-09", "MatthiasPC,2026a,beta,1,1,15,2026-09-09", ""])
+        out = self.run_on(csv=csv)
+        self.assertTrue(any("not upper case" in f for f in out), out)
+
+    def test_an_upper_case_machine_is_silent(self):
+        csv = HEAD + NL.join(["A8,2026a,alpha,1,1,15,2026-09-09", "MATTHIASPC,2026a,beta,1,1,15,2026-09-09", ""])
+        self.assertEqual(self.run_on(csv=csv), [])
+
+    def test_digits_and_punctuation_do_not_trip_the_fold(self):
+        # the label is upper-cased, not alphabetic: A8 and BUILD_BOX.1 are
+        # legal names and the rule must not reject them
+        csv = HEAD + NL.join(["A8,2026a,alpha,1,1,15,2026-09-09", "BUILD_BOX.1,2026a,beta,1,1,15,2026-09-09", ""])
+        self.assertEqual(self.run_on(csv=csv), [])
+
+
 class TestShape(Base):
     def test_a_wrong_header_fires(self):
         csv = "machine,benchmark\nA8,alpha\n"

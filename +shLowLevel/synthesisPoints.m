@@ -33,10 +33,15 @@ function val = synthesisPoints(C, S, GM, R, latDeg, lonDeg, r, opts)
 %                 which is what makes very high degree reachable at all.
 %                 The recursion is vectorised ACROSS POINTS, so its cost
 %                 is nearly independent of the point count.
-%     Because one is linear in P and the other flat, they cross: "direct"
-%     wins for short station lists, "clenshaw" for large scattered sets.
-%     "auto" picks by that crossover - see the ClenshawFrom option for
-%     where the number comes from and what it is NOT.
+%     One is linear in P and the other nearly flat, so in principle they
+%     cross. IN MATLAB THEY DO NOT: "clenshaw" is faster at every point
+%     count measured - P = 1..2000 at nmax 60 and 120, P = 1..200 at
+%     nmax 360 (benchPointsCrossover; 2.0x at the narrowest margin, 34x
+%     at a single point). The crossover exists in the numpy prototype
+%     and not here,
+%     because "direct" is bounded by shLowLevel.legendreALF, which
+%     "clenshaw" never calls. So "auto" is "clenshaw" everywhere - see
+%     ClenshawFrom for how that is expressed and how to measure it again.
 %
 %   Clenshaw is not bitwise, and cannot be: it sums the same terms in a
 %   different order. It is validated against the direct path and against
@@ -53,18 +58,23 @@ function val = synthesisPoints(C, S, GM, R, latDeg, lonDeg, r, opts)
 %     Method ("auto")    "auto" | "direct" | "clenshaw" - which
 %                             summation to use; "auto" chooses "clenshaw"
 %                             once the point count reaches ClenshawFrom
-%     ClenshawFrom (150) point count at or above which "auto" switches to
-%                             "clenshaw". 150 is the crossover MEASURED IN
-%                             THE PYTHON PROTOTYPE
-%                             (tools/dev/validate_points_clenshaw.py):
-%                             "direct" won at P <= 100 and "clenshaw" at
-%                             P >= 200, at BOTH nmax 60 and 120 - the
-%                             crossover barely moves with degree, which is
-%                             what makes one scalar defensible instead of
-%                             a rule in nmax. It is NOT measured on
-%                             MATLAB; tests/perf_baseline.csv budgets both
-%                             paths at two point counts so the real
-%                             crossover can replace this number
+%     ClenshawFrom (1)   point count at or above which "auto" switches to
+%                             "clenshaw". The default is 1 because MATLAB
+%                             has NO crossover: benchPointsCrossover timed
+%                             both paths at the same points and found
+%                             "clenshaw" ahead at every count measured
+%                             (P = 1..2000 at nmax 60 and 120, P = 1..200
+%                             at nmax 360; narrowest margin 2.0x).
+%                             Until v5.1.1 this was 150 - the
+%                             crossover of the NUMPY prototype
+%                             (tools/dev/validate_points_clenshaw.py,
+%                             "direct" winning at P <= 100), transplanted
+%                             to a language where it does not hold, which
+%                             sent every station list below 150 points
+%                             down the slower path. Raise it to force
+%                             "direct" (the bitwise path) for short lists;
+%                             re-measure with benchPointsCrossover before
+%                             changing the default on a new machine
 %     MaxMemGB (4)       memory budget for the "direct" path's Legendre
 %                             block; the chunk size follows from it and
 %                             from nmax. Ignored by "clenshaw", which
@@ -105,7 +115,7 @@ arguments
     opts.Nmin (1,1) double {mustBeInteger, mustBeNonnegative} = 2
     opts.Method (1,1) string {mustBeMember(opts.Method, ...
         ["auto", "direct", "clenshaw"])} = "auto"
-    opts.ClenshawFrom (1,1) double {mustBeInteger, mustBePositive} = 150
+    opts.ClenshawFrom (1,1) double {mustBeInteger, mustBePositive} = 1
     opts.MaxMemGB (1,1) double {mustBePositive} = 4
 end
 P = numel(latDeg);

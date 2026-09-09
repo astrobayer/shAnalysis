@@ -31,11 +31,15 @@ classdef testPerformance < matlab.perftest.TestCase
 %         be read off two paths measured at the SAME point count, and
 %         v5.1.0 shipped them at 2000 and 200, which cannot bracket it
 %       analysis_rings_n60             exact per-order ring analysis
-%       apply_ddk_n96                  order-block filter application
+%       apply_ddk_n300                 order-block filter application
 %       leakage_1iter_n24              one leakageCorrect step
 %       kalman_step_p40                a 12-epoch VAR(1) filter chain
 %     Each is timed Repeats times after one untimed warm-up; the MEDIAN
-%     is compared against BudgetFactor x the baseline for THIS machine.
+%     is compared against a factor x the baseline for THIS machine. The
+%     factor is per benchmark, not global (v5.3.0): TightFactor 1.5 for
+%     the four workloads whose measured between-run spread earned it,
+%     BudgetFactor 3 for the rest. See the constants for the criterion
+%     and for why one number could not serve both kinds of benchmark.
 %     A machine with no baseline row FILTERS the budget (assumeNotEmpty)
 %     and prints a PERFBASE,... line - that line is a ready-made
 %     perf_baseline.csv row, which is how a new machine is adopted.
@@ -71,27 +75,68 @@ properties (TestParameter)
         'synthesis_points_n50_direct', 'synthesis_points_n50_direct', ...
         'synthesis_points_n50_clenshaw', 'synthesis_points_n50_clenshaw', ...
         'analysis_rings_n60',   'analysis_rings_n60', ...
-        'apply_ddk_n96',        'apply_ddk_n96', ...
+        'apply_ddk_n300',       'apply_ddk_n300', ...
         'leakage_1iter_n24',    'leakage_1iter_n24', ...
         'kalman_step_p40',      'kalman_step_p40');
 end
 
 properties (Constant)
-    % WP2 specifies "3 x a baseline". Read what that does and does not
-    % buy, because the two are easy to confuse:
-    %   IT CATCHES a workload that blows up - a wrong algorithm, an
-    %     accidental O(n^2), a lost fast path.
-    %   IT DOES NOT CATCH the 1.3x creep A9 actually names. A9 is
-    %     therefore only PARTLY closed by this factor, and saying so is
-    %     the point of this comment.
-    % The first A8 run (2026-09-09, f6d5529) measured the WITHIN-run
-    % spread: median/min <= 1.043 over 15 repeats for every workload
-    % above 20 ms, 1.114 for apply_ddk_n96 at 1.8 ms where the timer
-    % itself dominates. That is not the statistic a budget needs. The
-    % BETWEEN-run spread is - and one run cannot measure it. Tighten
-    % this factor only against several runs' medians, never against the
-    % within-run figures above.
-    BudgetFactor = 3;
+    % A9 asks for a budget that catches a 1.3x creep. v5.3.0 measured
+    % what a budget can actually assert, and the answer is: it depends on
+    % the workload, so one factor cannot be the whole answer.
+    %
+    % The statistic is the BETWEEN-run spread. The within-run median/min
+    % cannot give it (15 repeats in one process on a quiet machine said
+    % <= 1.043, which means almost nothing). Twelve MATTHIASPC runs and
+    % three A8 runs, all 2026-09-09, on code nobody touched, give the
+    % worst run-to-run ratio per workload:
+    %
+    %   legendre_n720                1.011      171 ms
+    %   analysis_rings_n60           1.079       40 ms
+    %   legendre_n360                1.036       57 ms
+    %   apply_ddk_n300               1.059       15 ms
+    %   ---- above: <= 1.1, tight. below: not ----
+    %   kalman_step_p40              1.267      1.2 ms
+    %   leakage_1iter_n24            1.306    23 ms on A8
+    %   legendre_n96                 1.532      8 ms
+    %   synthesis_direct_n60         1.689      1.7 ms
+    %   synthesis_points_n50_direct  1.540      2.2 ms
+    %   synthesis_points_n60         1.660       11 ms
+    %   synthesis_points_n60_direct  1.651      7.7 ms
+    %   synthesis_points_n50_clenshaw 1.655     0.8 ms
+    %   synthesis_points_n60_clenshaw 1.685     1.9 ms
+    %   synthesis_fft_n60            1.709      2.1 ms
+    %
+    % Two facts follow, and they point opposite ways.
+    %
+    % ONE: a single 1.3x budget is refuted, and not by a timer artefact.
+    % leakage_1iter_n24 measured 23.1, 23.1 and 30.2 ms in three A8 runs
+    % of untouched code - 1.306 on a 23 ms workload. A 1.3 budget would
+    % have gone red there, and a gate that cries wolf is worse than none.
+    %
+    % TWO: the four workloads at 15 ms and above never moved more than
+    % 1.079, across fifteen runs on two machines, one of which was busy.
+    % Holding them at 3x because ten small benchmarks are noisy would be
+    % letting the worst member set every budget in the set.
+    %
+    % Hence two factors. The tight four include three of the six lanes A9
+    % names (legendreALF, shAnalysisGrid, applyDDK), which is most of what
+    % the finding was actually worried about. The rest keep 3 because
+    % their spread forbids less - and the small ones cannot simply be
+    % enlarged: the n50/n60 pairs are crossover BRACKETS, and a bracket
+    % measured at a different point count measures nothing.
+    %
+    % 1.5 leaves 1.39x headroom over the worst tight observation (1.079).
+    % Every baseline below is a MEDIAN OVER RUNS, not one run, so the
+    % comparison is against the middle of the spread rather than whichever
+    % end a single run happened to land on - which is what makes 1.5 safe
+    % enough to assert. A9 is not closed: leakageCorrect and the Kalman
+    % step are still at 3x, and closing it means making THEM steady
+    % enough to budget, not choosing a braver number for them.
+    BudgetFactor = 3;           % everything not listed below
+    TightFactor = 1.5;          % <= 1.1 observed over 15 runs, 2 machines
+    TightBudgets = ["legendre_n360", "legendre_n720", ...
+                    "analysis_rings_n60", "apply_ddk_n300"];
     Repeats = 15;               % WP2: 15 repeats, median of the samples
 end
 
@@ -212,11 +257,11 @@ methods (Test)
             ['no baseline for machine "%s", benchmark "%s" - copy the ' ...
              'PERFBASE line above into tests/perf_baseline.csv'], ...
             mach, budgetCase));
-        tc.verifyLessThan(med, tc.BudgetFactor * base, sprintf( ...
+        fac = tc.factorFor(budgetCase);
+        tc.verifyLessThan(med, fac * base, sprintf( ...
             ['%s: median %.4f s over %d repeats exceeds %g x the %s ' ...
              'baseline %.4f s (min this run %.4f s)'], ...
-            budgetCase, med, tc.Repeats, tc.BudgetFactor, mach, ...
-            base, mn));
+            budgetCase, med, tc.Repeats, fac, mach, base, mn));
     end
 
     function benchClassicChain(tc)
@@ -250,6 +295,72 @@ methods (Test)
         g.synthesis(lat, lon);                      % prime Legendre cache
         while tc.keepMeasuring
             grid = g.synthesis(lat, lon, Method = "fft"); %#ok<NASGU>
+        end
+    end
+
+    function benchPointsCrossover(tc)
+        %BENCHPOINTSCROSSOVER Where "direct" and "clenshaw" cross - if
+        %   they do. This is the measurement that sets ClenshawFrom.
+        %
+        %   It prints one XOVER,... line per (nmax, P), each timing BOTH
+        %   paths on the SAME points, which is the only comparison a
+        %   crossover can be read from. v5.1.0 shipped the two paths
+        %   budgeted at 2000 and 200 points and could read nothing off
+        %   them; the matched pair in the budget set fixed that at one
+        %   point count, and this sweep covers the range.
+        %
+        %   MATTHIASPC, R2026a, 2026-09-09: "clenshaw" is ahead at EVERY
+        %   point count measured - P = 1..2000 at nmax 60 and 120, and
+        %   P = 1..200 at nmax 360 - by 2.0x at the narrowest margin and
+        %   34x at a single point. There is no crossover in MATLAB,
+        %   which is why ClenshawFrom defaults to 1 and not to the numpy
+        %   prototype's 150.
+        %
+        %   Not asserted. A timing comparison at 1 ms is exactly the kind
+        %   of thing that flaps on a shared runner, and the dispatch RULE
+        %   is pinned without a clock by testContract's
+        %   testSynthesisPointsAutoPicksTheFasterPath and
+        %   testSynthesisPointsAutoIsClenshawByDefault. This benchmark is
+        %   the evidence for the default; those tests are the contract.
+        GM = 3.986004415e14; R = 6378136.3;
+        reps = 5;
+        % the point list is per degree on purpose: "direct" holds a
+        % (nmax+1)^2 x chunk Legendre block, so nmax 360 at 2000 points
+        % would ask for ~2 GB. The budget set covers the large-scattered
+        % regime at nmax 60; this sweep covers the SHAPE of the two
+        % curves, and it only has to reach far enough to show whether
+        % they cross.
+        sweep = {60, [1 10 50 100 150 200 500 2000]; ...
+                 120, [1 10 50 100 150 200 500 2000]; ...
+                 360, [1 10 50 100 150 200]};
+        for row = 1:size(sweep, 1)
+            nmax = sweep{row, 1};
+            g = tc.randomField(nmax);
+            C = g.C; S = g.S;
+            for np = sweep{row, 2}
+                rng(12);
+                la = (rand(np, 1) - 0.5) * 178;
+                lo = rand(np, 1) * 360;
+                rr = R + rand(np, 1) * 1000;
+                shLowLevel.synthesisPoints(C, S, GM, R, la, lo, rr, ...
+                    Method = "direct");
+                shLowLevel.synthesisPoints(C, S, GM, R, la, lo, rr, ...
+                    Method = "clenshaw");
+                td = zeros(reps, 1); tk = zeros(reps, 1);
+                for k = 1:reps
+                    t0 = tic;
+                    shLowLevel.synthesisPoints(C, S, GM, R, la, lo, ...
+                        rr, Method = "direct");
+                    td(k) = toc(t0);
+                    t0 = tic;
+                    shLowLevel.synthesisPoints(C, S, GM, R, la, lo, ...
+                        rr, Method = "clenshaw");
+                    tk(k) = toc(t0);
+                end
+                fprintf('XOVER,%s,%d,%d,%.6g,%.6g,%.4f\n', ...
+                    tc.machineId(), nmax, np, median(td), median(tk), ...
+                    median(td) / median(tk));
+            end
         end
     end
 
@@ -389,8 +500,18 @@ methods
                 gr = shLowLevel.shSynthesis(C, S, GM, R, la, lo);
                 fcn = @() shLowLevel.shAnalysisGrid(gr, la, lo, L, ...
                     Method = "rings");
-            case 'apply_ddk_n96'
-                L = 96;
+            case 'apply_ddk_n300'
+                % nmax 300, not 96, and the reason is measurement.
+                % apply_ddk_n96 ran in 1.8 ms on A8 and its median moved
+                % 1.519x between two runs of the SAME commit, while every
+                % workload at 3 ms and above stayed inside 0.979-1.060.
+                % At that size the timer, not applyDDK, is what the
+                % budget measures - so it could not be budgeted, and it
+                % would have dragged BudgetFactor down with it if the
+                % factor were ever set from the observed spread.
+                % nmax 300 measures 14.4 ms on MATTHIASPC and ~25 ms on
+                % A8 at that machine's 1.76x on this workload.
+                L = 300;
                 sc = 3e-11 * ones(L+1);
                 W = shLowLevel.designFilter(sc, sc, Alpha = 1, ...
                     Kaula = 1e-6);
@@ -449,10 +570,37 @@ methods
         end
     end
 
+    function f = factorFor(tc, bench)
+        %FACTORFOR Budget factor for one benchmark: TightFactor if it has
+        %   earned it, BudgetFactor otherwise.
+        %
+        %   The criterion is stated, not fitted per benchmark: a workload
+        %   is tight only if its WORST observed run-to-run ratio over all
+        %   fifteen runs on both machines was <= 1.1. Four qualify, and
+        %   what they have in common is size - they are the four that run
+        %   for 15 ms or more. Re-measure before adding a fifth.
+        if ismember(bench, tc.TightBudgets)
+            f = tc.TightFactor;
+        else
+            f = tc.BudgetFactor;
+        end
+    end
+
     function id = machineId(~)
         %MACHINEID Stable label for the machine a baseline belongs to.
         %   SHANALYSIS_PERF_MACHINE wins so a runner can name itself;
         %   COMPUTERNAME covers Windows, `hostname` covers the rest.
+        %
+        %   The label is UPPER-CASED, and that is not cosmetic. On the
+        %   acceptance machine COMPUTERNAME is "MATTHIASPC" while
+        %   `hostname` returns "MatthiasPC", so which of the two MATLAB
+        %   inherits decided whether a committed baseline row matched.
+        %   A label that misses does not fail the budget - it FILTERS
+        %   it, so the miss is silent and the workload is left
+        %   unguarded, which is the one failure mode this whole harness
+        %   exists to prevent. Case-folding makes one machine one label.
+        %   Upper is chosen over lower so the committed A8 rows are
+        %   unchanged by the fix.
         h = getenv('SHANALYSIS_PERF_MACHINE');
         if isempty(h), h = getenv('COMPUTERNAME'); end
         if isempty(h), h = getenv('HOSTNAME'); end
@@ -461,7 +609,7 @@ methods
             if st == 0, h = strtrim(out); end
         end
         if isempty(h), h = 'unknown'; end
-        id = regexprep(strtrim(h), '[^A-Za-z0-9_.-]', '_');
+        id = upper(regexprep(strtrim(h), '[^A-Za-z0-9_.-]', '_'));
     end
 
     function base = baselineFor(~, machine, bench)

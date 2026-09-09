@@ -13,7 +13,10 @@ WHAT THIS CHECKS, AND WHAT IT DOES NOT
     SHAPE    the CSV parses: the header is exactly the expected one, every
              row has 7 fields, median_s and min_s are positive, min_s does
              not exceed median_s, samples is a positive integer and
-             measured is an ISO date. No duplicate (machine, benchmark).
+             measured is an ISO date. No duplicate (machine, benchmark),
+             and every machine label is UPPER CASE - machineId() folds the
+             label, so a mixed-case row could never match, and an unmatched
+             row filters its budget instead of failing it (v5.2.0).
     NAMES    every benchmark in the CSV is a declared budgetCase, and every
              budgetCase field name equals its value - the value is what the
              test prints and looks up, the field name is what the test is
@@ -55,8 +58,20 @@ HEADER = "machine,matlab,benchmark,median_s,min_s,samples,measured"
 # This list may only SHRINK. An entry here means the budget FILTERS rather
 # than asserts, so nothing is being guarded - it is debt, not a decision.
 NO_BASELINE = {
-    "synthesis_points_n50_direct": "new in v5.2.0 - the lower half of the\n                                   crossover bracket, awaiting A8",
-    "synthesis_points_n50_clenshaw": "new in v5.2.0 - as above",
+    # Empty since v5.3.0: every budgetCase has a baseline on at least one
+    # machine, so every one of them ASSERTS somewhere. The n50 pair left
+    # here by v5.2.0 was in fact already measured - A8 timed it at b65f9a2
+    # and the numbers sat unread in the job log.
+    #
+    # Draining it does not make its self-test vacuous:
+    # test_perf_baseline_audit.py injects its own backlog rather than
+    # looping over this dict, which is the lesson A14 paid for once.
+    #
+    # Note what an empty backlog does NOT promise. A budget asserts only on
+    # a machine that HAS a row, and apply_ddk_n300 is baselined on
+    # MATTHIASPC only, so on A8 it still filters until that runner measures
+    # it. Empty means no budget is unguarded everywhere; it does not mean
+    # every budget is guarded everywhere.
 }
 
 _DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
@@ -185,6 +200,13 @@ def audit(root):
         if r["benchmark"] not in cases:
             findings.append("%s:%d: baseline for %r, which no budgetCase "
                             "declares" % (CSV, r["line"], r["benchmark"]))
+        if r["machine"] != r["machine"].upper():
+            findings.append(
+                "%s:%d: machine %r is not upper case. testPerformance's "
+                "machineId() upper-cases the label, so this row can never "
+                "match - and a row that never matches does not fail its "
+                "budget, it FILTERS it, which is silent"
+                % (CSV, r["line"], r["machine"]))
 
     have = {r["benchmark"] for r in rows}
     for c in cases:

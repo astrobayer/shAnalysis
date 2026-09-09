@@ -1,5 +1,139 @@
 # Changelog
 
+## [5.3.0] - 2026-09-09 - MATLAB has no crossover, and the budget factor is finally a measurement
+
+First Tier-A session since the local bridge was lost: MATLAB R2026a runs on
+the acceptance machine again, so the two WP2 items that needed a machine
+rather than a sandbox are both closed by measurement.
+
+### `synthesisPoints` sent every short station list down the slower path
+
+`ClenshawFrom` defaulted to **150** - the crossover of the numpy prototype,
+carried into MATLAB where it does not hold. The new `benchPointsCrossover`
+times both summations on the SAME points, and there is no crossover to find:
+
+| nmax | P = 1 | 10 | 50 | 100 | 150 | 200 | 500 | 2000 |
+|---|---|---|---|---|---|---|---|---|
+| 60  | 5.0x | 2.3x | 3.2x | 3.6x | 3.6x | 3.3x | 4.0x | 4.9x |
+| 120 | 19.8x | 3.2x | 4.2x | 5.5x | 6.2x | 6.5x | 5.0x | 6.4x |
+| 360 | 37.2x | 2.9x | 3.9x | 4.2x | 4.4x | 4.7x | - | - |
+
+(MATTHIASPC, R2026a; `direct` median over `clenshaw` median, so every entry
+above 1.0 means `clenshaw` won.) It wins at **every** count measured, by
+2.3x at the narrowest margin. The reason is structural rather than
+incidental: `direct` is bounded by `legendreALF`, and `clenshaw` never calls
+it - which is also why the margin grows with degree.
+
+So **`ClenshawFrom` now defaults to 1** and `auto` is `clenshaw` everywhere.
+A 100-station network was getting 3.6x less than the toolbox could give it.
+The option stays, because `direct` is still the bitwise path and a caller
+may want it; raising `ClenshawFrom` restores the old routing exactly.
+
+**What changes for a caller**: `auto` below 150 points now returns clenshaw's
+numbers instead of direct's. They agree to the documented 5e-14 and neither
+is more accurate (both land within a few tens of eps of a 60-digit
+reference, `direct` 52.7 eps worst against `clenshaw` 89.0, with clenshaw
+closer at three of six points). `Method="direct"` is unchanged and still
+bitwise with v3.0.0..v5.1.1.
+
+`testSynthesisPointsAutoPicksTheFasterPath` needed no edit - it pins the
+dispatch RULE while driving `ClenshawFrom` by hand, which is exactly what
+that design was for. `testSynthesisPointsAutoIsClenshawByDefault` pins the
+shipped number alongside it.
+
+### A9: one factor could not do it, so there are now two
+
+Fifteen runs of untouched code - twelve on MATTHIASPC, three on A8 - give
+the BETWEEN-run spread that one run cannot. Worst run-to-run ratio per
+workload, sorted by how steady it is:
+
+| workload | size | worst run/run |
+|---|---|---|
+| `legendre_n720` | 171 ms | 1.011 |
+| `legendre_n360` | 57 ms | 1.036 |
+| `apply_ddk_n300` | 15 ms | 1.059 |
+| `analysis_rings_n60` | 40 ms | 1.079 |
+| `kalman_step_p40` | 1.2 ms | 1.267 |
+| `leakage_1iter_n24` | **23 ms** | **1.306** |
+| `legendre_n96` | 8 ms | 1.532 |
+| the six point-synthesis budgets | 0.8-11 ms | 1.540 .. 1.685 |
+| `synthesis_fft_n60` | 2.1 ms | 1.709 |
+
+Two things follow, pointing opposite ways.
+
+**A9's own 1.3 is refuted, and not by a timer artefact.**
+`leakage_1iter_n24` measured 23.1, 23.1 and **30.2 ms** across three A8
+runs of code nobody touched. That is 1.306 on a 23 ms workload - it cannot
+be engineered away by enlarging anything, and a 1.3x budget would have gone
+red on it. A gate that cries wolf is worse than no gate.
+
+**But the four workloads at 15 ms and up never moved past 1.079**, over
+fifteen runs on two machines, one of them busy. Holding those at 3x because
+ten small benchmarks are noisy lets the worst member set every budget in
+the set.
+
+So the factor is now **per benchmark against a stated criterion** - worst
+observed ratio <= 1.1 earns `TightFactor = 1.5`, everything else keeps
+`BudgetFactor = 3`. Four qualify: `legendre_n360`, `legendre_n720`,
+`analysis_rings_n60`, `apply_ddk_n300`. That covers three of the six lanes
+A9 names (`legendreALF`, `shAnalysisGrid`, `applyDDK`), which is most of
+what the finding was worried about.
+
+**A9 stays open**, and what it waits for is now specific rather than "more
+runs": `leakageCorrect` and the Kalman step are still at 3x, and closing A9
+means making *them* steady enough to budget. The small ones cannot simply
+be enlarged - the n50/n60 pairs are crossover BRACKETS, and a bracket
+measured at a different point count measures nothing.
+
+`apply_ddk_n96` -> **`apply_ddk_n300`**. At 1.8 ms it measured the timer,
+not `applyDDK`, and swung 1.519x on A8; at nmax 300 it measures 15 ms and
+is now steady enough to be one of the four tight budgets. Its A8 baseline
+is deleted rather than carried over: a baseline measured on a workload that
+no longer runs is a budget that passes vacuously.
+
+Every baseline is now a **median over runs** rather than a single
+`PERFBASE` line (A8 45 samples = 3 runs x 15, MATTHIASPC 60 = 4 x 15). A
+single run can land at either end of the spread above, and a baseline that
+landed at the fast end would silently turn a 1.5x budget into a 1.1x one.
+
+### The acceptance machine has baselines - WP2's "both machines" at last
+
+WP2's acceptance asks for budgets calibrated on the acceptance machine AND
+A8. The bridge has been gone since 2026-09-08 and it is back, so all
+fourteen budgets now have a `MATTHIASPC` row - the missing half of that
+acceptance, and the first thing this session did that no sandbox could.
+
+`NO_BASELINE` is empty. Two of the entries it held were not actually
+unmeasured: A8 timed the `n50` crossover pair at `b65f9a2` and the numbers
+sat unread in the job log, which is its own small lesson - a measurement
+that nobody reads back is not a measurement. The gate now also says what an
+empty backlog does NOT mean: `apply_ddk_n300` is baselined here only, so on
+A8 it still filters until that runner measures it.
+
+The `n50` pair also settles the crossover from below on the SECOND machine:
+A8 measured direct 3.80 ms against clenshaw 1.07 ms at 50 points, and 15.53
+against 3.37 ms at 200. Both machines, independently, say the same thing.
+
+### A23 (new): one machine, two labels, silently unguarded budgets
+
+`machineId()` read `COMPUTERNAME` (`MATTHIASPC`) before falling back to
+`hostname` (`MatthiasPC`), so which label a baseline row had to carry
+depended on how MATLAB happened to be launched. A row that misses does not
+fail its budget - it **filters** it, so the machine would have looked green
+while guarding nothing. The label is now upper-cased (upper, so the
+committed `A8` rows are untouched) and `perf_baseline_audit.py` rejects any
+row that is not, fault-injected both ways.
+
+### A24 (new): mlint_lite could not see a parse error
+
+An edit put a real newline inside an `fprintf` format. `mlint_lite` reported
+zero findings; MATLAB refused to parse the whole `testPerformance` class, so
+every test in it would have vanished rather than failed. On CI that is a
+round-trip a Tier-B session cannot predict. **R7** reports a literal that
+runs off its line - read off the scanner that already had to know, not from
+a second parser - and is silent on the two legal shapes that look like it
+(a transpose after a value, a literal split with `...`). Zero findings
+across all 149 `.m` files in the tree.
 ## [5.2.0] - 2026-09-09 - WP5 5c: the GIA model stops being exact
 
 `shSeries.removeGIA` gains `Sigma=` and a second output `info`. Until now
