@@ -1,5 +1,69 @@
 # Changelog
 
+## [4.0.3] - 2026-09-09 - The class surface joins the identifier gate (A21a)
+
+A21's documentation half. The three class files raised **32** error
+identifiers with no `Error identifiers` section anywhere; 31 public
+methods now carry one, and `error_id_audit.py` reads them. The rename
+half (A21b) stays open and is now a measured, shrinking backlog rather
+than a paragraph.
+
+### Added - per-method `Error identifiers` blocks in the three classes
+
+A class needed a different instrument, not a wider loop. Identifiers
+belong to METHODS, and a user catching one calls a PUBLIC method - but
+several are raised by PRIVATE helpers (`shCoefficients.checkPair`,
+`checkEpochs`, `shSeries.assertClean`, `rangeToYears`), where `help`
+cannot reach them. So the rule follows REACHABILITY, one hop: a public
+method documents what it raises itself plus what the private helpers it
+calls raise. `shSeries.filter` therefore documents `shSeries:nanInSeries`
+even though `assertClean` is what raises it.
+
+One hop is **checked, not assumed**: if a private helper ever calls
+another private helper the gate says the rule has become too shallow,
+rather than quietly under-reporting.
+
+The map is derived from the source, and it caught a real distinction that
+prose would have blurred: `shCoefficients.plus` calls `checkEpochs`,
+`minus` does **not** - a difference between two months has no single
+epoch, so `minus` sets `epoch = NaN` instead of refusing. Both help
+blocks now say so, and a new contract test pins the half that was
+untested (`plus` raising `shCoefficients:epochMismatch` was pinned;
+`minus` *not* raising it was not, so a stray `checkEpochs` call in
+`minus` would have passed every test).
+
+### Added - A21b: the two-part identifiers are a named backlog
+
+29 of the 32 are two-part (`shSeries:badInput`), so a caller cannot tell
+which of the 35 methods raised; only three
+(`shSeries:removeAlias:tooShort`, `shSeries:toGrid:empty`,
+`shSeries:toGrid:tooLarge`) name their method. Making the rest
+three-part is MAJOR - `testContract` pins the current names - so they sit
+in `TWO_PART_OK`, which may only shrink and whose size the gate prints
+every run. A two-part identifier **not** in that set is a new defect and
+fails the gate.
+
+### Fixed - one constant was answering two different questions
+
+`CLASS_FILES` was both the list of files the CLASS pass reads and the
+skip-list `surface()` uses to keep class files out of the root-function
+pass. A self-test that emptied it to focus on the package therefore
+re-admitted `shSeries.m` as a ROOT function owning
+`shAnalysis:shSeries:*`, and the suite went red for a reason that had
+nothing to do with what it was testing. The skip-list is now its own
+frozen constant. This is A17's shape again: when one name answers two
+questions, the answers drift apart silently.
+
+A missing class file is now a finding rather than a traceback.
+
+### Verification
+
+Nine new self-tests fault-inject every class rule in both directions - a
+private helper's identifier left undocumented, a documented identifier
+the method cannot reach, a missing section, a foreign identifier, a
+two-part identifier outside the backlog, and the second-hop depth guard.
+30 tests in `test_error_id_audit.py`, all green.
+
 ## [4.0.2] - 2026-09-09 - Every raised identifier is documented
 
 A20 closed. The 61 package files that raised error identifiers without

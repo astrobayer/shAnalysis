@@ -25,12 +25,12 @@
 <h2>Output Arguments</h2>
 <table><tr><th>Name</th><th>Description</th></tr><tr><td><code>b</code></td><td class="desc">(1,1) struct   as built by <a href="shLowLevel_gridHandover.html"><code>shLowLevel.gridHandover</code></a>, the same bundle <a href="shCoefficients_toGrid.html"><code>shCoefficients.toGrid</code></a> returns, with Z (nlat x nlon x nEpochs) double, Epoch and C00 (nEpochs x 1) double, and FieldKind &quot;mixed&quot; when the epochs disagree</td></tr></table>
 <h2>Error Identifiers</h2>
-<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<table><tr><th>Identifier</th><th>Raised when</th></tr><tr><td><code>shSeries:toGrid:empty</code></td><td class="desc">the series has no epochs</td></tr><tr><td><code>shSeries:toGrid:tooLarge</code></td><td class="desc">the grid stack would exceed MaxMemGB; raise it or grid fewer epochs</td></tr></table>
 <h2>Version History</h2>
 <p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
 <h2>See Also</h2>
 <ul class="seealso"><li><a href="shCoefficients_toGrid.html"><code>shCoefficients.toGrid</code></a></li></ul>
-<p class="prov">shAnalysis v4.0.2 (09-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+<p class="prov">shAnalysis v4.0.3 (09-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
 </div>
 </body>
 </html>

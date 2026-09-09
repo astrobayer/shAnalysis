@@ -41,9 +41,35 @@ import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PKG = os.path.join(ROOT, "+shLowLevel")
-# A class raises per-METHOD identifiers, so the file-level owner rule
-# this gate applies does not fit them. Named, not forgotten: A21.
-CLASS_FILES = {"shCoefficients.m", "shSeries.m", "shClimatology.m"}
+# A class raises per-METHOD identifiers, so the file-level owner rule does
+# not fit it. A21 added the CLASS pass below instead of widening the loop.
+CLASS_FILES = ("shCoefficients.m", "shSeries.m", "shClimatology.m")
+# surface() must skip the class files whatever CLASS_FILES is set to: the
+# two uses are different questions, and conflating them let a test that
+# emptied the class list silently re-admit shSeries.m as a ROOT function
+# owning `shAnalysis:shSeries:*`. Same trap as A17 - one name, two jobs.
+_IS_CLASS = frozenset(CLASS_FILES)
+
+# A21b: 29 of the class identifiers are TWO-part (shSeries:badInput), so a
+# caller cannot tell which of the 35 methods raised. Making them three-part
+# is a MAJOR change - testContract pins the current names - so it is a
+# backlog, not a rule: this set may only shrink, and the gate prints its
+# size every run. A two-part identifier NOT listed here is a new defect.
+TWO_PART_OK = {
+    "shClimatology:badIndex", "shClimatology:badInput",
+    "shCoefficients:badIndex", "shCoefficients:badInput",
+    "shCoefficients:badTruncation", "shCoefficients:constantsMismatch",
+    "shCoefficients:epochMismatch", "shCoefficients:epochNotInTable",
+    "shCoefficients:noC30", "shCoefficients:noEpoch",
+    "shCoefficients:noSigmas", "shCoefficients:sizeMismatch",
+    "shSeries:ambiguousRange", "shSeries:badBasis", "shSeries:badIndex",
+    "shSeries:badInput", "shSeries:badRange", "shSeries:badTruncation",
+    "shSeries:constantsMismatch", "shSeries:emptyRange",
+    "shSeries:epochMismatch", "shSeries:missingOp", "shSeries:nanInSeries",
+    "shSeries:noBreaks", "shSeries:noEpoch", "shSeries:noFiles",
+    "shSeries:sizeMismatch", "shSeries:sparseWindow",
+    "shSeries:tooFewEpochs",
+}
 
 # error('id', ...) / warning('id', ...) -> identifier is argument 1.
 # assert(cond, 'id', ...)               -> identifier is argument 2.
@@ -63,6 +89,9 @@ RAISE = re.compile(
 # Both house styles: the id alone on its line with the reason indented
 # below, and "id  reason" on one line. Requiring the first spelling
 DOC_ID = re.compile(r"^%\s+((?:shLowLevel|shAnalysis):[\w:]+)(?:\s|$)", re.M)
+# Class help lines are stripped of their indent before matching, and the
+# identifier root is the class name rather than a fixed prefix.
+DOC_ID_ANY = re.compile(r"^%\s+((?:shCoefficients|shSeries|shClimatology):[\w:]+)(?:\s|$)", re.M)
 SECTION = "%   Error identifiers"
 
 # Files that raise identifiers but predate the "Error identifiers" help
@@ -97,7 +126,7 @@ def surface():
             out.append((os.path.join(PKG, f), f[:-2],
                         "shLowLevel:%s:" % f[:-2]))
     for f in sorted(os.listdir(ROOT)):
-        if not f.endswith(".m") or f in CLASS_FILES or f == "Contents.m":
+        if not f.endswith(".m") or f in _IS_CLASS or f == "Contents.m":
             continue
         tag = f[:-2].replace("_shAnalysis", "")
         out.append((os.path.join(ROOT, f), f[:-2], "shAnalysis:%s:" % tag))
@@ -126,6 +155,126 @@ def documented_in(src):
     if SECTION not in src:
         return None                      # no section at all
     return set(DOC_ID.findall(src))
+
+
+# --- CLASS pass (A21) -----------------------------------------------------
+# A class file needs a different instrument, not a wider loop: identifiers
+# belong to METHODS, and a user catching one calls a PUBLIC method. Several
+# are raised by PRIVATE helpers (shCoefficients.checkPair,
+# shSeries.assertClean), so documenting them only where they are raised
+# would put them where `help` cannot reach. The rule therefore follows
+# REACHABILITY, one hop: a public method must document what it raises
+# itself plus what the private helpers it calls raise.
+#
+# One hop is enough here and is checked - see CLASS_HOPS below - rather
+# than assumed.
+FUN = re.compile(r"^(\s*)function\s+(?:\[[^\]]*\]|[\w~., ]+?)\s*=\s*(\w+)|"
+                 r"^(\s*)function\s+(\w+)\s*[(\s]|^(\s*)function\s+(\w+)\s*$")
+METHODS_BLOCK = re.compile(r"^\s*methods\s*(\(([^)]*)\))?\s*(%.*)?$")
+
+
+def parse_class(path):
+    """-> list of {name, access, help, raises, body} in file order."""
+    lines = open(path, encoding="utf-8", errors="replace").read().split("\n")
+    blocks = [(i, (m.group(2) or "public").strip())
+              for i, L in enumerate(lines)
+              if not L.lstrip().startswith("%") and (m := METHODS_BLOCK.match(L))]
+    funs = []
+    for i, L in enumerate(lines):
+        if L.lstrip().startswith("%"):
+            continue
+        m = FUN.match(L)
+        if not m:
+            continue
+        acc, best = "public", -1
+        for k, v in blocks:
+            if k <= i and k > best:
+                best, acc = k, v
+        funs.append({"line": i, "name": m.group(2) or m.group(4) or m.group(6),
+                     "access": acc})
+    for n, f in enumerate(funs):
+        stop = funs[n + 1]["line"] if n + 1 < len(funs) else len(lines)
+        j = f["line"] + 1
+        h = []
+        while j < stop and lines[j].lstrip().startswith("%"):
+            h.append(lines[j].strip())
+            j += 1
+        f["help"] = "\n".join(h)
+        f["body"] = "\n".join(l for l in lines[j:stop]
+                               if not l.lstrip().startswith("%"))
+        ids, pre = raised_in(fold(f["body"]))
+        f["raises"] = ids | pre
+    return funs
+
+
+def class_requirements(funs):
+    """(public method -> identifiers it must document, private raisers)."""
+    priv = {f["name"]: f["raises"] for f in funs
+            if "private" in f["access"].lower() and f["raises"]}
+    need = {}
+    for f in funs:
+        if "private" in f["access"].lower():
+            continue
+        got = set(f["raises"])
+        for h, hid in priv.items():
+            if re.search(r"\b%s\s*\(" % re.escape(h), f["body"]):
+                got |= hid
+        if got:
+            need[f["name"]] = got
+    return need, priv
+
+
+def check_classes():
+    probs, backlog, checked = [], [], 0
+    for f in CLASS_FILES:
+        cls = f[:-2]
+        path = os.path.join(ROOT, f)
+        if not os.path.isfile(path):
+            probs.append("%s is listed as a class file but does not exist - "
+                         "renamed or deleted?" % f)
+            continue
+        funs = parse_class(path)
+        need, priv = class_requirements(funs)
+        # a private helper calling another private helper would make one hop
+        # too few; the rule says so out loud instead of hoping
+        for h in priv:
+            for other in priv:
+                if other != h and re.search(
+                        r"\b%s\s*\(" % re.escape(other),
+                        next(x["body"] for x in funs if x["name"] == h)):
+                    probs.append("%s: private %s calls private %s - the "
+                                 "one-hop reachability rule is too shallow "
+                                 "for this file" % (f, h, other))
+        for fn in funs:
+            for i in sorted(fn["raises"]):
+                if not i.startswith(cls + ":"):
+                    probs.append("%s.%s raises %s - the class owns %s:* only"
+                                 % (cls, fn["name"], i, cls))
+                elif i.count(":") == 1:
+                    if i in TWO_PART_OK:
+                        backlog.append(i)
+                    else:
+                        probs.append(
+                            "%s.%s raises the two-part %s, which does not name "
+                            "its method - use %s:%s:<reason> (A21b)"
+                            % (cls, fn["name"], i, cls, fn["name"]))
+        for meth, ids in sorted(need.items()):
+            fn = next(x for x in funs if x["name"] == meth)
+            doc = set(DOC_ID_ANY.findall(fn["help"]))
+            checked += 1
+            if SECTION.strip() not in fn["help"]:
+                probs.append("%s.%s can raise %d identifier(s) and its help "
+                             "has no 'Error identifiers' section"
+                             % (cls, meth, len(ids)))
+                continue
+            for i in sorted(ids - doc):
+                probs.append("%s.%s can raise %s but its help does not "
+                             "document it" % (cls, meth, i))
+            for i in sorted(doc - ids):
+                probs.append("%s.%s documents %s but neither raises it nor "
+                             "calls a private helper that does"
+                             % (cls, meth, i))
+    return probs, sorted(set(backlog)), checked
 
 
 def main(argv=None):
@@ -170,9 +319,14 @@ def main(argv=None):
                              "documents none of them - the gate cannot "
                              "enumerate them, so the help must" % (stem, pre))
 
+    cprobs, cbacklog, cchecked = check_classes()
+    probs += cprobs
+
     if "--list" in argv:
         for s in sorted(backlog):
             print("  backlog: %s.m" % s)
+        for i in cbacklog:
+            print("  two-part (A21b): %s" % i)
     if probs:
         print("error_id_audit: %d finding(s)" % len(probs), file=sys.stderr)
         for p in probs:
@@ -181,10 +335,12 @@ def main(argv=None):
     tail = ("no backlog left (A20 drained it in v4.0.2)" if not backlog
             else "%d in the shrinking UNDOCUMENTED backlog" % len(backlog))
     print("error_id_audit: 0 findings - %d files raise identifiers, every one "
-          "owned by the file that raises it; %d document them, %s. Reach: "
-          "+shLowLevel and the root functions. The three CLASS files are NOT "
-          "read - see CLAUDE.md A21."
-          % (checked, checked - len(backlog), tail))
+          "owned by the file that raises it; %d document them, %s. Classes: "
+          "%d public methods document every identifier they can raise, their "
+          "private helpers' included; %d identifiers are still two-part and "
+          "sit in the A21b backlog. Reach: +shLowLevel, the root functions "
+          "and the three class files - nothing else."
+          % (checked, checked - len(backlog), tail, cchecked, len(cbacklog)))
     return 0
 
 

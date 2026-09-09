@@ -70,6 +70,21 @@ d = randomField(10, 2021.0);        % plus enforces epoch agreement
 verifyError(tc, @() a + d, 'shCoefficients:epochMismatch');
 end
 
+function testMinusDoesNotEnforceEpochAgreement(tc)
+% The other half of testPairCheckIDs, and the one non-obvious claim the
+% A21 help blocks make: plus calls checkEpochs, minus does NOT. A
+% difference between two months has no single epoch, so minus sets
+% epoch = NaN instead of refusing. Documented in both help blocks; until
+% v4.0.3 only the plus half was pinned, so a stray checkEpochs call in
+% minus would have passed every test.
+a = randomField(10, 2020.0);
+d = randomField(10, 2021.0);
+out = a - d;                        % must NOT raise
+verifyClass(tc, out, 'shCoefficients');
+verifyTrue(tc, isnan(out.epoch), ...
+    'A difference carries no epoch, so minus must set it to NaN.');
+end
+
 function testTN14IDs(tc)
 tnFile = writeSyntheticTN14(tc);
 g0 = randomField(10, NaN);

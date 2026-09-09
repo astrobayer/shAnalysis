@@ -94,12 +94,16 @@ def _run_on_tree(source, root=False):
         with open(os.path.join(d if root else pkg, "f.m"), "w",
                   encoding="utf-8") as fh:
             fh.write(source)
-        keepP, keepR = eia.PKG, eia.ROOT
+        # the synthetic tree has no class files; the CLASS pass is
+        # exercised separately by _run_class. A class file missing from the
+        # REAL tree stays a hard error, which is why this is patched here
+        # rather than made tolerant in the gate.
+        keep = (eia.PKG, eia.ROOT, eia.CLASS_FILES)
         try:
-            eia.PKG, eia.ROOT = pkg, d
+            eia.PKG, eia.ROOT, eia.CLASS_FILES = pkg, d, ()
             return eia.main([])
         finally:
-            eia.PKG, eia.ROOT = keepP, keepR
+            eia.PKG, eia.ROOT, eia.CLASS_FILES = keep
 
 
 class TestDocumentation(unittest.TestCase):
@@ -147,37 +151,177 @@ class TestRealRepository(unittest.TestCase):
 
     def test_a_file_outside_the_backlog_must_document(self):
         """The rule the drained backlog now applies to every file."""
-        with tempfile.TemporaryDirectory() as d:
-            pkg = os.path.join(d, "+shLowLevel")
-            os.makedirs(pkg)
-            with open(os.path.join(pkg, "f.m"), "w", encoding="utf-8") as fh:
-                fh.write("function f()\n%F Does a thing.\n"
-                         "%   Developed by Matthias Weigelt.\n"
-                         "error('shLowLevel:f:bad', 'x');\n")
-            keep = eia.PKG
-            try:
-                eia.PKG = pkg
-                self.assertEqual(eia.main([]), 1)
-            finally:
-                eia.PKG = keep
+        self.assertEqual(_run_on_tree(
+            "function f()\n%F Does a thing.\n"
+            "%   Developed by Matthias Weigelt.\n"
+            "error('shLowLevel:f:bad', 'x');\n"), 1)
 
     def test_that_same_file_passes_once_it_documents(self):
         """The other half: the injected fault must also be curable."""
-        with tempfile.TemporaryDirectory() as d:
-            pkg = os.path.join(d, "+shLowLevel")
-            os.makedirs(pkg)
-            with open(os.path.join(pkg, "f.m"), "w", encoding="utf-8") as fh:
-                fh.write("function f()\n%F Does a thing.\n"
-                         "%   Error identifiers\n"
-                         "%     shLowLevel:f:bad\n%         why\n%\n"
-                         "%   Developed by Matthias Weigelt.\n"
-                         "error('shLowLevel:f:bad', 'x');\n")
-            keep = eia.PKG
-            try:
-                eia.PKG = pkg
-                self.assertEqual(eia.main([]), 0)
-            finally:
-                eia.PKG = keep
+        self.assertEqual(_run_on_tree(
+            "function f()\n%F Does a thing.\n"
+            "%   Error identifiers\n"
+            "%     shLowLevel:f:bad\n%         why\n%\n"
+            "%   Developed by Matthias Weigelt.\n"
+            "error('shLowLevel:f:bad', 'x');\n"), 0)
+
+    def test_a_vanished_class_file_is_a_finding_not_a_crash(self):
+        probs, _, _ = _run_class_files_missing()
+        self.assertTrue(all("does not exist" in p for p in probs), probs)
+        self.assertEqual(len(probs), 3)
+
+
+CLASS_OK = """classdef shSeries
+methods
+    function out = at(obj, k)
+        %AT One epoch.
+        %
+        %   Error identifiers
+        %     shSeries:badIndex
+        %         k exceeds nEpochs
+        %
+        if k > obj.nEpochs
+            error('shSeries:badIndex', 'k=%d too big.', k);
+        end
+    end
+
+    function out = filter(obj)
+        %FILTER Filter the series.
+        %
+        %   Error identifiers
+        %     shSeries:nanInSeries
+        %         the stacks carry NaN (raised by assertClean)
+        %
+        obj.assertClean('filter');
+        out = obj;
+    end
+end
+methods (Access = private)
+    function assertClean(obj, opname)
+        if any(isnan(obj.Cs(:)))
+            error('shSeries:nanInSeries', '%s needs clean stacks.', opname);
+        end
+    end
+end
+end
+"""
+
+
+def _run_class_files_missing():
+    """The CLASS pass over a tree that holds none of the three files."""
+    with tempfile.TemporaryDirectory() as d:
+        keep = eia.ROOT
+        try:
+            eia.ROOT = d
+            return eia.check_classes()
+        finally:
+            eia.ROOT = keep
+
+
+def _run_class(source, extra_two_part=None):
+    """Run only the CLASS pass over a one-file synthetic tree."""
+    with tempfile.TemporaryDirectory() as d:
+        with open(os.path.join(d, "shSeries.m"), "w", encoding="utf-8") as fh:
+            fh.write(source)
+        keep = (eia.ROOT, eia.CLASS_FILES, eia.TWO_PART_OK)
+        try:
+            eia.ROOT, eia.CLASS_FILES = d, ("shSeries.m",)
+            if extra_two_part is not None:
+                eia.TWO_PART_OK = extra_two_part
+            probs, backlog, checked = eia.check_classes()
+            return probs, backlog, checked
+        finally:
+            eia.ROOT, eia.CLASS_FILES, eia.TWO_PART_OK = keep
+
+
+class TestClassPass(unittest.TestCase):
+    """A21: identifiers belong to METHODS, and private helpers surface
+    theirs through the public methods that call them."""
+
+    def test_a_healthy_class_is_clean(self):
+        probs, _, checked = _run_class(CLASS_OK)
+        self.assertEqual(probs, [])
+        self.assertEqual(checked, 2)
+
+    def test_a_private_helpers_id_must_be_documented_by_its_caller(self):
+        """The rule that makes the pass worth having."""
+        broken = CLASS_OK.replace(
+            "        %     shSeries:nanInSeries\n"
+            "        %         the stacks carry NaN (raised by assertClean)\n", "")
+        probs, _, _ = _run_class(broken)
+        self.assertTrue(any("filter can raise shSeries:nanInSeries" in p
+                            for p in probs), probs)
+
+    def test_a_documented_id_the_method_cannot_reach_is_a_finding(self):
+        broken = CLASS_OK.replace(
+            "        %     shSeries:badIndex",
+            "        %     shSeries:noSuchThing\n"
+            "        %         invented\n        %     shSeries:badIndex")
+        probs, _, _ = _run_class(broken)
+        self.assertTrue(any("documents shSeries:noSuchThing" in p
+                            for p in probs), probs)
+
+    def test_a_missing_section_is_a_finding(self):
+        broken = CLASS_OK.replace("        %   Error identifiers\n"
+                                  "        %     shSeries:badIndex\n"
+                                  "        %         k exceeds nEpochs\n", "")
+        probs, _, _ = _run_class(broken)
+        self.assertTrue(any("has no 'Error identifiers' section" in p
+                            for p in probs), probs)
+
+    def test_a_foreign_identifier_is_a_finding(self):
+        broken = CLASS_OK.replace("error('shSeries:badIndex'",
+                                  "error('shCoefficients:badIndex'")
+        probs, _, _ = _run_class(broken)
+        self.assertTrue(any("the class owns shSeries:* only" in p
+                            for p in probs), probs)
+
+    def test_a_new_two_part_identifier_is_a_finding(self):
+        """A21b is a backlog, not a licence: an id outside it is a defect."""
+        probs, backlog, _ = _run_class(CLASS_OK, extra_two_part=set())
+        self.assertTrue(any("two-part shSeries:badIndex" in p
+                            for p in probs), probs)
+        self.assertEqual(backlog, [])
+
+    def test_the_listed_two_part_ids_are_a_backlog_not_a_finding(self):
+        probs, backlog, _ = _run_class(
+            CLASS_OK, extra_two_part={"shSeries:badIndex",
+                                      "shSeries:nanInSeries"})
+        self.assertEqual(probs, [])
+        self.assertEqual(backlog, ["shSeries:badIndex", "shSeries:nanInSeries"])
+
+    def test_a_second_private_hop_is_reported_not_missed(self):
+        """One hop is checked, not assumed - the depth guard must fire."""
+        deeper = CLASS_OK.replace(
+            "    function assertClean(obj, opname)\n"
+            "        if any(isnan(obj.Cs(:)))",
+            "    function inner(obj)\n"
+            "        error('shSeries:nanInSeries', 'x');\n"
+            "    end\n\n"
+            "    function assertClean(obj, opname)\n"
+            "        obj.inner();\n"
+            "        if any(isnan(obj.Cs(:)))")
+        probs, _, _ = _run_class(deeper)
+        self.assertTrue(any("one-hop reachability rule is too shallow" in p
+                            for p in probs), probs)
+
+
+class TestRealClassFiles(unittest.TestCase):
+
+    def test_the_shipped_classes_are_clean(self):
+        probs, backlog, checked = eia.check_classes()
+        self.assertEqual(probs, [])
+        self.assertEqual(checked, 31)
+        self.assertEqual(len(backlog), 29)
+
+    def test_minus_does_not_claim_the_epoch_check_plus_does(self):
+        """shCoefficients.plus calls checkEpochs; minus deliberately does
+        not (a difference sets epoch = NaN). The reachability map must
+        keep them apart, or the help would promise a wrong catch."""
+        funs = eia.parse_class(os.path.join(eia.ROOT, "shCoefficients.m"))
+        need, _ = eia.class_requirements(funs)
+        self.assertIn("shCoefficients:epochMismatch", need["plus"])
+        self.assertNotIn("shCoefficients:epochMismatch", need["minus"])
 
 
 if __name__ == "__main__":
