@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shCoefficients.errorMap &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shCoefficients.errorMap</nav>
+<h1>shCoefficients.errorMap</h1>
+<p class="h1line">Formal-error map of a synthesized quantity.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>[sig, latDeg, lonDeg] = shCoefficients.errorMap(obj, latDeg, lonDeg)</code><code>[sig, latDeg, lonDeg] = shCoefficients.errorMap(obj, latDeg, lonDeg, Covariance=[], Index=[], Quantity=..., ...)</code></div>
+<h2>Description</h2>
+<p>SIG = g.errorMap(LAT, LON) is the pointwise 1-sigma of what g.synthesis returns on the grid LAT x LON, propagated from G&#x27;s own formal sigmas (sigmaC, sigmaS) taken as a DIAGONAL covariance. SIG = g.errorMap(LAT, LON, Covariance = M, Index = IDX) propagates a full P x P covariance in IDX ordering instead, e.g. from <a href="shLowLevel_readSINEX.html"><code>shLowLevel.readSINEX</code></a>(..., Output = &quot;covariance&quot;). Either way it is <a href="shLowLevel_errorMap.html"><code>shLowLevel.errorMap</code></a> with G&#x27;s GM and R filled in. Quantity, kn, hn and Height go to <a href="shLowLevel_errorMap.html"><code>shLowLevel.errorMap</code></a> only when given, so their defaults live there and nowhere else: &quot;(lane default)&quot; below means that function&#x27;s.</p>
+<h2>Examples</h2>
+<details class="example"><summary>From the help block</summary><div><pre><code>    sig = g.errorMap(-89:2:89, 0:2:358, Quantity = &quot;ewh&quot;, kn = kn);</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td><code>required</code></td><td class="desc">the object the method is called on</td></tr><tr><td><code>latDeg</code></td><td>1 x :</td><td>double</td><td><code>required</code></td><td class="desc">double  geocentric latitudes [deg]</td></tr><tr><td><code>lonDeg</code></td><td>1 x :</td><td>double</td><td><code>required</code></td><td class="desc">double  longitudes [deg]</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>Covariance</code></td><td>n x m</td><td>double</td><td><code>[]</code></td><td class="desc">(P x P) double  covariance in Index ordering; [] builds diag(sigma.^2) from sigmaC and sigmaS</td></tr><tr><td><code>Index</code></td><td>n x m</td><td>-</td><td><code>[]</code></td><td class="desc"><a href="shLowLevel_shIndex.html"><code>shLowLevel.shIndex</code></a> struct Covariance is ordered by; [] uses <a href="shLowLevel_shIndex.html"><code>shLowLevel.shIndex</code></a>(nmax)</td></tr><tr><td><code>Quantity</code></td><td>lane default</td><td>-</td><td><code>-</code></td><td class="desc">the quantity whose error is mapped</td></tr><tr><td><code>kn</code></td><td>lane default</td><td>-</td><td><code>-</code></td><td class="desc">load Love numbers, for mass quantities</td></tr><tr><td><code>hn</code></td><td>lane default</td><td>-</td><td><code>-</code></td><td class="desc">vertical-deformation Love numbers</td></tr><tr><td><code>Height</code></td><td>lane default</td><td>-</td><td><code>-</code></td><td class="desc">evaluation height above R [m]</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>sig</code></td><td class="desc">(nlat x nlon) double  1-sigma of the field, in the unit of Quantity</td></tr><tr><td><code>latDeg</code></td><td class="desc">(1,nlat) double  latitudes used [deg], as passed in</td></tr><tr><td><code>lonDeg</code></td><td class="desc">(1,nlon) double  longitudes used [deg], as passed in</td></tr></table>
+<h2>Error Identifiers</h2>
+<table><tr><th>Identifier</th><th>Raised when</th></tr><tr><td><code>shCoefficients:errorMap:noCovariance</code></td><td class="desc">Covariance is empty and G carries no formal sigmas - there is no error to propagate</td></tr></table>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<ul class="seealso"><li><a href="shLowLevel_readSINEX.html"><code>shLowLevel.readSINEX</code></a></li><li><a href="shLowLevel_errorMap.html"><code>shLowLevel.errorMap</code></a></li></ul>
+<p class="prov">shAnalysis v5.6.0 (10-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

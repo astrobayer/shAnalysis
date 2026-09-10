@@ -1,5 +1,94 @@
 # Changelog
 
+## [5.6.0] - 2026-09-10 - WP7: the classes reach the lanes
+
+A MINOR: new API, and nothing existing changes. Eight methods put lanes
+that were reachable only as `shLowLevel.*` calls behind the classes, and
+`Surface` now reaches `toGrid` and `map`. Every new method is a thin
+delegate, pinned **bitwise** against the call it makes. A new gate
+measures what `Contents.m` claims when it calls the classes "the single
+point of access": before this release **58 of 124** public `+shLowLevel`
+functions were reachable from a class method, now **69**, and each of the
+other 55 is a named exception with its reason or sits in a backlog that
+may only shrink.
+
+### Added
+- `ts.kalman(ModelSeries = tsm, ...)` - `shLowLevel.kalmanChain` with the
+  series as the observations (solution mode). The normal-equation mode
+  reads a SINEX folder, has no series to be a method of, and stays on the
+  function.
+- `ts.eof(...)` - `shLowLevel.eofAnalysis`.
+- `ts.leakageCorrect(lat, lon, Filter = ..., kn = ...)` - every epoch
+  through `g.synthesis` and `shLowLevel.leakageCorrect`, with the series'
+  GM and R; the corrected stack and one `info` per epoch.
+- `ts.leakageDataDriven(lat, lon, Mask = ..., Filter = ..., kn = ...)` -
+  the synthesized stack through `shLowLevel.leakageDataDriven`.
+- `ts.gradient(lat, lon, ...)` - `g.gradient` of every epoch, each
+  component stacked along the third dimension as `ts.toGrid` stacks its
+  fields.
+- `ts.write(folder, FileNames = ...)` - one `.gfc` file per epoch
+  through `g.write`.
+- `g.basinAverage(B)` - the one-epoch `shSeries.basinAverage`.
+- `g.errorMap(lat, lon, Covariance = M, Index = idx, ...)` -
+  `shLowLevel.errorMap` with the object's GM and R. Without `Covariance`
+  it propagates the object's formal sigmas as a diagonal covariance, and
+  its help says what that leaves out: every correlation, which for GRACE
+  is the stripes.
+- `Surface` and `SemiMajorAxis` on `g.toGrid`, `g.map` and `ts.toGrid`,
+  forwarded to `g.synthesis`. WP3 had stopped at `g.synthesis` and
+  `g.gradient` on purpose.
+- `tools/dev/class_surface_audit.py`, in CI: the call graph read from the
+  source (comments and string literals blanked by `mlint_lite`'s
+  scanner), its closure taken from the three classes. 12 self-tests.
+
+### Design
+- **A lane's options are declared without defaults and forwarded only
+  when given** (`namedargs2cell`). Each default lives in the lane's
+  arguments block and nowhere else, so a method cannot drift from its
+  lane; the help rows say "(lane default)". `shSeries.filter`'s help
+  already stated this rule for its tuning options; WP7 applies it to
+  every option of every new delegate.
+- **Both leakage methods REQUIRE `Filter`,** although the functions
+  default it to `gauss300`. A series cannot know which filter its data
+  saw, and the wrong one makes the correction meaningless without any
+  error: `shSeries:leakageCorrect:noFilter`,
+  `shSeries:leakageDataDriven:noFilter`.
+- **`ts.write` warns when a file name will not bring its epoch back**
+  (`shSeries:write:epochNotInName`): a `.gfc` file has no epoch field,
+  and `shSeries.read` takes the epoch from the name alone. It refuses a
+  missing folder rather than create one (`shSeries:write:noFolder`) and
+  names that are not one per epoch (`shSeries:write:badFileNames`).
+  `Sidecar` defaults to false here, where `g.write` defaults to true,
+  because the default read pattern `*.gfc*` would read every sidecar
+  back as data.
+- `g.errorMap` raises `shCoefficients:errorMap:noCovariance` when there is
+  neither a covariance nor a formal sigma.
+
+### Not built, by decision (Matthias, 2026-09-10)
+- **No generic `shCoefficients.filter(method, ...)`.** The four named
+  filter methods already are the class surface. Measured on the way: the
+  filter-spec strings (`"gauss300"`, `"DDK3"`, `"none"`, a W struct) are
+  parsed in **eight** separate places - recorded as A25, not fixed here.
+- **No `shSeries.chain(name, ...)`.** The chains take a folder, return
+  different products, and are one call each already. They are
+  exceptions in the gate, with that reason.
+- `shSeries.deformation` and `shSeries.excitation` stay with WP4 and
+  WP5 5a; the functions they would call do not exist yet.
+
+### Measured
+- Reach from the classes, read by the gate: 58 of 124 before, 69 after.
+  The eleven newly reached are the five lanes the delegates call and what
+  those call in turn - `estimateVAR`, `kalmanFilter`, `rtsSmoother`,
+  `neqCombine`, `readSINEX`, `chi2Quantile`.
+- The first count, made before the gate existed, said 62 unreached where
+  there are 66. That prototype did not blank string literals, so
+  `readDDK`'s error message "Download it once with shLowLevel.fetchDDK"
+  counted as a call - and three fetch helpers hung on that one string.
+  That is the direction a reach check must not err in; the scanner the
+  gate reuses is what caught it.
+- Tests: 346 -> 357 runs (`testContract` 83 -> 94). All eleven new tests
+  passed locally on their first run.
+
 ## [5.5.0] - 2026-09-10 - WP3: synthesis on the ellipsoid
 
 A MINOR: new API. `Surface = "sphere" | "ellipsoid"` in `shSynthesis`,

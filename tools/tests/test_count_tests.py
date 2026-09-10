@@ -109,7 +109,7 @@ class TestCounting(unittest.TestCase):
         self.assertEqual(c["runs"], c["methods"])
 
 
-EXPECTED_RUNS = 346          # v5.5.0: 335 + 11 WP3 ellipsoid tests
+EXPECTED_RUNS = 357          # v5.6.0: 346 + 11 WP7 delegation tests
                              # (5 correctness, 4 contract, 2 robustness)
 
 

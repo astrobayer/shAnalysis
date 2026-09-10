@@ -23,13 +23,13 @@ says whether it was *read* or *inferred*.
 
 | Fact | Value | Evidence |
 |---|---|---|
-| Version | **5.5.0**, 10-Sep-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
+| Version | **5.6.0**, 10-Sep-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
 | Branches | `main` only; `claude/getframe-recapture` and `claude/readshm` are gone (merged/deleted) | `GET /branches` |
-| Public surface | 3 classes / 71 methods, 124 `+shLowLevel` functions (+4 private), 3 root functions | `tools/dev/api_extract.py` run in sandbox |
-| Tests | 5 classes, **332 methods / 346 runs**: Correctness 173, Contract 83, Robustness 56, Science 7, Performance 13 methods (27 runs, `budgetCase` x14 + `nmaxP` x2). On A8 4 filter out without the optional real-data fixtures; on MATTHIASPC only 2 do, because `E:\DATAPOOL` supplies the SINEX and GravIS files. The counter has matched the runner EXACTLY on the last ten green A8 runs and on every local Tier-A run. | `python3 tools/dev/count_tests.py` |
+| Public surface | 3 classes / 79 methods, 124 `+shLowLevel` functions (+4 private), 3 root functions. 69 of the 124 are reachable from a class method; each of the other 55 is a named exception (34) or in a backlog that may only shrink (21) | `tools/dev/api_extract.py`; `tools/dev/class_surface_audit.py` |
+| Tests | 5 classes, **343 methods / 357 runs**: Correctness 173, Contract 94, Robustness 56, Science 7, Performance 13 methods (27 runs, `budgetCase` x14 + `nmaxP` x2). On A8 4 filter out without the optional real-data fixtures; on MATTHIASPC only 2 do, because `E:\DATAPOOL` supplies the SINEX and GravIS files. The counter has matched the runner EXACTLY on the last ten green A8 runs and on every local Tier-A run. | `python3 tools/dev/count_tests.py` |
 | Python oracles | 20 `tools/dev/validate_*.py` + `tools/audit/*` | listing |
-| Docs | **26** hand-written `html/*.html` (24 per-entity duplicates retired in v5.0.1, WP6 stage 3) + **202 generated `html/ref/*.html`** (one per entity + index, `make_refpages.py`), one shared `html/shAnalysis.css`, `helptoc.xml`, `info.xml`, guide PDF, generated `html/apiReference.html`. `docs/` holds the PDF and `apiExamples.json` only - no HTML page lives outside `html/` (gated). | listing |
-| CI | `gates` job on ubuntu (help_audit, doc_sync_audit, no_map_renderer, toolbox_dependency_audit, nv_casing_audit, fixture_tag_audit, gate self-tests `tools/tests/`, `count_tests`, `name_coverage`, `error_id_audit`, `option_values_audit`, `refpages_audit`, `make_demos --check`, `perf_baseline_audit`) + `runAllTests (self-hosted)` on A8/R2026a; fixtures from tag `fixtures-2026-08` | `.github/workflows/ci.yml` |
+| Docs | **26** hand-written `html/*.html` (24 per-entity duplicates retired in v5.0.1, WP6 stage 3) + **210 generated `html/ref/*.html`** (one per entity + index, `make_refpages.py`), one shared `html/shAnalysis.css`, `helptoc.xml`, `info.xml`, guide PDF, generated `html/apiReference.html`. `docs/` holds the PDF and `apiExamples.json` only - no HTML page lives outside `html/` (gated). | listing |
+| CI | `gates` job on ubuntu (help_audit, doc_sync_audit, no_map_renderer, toolbox_dependency_audit, nv_casing_audit, fixture_tag_audit, gate self-tests `tools/tests/`, `count_tests`, `name_coverage`, `class_surface_audit`, `error_id_audit`, `option_values_audit`, `refpages_audit`, `make_demos --check`, `perf_baseline_audit`) + `runAllTests (self-hosted)` on A8/R2026a; fixtures from tag `fixtures-2026-08` | `.github/workflows/ci.yml` |
 | Namespace | `+shLowLevel` (renamed from `+shx` in v3.0.0). Any memory saying `shx.*` is stale. | README §History |
 
 ### 1.1 Already implemented — do NOT propose again
@@ -117,7 +117,7 @@ CF-1.8 export, provenance sidecars, geoMap bridge (`toGrid`, `gridHandover`).
    `python tools/dev/mlint_lite.py <changed files>`, `python tools/dev/check_api.py`,
    `python tools/dev/api_audit.py`, `python tools/dev/attribution_sweep.py`,
    `python tools/dev/refpages_audit.py`, `python tools/dev/name_coverage.py`,
-   `python tools/error_id_audit.py`,
+   `python tools/dev/class_surface_audit.py`, `python tools/error_id_audit.py`,
    `python tools/dev/option_values_audit.py`,
    `python tools/dev/count_tests.py` (also §5's prediction),
    `python tools/dev/make_demos.py --check`,
@@ -199,6 +199,7 @@ do not see; **L** = polish.
 | A22 | H | **CLOSED v5.3.0** — `synthesisPoints`'s `auto` sent every station list below 150 points down the SLOWER path. `ClenshawFrom = 150` was the crossover of the numpy prototype, transplanted to MATLAB where **there is no crossover at all**: `benchPointsCrossover` timed both summations on the SAME points and `clenshaw` won at every count measured — P = 1..2000 at nmax 60 and 120, P = 1..200 at nmax 360 — by 2.3x at the narrowest margin and 37x at a single point. The cause is structural: `direct` is bounded by `legendreALF`, which `clenshaw` never calls, so the margin GROWS with degree. Confirmed independently on A8 by the n50/n60 matched pairs, both in the SAME run (`b65f9a2`): 3.56x at 50 points, 6.99x at 200. The run before it put the 200-point pair at 4.61x, which is the between-run spread these small budgets are known for — the direction is what is reproducible, not the factor. Default is now 1, so `auto` is `clenshaw` everywhere; the option stays because `direct` is the bitwise path. `testSynthesisPointsAutoPicksTheFasterPath` needed NO edit — it pins the rule while driving `ClenshawFrom` by hand, which is exactly what that design bought. | `benchPointsCrossover` |
 | A23 | M | **CLOSED v5.3.0** — one machine had two labels. `machineId()` read `COMPUTERNAME` (`MATTHIASPC`) before falling back to `hostname` (`MatthiasPC`), so which label a baseline row needed depended on how MATLAB was launched. The failure is silent by construction: a row that misses does not FAIL its budget, it FILTERS it, so the machine looks green while guarding nothing. Label is now upper-cased (upper, so the committed `A8` rows are untouched) and `perf_baseline_audit.py` rejects a row that is not, fault-injected both ways plus a digits/punctuation case so the rule cannot reject legal names. | `python3 tools/dev/perf_baseline_audit.py` |
 | A24 | M | **CLOSED v5.3.0** — `mlint_lite` could not see a parse error. An edit put a real newline inside an `fprintf` format; the gate reported zero findings and MATLAB refused to parse the whole `testPerformance` class, so every test in it would have VANISHED rather than failed — and a Tier-B session has no other syntax check. **R7** reports a literal running off its line, read off the scanner that already had to know where a literal stops rather than from a second parser (the A17 lesson). Silent on the two legal shapes that look like it: a transpose after a value, and a literal split with `...`. Zero findings across all 149 `.m` files. | `python3 tools/dev/mlint_lite.py` |
+| A25 | M | **OPEN** - found in the WP7 survey (v5.6.0), deliberately not fixed there. The filter-spec vocabulary (`"none"`, `"gauss<radiusKm>"`, `"DDKn"`, a W struct) is parsed in **eight** places: a local `resolveFilter` copied into `leakageCorrect`, `leakageDataDriven` and `gridScaling`, and inline code in `standardChain`, `twsChain`, `gravisRegionChain`, `oceanChain` and `obpChain`. They do not accept the same set - `gravisRegionChain`, `oceanChain` and `obpChain` take only `"none"` and `"gaussN"` - so a spelling one lane learns is silently refused by another, and no gate compares them. The A17 shape: several parsers of one fact. Fix: one `+shLowLevel` resolver every lane calls, each lane stating the subset it admits. A generic class `filter(spec)` was declined for WP7 partly because it would have been a ninth. | `grep -nE 'resolveFilter\|startsWith\(.*"gauss"' +shLowLevel/*.m` |
 | A15 | M | **CLOSED v4.0.0** with A3 — `kernelFactors`, `shSynthesisGradient` and `seaLevelFingerprint` now own their identifiers, and the tests that pinned the old names were remapped per raising file (the same old id mapped to two different owners, so a global replace would have been wrong). Original finding: A3 is **wider than the audit's 12**: `kernelFactors` (`shSynthesis:missingLoveNumbers`, `:badQuantity`, `:heightInvalid`), `shSynthesisGradient` (`shSynthesis:badInput`) and `seaLevelFingerprint` (`shSynthesis:missingLoveNumbers`) also raise identifiers they do not own. Unlike `shSynthesisDeformation`'s, these ARE documented and pinned by `testContract`/`testCorrectness`, so renaming them is a MAJOR change. Belongs in WP1's identifier sweep, not in a patch. | `grep -rn "shSynthesis:" --include=*.m` |
 | A14 | M | **CLOSED v3.33.1** — the three gate self-tests in `tools/tests/` (committed in v3.32/v3.33) were **never run by CI**, and `test_legacy_name_tolerated` had been broken since the v3.33.0 sweep drained `LEGACY` to empty — an untested instrument, silently. CI now runs `tools/tests/`; the stale test asserts the mechanism with a temporary entry instead of pinning a member name. | `.github/workflows/ci.yml` before/after |
 | A13 | L | **CLOSED v3.34.0** — the km conversion is the `RadiusKm` option, default unchanged at 6371 so no number moves, documented as the MEAN radius (deliberately not the coefficients' reference radius 6378.1363 km) and overridable. Pinned by `testResolutionMapRadiusIsAChoice`, a metamorphic test: the angular half-widths are radius-invariant, every km figure scales exactly with it, and `anisotropy` — a ratio — does not. That test also removes `resolutionMap` from A10's never-named list. | `+shLowLevel/resolutionMap.m` |
@@ -523,7 +524,23 @@ Original scope below.
   "Create Help Summary Files" pages (R2026a) for the file contract.
 - **Size**: L. **Version**: MINOR.
 
-### WP7 — Class surface completeness (UI simplification)   `[ ] approved`
+### WP7 — Class surface completeness (UI simplification)   `[x] DONE in v5.6.0` (2026-09-10)
+The last of the order agreed on 2026-09-10; its scope was settled by four
+answers the same day (6.1). Shipped: `ts.kalman`, `ts.eof`,
+`ts.leakageCorrect`, `ts.leakageDataDriven`, `ts.gradient`, `ts.write`,
+`g.basinAverage`, `g.errorMap`, and `Surface` through `toGrid` and `map`
+on both classes - each a thin delegate pinned BITWISE by `testContract`,
+with options and without. The acceptance's reachability clause is
+`tools/dev/class_surface_audit.py`, in CI: 69 of 124 public functions
+reachable from a class (58 before), each of the other 55 a named
+exception (34) or in a backlog that may only shrink (21). Deviations from
+the text below, each in the changelog and 6.1: no generic
+`shCoefficients.filter` and no `shSeries.chain` (declined by decision);
+`deformation` and `excitation` stay with WP4 and 5a, whose functions do
+not exist; the "only argument forwarding" gate was not built - the
+bitwise tests prove more than a reading of the body could; and the
+exception list lives in the gate, not in this file.
+
 - **Goal**: `Contents.m` promises "Classes (single point of access)", but the
   validated chains, the Kalman lane, EOF, leakage, error maps, deformation
   series and export exist only as `shLowLevel.*` calls with C,S,GM,R
@@ -559,6 +576,55 @@ Original scope below.
 ## 6. Records
 
 ### 6.1 Decisions (append-only; date, decision, evidence)
+- 2026-09-10 — **WP7's scope was settled by four answers** (Matthias):
+  no generic `shCoefficients.filter`, no `shSeries.chain`, the two
+  leakage lanes as two methods named after them, and a reachability
+  gate with a backlog that may only shrink. Executed as 5.6.0 the same
+  day. Each question carried a measurement rather than a preference:
+  `shSeries.filter` dispatches tvANS only, the chains take folders and
+  return different products, the two leakage lanes return different
+  things, and 21 numerical lanes had no class route.
+- 2026-09-10 — **A delegate declares its lane's options WITHOUT
+  defaults and forwards only what the caller gave** (`namedargs2cell`).
+  Copying each default into the method gives it two homes that can
+  drift. The no-option bitwise call in each delegate test is what pins
+  this: a method that grew a default of its own would stop equalling
+  the lane.
+- 2026-09-10 — **The leakage methods REQUIRE `Filter` although the
+  functions default it.** A function handed a grid may assume the common
+  filter; a method on a series would be asserting something about data
+  it cannot know, and the wrong filter gives a plausible wrong answer
+  with no error.
+- 2026-09-10 — **`ts.write` warns instead of guaranteeing the epoch
+  round trip.** A `.gfc` file has no epoch field; `shSeries.read` takes
+  the epoch from the file name alone. An exact round trip would mean
+  inventing a span from a mid-epoch - calendar arithmetic of its own in
+  a method meant to have none. So it checks every name with the parser
+  the reader uses, and says before writing which epochs would not come
+  back.
+- 2026-09-10 — **The reach figure in the scope question was a
+  prototype's, and it erred in the unsafe direction.** The question said
+  62 of 124 unreachable; the shipped gate says 66. The prototype stripped
+  comments but not strings, so `readDDK`'s error message "Download it
+  once with shLowLevel.fetchDDK" counted as a call, and three fetch
+  helpers hung on that one string. No decision changed - the four are
+  download plumbing and joined the exceptions - but the number did, and
+  the release notes carry the corrected one.
+- 2026-09-10 — **WP7's "method bodies contain only argument
+  forwarding" gate was NOT built; the bitwise tests stand in for it.**
+  Deciding statically whether a MATLAB body only forwards needs an
+  expression parser - `.^ 2` building a diagonal covariance is
+  arithmetic, `[infos{:}]` is not - and a cheap version would be one
+  more checker that lies before it tells the truth (6.3). A test that
+  the method equals the lane bit for bit, with and without options,
+  proves more than any reading of the body. What IS gated: each
+  lane-calling method calls its lane (DELEGATES), and every lane is
+  reached or listed.
+- 2026-09-10 — **The class-surface exception list lives in the gate, not
+  here**, although WP7 said "list of deliberate exceptions in this
+  file". A second copy would be a duplicated fact, and this file already
+  records how those rot (the version bullet in 6.3). Here: the policy
+  and the counts; there: the names, one reason each.
 - 2026-09-10 — **WP3 approved, acceptance by self-consistency only**
   (Matthias: "Yes, but you can drop the EGM2008 reference. Self-consistency
   is fine"). Executed as 5.5.0 the same day.
@@ -1194,6 +1260,7 @@ Original scope below.
 | v5.4.0 (WP5 5b: leakageDataDriven) | ☑ 15 gates + mlint + make_demos + 13 self-test suites + the new oracle, 0 findings | ☑ **Tier A LOCAL on MATTHIASPC (R2026a) — 335 runs, 333 passed, 0 failed, 2 filtered**; the count prediction matched EXACTLY, per class as well as in total (Contract 79, Correctness 168, Performance 27, Robustness 54, Science 7). All 7 new tests pass. Two red rounds locally first, both mine and both in the TESTS, not the function: a string-array `sprintf` format, and a `badNmax` case that tripped `badSize` first because the grid was not sliced with the latitudes. Then ☑ **CI self-hosted (A8) at `c1dc1d3` via PR #103, green — 335 runs, 331 passed, 0 failed, 4 filtered** (exactly the optional real-data fixtures): the THIRTEENTH exact count prediction running, per class as well as in total, and all seven new tests ran there. | ☑ PR #103 | ☑ 2026-09-10 |
 | v5.4.1 (A9: four workloads replaced, apply_ddk_n300 promoted, TightFactor 1.3, leakageCorrect duplicate chain) | ☑ 15 gates + mlint + make_demos + 13 self-test suites, 0 findings; `leakageCorrect` change bitwise on 16 outputs | ☑ **Tier A LOCAL on MATTHIASPC — 335 runs, 333 passed, 0 failed, 2 filtered**; count exact per class; all fourteen budgets asserted, the four tight ones at 1.3. Then ☑ **A8 twice at `2c7b779`** (PR run + `workflow_dispatch`): 335 runs, 327 passed, 0 failed, 8 filtered each - the four fixtures plus the four new workloads, as predicted, per class as well as in total. Those two runs are the evidence the promotion rests on. A third A8 run, on the promotion commit `5d4980e` itself: 335 runs, 331 passed, 0 failed, 4 filtered - only the fixtures - with every budget asserting and the worst tight one at 1.030x. | ☑ PR #104 (A8 x3) | ☑ 2026-09-10 |
 | v5.5.0 (WP3: `Surface = "ellipsoid"`, `ellipsoidRadius`) | ☑ 15 gates + mlint + make_demos + 13 self-test suites + the new oracle, 0 findings; sphere path bitwise on 26/26 pre-WP3 outputs | ☑ **Tier A LOCAL on MATTHIASPC — 346 runs, 344 passed, 0 failed, 2 filtered**; count exact per class (Contract 83, Correctness 173, Performance 27, Robustness 56, Science 7); the 11 WP3 tests passed on their first run - no red round. Then ☑ **CI self-hosted (A8) at `3f99bf3` via PR #105, green — 346 runs, 342 passed, 0 failed, 4 filtered** (exactly the optional real-data fixtures); `count_tests` confirmed the prediction against the run, per class as well as in total, and all eleven WP3 tests ran there | ☑ PR #105 | ☑ 2026-09-10 |
+| v5.6.0 (WP7: eight class delegates, `Surface` through `toGrid`/`map`, `class_surface_audit`) | ☑ 16 gates + mlint + make_demos + 14 self-test suites, 0 findings; reach 58 -> 69 of 124; the 11 WP7 tests passed on their first run | ☑ **Tier A LOCAL on MATTHIASPC — 357 runs, 355 passed, 0 failed, 2 filtered**; count exact per class (Contract 94, Correctness 173, Performance 27, Robustness 56, Science 7), and all 27 performance runs asserted | ◐ pending | ◐ pending |
 | v5.0.3 (WP2 step 1 baselines) | ☑ 14 gates + mlint + make_demos + 13 self-test suites, 0 findings; `NO_BASELINE` empty | ☑ **CI self-hosted (A8) at `b70c947`, green — 315 runs, 311 passed, 0 failed, 4 filtered**; the EIGHTH exact count prediction running, per class as well as in total. All ten budgets PASSED (they filtered at `f6d5529`), and the only filtered are the four real-data fixtures. Triggered by `workflow_dispatch`, not a PR — #99 merged mid-session and `ci.yml` runs only on push-to-main, pull_request and workflow_dispatch. | ☐ no PR (#99 merged; not asked) | ☐ |
 
 **Tier A debt: DISCHARGED for all nine releases.** The local MATLAB
@@ -1218,6 +1285,22 @@ confirmation that the counter is right about a real run and not only
 about the source.
 
 ### 6.3 What the next session could be wrong for not reading
+- **Quote a number from the instrument you will ship, not from its
+  prototype.** WP7's scope question carried a reach figure from a
+  throwaway script; the gate, written an hour later on the repository's
+  own scanner, disagreed by four, because the script read string
+  literals as code. Nothing hung on it this time.
+- **A reach or coverage check must blank strings, not only comments.**
+  A function named in an error message ("run shLowLevel.fetchDDK
+  first") is the most natural false positive there is, and it errs in
+  the one direction such a check must not: it reports as reached a lane
+  nothing calls. `mlint_lite.strip_tokens` already knows where a MATLAB
+  literal stops; reuse it.
+- **Tripwire counts in the self-tests move with the surface.**
+  `test_count_tests` pins the run count and `test_error_id_audit` the
+  number of class methods that raise identifiers; a new raising method
+  moves both. Bump them in the same commit with a comment naming what
+  moved - it is bookkeeping, not a regression.
 - **A work package can contradict itself; resolve it by its own explicit
   rule and say so.** WP3's acceptance named the geoid, its scope said
   surface quantities keep erroring. The rule wins over the example, the
@@ -1575,20 +1658,25 @@ internet, which unblocks all three stuck items at once:
    buildable and testable WITHOUT network; only the live URL needs it.
 
 **Next concrete actions, in order of what they buy:**
-1. **WP3 is DONE (v5.5.0) and merged** (PR #105, green on A8). A9 closed in v5.4.1.
-2. **In progress: WP7** (class surface completeness) on `wp7-class-surface`, the last of the order
-   Matthias agreed on 2026-09-10. Natural first customers: a
-   `shSeries.leakage` method for `leakageDataDriven`, and forwarding
-   `Surface` through `g.map` and `g.toGrid`, which still evaluate on the
-   sphere only - WP3 forwarded it through `g.synthesis` and `g.gradient`
-   and stopped there on purpose.
-3. **Candidate, measure first: `shSynthesis` auto may pick FFT where
+1. **The whole order agreed on 2026-09-10 is DONE**: A9 (v5.4.1), WP3
+   (v5.5.0, merged via PR #105) and WP7 (v5.6.0, `wp7-class-surface`).
+   Merge WP7's PR.
+2. **A25: one filter-spec resolver.** Eight parsers of `"gauss300"` /
+   `"DDK3"` / `"none"` / W, accepting different subsets. The resolver
+   becomes the single home; each lane keeps its admitted subset.
+3. **The class-surface BACKLOG** (21 lanes, `class_surface_audit.py`).
+   Cheapest routes: `synthesisPoints` beside `g.synthesis`, `vdkApply`
+   beside `applyDDK`, `shSynthesisGradientTensor` beside `g.gradient`.
+   An entry that gets a method must leave the list in the same commit -
+   the gate enforces it.
+4. **Candidate, measure first: `shSynthesis` auto may pick FFT where
    direct is faster on large grids** (n180 / 0.5 deg: 31.4 vs 29.9 ms on
    MATTHIASPC). Sweep sizes on both machines before touching `auto`.
-4. **WP5 follow-ons**: the method of SCALE (thesis eq. 3.28) is the same
-   machinery plus a geometric factor; `shSeries.leakage` belongs in WP7.
-5. **B1 (packed Legendre)** remains the weaker WP2 step-2 candidate.
-6. **WP4, WP5 5a/5d/5e** wait on data or a policy decision from Matthias.
+5. **WP5 follow-ons**: the method of SCALE (thesis eq. 3.28) is the same
+   machinery plus a geometric factor, and would be a third leakage
+   method on `shSeries`.
+6. **B1 (packed Legendre)** remains the weaker WP2 step-2 candidate.
+7. **WP4, WP5 5a/5d/5e** wait on data or a policy decision from Matthias.
 
 **What a Tier-A session should know about running the suite here.** The
 MATLAB MCP tool times out on anything suite-sized. Run it detached and

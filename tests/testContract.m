@@ -2249,3 +2249,263 @@ dl = shLowLevel.shSynthesisGradient(g.C, g.S, g.GM, g.R, lat, lon, ...
     Quantity = "potential", Surface = "ellipsoid");
 verifyTrue(testCase, isequaln(dg, dl), 'g.gradient did not forward Surface');
 end
+
+% ------------------------------------------- WP7: lanes behind the class
+% Every WP7 method is a thin delegate. These pin each one BITWISE against
+% the call it makes, with options and with none. The no-option call is the
+% one that holds a method which declares no defaults to the lane's own.
+
+function ts = wp7Series(nmax, T, seed)
+%WP7SERIES Deterministic series for the WP7 delegation tests: random
+%   coefficients whose degree amplitude falls as 1/(n+1)^2, formal sigmas
+%   and monthly epochs. Raw-stack form, so the series carries no names.
+rng(seed);
+n1 = nmax + 1;
+dec = 1 ./ ((0:nmax)' + 1) .^ 2;
+Cs = zeros(n1, n1, T);
+Ss = zeros(n1, n1, T);
+for k = 1:T
+    Cs(:, :, k) = tril(randn(n1) .* dec) * 1e-9;
+    s = tril(randn(n1) .* dec) * 1e-9;
+    s(:, 1) = 0;
+    Ss(:, :, k) = s;
+end
+sig = repmat(tril(1e-11 * ones(n1)), 1, 1, T);
+ts = shSeries(Cs, Ss = Ss, Epochs = 2005 + ((1:T)' - 0.5) / 12, ...
+    SigmaCs = sig, SigmaSs = sig);
+end
+
+function testSeriesKalmanIsKalmanChain(testCase)
+%TESTSERIESKALMANISKALMANCHAIN ts.kalman is shLowLevel.kalmanChain with the
+%   series as the observations - bitwise, with options and with the lane's
+%   defaults.
+tsObs = wp7Series(3, 36, 71);
+tsModel = wp7Series(3, 36, 72);
+[a, ra] = tsObs.kalman(ModelSeries = tsModel, Order = 1, ...
+    Climatology = false, Shrink = 1e-6);
+[b, rb] = shLowLevel.kalmanChain(tsObs, ModelSeries = tsModel, Order = 1, ...
+    Climatology = false, Shrink = 1e-6);
+verifyTrue(testCase, isequaln(a, b), 'ts.kalman differs from kalmanChain');
+verifyTrue(testCase, isequaln(ra, rb), 'the report differs from kalmanChain''s');
+[a0, ra0] = tsObs.kalman(ModelSeries = tsModel);
+[b0, rb0] = shLowLevel.kalmanChain(tsObs, ModelSeries = tsModel);
+verifyTrue(testCase, isequaln(a0, b0) && isequaln(ra0, rb0), ...
+    'with the lane defaults, ts.kalman differs from kalmanChain');
+end
+
+function testSeriesEofIsEofAnalysis(testCase)
+%TESTSERIESEOFISEOFANALYSIS ts.eof is shLowLevel.eofAnalysis(ts), bitwise.
+ts = wp7Series(6, 20, 73);
+[m1, p1, v1, i1] = ts.eof(NModes = 3, Center = false);
+[m2, p2, v2, i2] = shLowLevel.eofAnalysis(ts, NModes = 3, Center = false);
+verifyTrue(testCase, isequaln({m1, p1, v1, i1}, {m2, p2, v2, i2}), ...
+    'ts.eof differs from eofAnalysis');
+[m1, p1, v1, i1] = ts.eof();
+[m2, p2, v2, i2] = shLowLevel.eofAnalysis(ts);
+verifyTrue(testCase, isequaln({m1, p1, v1, i1}, {m2, p2, v2, i2}), ...
+    'with the lane defaults, ts.eof differs from eofAnalysis');
+end
+
+function testSeriesWriteIsCoefficientsWrite(testCase)
+%TESTSERIESWRITEISCOEFFICIENTSWRITE ts.write writes, per epoch, the file
+%   g.write writes for ts.at(k) - identical except the "# written by" line,
+%   which carries the minute of writing - leaves no sidecar by default, and
+%   a folder written with epoch-bearing names reads back as the series.
+names = ["GSM-2_2005001-2005031_WP7.gfc"; "GSM-2_2005032-2005059_WP7.gfc"; ...
+    "GSM-2_2005060-2005090_WP7.gfc"];
+ep = zeros(3, 1);
+for k = 1:3
+    meta = shLowLevel.parseGraceFilename(names(k));
+    ep(k) = meta.epoch;
+end
+src = wp7Series(5, 3, 74);
+ts = shSeries(src.Cs, Ss = src.Ss, Epochs = ep, SigmaCs = src.sigmaCs, ...
+    SigmaSs = src.sigmaSs, ProductType = "GSM");
+d1 = tempname; mkdir(d1); c1 = onCleanup(@() rmIfFolder(d1));
+d2 = tempname; mkdir(d2); c2 = onCleanup(@() rmIfFolder(d2));
+ts.write(d1, FileNames = names);
+keep = @(x) x(~startsWith(x, "# written by"));
+for k = 1:3
+    g = ts.at(k);
+    g.write(fullfile(d2, names(k)), Sidecar = false);
+    a = splitlines(string(fileread(fullfile(d1, names(k)))));
+    b = splitlines(string(fileread(fullfile(d2, names(k)))));
+    verifyEqual(testCase, keep(a), keep(b), ...
+        sprintf('file %d is not what g.write writes', k));
+end
+verifyEmpty(testCase, dir(fullfile(d1, '*.json')), ...
+    'ts.write must not leave provenance sidecars by default');
+back = shSeries.fromFolder(d1);
+verifyEqual(testCase, back.epochs, ts.epochs, ...
+    'the epochs did not come back from the file names');
+% %22.14e keeps 15 significant digits, so the round trip is bounded by that
+% print precision - the same bound as testWriteReadRoundtrip
+verifyEqual(testCase, back.Cs, ts.Cs, 'RelTol', 1e-13, 'AbsTol', 1e-18);
+verifyEqual(testCase, back.Ss, ts.Ss, 'RelTol', 1e-13, 'AbsTol', 1e-18);
+end
+
+function testSeriesWriteGuardsItsNames(testCase)
+%TESTSERIESWRITEGUARDSITSNAMES ts.write refuses a missing folder and names
+%   that are not one-per-epoch, and warns when a name would lose its epoch.
+ts = wp7Series(3, 2, 75);
+d = tempname; mkdir(d); c = onCleanup(@() rmIfFolder(d));
+verifyError(testCase, @() ts.write(fullfile(d, 'nope')), ...
+    'shSeries:write:noFolder');
+verifyError(testCase, @() ts.write(d), 'shSeries:write:badFileNames');
+verifyError(testCase, @() ts.write(d, FileNames = ["a.gfc"; "a.gfc"]), ...
+    'shSeries:write:badFileNames');
+verifyWarning(testCase, @() ts.write(d, FileNames = ["a.gfc"; "b.gfc"]), ...
+    'shSeries:write:epochNotInName');
+end
+
+function testSeriesGradientStacksEpochs(testCase)
+%TESTSERIESGRADIENTSTACKSEPOCHS page k of ts.gradient is g.gradient of
+%   epoch k, on a grid and at points; INFO is the first epoch's.
+ts = wp7Series(8, 3, 76);
+lat = -60:30:60;
+lon = 0:45:315;
+[dq, info] = ts.gradient(lat, lon, Quantity = "potential");
+[dp, ~] = ts.gradient([10 20 30], [5 15 25], Quantity = "geoid", ...
+    Mode = "points");
+for k = 1:3
+    g = ts.at(k);
+    [d, ik] = g.gradient(lat, lon, Quantity = "potential");
+    verifyTrue(testCase, isequal(dq.north(:, :, k), d.north) && ...
+        isequal(dq.east(:, :, k), d.east) && isequal(dq.up(:, :, k), d.up), ...
+        sprintf('page %d is not g.gradient of epoch %d', k, k));
+    if k == 1
+        verifyTrue(testCase, isequaln(info, ik), 'INFO is not the first epoch''s');
+    end
+    e = g.gradient([10 20 30], [5 15 25], Quantity = "geoid", Mode = "points");
+    verifyTrue(testCase, isequal(dp.north(:, :, k), e.north) && ...
+        isequal(dp.east(:, :, k), e.east), ...
+        sprintf('points: page %d is not epoch %d', k, k));
+end
+verifyEqual(testCase, size(dq.north), [numel(lat), numel(lon), 3]);
+verifyEqual(testCase, size(dp.north), [3, 1, 3]);
+verifyEmpty(testCase, dp.up, 'a surface quantity has no up component');
+end
+
+function testSeriesLeakageCorrectIsTheLane(testCase)
+%TESTSERIESLEAKAGECORRECTISTHELANE ts.leakageCorrect is g.synthesis plus
+%   shLowLevel.leakageCorrect per epoch, with the series' GM and R.
+ws = warning('off', 'shLowLevel:leakageCorrect:unregularised');
+cw = onCleanup(@() warning(ws));
+ts = wp7Series(10, 2, 77);
+lat = -85:10:85;
+lon = 0:10:350;
+kn = -0.3 * (1 - exp(-(0:10)' / 3));
+[LO, LA] = meshgrid(lon, lat);
+mask = cosd(LA) .* cosd(LO - 40) >= cosd(30);
+[m, info] = ts.leakageCorrect(lat, lon, Filter = "gauss500", kn = kn, ...
+    Mask = mask, MaxIter = 5, Quiet = true);
+for k = 1:2
+    g = ts.at(k);
+    Z = g.synthesis(lat, lon, Quantity = "ewh", kn = kn);
+    [mk, ik] = shLowLevel.leakageCorrect(Z, lat, lon, Filter = "gauss500", ...
+        Mask = mask, MaxIter = 5, Quiet = true, GM = ts.GM, R = ts.R);
+    verifyTrue(testCase, isequal(m(:, :, k), mk) && isequaln(info(k), ik), ...
+        sprintf('epoch %d is not the lane''s answer', k));
+end
+verifyEqual(testCase, size(m), [numel(lat), numel(lon), 2]);
+end
+
+function testSeriesLeakageDataDrivenIsTheLane(testCase)
+%TESTSERIESLEAKAGEDATADRIVENISTHELANE ts.leakageDataDriven is the stack of
+%   g.synthesis fields through shLowLevel.leakageDataDriven, with the
+%   series' GM and R.
+ts = wp7Series(8, 12, 78);
+lat = linspace(-87, 87, 30);
+lon = (0:35) * 10;
+kn = -0.3 * (1 - exp(-(0:8)' / 3));
+[LO, LA] = meshgrid(lon, lat);
+basin = double(cosd(LA) .* cosd(LO - 40) >= cosd(25));
+[f, info] = ts.leakageDataDriven(lat, lon, Mask = basin, ...
+    Filter = "gauss300", kn = kn);
+stack = zeros(numel(lat), numel(lon), 12);
+for k = 1:12
+    g = ts.at(k);
+    stack(:, :, k) = g.synthesis(lat, lon, Quantity = "ewh", kn = kn);
+end
+[f2, info2] = shLowLevel.leakageDataDriven(stack, lat, lon, Mask = basin, ...
+    Filter = "gauss300", GM = ts.GM, R = ts.R);
+verifyTrue(testCase, isequal(f, f2) && isequaln(info, info2), ...
+    'ts.leakageDataDriven is not the lane''s answer');
+end
+
+function testLeakageMethodsRequireAFilter(testCase)
+%TESTLEAKAGEMETHODSREQUIREAFILTER a series cannot know which filter its data
+%   saw, so both leakage methods refuse to guess - unlike the functions,
+%   which default to gauss300.
+ts = wp7Series(4, 12, 79);
+lat = -80:20:80;
+lon = 0:30:330;
+verifyError(testCase, @() ts.leakageCorrect(lat, lon, kn = zeros(5, 1)), ...
+    'shSeries:leakageCorrect:noFilter');
+verifyError(testCase, @() ts.leakageDataDriven(lat, lon, kn = zeros(5, 1), ...
+    Mask = ones(numel(lat), numel(lon))), ...
+    'shSeries:leakageDataDriven:noFilter');
+end
+
+function testCoefficientsBasinAverageIsTheSeriesMethod(testCase)
+%TESTCOEFFICIENTSBASINAVERAGEISTHESERIESMETHOD g.basinAverage is the
+%   one-epoch shSeries.basinAverage, bitwise, and inherits its size check.
+ts = wp7Series(4, 1, 80);
+g = ts.at(1);
+idx = shLowLevel.shIndex(4);
+rng(81);
+B = randn(idx.P, 3);
+verifyTrue(testCase, isequal(g.basinAverage(B), ts.basinAverage(B)), ...
+    'g.basinAverage is not the one-epoch shSeries.basinAverage');
+verifyEqual(testCase, size(g.basinAverage(B)), [3 1]);
+verifyError(testCase, @() g.basinAverage(B(1:end-1, :)), ...
+    'shSeries:basinAverage:badBasis');
+end
+
+function testCoefficientsErrorMapIsTheLane(testCase)
+%TESTCOEFFICIENTSERRORMAPISTHELANE g.errorMap is shLowLevel.errorMap with
+%   the object's GM and R: from its formal sigmas as a diagonal covariance
+%   by default, from a full covariance unchanged when one is given.
+ts = wp7Series(3, 1, 82);
+g = ts.at(1);
+lat = [-40 10 55];
+lon = [30 200];
+idx = shLowLevel.shIndex(3);
+M0 = diag(shLowLevel.vecFromCS(g.sigmaC, g.sigmaS, idx) .^ 2);
+verifyTrue(testCase, isequal(g.errorMap(lat, lon), ...
+    shLowLevel.errorMap(M0, idx, lat, lon, GM = g.GM, R = g.R)), ...
+    'the formal-sigma map is not the lane''s');
+idx2 = shLowLevel.shIndex(3, Nmin = 2);
+rng(83);
+A = randn(idx2.P) * 1e-10;
+M = A * A';
+a = g.errorMap(lat, lon, Covariance = M, Index = idx2, ...
+    Quantity = "gravity_anomaly");
+b = shLowLevel.errorMap(M, idx2, lat, lon, Quantity = "gravity_anomaly", ...
+    GM = g.GM, R = g.R);
+verifyTrue(testCase, isequal(a, b), 'a full covariance is not passed through');
+bare = shCoefficients(g.C, g.S);
+verifyError(testCase, @() bare.errorMap(lat, lon), ...
+    'shCoefficients:errorMap:noCovariance');
+end
+
+function testToGridForwardsSurface(testCase)
+%TESTTOGRIDFORWARDSSURFACE g.toGrid and ts.toGrid forward Surface and
+%   SemiMajorAxis to g.synthesis, so their grids are the ones g.synthesis
+%   returns. g.map forwards the same two options to g.toGrid; it needs
+%   geoMap to run, so it is covered by the forwarding, not here.
+ts = wp7Series(6, 2, 84);
+g = ts.at(2);
+lat = -80:20:80;
+lon = 0:40:320;
+b = g.toGrid(lat, lon, Quantity = "gravity_disturbance", ...
+    Surface = "ellipsoid", SemiMajorAxis = 6378000, LatType = "geocentric");
+z = g.synthesis(lat, lon, Quantity = "gravity_disturbance", ...
+    Surface = "ellipsoid", SemiMajorAxis = 6378000);
+verifyTrue(testCase, isequal(b.Z, z), 'g.toGrid did not forward Surface');
+s = g.toGrid(lat, lon, Quantity = "gravity_disturbance", LatType = "geocentric");
+verifyFalse(testCase, isequal(s.Z, b.Z), 'Surface = "ellipsoid" changed nothing');
+bs = ts.toGrid(lat, lon, Quantity = "gravity_disturbance", ...
+    Surface = "ellipsoid", SemiMajorAxis = 6378000, LatType = "geocentric");
+verifyTrue(testCase, isequal(bs.Z(:, :, 2), z), 'ts.toGrid did not forward Surface');
+end

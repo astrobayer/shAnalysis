@@ -3,7 +3,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="shAnalysis.css">
 </head><body><div class="content">
-<h1>shAnalysis API reference (v5.5.0)</h1>
+<h1>shAnalysis API reference (v5.6.0)</h1>
 <p>Generated from the source arguments blocks and help text - inputs,
 name-value options with defaults, and outputs for every public function
 and method. Regenerated with every release; the source of truth is the
@@ -1731,12 +1731,14 @@ code itself.</p>
 <a href="#shCoefficients.analysis">analysis</a>
 <a href="#shCoefficients.applyDDK">applyDDK</a>
 <a href="#shCoefficients.applyTN14">applyTN14</a>
+<a href="#shCoefficients.basinAverage">basinAverage</a>
 <a href="#shCoefficients.compare">compare</a>
 <a href="#shCoefficients.crossover">crossover</a>
 <a href="#shCoefficients.deformation">deformation</a>
 <a href="#shCoefficients.degreeRMS">degreeRMS</a>
 <a href="#shCoefficients.destripe">destripe</a>
 <a href="#shCoefficients.disp">disp</a>
+<a href="#shCoefficients.errorMap">errorMap</a>
 <a href="#shCoefficients.evalAt">evalAt</a>
 <a href="#shCoefficients.fan">fan</a>
 <a href="#shCoefficients.fromVec">fromVec</a>
@@ -1801,6 +1803,16 @@ code itself.</p>
 <tr><td><code>out</code></td><td>(1 x 1) shCoefficients   C20 (and C30 when available) replaced by the SLR values, sigmas updated</td></tr>
 </table>
 </div>
+<div class="entry" id="shCoefficients.basinAverage">
+<h3><code>shCoefficients.basinAverage(obj, B)</code></h3>
+<p class="h1line">Basin averages of one field from basin kernels.</p>
+<p>AVG = g.basinAverage(B) is the naive basin average B&#x27;*x ./ diag(B&#x27;*B), one value per basin, with x the coefficient vector of G. It is the one-epoch case of shSeries.basinAverage and delegates to it, so the two cannot disagree. The exact deconvolution (Deconvolve = true) needs the stored operator of a filtered SERIES, so it stays on shSeries.</p>
+<b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td>required</td></tr><tr><td><code>B</code></td><td>P x K</td><td>double</td><td>required</td></tr></table>
+<b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
+<tr><td><code>avg</code></td><td>(K x 1) double  basin averages, one per kernel column</td></tr>
+</table>
+<b>Example</b><pre>    avg = g.basinAverage(B);   % B: P x K, as for ts.basinAverage</pre>
+</div>
 <div class="entry" id="shCoefficients.compare">
 <h3><code>shCoefficients.compare(obj, other, varargin)</code></h3>
 <p class="h1line">Full comparison against another solution (v2.6.0).</p>
@@ -1857,6 +1869,19 @@ code itself.</p>
 <b>Example</b><pre>    g = shCoefficients.read(&quot;ITSG-Grace2018_n60_2008-04.gfc&quot;);
     disp(g)                            % degree, epoch, history</pre>
 </div>
+<div class="entry" id="shCoefficients.errorMap">
+<h3><code>shCoefficients.errorMap(obj, latDeg, lonDeg, opts)</code></h3>
+<p class="h1line">Formal-error map of a synthesized quantity.</p>
+<p>SIG = g.errorMap(LAT, LON) is the pointwise 1-sigma of what g.synthesis returns on the grid LAT x LON, propagated from G&#x27;s own formal sigmas (sigmaC, sigmaS) taken as a DIAGONAL covariance. SIG = g.errorMap(LAT, LON, Covariance = M, Index = IDX) propagates a full P x P covariance in IDX ordering instead, e.g. from shLowLevel.readSINEX(..., Output = &quot;covariance&quot;). Either way it is shLowLevel.errorMap with G&#x27;s GM and R filled in. Quantity, kn, hn and Height go to shLowLevel.errorMap only when given, so their defaults live there and nowhere else: &quot;(lane default)&quot; below means that function&#x27;s.</p>
+<b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td>required</td></tr><tr><td><code>latDeg</code></td><td>1 x :</td><td>double</td><td>required</td></tr><tr><td><code>lonDeg</code></td><td>1 x :</td><td>double</td><td>required</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Covariance</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>Index</code></td><td>n x m</td><td>-</td><td>[]</td></tr><tr><td><code>Quantity</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>kn</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>hn</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>Height</code></td><td>lane default</td><td>-</td><td>-</td></tr></table>
+<b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
+<tr><td><code>sig</code></td><td>(nlat x nlon) double  1-sigma of the field, in the unit of Quantity</td></tr>
+<tr><td><code>latDeg</code></td><td>(1,nlat) double  latitudes used [deg], as passed in</td></tr>
+<tr><td><code>lonDeg</code></td><td>(1,nlon) double  longitudes used [deg], as passed in</td></tr>
+</table>
+<b>Example</b><pre>    sig = g.errorMap(-89:2:89, 0:2:358, Quantity = &quot;ewh&quot;, kn = kn);</pre>
+</div>
 <div class="entry" id="shCoefficients.evalAt">
 <h3><code>shCoefficients.evalAt(obj, epoch)</code></h3>
 <p class="h1line">Evaluate gfct time-variable terms at an epoch.</p>
@@ -1909,7 +1934,7 @@ code itself.</p>
 <p class="h1line">Synthesize and draw in one call, through geoMap.</p>
 <p>H = g.map(-89:89, 0:359, Quantity (&quot;ewh&quot;)=..., kn ([])=...) builds the handover struct with g.toGrid and hands it to geo.map. It draws NOTHING itself.</p>
 <b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td>required</td></tr><tr><td><code>latDeg</code></td><td>1 x :</td><td>double</td><td>required</td></tr><tr><td><code>lonDeg</code></td><td>1 x :</td><td>double</td><td>required</td></tr></table>
-<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Quantity</code></td><td>1 x 1</td><td>string</td><td>&quot;ewh&quot;</td></tr><tr><td><code>kn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>hn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>Nmin</code></td><td>1 x 1</td><td>double</td><td>0</td></tr><tr><td><code>Nmax</code></td><td>1 x 1</td><td>double</td><td>NaN</td></tr><tr><td><code>Height</code></td><td>1 x 1</td><td>double</td><td>0</td></tr><tr><td><code>rho_ave</code></td><td>1 x 1</td><td>double</td><td>5517</td></tr><tr><td><code>rho_water</code></td><td>1 x 1</td><td>double</td><td>1000</td></tr><tr><td><code>LatType</code></td><td>1 x 1</td><td>string</td><td>&quot;geodetic&quot;</td></tr><tr><td><code>Flattening</code></td><td>1 x 1</td><td>double</td><td>1/298.257223563</td></tr><tr><td><code>CRS</code></td><td>1 x 1</td><td>string</td><td>&quot;equirectangular&quot;</td></tr><tr><td><code>Basemap</code></td><td>1 x 1</td><td>struct</td><td>struct()</td></tr><tr><td><code>GeoArgs</code></td><td>n x m</td><td>cell</td><td>{}</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Quantity</code></td><td>1 x 1</td><td>string</td><td>&quot;ewh&quot;</td></tr><tr><td><code>kn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>hn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>Nmin</code></td><td>1 x 1</td><td>double</td><td>0</td></tr><tr><td><code>Nmax</code></td><td>1 x 1</td><td>double</td><td>NaN</td></tr><tr><td><code>Height</code></td><td>1 x 1</td><td>double</td><td>0</td></tr><tr><td><code>rho_ave</code></td><td>1 x 1</td><td>double</td><td>5517</td></tr><tr><td><code>rho_water</code></td><td>1 x 1</td><td>double</td><td>1000</td></tr><tr><td><code>LatType</code></td><td>1 x 1</td><td>string</td><td>&quot;geodetic&quot;</td></tr><tr><td><code>Flattening</code></td><td>1 x 1</td><td>double</td><td>1/298.257223563</td></tr><tr><td><code>Surface</code></td><td>1 x 1</td><td>string</td><td>&quot;sphere&quot;</td></tr><tr><td><code>SemiMajorAxis</code></td><td>1 x 1</td><td>double</td><td>6378137</td></tr><tr><td><code>CRS</code></td><td>1 x 1</td><td>string</td><td>&quot;equirectangular&quot;</td></tr><tr><td><code>Basemap</code></td><td>1 x 1</td><td>struct</td><td>struct()</td></tr><tr><td><code>GeoArgs</code></td><td>n x m</td><td>cell</td><td>{}</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
 <tr><td><code>H</code></td><td>(1,1) struct   the graphics handle struct, as returned by geoMap&#x27;s map function - this toolbox draws no map of its own</td></tr>
 </table>
@@ -2007,7 +2032,7 @@ code itself.</p>
 <p class="h1line">Synthesized field plus the metadata a map needs to draw it.</p>
 <p>B = g.toGrid(LAT, LON, Quantity (&quot;ewh&quot;)=..., kn ([])=..., LatType (&quot;geodetic&quot;)=...) synthesizes exactly as g.synthesis does and returns the values TOGETHER WITH what they are: units, latitude convention, product type, epoch, provenance, and whether the field is a full field or an anomaly.</p>
 <b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td>required</td></tr><tr><td><code>latDeg</code></td><td>1 x :</td><td>double</td><td>required</td></tr><tr><td><code>lonDeg</code></td><td>1 x :</td><td>double</td><td>required</td></tr></table>
-<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Quantity</code></td><td>1 x 1</td><td>string</td><td>&quot;ewh&quot;</td></tr><tr><td><code>kn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>hn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>Nmin</code></td><td>1 x 1</td><td>double</td><td>0</td></tr><tr><td><code>Nmax</code></td><td>1 x 1</td><td>double</td><td>NaN</td></tr><tr><td><code>Height</code></td><td>1 x 1</td><td>double</td><td>0</td></tr><tr><td><code>rho_ave</code></td><td>1 x 1</td><td>double</td><td>5517</td></tr><tr><td><code>rho_water</code></td><td>1 x 1</td><td>double</td><td>1000</td></tr><tr><td><code>LatType</code></td><td>1 x 1</td><td>string</td><td>&quot;geodetic&quot;</td></tr><tr><td><code>Flattening</code></td><td>1 x 1</td><td>double</td><td>1/298.257223563</td></tr><tr><td><code>Method</code></td><td>1 x 1</td><td>string</td><td>&quot;auto&quot;</td></tr><tr><td><code>MaxMemGB</code></td><td>1 x 1</td><td>double</td><td>4</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Quantity</code></td><td>1 x 1</td><td>string</td><td>&quot;ewh&quot;</td></tr><tr><td><code>kn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>hn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>Nmin</code></td><td>1 x 1</td><td>double</td><td>0</td></tr><tr><td><code>Nmax</code></td><td>1 x 1</td><td>double</td><td>NaN</td></tr><tr><td><code>Height</code></td><td>1 x 1</td><td>double</td><td>0</td></tr><tr><td><code>rho_ave</code></td><td>1 x 1</td><td>double</td><td>5517</td></tr><tr><td><code>rho_water</code></td><td>1 x 1</td><td>double</td><td>1000</td></tr><tr><td><code>LatType</code></td><td>1 x 1</td><td>string</td><td>&quot;geodetic&quot;</td></tr><tr><td><code>Flattening</code></td><td>1 x 1</td><td>double</td><td>1/298.257223563</td></tr><tr><td><code>Surface</code></td><td>1 x 1</td><td>string</td><td>&quot;sphere&quot;</td></tr><tr><td><code>SemiMajorAxis</code></td><td>1 x 1</td><td>double</td><td>6378137</td></tr><tr><td><code>Method</code></td><td>1 x 1</td><td>string</td><td>&quot;auto&quot;</td></tr><tr><td><code>MaxMemGB</code></td><td>1 x 1</td><td>double</td><td>4</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
 <tr><td><code>b</code></td><td>(1,1) struct   the handover bundle, as built by shLowLevel.gridHandover, which documents every field: Z (nlat x nlon) double values; lat (nlat x 1) AS GIVEN; lon (1 x nlon); the string fields Units, LatType, Quantity, ProductType, Source, Name and FieldKind; the scalars Epoch, C00, Zmin, Zmax and Zmean; and History</td></tr>
 </table>
@@ -2072,10 +2097,15 @@ code itself.</p>
 <a href="#shSeries.destripe">destripe</a>
 <a href="#shSeries.disp">disp</a>
 <a href="#shSeries.dropNaN">dropNaN</a>
+<a href="#shSeries.eof">eof</a>
 <a href="#shSeries.fan">fan</a>
 <a href="#shSeries.filter">filter</a>
 <a href="#shSeries.fromFolder">fromFolder</a>
 <a href="#shSeries.gaussian">gaussian</a>
+<a href="#shSeries.gradient">gradient</a>
+<a href="#shSeries.kalman">kalman</a>
+<a href="#shSeries.leakageCorrect">leakageCorrect</a>
+<a href="#shSeries.leakageDataDriven">leakageDataDriven</a>
 <a href="#shSeries.mean">mean</a>
 <a href="#shSeries.minus">minus</a>
 <a href="#shSeries.read">read</a>
@@ -2087,6 +2117,7 @@ code itself.</p>
 <a href="#shSeries.toGrid">toGrid</a>
 <a href="#shSeries.trendBreaks">trendBreaks</a>
 <a href="#shSeries.truncate">truncate</a>
+<a href="#shSeries.write">write</a>
 </p>
 <div class="entry" id="shSeries.addDegree1">
 <h3><code>shSeries.addDegree1(obj, tn, opts)</code></h3>
@@ -2180,6 +2211,21 @@ code itself.</p>
 <tr><td><code>out</code></td><td>(1 x 1) shSeries   gap months removed</td></tr>
 </table>
 </div>
+<div class="entry" id="shSeries.eof">
+<h3><code>shSeries.eof(obj, opts)</code></h3>
+<p class="h1line">Empirical orthogonal functions of the series.</p>
+<p>[MODES, PCS, VE, INFO] = ts.eof() decomposes the series into spatial modes and unit-variance principal components by an SVD of the time-centred coefficient stack - shLowLevel.eofAnalysis, which documents the scaling: MODES{k} times PCS(:,k) reconstructs mode k&#x27;s contribution exactly. It is usually run on a residual, after ts.climatology. The options go to shLowLevel.eofAnalysis only when given; &quot;(lane default)&quot; is that function&#x27;s.</p>
+<b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td>required</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>NModes</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>Center</code></td><td>lane default</td><td>-</td><td>-</td></tr></table>
+<b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
+<tr><td><code>modes</code></td><td>(1 x K) cell  shCoefficients, the spatial patterns</td></tr>
+<tr><td><code>pcs</code></td><td>(T x K) double  principal components, unit variance</td></tr>
+<tr><td><code>varExplained</code></td><td>(K x 1) double  fraction of the variance per mode</td></tr>
+<tr><td><code>info</code></td><td>(1,1) struct  as returned by shLowLevel.eofAnalysis, which documents every field</td></tr>
+</table>
+<b>Example</b><pre>    [~, resid] = ts.climatology();
+    [modes, pcs, ve] = resid.eof(NModes = 3);</pre>
+</div>
 <div class="entry" id="shSeries.fan">
 <h3><code>shSeries.fan(obj, rDegKm, rOrdKm)</code></h3>
 <p class="h1line">Han fan filter on every epoch (degree x order Gaussian).</p>
@@ -2218,6 +2264,57 @@ code itself.</p>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
 <tr><td><code>out</code></td><td>(1 x 1) shSeries   Gaussian-smoothed per month</td></tr>
 </table>
+</div>
+<div class="entry" id="shSeries.gradient">
+<h3><code>shSeries.gradient(obj, latDeg, lonDeg, opts)</code></h3>
+<p class="h1line">North/east/up gradient of every epoch, stacked.</p>
+<p>[DQ, INFO] = ts.gradient(LAT, LON, ...) is g.gradient of each epoch g = ts.at(k), with DQ.north, DQ.east and DQ.up stacked along the THIRD dimension, page k for epoch k, as ts.toGrid stacks its fields: (nlat x nlon x T) on a grid and (npts x 1 x T) for Mode = &quot;points&quot;. DQ.up stays [] for the surface quantities, which have no radial law. INFO is the first epoch&#x27;s; it depends only on the options, which every epoch shares. The options go to g.gradient only when given, so &quot;(method default)&quot; below is shCoefficients.gradient&#x27;s.</p>
+<b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td>required</td></tr><tr><td><code>latDeg</code></td><td>1 x :</td><td>double</td><td>required</td></tr><tr><td><code>lonDeg</code></td><td>1 x :</td><td>double</td><td>required</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Quantity</code></td><td>method default</td><td>-</td><td>-</td></tr><tr><td><code>kn</code></td><td>method default</td><td>-</td><td>-</td></tr><tr><td><code>hn</code></td><td>method default</td><td>-</td><td>-</td></tr><tr><td><code>Nmin</code></td><td>method default</td><td>-</td><td>-</td></tr><tr><td><code>Nmax</code></td><td>method default</td><td>-</td><td>-</td></tr><tr><td><code>Height</code></td><td>method default</td><td>-</td><td>-</td></tr><tr><td><code>Surface</code></td><td>method default</td><td>-</td><td>-</td></tr><tr><td><code>SemiMajorAxis</code></td><td>method default</td><td>-</td><td>-</td></tr><tr><td><code>rho_ave</code></td><td>method default</td><td>-</td><td>-</td></tr><tr><td><code>rho_water</code></td><td>method default</td><td>-</td><td>-</td></tr><tr><td><code>Mode</code></td><td>method default</td><td>-</td><td>-</td></tr><tr><td><code>Units</code></td><td>method default</td><td>-</td><td>-</td></tr><tr><td><code>MaxMemGB</code></td><td>method default</td><td>-</td><td>-</td></tr><tr><td><code>LatType</code></td><td>method default</td><td>-</td><td>-</td></tr><tr><td><code>Flattening</code></td><td>method default</td><td>-</td><td>-</td></tr></table>
+<b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
+<tr><td><code>dq</code></td><td>(1,1) struct  as returned by shCoefficients.gradient, which documents every field, each component stacked along the third dimension</td></tr>
+<tr><td><code>info</code></td><td>(1,1) struct  as returned by shCoefficients.gradient for the first epoch, which documents every field</td></tr>
+</table>
+<b>Example</b><pre>    [dq, info] = ts.gradient(-89:2:89, 0:2:358, Quantity = &quot;ewh&quot;, kn = kn);
+    size(dq.north)        % 90 x 180 x T</pre>
+</div>
+<div class="entry" id="shSeries.kalman">
+<h3><code>shSeries.kalman(obj, opts)</code></h3>
+<p class="h1line">Kalman-smoothed series (Kurtenbach/Kvas), solution mode.</p>
+<p>[TSK, REP] = ts.kalman(ModelSeries = TSM) runs shLowLevel.kalmanChain with TS as the observations: the VAR process model is estimated from TSM, every epoch of TS is one observation weighted by its formal sigmas (or NoiseCov), and a forward Kalman filter plus an RTS smoother return the smoothed series. shLowLevel.kalmanChain documents the chain, its references and its memory cost.</p>
+<b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td>required</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>ModelSeries</code></td><td>required</td><td>-</td><td>-</td></tr><tr><td><code>Order</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>Structure</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>Shrink</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>CondFun</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>Epochs</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>Tolerance</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>NoiseCov</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>Climatology</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>Smoother</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>QC</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>QCAlpha</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>StoreCov</code></td><td>lane default</td><td>-</td><td>-</td></tr></table>
+<b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
+<tr><td><code>out</code></td><td>(1 x 1) shSeries  smoothed series on the epoch grid, with formal 1-sigma stacks</td></tr>
+<tr><td><code>rep</code></td><td>(1,1) struct  as returned by shLowLevel.kalmanChain, which documents every field</td></tr>
+</table>
+<b>Example</b><pre>    [tsk, rep] = ts.kalman(ModelSeries = tsm, Order = 1);</pre>
+</div>
+<div class="entry" id="shSeries.leakageCorrect">
+<h3><code>shSeries.leakageCorrect(obj, latDeg, lonDeg, opts)</code></h3>
+<p class="h1line">Forward-model leakage correction of every epoch.</p>
+<p>[M, INFO] = ts.leakageCorrect(LAT, LON, Filter = F, kn = KN) synthesizes each epoch on the grid (g.synthesis, geocentric, Quantity &quot;ewh&quot; unless told otherwise) and runs shLowLevel.leakageCorrect on it with the series&#x27; GM and R: the iterative forward model that finds the field which, pushed through the chain the data saw, reproduces the filtered field. M is the corrected stack, page k for epoch k. shLowLevel.leakageCorrect documents the method, its stopping rule, and why the MASK MUST COVER EVERY REGION THAT CAN HOLD MASS, not only the one you measure.</p>
+<b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td>required</td></tr><tr><td><code>latDeg</code></td><td>1 x :</td><td>double</td><td>required</td></tr><tr><td><code>lonDeg</code></td><td>1 x :</td><td>double</td><td>required</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Filter</code></td><td>required</td><td>-</td><td>-</td></tr><tr><td><code>Quantity</code></td><td>1 x 1</td><td>string</td><td>&quot;ewh&quot;</td></tr><tr><td><code>kn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>Mask</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>Nmax</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>Gain</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>NoiseLevel</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>ResidualRegion</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>Tau</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>MaxIter</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>Tol</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>Quiet</code></td><td>lane default</td><td>-</td><td>-</td></tr></table>
+<b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
+<tr><td><code>mCorr</code></td><td>(nLat x nLon x T) double  corrected fields, in the unit of Quantity</td></tr>
+<tr><td><code>info</code></td><td>(1 x T) struct  one per epoch, as returned by shLowLevel.leakageCorrect, which documents every field</td></tr>
+</table>
+<b>Example</b><pre>    [m, info] = ts.leakageCorrect(-89:89, 0:359, Filter = &quot;gauss300&quot;, ...
+        kn = kn, Mask = unionMask, Quiet = true);</pre>
+</div>
+<div class="entry" id="shSeries.leakageDataDriven">
+<h3><code>shSeries.leakageDataDriven(obj, latDeg, lonDeg, opts)</code></h3>
+<p class="h1line">Model-free leakage correction of a catchment mean.</p>
+<p>[FHAT, INFO] = ts.leakageDataDriven(LAT, LON, Mask = R, Filter = F, kn = KN) synthesizes every epoch on the grid (g.synthesis, geocentric, Quantity &quot;ewh&quot; unless told otherwise) and runs shLowLevel.leakageDataDriven on the stack with the series&#x27; GM and R - Vishwakarma&#x27;s method of deviation, which repairs the catchment average from the filtered fields alone. FHAT is the corrected catchment mean, one value per epoch. shLowLevel.leakageDataDriven documents the method, the catchment size it is designed for (about 65000 km^2 and up), and why it needs at least 12 epochs and no NaN.</p>
+<b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td>required</td></tr><tr><td><code>latDeg</code></td><td>1 x :</td><td>double</td><td>required</td></tr><tr><td><code>lonDeg</code></td><td>1 x :</td><td>double</td><td>required</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Filter</code></td><td>required</td><td>-</td><td>-</td></tr><tr><td><code>Quantity</code></td><td>1 x 1</td><td>string</td><td>&quot;ewh&quot;</td></tr><tr><td><code>kn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>Mask</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>Nmax</code></td><td>lane default</td><td>-</td><td>-</td></tr></table>
+<b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
+<tr><td><code>fHat</code></td><td>(T x 1) double  corrected catchment average, in the unit of Quantity</td></tr>
+<tr><td><code>info</code></td><td>(1,1) struct  as returned by shLowLevel.leakageDataDriven, which documents every field</td></tr>
+</table>
+<b>Example</b><pre>    [f, info] = ts.leakageDataDriven(lat, lon, Mask = basin, ...
+        Filter = &quot;gauss300&quot;, kn = kn);</pre>
 </div>
 <div class="entry" id="shSeries.mean">
 <h3><code>shSeries.mean(obj, opts)</code></h3>
@@ -2309,7 +2406,7 @@ code itself.</p>
 <p class="h1line">Synthesize every epoch into one stack, with its metadata.</p>
 <p>B = ts.toGrid(LAT, LON, Quantity (&quot;ewh&quot;)=..., kn ([])=..., LatType (&quot;geodetic&quot;)=...) is shCoefficients.toGrid over a whole series: B.Z is (nlat x nlon x nEpochs) and B.Epoch carries the decimal years, so an animation can label its own frames from the data rather than from a filename.</p>
 <b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td>required</td></tr><tr><td><code>latDeg</code></td><td>1 x :</td><td>double</td><td>required</td></tr><tr><td><code>lonDeg</code></td><td>1 x :</td><td>double</td><td>required</td></tr></table>
-<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Quantity</code></td><td>1 x 1</td><td>string</td><td>&quot;ewh&quot;</td></tr><tr><td><code>kn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>hn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>Nmin</code></td><td>1 x 1</td><td>double</td><td>0</td></tr><tr><td><code>Nmax</code></td><td>1 x 1</td><td>double</td><td>NaN</td></tr><tr><td><code>Height</code></td><td>1 x 1</td><td>double</td><td>0</td></tr><tr><td><code>rho_ave</code></td><td>1 x 1</td><td>double</td><td>5517</td></tr><tr><td><code>rho_water</code></td><td>1 x 1</td><td>double</td><td>1000</td></tr><tr><td><code>LatType</code></td><td>1 x 1</td><td>string</td><td>&quot;geodetic&quot;</td></tr><tr><td><code>Flattening</code></td><td>1 x 1</td><td>double</td><td>1/298.257223563</td></tr><tr><td><code>MaxMemGB</code></td><td>1 x 1</td><td>double</td><td>4</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Quantity</code></td><td>1 x 1</td><td>string</td><td>&quot;ewh&quot;</td></tr><tr><td><code>kn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>hn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>Nmin</code></td><td>1 x 1</td><td>double</td><td>0</td></tr><tr><td><code>Nmax</code></td><td>1 x 1</td><td>double</td><td>NaN</td></tr><tr><td><code>Height</code></td><td>1 x 1</td><td>double</td><td>0</td></tr><tr><td><code>rho_ave</code></td><td>1 x 1</td><td>double</td><td>5517</td></tr><tr><td><code>rho_water</code></td><td>1 x 1</td><td>double</td><td>1000</td></tr><tr><td><code>LatType</code></td><td>1 x 1</td><td>string</td><td>&quot;geodetic&quot;</td></tr><tr><td><code>Flattening</code></td><td>1 x 1</td><td>double</td><td>1/298.257223563</td></tr><tr><td><code>Surface</code></td><td>1 x 1</td><td>string</td><td>&quot;sphere&quot;</td></tr><tr><td><code>SemiMajorAxis</code></td><td>1 x 1</td><td>double</td><td>6378137</td></tr><tr><td><code>MaxMemGB</code></td><td>1 x 1</td><td>double</td><td>4</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
 <tr><td><code>b</code></td><td>(1,1) struct   as built by shLowLevel.gridHandover, the same bundle shCoefficients.toGrid returns, with Z (nlat x nlon x nEpochs) double, Epoch and C00 (nEpochs x 1) double, and FieldKind &quot;mixed&quot; when the epochs disagree</td></tr>
 </table>
@@ -2333,6 +2430,14 @@ code itself.</p>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
 <tr><td><code>out</code></td><td>(1 x 1) shSeries   truncated per month</td></tr>
 </table>
+</div>
+<div class="entry" id="shSeries.write">
+<h3><code>shSeries.write(obj, folder, opts)</code></h3>
+<p class="h1line">Export every epoch to its own ICGEM .gfc file.</p>
+<p>ts.write(FOLDER) writes epoch k with g.write, through ts.at(k), so each file is what g.write writes for that epoch. The files are named after the series&#x27; names: NAMES(k) + &quot;.gfc&quot;, unless FileNames says otherwise.</p>
+<b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td>required</td></tr><tr><td><code>folder</code></td><td>1 x 1</td><td>string</td><td>required</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>FileNames</code></td><td>: x 1</td><td>string</td><td>string.empty(0,1)</td></tr><tr><td><code>Comment</code></td><td>1 x 1</td><td>string</td><td>&quot;&quot;</td></tr><tr><td><code>Sidecar</code></td><td>1 x 1</td><td>logical</td><td>false</td></tr></table>
+<b>Example</b><pre>    ts.write(outFolder, FileNames = &quot;GSM-2_&quot; + spans + &quot;_mine.gfc&quot;);</pre>
 </div>
 <h2>shClimatology methods</h2><p class="toc">
 <a href="#shClimatology.amplitudeMap">amplitudeMap</a>
@@ -2457,4 +2562,4 @@ code itself.</p>
 <tr><td><code>obj</code></td><td>(1 x 1) shClimatology   copy with the note appended to its history</td></tr>
 </table>
 </div>
-<p class="provenance">Developed by Matthias Weigelt with the help of Claude (Fable 5), 10-Sep-2026 (v5.5.0). Generated by tools - do not edit.</p></div></body></html>
+<p class="provenance">Developed by Matthias Weigelt with the help of Claude (Fable 5), 10-Sep-2026 (v5.6.0). Generated by tools - do not edit.</p></div></body></html>

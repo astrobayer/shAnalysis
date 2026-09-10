@@ -172,6 +172,13 @@ jobs:
       - name: Public entities named by a test
         run: python3 tools/dev/name_coverage.py
 
+      # WP7: Contents.m calls the classes "the single point of access".
+      # This measures it: every public +shLowLevel function is reachable
+      # from a class method, or is a named exception with its reason, or
+      # sits in a backlog that may only shrink.
+      - name: Class surface reaches every lane
+        run: python3 tools/dev/class_surface_audit.py
+
       # A3/A15: seventeen raise sites used another function's identifier,
       # so a caller could not catch by owner. The v4.0.0 sweep fixed them;
       # this keeps them fixed, and holds the same line for the help block
