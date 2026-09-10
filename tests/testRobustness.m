@@ -1492,3 +1492,58 @@ verifyEqual(testCase, ic.nmax, 8);
 verifyTrue(testCase, all(isfinite(c)));
 verifyNotEqual(testCase, a, c);
 end
+
+function [C, S, GM, R] = wp3Coefficients()
+%WP3COEFFICIENTS The deterministic set tools/dev/validate_ellipsoid.py pins
+%   against, rebuilt without an RNG so both languages hold the same numbers.
+nmax = 40;
+[n, m] = ndgrid(0:nmax, 0:nmax);
+C = 1e-9 * cos(0.7*n + 1.3*m) ./ (1 + n);
+S = 1e-9 * sin(0.4*n + 0.9*m) ./ (1 + n);
+C(m > n) = 0;
+S(m > n) = 0;
+S(:, 1) = 0;
+C(1:2, :) = 0;
+S(1:2, :) = 0;
+GM = 3.986004415e14;
+R = 6378136.3;
+end
+
+function testEllipsoidFFTAndBandedAgreeWithDirect(testCase)
+%TESTELLIPSOIDFFTANDBANDEDAGREEWITHDIRECT The three reduction routes must
+%   agree on the ellipsoid as they do on the sphere: FFT against direct
+%   (they sum longitudes differently; 3e-13 on the sphere in Python), and
+%   the banded memory path against the monolithic one, since the
+%   per-latitude factor enters both the same way.
+[C, S, GM, R] = wp3Coefficients();
+lat = -90:2.5:90;
+lon = 0:5:355;
+args = {'Quantity', 'gravity_anomaly', 'Surface', "ellipsoid"};
+d = shLowLevel.shSynthesis(C, S, GM, R, lat, lon, args{:}, Method = "direct");
+f = shLowLevel.shSynthesis(C, S, GM, R, lat, lon, args{:}, Method = "fft");
+b = shLowLevel.shSynthesis(C, S, GM, R, lat, lon, args{:}, Method = "direct", ...
+    MaxMemGB = 1e-5);
+verifyLessThan(testCase, max(abs(d(:) - f(:))) / max(abs(d(:))), 1e-12, 'fft');
+verifyLessThan(testCase, max(abs(d(:) - b(:))) / max(abs(d(:))), 1e-13, 'banded');
+end
+
+function testEllipsoidPolesAndHeight(testCase)
+%TESTELLIPSOIDPOLESANDHEIGHT At the poles the radius is b and nothing may
+%   go non-finite, with or without Height; east is NaN there because the
+%   direction does not exist; and every longitude at a pole is one point.
+[C, S, GM, R] = wp3Coefficients();
+lat = [-90 90];
+lon = [0 90 180 270];
+for q = ["potential", "gravity_disturbance", "gravity_gradient_rr"]
+    v = shLowLevel.shSynthesis(C, S, GM, R, lat, lon, Quantity = q, ...
+        Surface = "ellipsoid", Height = 40000);
+    verifyTrue(testCase, all(isfinite(v), 'all'), q);
+end
+dq = shLowLevel.shSynthesisGradient(C, S, GM, R, lat, lon, ...
+    Quantity = "potential", Surface = "ellipsoid");
+verifyTrue(testCase, all(isfinite(dq.north), 'all') && all(isfinite(dq.up), 'all'));
+verifyTrue(testCase, all(isnan(dq.east), 'all'), 'east does not exist at a pole');
+v = shLowLevel.shSynthesis(C, S, GM, R, 90, lon, Quantity = "potential", ...
+    Surface = "ellipsoid");
+verifyLessThan(testCase, max(abs(v - v(1))) / abs(v(1)), 1e-12);
+end

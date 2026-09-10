@@ -2120,3 +2120,132 @@ verifyEqual(testCase, info.filter, "gauss300");   % the documented default
 verifyGreaterThan(testCase, info.areaFraction, 0);
 verifyLessThan(testCase, info.areaFraction, 1);
 end
+
+function [C, S, GM, R] = wp3Coefficients()
+%WP3COEFFICIENTS The deterministic set tools/dev/validate_ellipsoid.py pins
+%   against, rebuilt without an RNG so both languages hold the same numbers.
+nmax = 40;
+[n, m] = ndgrid(0:nmax, 0:nmax);
+C = 1e-9 * cos(0.7*n + 1.3*m) ./ (1 + n);
+S = 1e-9 * sin(0.4*n + 0.9*m) ./ (1 + n);
+C(m > n) = 0;
+S(m > n) = 0;
+S(:, 1) = 0;
+C(1:2, :) = 0;
+S(1:2, :) = 0;
+GM = 3.986004415e14;
+R = 6378136.3;
+end
+
+function testEllipsoidWithZeroFlatteningIsTheSphere(testCase)
+%TESTELLIPSOIDWITHZEROFLATTENINGISTHESPHERE WP3 metamorphic: the ellipsoid
+%   path must DEGENERATE to the sphere, not approximate it. With f = 0 and
+%   a = R, r(phi) is R exactly, (R/r)^p_n is 1 exactly and x*1 is exact, so
+%   at Height 0 the two paths agree bitwise - synthesis, banded synthesis
+%   and gradient alike. With Height > 0 the product is associated
+%   differently ((f q) C against q (f C)), so there it is round-off.
+[C, S, GM, R] = wp3Coefficients();
+lat = -90:6:90;
+lon = 0:10:350;
+for q = ["potential", "gravity_disturbance", "gravity_anomaly", "gravity_gradient_rr"]
+    s = shLowLevel.shSynthesis(C, S, GM, R, lat, lon, Quantity = q);
+    e = shLowLevel.shSynthesis(C, S, GM, R, lat, lon, Quantity = q, ...
+        Surface = "ellipsoid", Flattening = 0, SemiMajorAxis = R);
+    verifyTrue(testCase, isequal(s, e), ...
+        sprintf('%s: ellipsoid(f=0, a=R) is not the sphere', q));
+end
+sb = shLowLevel.shSynthesis(C, S, GM, R, lat, lon, Quantity = "potential", ...
+    MaxMemGB = 1e-5);
+eb = shLowLevel.shSynthesis(C, S, GM, R, lat, lon, Quantity = "potential", ...
+    Surface = "ellipsoid", Flattening = 0, SemiMajorAxis = R, MaxMemGB = 1e-5);
+verifyTrue(testCase, isequal(sb, eb), 'banded: ellipsoid(f=0, a=R) is not the sphere');
+gs = shLowLevel.shSynthesisGradient(C, S, GM, R, lat, lon, Quantity = "potential");
+ge = shLowLevel.shSynthesisGradient(C, S, GM, R, lat, lon, Quantity = "potential", ...
+    Surface = "ellipsoid", Flattening = 0, SemiMajorAxis = R);
+% isequaln: east is NaN at the poles on both paths, and must stay so
+verifyTrue(testCase, isequaln(gs, ge), 'gradient: ellipsoid(f=0, a=R) is not the sphere');
+sh = shLowLevel.shSynthesis(C, S, GM, R, lat, lon, ...
+    Quantity = "gravity_disturbance", Height = 2500);
+eh = shLowLevel.shSynthesis(C, S, GM, R, lat, lon, ...
+    Quantity = "gravity_disturbance", Surface = "ellipsoid", ...
+    Flattening = 0, SemiMajorAxis = R, Height = 2500);
+verifyLessThan(testCase, max(abs(sh(:) - eh(:))) / max(abs(sh(:))), 1e-14);
+end
+
+function testEllipsoidSurfaceIDs(testCase)
+%TESTELLIPSOIDSURFACEIDS The refusal is scoped and it says why. A quantity
+%   with no radial law cannot be moved off the sphere; the geoid's message
+%   names gamma(phi), because "half a correction" is the reason it is
+%   refused and a bare identifier would not carry that.
+[C, S, GM, R] = wp3Coefficients();
+kn = zeros(41, 1);
+verifyError(testCase, @() shLowLevel.shSynthesis(C, S, GM, R, 0:10:20, 0:10:20, ...
+    Quantity = "geoid", Surface = "ellipsoid"), 'shLowLevel:shSynthesis:noRadialLaw');
+verifyError(testCase, @() shLowLevel.shSynthesis(C, S, GM, R, 0:10:20, 0:10:20, ...
+    Quantity = "ewh", kn = kn, Surface = "ellipsoid"), ...
+    'shLowLevel:shSynthesis:noRadialLaw');
+verifyError(testCase, @() shLowLevel.shSynthesisGradient(C, S, GM, R, 0:10:20, ...
+    0:10:20, Quantity = "geoid", Surface = "ellipsoid"), ...
+    'shLowLevel:shSynthesisGradient:noRadialLaw');
+verifyError(testCase, @() shLowLevel.shSynthesis(C, S, GM, R, 0, 0, ...
+    Surface = "oblate"), 'MATLAB:validators:mustBeMember');
+verifyError(testCase, @() shLowLevel.shSynthesis(C, S, GM, R, 0, 0, ...
+    Quantity = "potential", Surface = "ellipsoid", Height = -5), ...
+    'MATLAB:validators:mustBeNonnegative');
+try
+    shLowLevel.shSynthesis(C, S, GM, R, 0, 0, Quantity = "geoid", Surface = "ellipsoid");
+    verifyFail(testCase, 'the geoid on the ellipsoid did not error');
+catch err
+    verifySubstring(testCase, err.message, 'gamma(phi)');
+end
+% the surface quantities still work on the sphere - the refusal is scoped
+verifyTrue(testCase, all(isfinite(shLowLevel.shSynthesis(C, S, GM, R, ...
+    0:10:20, 0:10:20, Quantity = "geoid")), 'all'));
+end
+
+function testEllipsoidGradientInfo(testCase)
+%TESTELLIPSOIDGRADIENTINFO info.r is one radius on the sphere and one per
+%   latitude (grid) or per point (points) on the ellipsoid; info.surface
+%   says which, so the number travels with its meaning.
+[C, S, GM, R] = wp3Coefficients();
+lat = [-60 0 30 75];
+lon = 0:45:315;
+[~, is] = shLowLevel.shSynthesisGradient(C, S, GM, R, lat, lon, Quantity = "potential");
+[~, ie] = shLowLevel.shSynthesisGradient(C, S, GM, R, lat, lon, ...
+    Quantity = "potential", Surface = "ellipsoid", Height = 300);
+verifyEqual(testCase, is.surface, "sphere");
+verifyEqual(testCase, ie.surface, "ellipsoid");
+verifyEqual(testCase, is.r, R);
+verifyEqual(testCase, ie.r, shLowLevel.ellipsoidRadius(lat) + 300);
+[~, ip] = shLowLevel.shSynthesisGradient(C, S, GM, R, lat, [5 6 7 8], ...
+    Quantity = "potential", Surface = "ellipsoid", Mode = "points");
+verifyEqual(testCase, ip.r, shLowLevel.ellipsoidRadius(lat));
+end
+
+function testClassSurfaceForwarding(testCase)
+%TESTCLASSSURFACEFORWARDING g.synthesis and g.gradient forward Surface,
+%   SemiMajorAxis and the one Flattening the class already had - the same
+%   ellipsoid for the latitude conversion and for the evaluation surface.
+%   UseCache = false so both sides compute the Legendre functions the same
+%   way and the comparison can be bitwise.
+[C, S] = wp3Coefficients();
+g = shCoefficients(C, S);
+lat = -80:20:80;
+lon = 0:40:320;
+a = g.synthesis(lat, lon, Quantity = "gravity_disturbance", ...
+    Surface = "ellipsoid", UseCache = false);
+b = shLowLevel.shSynthesis(g.C, g.S, g.GM, g.R, lat, lon, ...
+    Quantity = 'gravity_disturbance', Surface = "ellipsoid");
+verifyTrue(testCase, isequal(a, b), 'g.synthesis did not forward Surface');
+a2 = g.synthesis(lat, lon, Quantity = "gravity_disturbance", ...
+    Surface = "ellipsoid", Flattening = 1/300, SemiMajorAxis = 6378000, ...
+    UseCache = false);
+b2 = shLowLevel.shSynthesis(g.C, g.S, g.GM, g.R, lat, lon, ...
+    Quantity = 'gravity_disturbance', Surface = "ellipsoid", ...
+    Flattening = 1/300, SemiMajorAxis = 6378000);
+verifyTrue(testCase, isequal(a2, b2), 'g.synthesis did not forward the ellipsoid');
+dg = g.gradient(lat, lon, Quantity = "potential", Surface = "ellipsoid");
+dl = shLowLevel.shSynthesisGradient(g.C, g.S, g.GM, g.R, lat, lon, ...
+    Quantity = "potential", Surface = "ellipsoid");
+verifyTrue(testCase, isequaln(dg, dl), 'g.gradient did not forward Surface');
+end

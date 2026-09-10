@@ -23,12 +23,12 @@ says whether it was *read* or *inferred*.
 
 | Fact | Value | Evidence |
 |---|---|---|
-| Version | **5.4.1**, 10-Sep-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
+| Version | **5.5.0**, 10-Sep-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
 | Branches | `main` only; `claude/getframe-recapture` and `claude/readshm` are gone (merged/deleted) | `GET /branches` |
-| Public surface | 3 classes / 71 methods, 123 `+shLowLevel` functions (+4 private), 3 root functions | `tools/dev/api_extract.py` run in sandbox |
-| Tests | 5 classes, **321 methods / 335 runs**: Correctness 168, Contract 79, Robustness 54, Science 7, Performance 13 methods (27 runs, `budgetCase` x14 + `nmaxP` x2). On A8 4 filter out without the optional real-data fixtures; on MATTHIASPC only 2 do, because `E:\DATAPOOL` supplies the SINEX and GravIS files. The counter has matched the runner EXACTLY on the last ten green A8 runs and on every local Tier-A run. | `python3 tools/dev/count_tests.py` |
-| Python oracles | 18 `tools/dev/validate_*.py` + `tools/audit/*` | listing |
-| Docs | **26** hand-written `html/*.html` (24 per-entity duplicates retired in v5.0.1, WP6 stage 3) + **201 generated `html/ref/*.html`** (one per entity + index, `make_refpages.py`), one shared `html/shAnalysis.css`, `helptoc.xml`, `info.xml`, guide PDF, generated `html/apiReference.html`. `docs/` holds the PDF and `apiExamples.json` only - no HTML page lives outside `html/` (gated). | listing |
+| Public surface | 3 classes / 71 methods, 124 `+shLowLevel` functions (+4 private), 3 root functions | `tools/dev/api_extract.py` run in sandbox |
+| Tests | 5 classes, **332 methods / 346 runs**: Correctness 173, Contract 83, Robustness 56, Science 7, Performance 13 methods (27 runs, `budgetCase` x14 + `nmaxP` x2). On A8 4 filter out without the optional real-data fixtures; on MATTHIASPC only 2 do, because `E:\DATAPOOL` supplies the SINEX and GravIS files. The counter has matched the runner EXACTLY on the last ten green A8 runs and on every local Tier-A run. | `python3 tools/dev/count_tests.py` |
+| Python oracles | 20 `tools/dev/validate_*.py` + `tools/audit/*` | listing |
+| Docs | **26** hand-written `html/*.html` (24 per-entity duplicates retired in v5.0.1, WP6 stage 3) + **202 generated `html/ref/*.html`** (one per entity + index, `make_refpages.py`), one shared `html/shAnalysis.css`, `helptoc.xml`, `info.xml`, guide PDF, generated `html/apiReference.html`. `docs/` holds the PDF and `apiExamples.json` only - no HTML page lives outside `html/` (gated). | listing |
 | CI | `gates` job on ubuntu (help_audit, doc_sync_audit, no_map_renderer, toolbox_dependency_audit, nv_casing_audit, fixture_tag_audit, gate self-tests `tools/tests/`, `count_tests`, `name_coverage`, `error_id_audit`, `option_values_audit`, `refpages_audit`, `make_demos --check`, `perf_baseline_audit`) + `runAllTests (self-hosted)` on A8/R2026a; fixtures from tag `fixtures-2026-08` | `.github/workflows/ci.yml` |
 | Namespace | `+shLowLevel` (renamed from `+shx` in v3.0.0). Any memory saying `shx.*` is stale. | README §History |
 
@@ -212,7 +212,7 @@ do not see; **L** = polish.
 |---|---|---|---|
 | B1 | `legendreALF` writes every `P(n+1,m+1,:)` into a 3-D array with page stride `(nmax+1)^2`; the inner `for n` loop touches `nlat` non-contiguous doubles per iteration. A `(nlat, n1*(n1+1)/2)` packed layout or per-latitude 2-D slabs is typically 2–5× faster in MATLAB. | source | wall time n=96/180 lat and n=720/1441 lat, 15 repeats, median ratio |
 | B2 | `shSynthesis` forms the full `P` (or streams bands) and reduces with `sum(KC .* Pk, 1)` per latitude — two `(n1×n1)` dense passes per latitude. A Clenshaw/per-order recursion needs no `P` and is the standard for point synthesis (`synthesisPoints`, station lists). | source | same protocol; expected win largest for scattered points |
-| B3 | Evaluation surface is a sphere of radius `R` (+ scalar `Height`). Evaluating on the ellipsoid surface `r(φ)` (latitude-dependent height in the existing `(R/r)^p` law) is not offered. For geoid/gravity users the sphere approximation leaves a known ~few-cm/mGal signature at high latitudes. | `kernelFactors`, `shSynthesis` | closed-form check against ellipsoidal reference values (Python oracle) |
+| B3 | **ADDRESSED v5.5.0 (WP3)**: `Surface = "ellipsoid"` in synthesis and gradient, the radius from `shLowLevel.ellipsoidRadius`. Measured, the ellipsoid lies 21.4 km inside the sphere at the poles and (R/b)^(n+2) there is 1.23 at n 60 and 1.84 at n 180. Original: Evaluation surface is a sphere of radius `R` (+ scalar `Height`). Evaluating on the ellipsoid surface `r(φ)` (latitude-dependent height in the existing `(R/r)^p` law) is not offered. For geoid/gravity users the sphere approximation leaves a known ~few-cm/mGal signature at high latitudes. | `kernelFactors`, `shSynthesis` | closed-form check against ellipsoidal reference values (Python oracle) |
 
 ### 4.3 Missing functionality (keyword scan, 0 hits in source → verified absent)
 
@@ -386,7 +386,20 @@ gone, so A8 is the only machine that can be calibrated from here.
   for Legendre; `validate_gradient.py` for synthesis.
 - **Size**: M (step 1) + M (step 2). **Version**: MINOR. **Tier A required.**
 
-### WP3 — Ellipsoidal surface and accuracy completeness   `[ ] approved`
+### WP3 — Ellipsoidal surface and accuracy completeness   `[x] DONE in v5.5.0` (2026-09-10)
+Approved by Matthias on 2026-09-10 with **self-consistency acceptance only**
+("Yes, but you can drop the EGM2008 reference. Self-consistency is fine").
+Shipped: `Surface = "sphere" | "ellipsoid"` in `shSynthesis`,
+`shSynthesisGradient`, `g.synthesis` and `g.gradient`; the new
+`shLowLevel.ellipsoidRadius` as the one place r(phi) is computed. Oracle
+`tools/dev/validate_ellipsoid.py` (five claims, every one against an
+independent route inside the file). The sphere path is bitwise unchanged on
+26 of 26 outputs captured from the pre-WP3 code; with f = 0 and a = R the
+ellipsoid path reproduces the sphere bitwise. Three deviations from the text
+below, each in the changelog and in 6.1: the geoid is REFUSED on the
+ellipsoid (it also needs gamma(phi)), `synthesisPoints` got the helper and
+not an option, and the class methods forward `Surface`.
+
 - **Goal**: B3. `Surface="sphere"|"ellipsoid"` in `shSynthesis`,
   `synthesisPoints`, `shSynthesisGradient`: evaluate at `r(φ)` of the default
   ellipsoid (`f` overridable) for every quantity that has a radial law
@@ -546,6 +559,35 @@ Original scope below.
 ## 6. Records
 
 ### 6.1 Decisions (append-only; date, decision, evidence)
+- 2026-09-10 — **WP3 approved, acceptance by self-consistency only**
+  (Matthias: "Yes, but you can drop the EGM2008 reference. Self-consistency
+  is fine"). Executed as 5.5.0 the same day.
+- 2026-09-10 — **The geoid is refused on the ellipsoid, against one
+  sentence of the WP.** WP3 said both "surface quantities keep erroring"
+  and "geoid/gravity disturbance on the ellipsoid agree with a Python
+  oracle". Both cannot hold: `kernelFactors` gives the geoid no radial law
+  on purpose. And a proper ellipsoidal geoid needs gamma(phi) as well as
+  r(phi) - normal gravity changes by about 0.5% from equator to pole - so
+  moving only the radius would have shipped a correction that looks
+  complete and is not. Resolved by the WP's own explicit rule; the error
+  message carries the reason; Matthias can overrule it.
+- 2026-09-10 — **The ellipsoid's semi-major axis is WGS84's a (6378137),
+  not the coefficients' R (6378136.3).** R belongs to the series, a to the
+  surface, and the house flattening is WGS84's: pairing it with R would
+  describe an ellipsoid nobody uses. The two places now holding WGS84's a
+  (`normalFieldCS`, `ellipsoidRadius`) are pinned together by a test.
+- 2026-09-10 — **`synthesisPoints` got a helper, not an option.** It takes
+  a radius per point already; a `Surface` option would have changed what
+  that positional argument means. `r = ellipsoidRadius(lat) + h` does it.
+- 2026-09-10 — **The sphere path was proven bitwise, not argued.** 26
+  outputs captured from the unmodified code before any edit, 26 identical
+  after. Second time in two days that capturing references first turned
+  "should be unchanged" into "is unchanged" (`leakageCorrect` was first).
+- 2026-09-10 — **A refuted claim survived in the help a user reads.**
+  `shSynthesis`'s Method row said the FFT path is "5-20x faster at 1
+  degree". v5.0.3 corrected the same claim in a `testPerformance` comment;
+  the help row stayed wrong for two more days. Now: 1.40x at n60 on A8,
+  slower than direct at n180 / 0.5 deg on MATTHIASPC.
 - 2026-09-10 — **A9 CLOSED.** Two A8 runs of `2c7b779` put the four new
   workloads at 1.007 (leakage n48), 1.009 (Kalman p200), 1.021 and 1.002
   (synthesis direct/fft n180); all four joined the tight tier at 1.3.
@@ -1150,7 +1192,8 @@ Original scope below.
 | v5.2.0 (WP5 5c + help_audit scoping) | ☑ 15 gates + mlint + make_demos + 13 self-test suites, 0 findings | ☑ **CI self-hosted (A8) at `b65f9a2` by workflow_dispatch, green — 326 runs, 320 passed, 0 failed, 6 filtered**; the ELEVENTH exact count prediction running, per class as well as in total (Contract 76, Correctness 164, Performance 26, Robustness 53, Science 7), and exactly the 6 the row predicted. Read back by the v5.3.0 session — the run had gone green and nobody had looked, which is also how the n50 baselines sat unused. | ☐ no PR (branch was unmerged) | ☐ |
 | v5.3.0 (A22, A23, A24; A9 two-factor; WP2 both machines) | ☑ 15 gates + mlint + make_demos + 13 self-test suites, 0 findings; `NO_BASELINE` empty, 14 budgets, both machines baselined | ☑ **Tier A LOCAL on MATTHIASPC (R2026a), the first since the bridge returned** — 328 runs, count prediction matched EXACTLY (Contract 77, Correctness 164, Performance 27, Robustness 53, Science 7). Only 2 filter here, not 4: `E:\DATAPOOL` supplies the SINEX and GravIS fixtures. Then ☑ **CI self-hosted (A8) at `2a38d25` via PR #102, green — 328 runs, 323 passed, 0 failed, 5 filtered** (the 4 real-data fixtures plus `apply_ddk_n300`, which A8 had no baseline for): the TWELFTH exact count prediction running, per class as well as in total. That run also measured `apply_ddk_n300` at 23.0 ms, which is what argued it OUT of `TightBudgets` — one A8 observation is not a spread. With that baseline committed, A8 at `3c003e3` is green again with **328 runs, 324 passed, 0 failed, and only the 4 optional real-data fixtures filtered**: all fourteen speed budgets now ASSERT on both machines, which is what WP2 step 1 was for. | ☑ PR #102 | ◐ pending |
 | v5.4.0 (WP5 5b: leakageDataDriven) | ☑ 15 gates + mlint + make_demos + 13 self-test suites + the new oracle, 0 findings | ☑ **Tier A LOCAL on MATTHIASPC (R2026a) — 335 runs, 333 passed, 0 failed, 2 filtered**; the count prediction matched EXACTLY, per class as well as in total (Contract 79, Correctness 168, Performance 27, Robustness 54, Science 7). All 7 new tests pass. Two red rounds locally first, both mine and both in the TESTS, not the function: a string-array `sprintf` format, and a `badNmax` case that tripped `badSize` first because the grid was not sliced with the latitudes. Then ☑ **CI self-hosted (A8) at `c1dc1d3` via PR #103, green — 335 runs, 331 passed, 0 failed, 4 filtered** (exactly the optional real-data fixtures): the THIRTEENTH exact count prediction running, per class as well as in total, and all seven new tests ran there. | ☑ PR #103 | ☑ 2026-09-10 |
-| v5.4.1 (A9: four workloads replaced, apply_ddk_n300 promoted, TightFactor 1.3, leakageCorrect duplicate chain) | ☑ 15 gates + mlint + make_demos + 13 self-test suites, 0 findings; `leakageCorrect` change bitwise on 16 outputs | ☑ **Tier A LOCAL on MATTHIASPC — 335 runs, 333 passed, 0 failed, 2 filtered**; count exact per class; all fourteen budgets asserted, the four tight ones at 1.3. Then ☑ **A8 twice at `2c7b779`** (PR run + `workflow_dispatch`): 335 runs, 327 passed, 0 failed, 8 filtered each - the four fixtures plus the four new workloads, as predicted, per class as well as in total. Those two runs are the evidence the promotion rests on. | ☑ PR #104 (A8 x2) | ◐ pending |
+| v5.4.1 (A9: four workloads replaced, apply_ddk_n300 promoted, TightFactor 1.3, leakageCorrect duplicate chain) | ☑ 15 gates + mlint + make_demos + 13 self-test suites, 0 findings; `leakageCorrect` change bitwise on 16 outputs | ☑ **Tier A LOCAL on MATTHIASPC — 335 runs, 333 passed, 0 failed, 2 filtered**; count exact per class; all fourteen budgets asserted, the four tight ones at 1.3. Then ☑ **A8 twice at `2c7b779`** (PR run + `workflow_dispatch`): 335 runs, 327 passed, 0 failed, 8 filtered each - the four fixtures plus the four new workloads, as predicted, per class as well as in total. Those two runs are the evidence the promotion rests on. A third A8 run, on the promotion commit `5d4980e` itself: 335 runs, 331 passed, 0 failed, 4 filtered - only the fixtures - with every budget asserting and the worst tight one at 1.030x. | ☑ PR #104 (A8 x3) | ☑ 2026-09-10 |
+| v5.5.0 (WP3: `Surface = "ellipsoid"`, `ellipsoidRadius`) | ☑ 15 gates + mlint + make_demos + 13 self-test suites + the new oracle, 0 findings; sphere path bitwise on 26/26 pre-WP3 outputs | ☑ **Tier A LOCAL on MATTHIASPC — 346 runs, 344 passed, 0 failed, 2 filtered**; count exact per class (Contract 83, Correctness 173, Performance 27, Robustness 56, Science 7); the 11 WP3 tests passed on their first run - no red round | ◐ pending | ◐ pending |
 | v5.0.3 (WP2 step 1 baselines) | ☑ 14 gates + mlint + make_demos + 13 self-test suites, 0 findings; `NO_BASELINE` empty | ☑ **CI self-hosted (A8) at `b70c947`, green — 315 runs, 311 passed, 0 failed, 4 filtered**; the EIGHTH exact count prediction running, per class as well as in total. All ten budgets PASSED (they filtered at `f6d5529`), and the only filtered are the four real-data fixtures. Triggered by `workflow_dispatch`, not a PR — #99 merged mid-session and `ci.yml` runs only on push-to-main, pull_request and workflow_dispatch. | ☐ no PR (#99 merged; not asked) | ☐ |
 
 **Tier A debt: DISCHARGED for all nine releases.** The local MATLAB
@@ -1175,6 +1218,14 @@ confirmation that the counter is right about a real run and not only
 about the source.
 
 ### 6.3 What the next session could be wrong for not reading
+- **A work package can contradict itself; resolve it by its own explicit
+  rule and say so.** WP3's acceptance named the geoid, its scope said
+  surface quantities keep erroring. The rule wins over the example, the
+  choice goes in 6.1, and the error message carries the reason so a user
+  meets the explanation where they meet the refusal.
+- **Correct a refuted claim everywhere it appears, not where you found
+  it.** Grep for the number. The FFT "5-20x" was fixed in one comment and
+  lived on in the help block for two more days.
 - **Size a benchmark on the path the budget times.** A sweep of a cold
   call measured a Legendre recursion; the budget arm primes the cache
   and times the reduction behind it, 5x smaller and noisy. The proxy
@@ -1524,10 +1575,13 @@ internet, which unblocks all three stuck items at once:
    buildable and testable WITHOUT network; only the live URL needs it.
 
 **Next concrete actions, in order of what they buy:**
-1. **A9 is CLOSED (v5.4.1).** Mark PR #104 ready and merge it.
-2. **Then WP3** (ellipsoidal surface), then **WP7** (class surface) -
-   the order Matthias agreed on 2026-09-10. Confirm WP3's tick and its
-   self-consistency-only acceptance when starting it.
+1. **WP3 is DONE (v5.5.0)**; merge its PR. A9 closed in v5.4.1.
+2. **Next: WP7** (class surface completeness), the last of the order
+   Matthias agreed on 2026-09-10. Natural first customers: a
+   `shSeries.leakage` method for `leakageDataDriven`, and forwarding
+   `Surface` through `g.map` and `g.toGrid`, which still evaluate on the
+   sphere only - WP3 forwarded it through `g.synthesis` and `g.gradient`
+   and stopped there on purpose.
 3. **Candidate, measure first: `shSynthesis` auto may pick FFT where
    direct is faster on large grids** (n180 / 0.5 deg: 31.4 vs 29.9 ms on
    MATTHIASPC). Sweep sizes on both machines before touching `auto`.

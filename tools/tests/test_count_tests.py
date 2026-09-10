@@ -109,8 +109,8 @@ class TestCounting(unittest.TestCase):
         self.assertEqual(c["runs"], c["methods"])
 
 
-EXPECTED_RUNS = 335          # v5.4.0: 328 + 7 leakageDataDriven tests
-                             # (4 correctness, 2 contract, 1 robustness)
+EXPECTED_RUNS = 346          # v5.5.0: 335 + 11 WP3 ellipsoid tests
+                             # (5 correctness, 4 contract, 2 robustness)
 
 
 
