@@ -16,6 +16,11 @@ function val = synthesisPoints(C, S, GM, R, latDeg, lonDeg, r, opts)
 %   derivative identity dg = -dT/dr to 3e-10 (tools/validate_sh
 %   pointwise block; pins in testCorrectness/testSynthesisPoints).
 %
+%   On the reference ellipsoid (v5.5.0): this function already takes a
+%   radius per point, so it needs no Surface option - pass
+%   RGEO = shLowLevel.ellipsoidRadius(LATDEG) + h, the same r(phi) that
+%   shLowLevel.shSynthesis uses for Surface = "ellipsoid".
+%
 %   Two summations, same series (v5.1.0)
 %     "direct"    builds Pbar_nm and contracts it against the
 %                 coefficients, one point at a time. Pbar is computed for

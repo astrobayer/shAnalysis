@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shLowLevel.ellipsoidRadius &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shLowLevel.ellipsoidRadius</nav>
+<h1>shLowLevel.ellipsoidRadius</h1>
+<p class="h1line">Geocentric radius of a reference ellipsoid at a latitude.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>r = shLowLevel.ellipsoidRadius(latDeg)</code><code>r = shLowLevel.ellipsoidRadius(latDeg, SemiMajorAxis=6378137, Flattening=1/298.257223563)</code></div>
+<h2>Description</h2>
+<p>R = shLowLevel.ellipsoidRadius(LATDEG) is the distance from the Earth&#x27;s centre to the surface of the WGS84 ellipsoid at each GEOCENTRIC latitude in LATDEG:</p>
+<h2>Examples</h2>
+<details class="example"><summary>From the help block</summary><div><pre><code>    % gravity disturbance at stations on the ellipsoid, 150 m up
+    r = shLowLevel.ellipsoidRadius(lat) + 150;
+    dg = shLowLevel.synthesisPoints(C, S, GM, R, lat, lon, r, ...
+        Quantity = &quot;disturbance&quot;);
+
+  See also shLowLevel.shSynthesis, shLowLevel.synthesisPoints,
+  shLowLevel.geodetic2geocentric, shLowLevel.normalFieldCS.</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>latDeg</code></td><td>n x m</td><td>double</td><td><code>required</code></td><td class="desc">double array  GEOCENTRIC latitudes in degrees, -90..90</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>SemiMajorAxis</code></td><td>1 x 1</td><td>double</td><td><code>6378137</code></td><td class="desc">semi-major axis a [m]. The WGS84 value - the same a <a href="shLowLevel_normalFieldCS.html"><code>shLowLevel.normalFieldCS</code></a> uses for its WGS84 system, and a test pins that the two agree. Deliberately NOT the coefficients&#x27; reference radius R (6378136.3 for most GRACE products): R belongs to the series, a to the surface, and pairing WGS84&#x27;s flattening with R would describe an ellipsoid nobody uses</td></tr><tr><td><code>Flattening</code></td><td>1 x 1</td><td>double</td><td><code>1/298.257223563</code></td><td class="desc">flattening f, WGS84 as everywhere else in the toolbox. 0 is allowed and gives a sphere of radius SemiMajorAxis, which is what makes the sphere a special case rather than a separate path</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>r</code></td><td class="desc">double array  geocentric radius [m], same size as latDeg</td></tr></table>
+<h2>Error Identifiers</h2>
+<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<ul class="seealso"><li><a href="shLowLevel_shSynthesis.html"><code>shLowLevel.shSynthesis</code></a></li><li><a href="shLowLevel_synthesisPoints.html"><code>shLowLevel.synthesisPoints</code></a></li><li><a href="shLowLevel_geodetic2geocentric.html"><code>shLowLevel.geodetic2geocentric</code></a></li></ul>
+<p class="prov">shAnalysis v5.5.0 (10-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

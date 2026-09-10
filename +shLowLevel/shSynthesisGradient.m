@@ -69,9 +69,22 @@ function [dq, info] = shSynthesisGradient(C, S, GM, R, latDeg, lonDeg, opts)
 %                   they DO contribute to G.up - so this is not a free
 %                   choice; keep it equal to the scalar map's
 %     Nmax (NaN)    truncation degree; NaN uses all supplied degrees
-%     Height (0)    evaluation height above R [m]; r = R + Height enters
-%                   both the kernel attenuation and the metric factors.
-%                   Rejected for surface quantities, by kernelFactors
+%     Height (0)    evaluation height [m] above the evaluation surface; r
+%                   enters both the kernel attenuation and the metric
+%                   factors. Rejected for surface quantities, by
+%                   kernelFactors
+%     Surface ("sphere")  "sphere" | "ellipsoid", as in
+%                   shLowLevel.shSynthesis: "ellipsoid" evaluates at
+%                   r(phi) + Height with r(phi) from
+%                   shLowLevel.ellipsoidRadius, and needs a quantity with a
+%                   radial law. The components stay in the local SPHERICAL
+%                   frame at the point: "up" is radial, not the ellipsoid
+%                   normal, which differs from it by the geodetic-
+%                   geocentric latitude difference (up to 0.19 deg)
+%     SemiMajorAxis (6378137)  ellipsoid semi-major axis [m], WGS84; used
+%                   only with Surface = "ellipsoid"
+%     Flattening (1/298.257223563)  ellipsoid flattening, WGS84; used only
+%                   with Surface = "ellipsoid"
 %     rho_ave (5517)    mean Earth density [kg/m^3] (mass kernels)
 %     rho_water (1000)  water density [kg/m^3] (ewh kernel)
 %     Mode ("grid")   "grid" evaluates the nlat x nlon outer product;
@@ -102,13 +115,18 @@ function [dq, info] = shSynthesisGradient(C, S, GM, R, latDeg, lonDeg, opts)
 %     info  (1,1) struct  fields
 %           quantity  (1,1) string   what was differentiated
 %           units     (1,1) string   the units of dq
-%           r         (1,1) double   evaluation radius [m]
+%           r         (1,nr) double  evaluation radius [m]: nr = 1 on the
+%                     sphere; on the ellipsoid one radius per latitude
+%                     (Mode="grid") or per point (Mode="points")
+%           surface   (1,1) string   "sphere" | "ellipsoid", as used
 %           nmin, nmax  (1,1) double  the degree range used
 %           hasUp     (1,1) logical  whether dq.up is filled
 %           lat       (1 x nlat) double  latitudes actually used
 %           lon       (1 x nlon) double  longitudes actually used
-%           latType   (1,1) string   always "geocentric" here: this
-%                     function has no ellipsoid. shCoefficients.gradient
+%           latType   (1,1) string   always "geocentric" here: the
+%                     latitudes this function takes are geocentric, and
+%                     Surface moves the radius, not the latitude.
+%                     shCoefficients.gradient
 %                     overwrites lat and latType when it was handed
 %                     geodetic input, so the convention travels with the
 %                     numbers instead of being remembered by the caller
@@ -142,8 +160,13 @@ function [dq, info] = shSynthesisGradient(C, S, GM, R, latDeg, lonDeg, opts)
 %         C and S are not equally sized square matrices, Nmax exceeds the
 %         coefficients supplied, or Mode="points" got LAT and LON of
 %         unequal length
+%     shLowLevel:shSynthesisGradient:noRadialLaw
+%         Surface="ellipsoid" for a quantity with no radial law - a
+%         surface quantity cannot be moved off the sphere; see
+%         shLowLevel.shSynthesis
 %
-%   Claude (Opus 5), 2026-08-22 (v3.30.0).
+%   Claude (Opus 5), 2026-08-22 (v3.30.0); ellipsoidal surface 2026-09-10
+%   (v5.5.0).
 %   Developed by Matthias Weigelt with the help of Claude (Opus 5).
 arguments
     C double
@@ -158,6 +181,9 @@ arguments
     opts.Nmin (1,1) double {mustBeInteger, mustBeNonnegative} = 0
     opts.Nmax (1,1) double = NaN
     opts.Height (1,1) double {mustBeNonnegative} = 0
+    opts.Surface (1,1) string {mustBeMember(opts.Surface, ["sphere", "ellipsoid"])} = "sphere"
+    opts.SemiMajorAxis (1,1) double {mustBePositive} = 6378137
+    opts.Flattening (1,1) double {mustBeNonnegative, mustBeLessThan(opts.Flattening, 1)} = 1/298.257223563
     opts.rho_ave (1,1) double = 5517
     opts.rho_water (1,1) double = 1000
     opts.Mode (1,1) string {mustBeMember(opts.Mode, ["grid", "points"])} = "grid"
@@ -181,14 +207,37 @@ if pts
 end
 
 % --- degree factors and the radial law, from the ONE place that owns them
+onEllipsoid = opts.Surface == "ellipsoid";
+% On the ellipsoid the radius varies with latitude, so the (R/r)^p_n law
+% is applied per latitude in the loop rather than folded into f - which is
+% why kernelFactors is asked for the kernel at r = R in that case.
+if onEllipsoid
+    hK = 0;
+else
+    hK = opts.Height;
+end
 [f, radialExp] = shLowLevel.kernelFactors(char(opts.Quantity), nmax, GM, R, ...
-    kn = opts.kn, hn = opts.hn, Height = opts.Height, ...
+    kn = opts.kn, hn = opts.hn, Height = hK, ...
     rho_ave = opts.rho_ave, rho_water = opts.rho_water);
 if opts.Nmin > 0
     f(1:min(opts.Nmin, N1)) = 0;
 end
 hasUp = ~isempty(radialExp);
-r = R + opts.Height;
+if onEllipsoid
+    if ~hasUp
+        error('shLowLevel:shSynthesisGradient:noRadialLaw', ...
+            ['Surface="ellipsoid" needs a quantity with a radial law ' ...
+             '(potential, gravity_anomaly, gravity_disturbance, ' ...
+             'gravity_gradient_rr); ''%s'' is a surface quantity - see ' ...
+             'shLowLevel.shSynthesis.'], opts.Quantity);
+    end
+    % one radius per latitude (grid) or per point (points): index k below
+    r = shLowLevel.ellipsoidRadius(latDeg(:)', ...
+        SemiMajorAxis = opts.SemiMajorAxis, ...
+        Flattening = opts.Flattening) + opts.Height;
+else
+    r = R + opts.Height;
+end
 
 Cq = C(1:N1, 1:N1);
 Sq = S(1:N1, 1:N1);
@@ -218,7 +267,7 @@ end
 % exactly r times perMeter in every component, up included (r dQ/dr is
 % dQ/d(ln r)), so there is one multiplication, not three conventions.
 if opts.Units == "perMeter"
-    w = 1 / r;
+    w = 1 ./ r;                     % a row of radii on the ellipsoid
 else
     w = 1;
 end
@@ -245,13 +294,29 @@ for b0 = 1:nBand:nOut
             cM = cosML;
             sM = sinML;
         end
-        vN = (sum(KC .* Dk, 1) * cM + sum(KS .* Dk, 1) * sM) * w;
+        if onEllipsoid
+            % this point's radius: attenuate every degree row by
+            % (R/r_k)^p_n, and the metric factor is 1/r_k
+            qk = (R / r(k)) .^ radialExp;
+            KCk = qk .* KC;
+            KSk = qk .* KS;
+            KCuk = qk .* KCu;
+            KSuk = qk .* KSu;
+            wk = w(min(k, numel(w)));
+        else
+            % the pre-v5.5.0 operands, unchanged - the bitwise path
+            KCk = KC;
+            KSk = KS;
+            if hasUp, KCuk = KCu; KSuk = KSu; end
+            wk = w;
+        end
+        vN = (sum(KCk .* Dk, 1) * cM + sum(KSk .* Dk, 1) * sM) * wk;
         cl = cos(latRad(k));
         if abs(cl) < 1e-12
             vE = NaN(1, size(cM, 2));
         else
-            vE = (sum(KC .* Pk, 1) * (-(m .* sM)) ...
-                + sum(KS .* Pk, 1) * (m .* cM)) * (w / cl);
+            vE = (sum(KCk .* Pk, 1) * (-(m .* sM)) ...
+                + sum(KSk .* Pk, 1) * (m .* cM)) * (wk / cl);
         end
         if pts
             gN(k) = vN;
@@ -261,7 +326,7 @@ for b0 = 1:nBand:nOut
             gE(k, :) = vE;
         end
         if hasUp
-            vU = -(sum(KCu .* Pk, 1) * cM + sum(KSu .* Pk, 1) * sM) * w;
+            vU = -(sum(KCuk .* Pk, 1) * cM + sum(KSuk .* Pk, 1) * sM) * wk;
             if pts, gU(k) = vU; else, gU(k, :) = vU; end
         end
     end
@@ -269,6 +334,7 @@ end
 
 dq = struct('north', gN, 'east', gE, 'up', gU);
 info = struct('quantity', opts.Quantity, 'units', opts.Units, 'r', r, ...
+    'surface', opts.Surface, ...
     'nmin', opts.Nmin, 'nmax', nmax, 'hasUp', hasUp, ...
     'lat', latDeg(:)', 'latType', "geocentric", 'lon', lonDeg(:)');
 end

@@ -68,6 +68,24 @@ C(n+1,m+1) layout, as everywhere in the toolbox &mdash; convert with
 <a href="ref/shLowLevel_geodetic2geocentric.html">geodetic2geocentric</a> if your points are geodetic. The radial
 derivative identity &delta;g = &minus;dT/dr is pinned to 3e-10 by the test suite.</p>
 
+<h2>On the reference ellipsoid <span class="tag">v5.5.0</span></h2>
+<p>By default the series is evaluated on the sphere <code class="inline">r = R</code>. With
+<code class="inline">Surface="ellipsoid"</code> it is evaluated at the geocentric radius of the
+WGS84 ellipsoid, <code class="inline">r(&phi;) = a&radic;((1&minus;e&sup2;)/(1&minus;e&sup2;cos&sup2;&phi;))</code>,
+which <a href="ref/shLowLevel_ellipsoidRadius.html">shLowLevel.ellipsoidRadius</a> computes:</p>
+<pre>dg = shLowLevel.shSynthesis(C, S, GM, R, -90:0.5:90, 0:0.5:359.5, ...
+    Quantity = "gravity_disturbance", Surface = "ellipsoid");</pre>
+<p>The choice matters most near the poles. There the ellipsoid lies 21.4&nbsp;km <em>inside</em>
+the reference sphere, so the radial law amplifies the high degrees:
+(R/b)<sup>n+2</sup> is 1.23 at n&nbsp;=&nbsp;60, 1.39 at n&nbsp;=&nbsp;96 and 1.84 at n&nbsp;=&nbsp;180.
+Only quantities with a radial law accept the option &mdash; potential, gravity anomaly, gravity
+disturbance and T<sub>rr</sub>. The geoid is refused deliberately: on the ellipsoid it also
+needs the latitude-dependent normal gravity &gamma;(&phi;), and correcting the radius alone would
+be half a correction.</p>
+<p>For station lists, <code class="inline">synthesisPoints</code> already takes a radius per
+point: pass <code class="inline">r = shLowLevel.ellipsoidRadius(lat) + h</code>. Latitudes must be
+geocentric &mdash; a geodetic 45&deg; taken as geocentric misplaces the radius by 71.8&nbsp;m.</p>
+
 <h2>See Also</h2>
 <p class="seealso"><a href='legendreALF.html'>legendreALF</a> <a href='ref/shLowLevel_shGaussianFilter.html'>shGaussianFilter</a> <a href='ref/shLowLevel_shDestripe.html'>shDestripe</a> <a href='gradientTensor.html'>gradient tensor</a> <a href='ref/shLowLevel_geodetic2geocentric.html'>latitude conversions</a></p>
 </div><p class="provenance">Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>

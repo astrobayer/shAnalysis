@@ -1,5 +1,95 @@
 # Changelog
 
+## [5.5.0] - 2026-09-10 - WP3: synthesis on the ellipsoid
+
+A MINOR: new API. `Surface = "sphere" | "ellipsoid"` in `shSynthesis`,
+`shSynthesisGradient`, `g.synthesis` and `g.gradient`, and a new
+`shLowLevel.ellipsoidRadius`. The sphere path - the default - is **bitwise
+unchanged**: 26 of 26 outputs captured from the pre-WP3 code before any
+edit (six quantities, direct, FFT and banded, Height, the gradient on grids
+and points) are identical afterwards.
+
+### What finding B3 was about, in numbers
+
+Every synthesis evaluated on a sphere of radius R. The ellipsoid lies
+**inside** that sphere at high latitudes - 21.4 km at the poles - and the
+radial law (R/r)^(n+2) amplifies high degrees there:
+
+| degree | (R/b)^(n+2) at the poles |
+|---|---|
+| 60 | 1.23 |
+| 96 | 1.39 |
+| 180 | 1.84 |
+
+So a degree-60 gravity term evaluated on the sphere at a pole is about 19%
+smaller than on the ellipsoid. Low degrees barely move; the effect is a
+high-latitude, high-degree one, which is exactly where polar ice and
+gravity users look.
+
+### The design
+
+- The ellipsoid is **WGS84**: `SemiMajorAxis` 6378137 and `Flattening`
+  1/298.257223563, both overridable. `a` is WGS84's, deliberately not the
+  coefficients' reference radius R: R belongs to the series, `a` to the
+  surface, and pairing WGS84's flattening with R would describe an
+  ellipsoid nobody uses. A test pins that the default `a` is the one
+  `normalFieldCS` uses.
+- `shLowLevel.ellipsoidRadius(lat)` is the ONE place r(phi) is computed.
+- `Height` adds to r(phi), so it means height above the surface either way.
+- Gradient components stay in the local **spherical** frame: `up` is
+  radial, not the ellipsoid normal, which differs by up to 0.19 deg. Said
+  in the help rather than left to be discovered.
+
+### Deviations from the WP, stated rather than smuggled
+
+- **The geoid is refused on the ellipsoid.** The WP said both "surface
+  quantities keep erroring" and "geoid on the ellipsoid". A proper
+  ellipsoidal geoid also needs the latitude-dependent normal gravity
+  gamma(phi), so correcting the radius alone would ship half a correction.
+  The error says exactly that and points to evaluating `potential` on the
+  ellipsoid and dividing by gamma(phi). Accepted quantities: potential,
+  gravity_anomaly, gravity_disturbance, gravity_gradient_rr.
+- **`synthesisPoints` has no `Surface` option.** It already takes a radius
+  per point; `r = shLowLevel.ellipsoidRadius(lat) + h` does the job without
+  overloading that argument's meaning.
+- **The class methods forward `Surface`**, one line each, because they
+  already forward `Height` and `Flattening` - and the class's one
+  `Flattening` now describes both the latitude conversion and the
+  evaluation surface, which is the same ellipsoid.
+- **The EGM2008 reference was dropped** (Matthias, 2026-09-10: "you can
+  drop the EGM2008 reference. Self-consistency is fine"). Acceptance is
+  the oracle below.
+
+### Measured
+
+`tools/dev/validate_ellipsoid.py`, every claim against an independent
+route inside the file:
+
+| claim | result |
+|---|---|
+| the point lies on x^2/a^2 + z^2/b^2 = 1 | 4.4e-16 |
+| f = 0 is the sphere | exact |
+| textbook Legendre vs numpy's Legendre polynomials | 7.8e-14 |
+| -dV/dr (finite differences) = gravity_disturbance on the ellipsoid | 3.2e-11 |
+| gradient north/east vs finite differences at fixed r | 7.6e-12 |
+
+The MATLAB tests pin synthesis and gradient against the oracle's values
+at the WP's 1e-12, tie the gradient to the synthesis through the radial
+identity, check grid synthesis against `synthesisPoints` at r(phi), and
+prove the ellipsoid DEGENERATES to the sphere: with f = 0 and a = R the
+output is bitwise the sphere's, in synthesis, banded synthesis and gradient.
+
+### Fixed on the way
+
+`shSynthesis`'s help said the FFT path is "5-20x faster at 1 degree". It was
+never measured: A8 measured 1.40x at nmax 60, and at nmax 180 / 0.5 deg the
+FFT path is slower than direct on MATTHIASPC. The row now says that.
+
+### Record
+
+v5.4.1's third A8 run, at `5d4980e`: 335 runs, 331 passed, 0 failed, 4
+filtered - only the optional real-data fixtures, with all fourteen speed
+budgets asserting on A8 and the worst tight one at 1.030x its baseline.
 ## [5.4.1] - 2026-09-10 - A9 closed: the noise had a cause, and it was not the timer
 
 A PATCH that closes A9: four speed-budget workloads replaced, five promoted

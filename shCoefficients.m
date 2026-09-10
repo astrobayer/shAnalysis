@@ -626,8 +626,13 @@ methods
         %
         %   Options
         %     hn ([])  vertical-deformation Love numbers, degrees 0..nmax (user-supplied)
-        %     Height (0)  evaluation height above the reference sphere [m];
-        %         applies the upward continuation (R/r)^n
+        %     Height (0)  evaluation height [m] above the evaluation
+        %         surface; applies the upward continuation (R/r)^p_n
+        %     Surface ("sphere")  "sphere" | "ellipsoid": evaluate on the
+        %         sphere r = R or on the ellipsoid r(phi), see
+        %         shLowLevel.shSynthesis. It is the SAME ellipsoid the
+        %         Flattening option describes for LatType
+        %     SemiMajorAxis (6378137)  ellipsoid semi-major axis [m], WGS84
         %     rho_ave (5517)  mean Earth density [kg/m^3] in the EWH kernel
         %     rho_water (1000)  water density [kg/m^3] in the EWH kernel
         %     Method ("auto")  "auto" | "direct" | "fft": FFT along
@@ -637,8 +642,9 @@ methods
         %         latitude inputs are interpreted; geodetic values are
         %         converted with Flattening before evaluation
         %     Flattening (1/298.257223563)  flattening of the reference
-        %         ellipsoid for the geodetic/geocentric conversion (WGS84;
-        %         overridable, never silently assumed)
+        %         ellipsoid for the geodetic/geocentric conversion and,
+        %         with Surface = "ellipsoid", of the evaluation surface
+        %         (WGS84; overridable, never silently assumed)
         %     MaxMemGB (4)  memory budget [GB]; above it the synthesis
         %         streams in latitude bands instead of allocating the full
         %         design matrix (this is what makes nmax 2190 tractable)
@@ -650,6 +656,9 @@ methods
             opts.kn double = []
             opts.hn double = []
             opts.Height (1,1) double = 0
+            opts.Surface (1,1) string ...
+                {mustBeMember(opts.Surface, ["sphere","ellipsoid"])} = "sphere"
+            opts.SemiMajorAxis (1,1) double = 6378137
             opts.Nmin (1,1) double = 0
             opts.Nmax (1,1) double = NaN
             opts.rho_ave (1,1) double = 5517
@@ -673,7 +682,9 @@ methods
         args = {'Quantity', char(opts.Quantity), 'Nmin', opts.Nmin, ...
             'Nmax', nmaxEff, 'rho_ave', opts.rho_ave, ...
             'rho_water', opts.rho_water, 'Method', char(opts.Method), ...
-            'MaxMemGB', opts.MaxMemGB, 'Height', opts.Height};
+            'MaxMemGB', opts.MaxMemGB, 'Height', opts.Height, ...
+            'Surface', opts.Surface, 'SemiMajorAxis', opts.SemiMajorAxis, ...
+            'Flattening', opts.Flattening};
         if ~isempty(opts.kn), args = [args, {'kn', opts.kn}]; end
         if ~isempty(opts.hn), args = [args, {'hn', opts.hn}]; end
         % cache only when the full Legendre stack fits the budget;
@@ -954,7 +965,8 @@ methods
         %                Mode="points"; up is [] for surface quantities
         %     info       (1,1) struct   as returned by
         %                shLowLevel.shSynthesisGradient (quantity, units,
-        %                r, nmin, nmax, hasUp, lat, lon, latType), except
+        %                r, surface, nmin, nmax, hasUp, lat, lon, latType),
+        %                except
         %                that lat and latType are overwritten here when
         %                geodetic input was given, so the convention
         %                travels with the numbers
@@ -965,8 +977,12 @@ methods
         %     hn ([])  load Love numbers h'_n (deformation_up only)
         %     Nmin (0)  degrees below nmin are zeroed
         %     Nmax (NaN)  truncation degree; NaN uses the object's nmax
-        %     Height (0)  evaluation height above R [m]; surface
-        %         quantities reject it
+        %     Height (0)  evaluation height [m] above the evaluation
+        %         surface; surface quantities reject it
+        %     Surface ("sphere")  "sphere" | "ellipsoid", see
+        %         shLowLevel.shSynthesisGradient; the components stay in
+        %         the local spherical frame either way
+        %     SemiMajorAxis (6378137)  ellipsoid semi-major axis [m], WGS84
         %     rho_ave (5517)  mean Earth density [kg/m^3]
         %     rho_water (1000)  water density [kg/m^3]
         %     Mode ("grid")  "grid" | "points" (pairwise LAT/LON)
@@ -979,7 +995,8 @@ methods
         %         one by up to 0.19 deg of meridian convergence. For a map
         %         that is invisible; for a station comparison it is not
         %     Flattening (1/298.257223563)  ellipsoid flattening for that
-        %         conversion (WGS84; overridable, never silently assumed)
+        %         conversion and for Surface = "ellipsoid" (WGS84;
+        %         overridable, never silently assumed)
         %
         %   Example
         %     lat = -89:2:89; lon = 0:2:358;
@@ -995,6 +1012,9 @@ methods
             opts.Nmin (1,1) double = 0
             opts.Nmax (1,1) double = NaN
             opts.Height (1,1) double = 0
+            opts.Surface (1,1) string ...
+                {mustBeMember(opts.Surface, ["sphere","ellipsoid"])} = "sphere"
+            opts.SemiMajorAxis (1,1) double = 6378137
             opts.rho_ave (1,1) double = 5517
             opts.rho_water (1,1) double = 1000
             opts.Mode (1,1) string ...
@@ -1018,7 +1038,9 @@ methods
             kn = opts.kn, hn = opts.hn, Nmin = opts.Nmin, Nmax = nmaxEff, ...
             Height = opts.Height, rho_ave = opts.rho_ave, ...
             rho_water = opts.rho_water, Mode = opts.Mode, ...
-            Units = opts.Units, MaxMemGB = opts.MaxMemGB);
+            Units = opts.Units, MaxMemGB = opts.MaxMemGB, ...
+            Surface = opts.Surface, SemiMajorAxis = opts.SemiMajorAxis, ...
+            Flattening = opts.Flattening);
         % INFO.lat reports what was ASKED FOR, and INFO.latType says which
         % convention that is, so a mismatch can be refused downstream
         % rather than drawn (v3.31.0)

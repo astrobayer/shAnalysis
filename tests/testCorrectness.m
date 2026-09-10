@@ -4538,3 +4538,137 @@ verifyNotEqual(testCase, a.phaseDeg, b.phaseDeg);
 verifyTrue(testCase, isfinite(a.phaseDeg) && abs(a.phaseDeg) <= 180);
 verifyTrue(testCase, isfinite(b.phaseDeg) && abs(b.phaseDeg) <= 180);
 end
+
+function [C, S, GM, R] = wp3Coefficients()
+%WP3COEFFICIENTS The deterministic set tools/dev/validate_ellipsoid.py pins
+%   against, rebuilt without an RNG so both languages hold the same numbers.
+nmax = 40;
+[n, m] = ndgrid(0:nmax, 0:nmax);
+C = 1e-9 * cos(0.7*n + 1.3*m) ./ (1 + n);
+S = 1e-9 * sin(0.4*n + 0.9*m) ./ (1 + n);
+C(m > n) = 0;
+S(m > n) = 0;
+S(:, 1) = 0;
+C(1:2, :) = 0;
+S(1:2, :) = 0;
+GM = 3.986004415e14;
+R = 6378136.3;
+end
+
+function testEllipsoidSynthesisMatchesOracle(testCase)
+%TESTELLIPSOIDSYNTHESISMATCHESORACLE WP3 acceptance: synthesis on the WGS84
+%   ellipsoid against tools/dev/validate_ellipsoid.py, which evaluates the
+%   same series point by point through an independent (textbook) Legendre
+%   route. The bound is the WP's 1e-12, on max|diff| / max|pin| per
+%   quantity - normalised by the field, as testSynthesisPointsMethodsAgree
+%   does, so a pin near a zero crossing cannot inflate it.
+[C, S, GM, R] = wp3Coefficients();
+pts = [-90 0; -63.5 33; 0 121.5; 45 250; 89.5 33];
+pins = struct( ...
+    'potential', [0.0043226064857430887, 0.0089477505959887071, ...
+        -0.065316448053777801, 0.032913591268445355, -0.060528657390604278], ...
+    'gravity_disturbance', [-4.8622701506266225e-08, -4.2311914572232842e-09, ...
+        -1.5474488650883772e-07, 4.3384394318088625e-08, -7.8296641453290037e-08], ...
+    'gravity_anomaly', [-4.9982706197987986e-08, -7.0445103916040198e-09, ...
+        -1.3426353025895537e-07, 3.3046265836462187e-08, -5.925275269694826e-08], ...
+    'gravity_gradient_rr', [-3.5995610605408723e-13, -5.529726166864861e-14, ...
+        -4.3560363127159758e-13, 8.4410141018049349e-14, -3.7482151441896534e-13]);
+for q = string(fieldnames(pins))'
+    want = pins.(q);
+    got = zeros(size(want));
+    for i = 1:size(pts, 1)
+        got(i) = shLowLevel.shSynthesis(C, S, GM, R, pts(i, 1), pts(i, 2), ...
+            Quantity = q, Surface = "ellipsoid");
+    end
+    verifyLessThan(testCase, max(abs(got - want)) / max(abs(want)), 1e-12, q);
+end
+% Height adds to r(phi), not to R
+ptsH = [-63.5 33; 45 250];
+wantH = [-4.1486890444900083e-09, 4.325857293161722e-08];
+gotH = zeros(1, 2);
+for i = 1:2
+    gotH(i) = shLowLevel.shSynthesis(C, S, GM, R, ptsH(i, 1), ptsH(i, 2), ...
+        Quantity = "gravity_disturbance", Surface = "ellipsoid", Height = 1500);
+end
+verifyLessThan(testCase, max(abs(gotH - wantH)) / max(abs(wantH)), 1e-12, ...
+    'gravity_disturbance at Height 1500 above the ellipsoid');
+end
+
+function testEllipsoidGradientMatchesOracle(testCase)
+%TESTELLIPSOIDGRADIENTMATCHESORACLE North, east and up at r(phi) against
+%   the oracle, which checked its own north/east against finite differences
+%   at FIXED r (7.6e-12) - the components are spherical-frame partials at
+%   the point, and that is what is pinned.
+[C, S, GM, R] = wp3Coefficients();
+lat = [-63.5 0 45];
+lon = [33 121.5 250];
+want = [-2.806707148643133e-08,   5.7202412376681814e-09,  4.2311914572231651e-09; ...
+        -8.556237628774138e-09,   1.2808321610165758e-08,  1.5474488650883774e-07; ...
+        -1.1000901490334231e-07, -1.5112245273265289e-07, -4.3384394318088612e-08];
+dq = shLowLevel.shSynthesisGradient(C, S, GM, R, lat, lon, ...
+    Quantity = "potential", Surface = "ellipsoid", Mode = "points");
+got = [dq.north(:), dq.east(:), dq.up(:)];
+names = ["north", "east", "up"];
+for j = 1:3
+    verifyLessThan(testCase, max(abs(got(:, j) - want(:, j))) ...
+        / max(abs(want(:, j))), 1e-12, names(j));
+end
+end
+
+function testEllipsoidRadialIdentity(testCase)
+%TESTELLIPSOIDRADIALIDENTITY d(potential)/dr = -gravity_disturbance must
+%   survive the move to the ellipsoid. The gradient takes its radius per
+%   latitude inside its loop and the synthesis per latitude inside its
+%   reduction - two implementations of the new radial law, tied to each
+%   other by an identity rather than by a shared helper.
+[C, S, GM, R] = wp3Coefficients();
+lat = -88:8:88;
+lon = 0:30:330;
+dq = shLowLevel.shSynthesisGradient(C, S, GM, R, lat, lon, ...
+    Quantity = "potential", Surface = "ellipsoid");
+gd = shLowLevel.shSynthesis(C, S, GM, R, lat, lon, ...
+    Quantity = "gravity_disturbance", Surface = "ellipsoid");
+verifyLessThan(testCase, max(abs(dq.up(:) + gd(:))) / max(abs(gd(:))), 1e-12);
+end
+
+function testEllipsoidRadiusGeometry(testCase)
+%TESTELLIPSOIDRADIUSGEOMETRY r(phi) is the ellipse, a at the equator, b at
+%   the poles, a sphere at f = 0, and its default a is the one
+%   shLowLevel.normalFieldCS uses - two places holding WGS84's a, pinned
+%   so they cannot drift apart.
+lat = linspace(-90, 90, 721);
+r = shLowLevel.ellipsoidRadius(lat);
+a = 6378137;
+f = 1/298.257223563;
+b = a * (1 - f);
+x = r .* cosd(lat);
+z = r .* sind(lat);
+verifyLessThan(testCase, max(abs((x/a).^2 + (z/b).^2 - 1)), 1e-14);
+verifyEqual(testCase, shLowLevel.ellipsoidRadius(0), a);
+verifyEqual(testCase, shLowLevel.ellipsoidRadius([-90 90]), [b b], 'RelTol', 1e-15);
+[~, nf] = shLowLevel.normalFieldCS(2);
+verifyEqual(testCase, shLowLevel.ellipsoidRadius(0), nf.a, ...
+    'the default semi-major axis must be the one normalFieldCS uses');
+verifyEqual(testCase, shLowLevel.ellipsoidRadius(lat, Flattening = 0), a * ones(size(lat)));
+verifySize(testCase, shLowLevel.ellipsoidRadius(zeros(3, 2)), [3 2]);
+end
+
+function testEllipsoidGridMatchesPoints(testCase)
+%TESTELLIPSOIDGRIDMATCHESPOINTS Grid synthesis on the ellipsoid against
+%   synthesisPoints handed r = ellipsoidRadius(lat) + h: two evaluators
+%   that share only legendreALF and the house constants, so this is the
+%   check that the per-latitude factor puts each row at the right radius.
+[C, S, GM, R] = wp3Coefficients();
+lat = [-77 -31.5 0 12 58 83];
+lon = [10 95 180 271 333];
+[LO, LA] = meshgrid(lon, lat);
+for h = [0 900]
+    grid = shLowLevel.shSynthesis(C, S, GM, R, lat, lon, ...
+        Quantity = "gravity_disturbance", Surface = "ellipsoid", Height = h);
+    rr = shLowLevel.ellipsoidRadius(LA(:)) + h;
+    pts = shLowLevel.synthesisPoints(C, S, GM, R, LA(:), LO(:), rr, ...
+        Quantity = "disturbance", Method = "direct", Nmin = 0);
+    verifyLessThan(testCase, max(abs(grid(:) - pts)) / max(abs(pts)), 1e-12, ...
+        sprintf('h = %g', h));
+end
+end
