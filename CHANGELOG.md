@@ -1,5 +1,25 @@
 # Changelog
 
+## [5.12.2] - 2026-09-10 - WP2: two speed candidates measured, neither built
+
+A PATCH: documentation and records only; no code path changes.
+
+### Measured
+- **B1, the packed Legendre layout, is not built.** The same recursion
+  writing latitude-first, so that every write is contiguous, is 1.67x
+  faster at nmax 96 / 181 latitudes and 1.69x at 180 / 361, but only 1.21x
+  at 360 / 91 and 1.11x at 720 / 31. Every caller indexes P(n+1, m+1, :),
+  so a drop-in has to permute back, and that leaves 0.92-0.99x. The
+  results are bitwise identical in all four cases. WP2's own bar was 2x.
+- **`shSynthesis`'s `auto` keeps FFT.** Across 13 sizes from nmax 30 /
+  1 degree to 360 / 0.5 degree on MATTHIASPC, the whole call is 0 to 14
+  percent faster with `direct` - the largest gaps at nmax 30 and 60,
+  within 1 percent from nmax 240 up - and the two agree to 8e-14. The
+  paths share the Legendre recursion and the reduction, so the gap is the
+  longitude step alone, at most 7 ms. On A8 the reduction alone ran 1.40x
+  faster with FFT at nmax 60. No path wins on both machines, so `auto` is
+  unchanged, and the `Method` help now says so.
+
 ## [5.12.1] - 2026-09-10 - A30: no NaN reaches an analysis
 
 A PATCH: three refusals where NaN used to pass silently, or with the
