@@ -2535,7 +2535,7 @@ _CATS = [
   ["shReadGFC", "shEvalGFCT", "readTN13", "readTN14", "readSINEX",
    "readDDK", "readMascon", "readLoveNumbers", "listICGEM", "fetchITSG",
    "fetchICGEM", "fetchDDK", "fetchTN", "dataFolder", "ddkNames",
-   "parseGraceFilename", "icgemDate2Year", "writeGFC", "writeGrid",
+   "parseGraceFilename", "icgemDate2Year", "writeGFC", "writeGrid", "readGrid",
    "writeAnimation"]),
  ("Legendre, spectral tools &amp; indexing",
   ["legendreALF", "legendreALFDeriv", "legendreCached", "ylm", "shIndex",

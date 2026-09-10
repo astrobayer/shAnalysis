@@ -4672,3 +4672,95 @@ for h = [0 900]
         sprintf('h = %g', h));
 end
 end
+
+% ------------------------------------------ WP5 5e: readGrid, the inverse of writeGrid
+function testReadGridIsTheInverseOfWriteGrid(testCase)
+%TESTREADGRIDISTHEINVERSEOFWRITEGRID a 2-D grid and a 3-D stack written by
+%   writeGrid come back as they went in: the values bitwise, the latitudes
+%   in their own order (north to south here), the recorded latitude type,
+%   and the epochs through writeGrid's time axis.
+lat = (88:-4:-88)';
+lon = (0:4:356)';
+[LA, LO] = ndgrid(lat, lon);
+G = sind(LA) .* cosd(LO);
+f2 = [tempname, '.nc'];
+c2 = onCleanup(@() delete(f2));
+shLowLevel.writeGrid(f2, G, lat, lon, Name = "ewh", Units = "m", ...
+    LatType = "geodetic", Sidecar = false);
+[g, la, lo, info] = shLowLevel.readGrid(f2);
+verifyEqual(testCase, g, G);
+verifyEqual(testCase, la, lat);
+verifyEqual(testCase, lo, lon);
+verifyEqual(testCase, [info.var, info.units, info.latType], ["ewh", "m", "geodetic"]);
+verifyEmpty(testCase, info.epochs);
+ep = [2010.1; 2010.2; 2016.999];          % 2016 is a leap year
+f3 = [tempname, '.nc'];
+c3 = onCleanup(@() delete(f3));
+G3 = cat(3, G, 2 * G, -G);
+shLowLevel.writeGrid(f3, G3, lat, lon, Name = "ewh", Epochs = ep, Sidecar = false);
+[g3, ~, ~, i3] = shLowLevel.readGrid(f3);
+verifyEqual(testCase, g3, G3);
+% writeGrid stores the epochs as double days since 2002-01-01; the way back
+% through datetime loses at most a few ulps of that day count, far below
+% 1e-9 yr (32 ms) - validate_readgrid.py CLAIM 2 measures the chain at 0
+verifyEqual(testCase, i3.epochs, ep, 'AbsTol', 1e-9);
+end
+
+function testReadGridReadsAnyDimensionOrderAndLongitudeRange(testCase)
+%TESTREADGRIDREADSANYDIMENSIONORDERANDLONGITUDERANGE a file laid out
+%   (latitude, longitude, time) - writeGrid writes (lon, lat, time) - with
+%   coordinates found by their units rather than their names, longitudes
+%   from -180, and hours as the time unit. The longitudes come back 0..360
+%   ascending with the columns moved to match.
+lat = (-60:30:60)';
+lon = (-180:45:135)';
+T = 3;
+[LA, LO] = ndgrid(lat, lon);
+X = zeros(numel(lat), numel(lon), T);
+for k = 1:T
+    X(:, :, k) = k * LA + LO / 1000;
+end
+f = [tempname, '.nc'];
+c = onCleanup(@() delete(f));
+nccreate(f, 'y', 'Dimensions', {'y', numel(lat)});
+ncwrite(f, 'y', lat);
+ncwriteatt(f, 'y', 'units', 'degrees_north');
+nccreate(f, 'x', 'Dimensions', {'x', numel(lon)});
+ncwrite(f, 'x', lon);
+ncwriteatt(f, 'x', 'units', 'degrees_east');
+nccreate(f, 'time', 'Dimensions', {'time', T});
+ncwrite(f, 'time', [0; 36; 8784]);
+ncwriteatt(f, 'time', 'units', 'hours since 2000-01-01 00:00:00');
+nccreate(f, 'field', 'Dimensions', {'y', numel(lat), 'x', numel(lon), 'time', T});
+ncwrite(f, 'field', X);
+[g, la, lo, info] = shLowLevel.readGrid(f);
+[lw, order] = sort(mod(lon, 360));
+verifyEqual(testCase, lo, lw);
+verifyEqual(testCase, la, lat);
+verifyEqual(testCase, g, X(:, order, :));
+% validate_readgrid.py CLAIM 1 prints these to 12 decimals
+verifyEqual(testCase, info.epochs, [2000; 2000.004098360656; 2001], 'AbsTol', 1e-12);
+end
+
+function testCFTimeUnitsAreReadOneWay(testCase)
+%TESTCFTIMEUNITSAREREADONEWAY GravIS writes "days since 2002-4-18 00:00:00"
+%   - a one-digit month that readMascon's own pattern refused before
+%   v5.8.0. readGrid and readMascon now share one decoder, so both read it,
+%   and both give validate_readgrid.py's epochs.
+lat = (-80:40:80)';
+lon = (0:60:300)';
+[LA, LO] = ndgrid(lat, lon);
+G3 = cat(3, LA + LO, LA - LO, LA .* LO);
+f = [tempname, '.nc'];
+c = onCleanup(@() delete(f));
+shLowLevel.writeGrid(f, G3, lat, lon, Name = "lwe_thickness", ...
+    Epochs = [2010.1; 2010.2; 2010.3], Sidecar = false);
+ncwrite(f, 'time', [0.29; 15.5; 8764]);
+ncwriteatt(f, 'time', 'units', 'days since 2002-4-18 00:00:00');
+want = [2002.293945205480; 2002.335616438356; 2026.287671232877];
+[~, ~, ~, info] = shLowLevel.readGrid(f);
+verifyEqual(testCase, info.epochs, want, 'AbsTol', 1e-12);
+m = shLowLevel.readMascon(f);
+verifyEqual(testCase, m.epoch, info.epochs, ...
+    'readMascon and readGrid read one time axis two ways');
+end

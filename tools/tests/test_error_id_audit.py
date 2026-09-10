@@ -331,7 +331,7 @@ class TestRealClassFiles(unittest.TestCase):
     def test_the_shipped_classes_are_clean(self):
         probs, backlog, checked = eia.check_classes()
         self.assertEqual(probs, [])
-        self.assertEqual(checked, 36)  # +errorMap, write, leakageCorrect, leakageDataDriven (WP7)
+        self.assertEqual(checked, 37)  # WP7 four, +analysis nanInGrid (WP5 5e)
         self.assertEqual(backlog, [])
 
     def test_minus_does_not_claim_the_epoch_check_plus_does(self):

@@ -3,7 +3,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="shAnalysis.css">
 </head><body><div class="content">
-<h1>shAnalysis API reference (v5.7.1)</h1>
+<h1>shAnalysis API reference (v5.8.0)</h1>
 <p>Generated from the source arguments blocks and help text - inputs,
 name-value options with defaults, and outputs for every public function
 and method. Regenerated with every release; the source of truth is the
@@ -85,6 +85,7 @@ code itself.</p>
 <a href="#shLowLevel.plotSHSpectrum">plotSHSpectrum</a>
 <a href="#shLowLevel.poleTideConvert">poleTideConvert</a>
 <a href="#shLowLevel.readDDK">readDDK</a>
+<a href="#shLowLevel.readGrid">readGrid</a>
 <a href="#shLowLevel.readLoveNumbers">readLoveNumbers</a>
 <a href="#shLowLevel.readMascon">readMascon</a>
 <a href="#shLowLevel.readSHM">readSHM</a>
@@ -1123,6 +1124,27 @@ code itself.</p>
 <tr><td><code>W</code></td><td>(1,1) struct  fields nmax    (1,1) double  maximum degree the filter covers name    (1,1) string  the DDK label, e.g. &quot;DDK3&quot; blocks  (1 x 241) struct array  one per (order, cs) block, each with m (1,1 double), cs (&#x27;c&#x27;|&#x27;s&#x27;), n (1,B double, the degrees) and M (B x B double, the square block matrix)</td></tr>
 </table>
 </div>
+<div class="entry" id="shLowLevel.readGrid">
+<h3><code>shLowLevel.readGrid(filename, opts)</code></h3>
+<p class="h1line">Read a gridded field or stack from a CF netCDF file.</p>
+<p>[GRID, LAT, LON, INFO] = shLowLevel.readGrid(FILE) reads the one latitude-longitude field in FILE - a 2-D grid, or a 3-D stack with a time axis - and returns it in the toolbox&#x27;s layout: GRID is (nlat x nlon) or (nlat x nlon x T), LAT and LON are column vectors [deg], and INFO.epochs holds the epochs as decimal years. It is the inverse of shLowLevel.writeGrid, and it reads CF grids from elsewhere too - hydrological models, GravIS Level-3 grids - so that they can enter shCoefficients.analysis. [...] = shLowLevel.readGrid(FILE, Var = NAME) names the variable when the file holds several on the grid, as GravIS grids do (tws, std_tws, leakage, model_atmosphere).</p>
+<b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>filename</code></td><td>n x m</td><td>-</td><td>required</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Var</code></td><td>1 x 1</td><td>string</td><td>&quot;&quot;</td></tr></table>
+<b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
+<tr><td><code>grid</code></td><td>(nlat x nlon) or (nlat x nlon x T) double  the field, NaN where the file has no value</td></tr>
+<tr><td><code>latDeg</code></td><td>(nlat,1) double  latitudes [deg], in the file&#x27;s order</td></tr>
+<tr><td><code>lonDeg</code></td><td>(nlon,1) double  longitudes [deg], 0..360, ascending</td></tr>
+<tr><td><code>info</code></td><td>(1,1) struct  fields var          (1,1) string  the variable read units        (1,1) string  its units attribute (&quot;&quot; if none) longName     (1,1) string  its long_name attribute (&quot;&quot; if none) latType      (1,1) string  the lat_type attribute writeGrid stores; &quot;&quot; when the file does not say epochs       (T,1) double  epochs [decimal years]; [] for a 2-D grid timeUnits    (1,1) string  the time axis&#x27; units; &quot;&quot; for 2-D calendar     (1,1) string  its calendar attribute (&quot;&quot; if none) conventions  (1,1) string  the global Conventions attribute title        (1,1) string  the global title attribute file         (1,1) string  the file read</td></tr>
+</table>
+<b>Example</b><pre>    f = fullfile(getpref(&#x27;shAnalysis&#x27;, &#x27;GravisFolder&#x27;), ...
+        &#x27;GRAVIS-3_GFZOP_0600_TWS_GRID_GFZ_0006.nc&#x27;);
+    [tws, lat, lon, info] = shLowLevel.readGrid(f, Var = &quot;tws&quot;);  % cm
+    g = shCoefficients.analysis(tws(:, :, 1) / 100, lat, lon, 60, ...
+        Quantity = &quot;ewh&quot;, kn = kn, LatType = &quot;geodetic&quot;, Fill = 0);
+
+  See also shLowLevel.writeGrid, shLowLevel.readMascon,
+  shCoefficients.analysis.</pre>
+</div>
 <div class="entry" id="shLowLevel.readLoveNumbers">
 <h3><code>shLowLevel.readLoveNumbers(filename, opts)</code></h3>
 <p class="h1line">Read load Love numbers from a user-supplied table file.</p>
@@ -1799,7 +1821,7 @@ code itself.</p>
 <p class="h1line">Spherical harmonic analysis: gridded/scattered data -&gt;</p>
 <p>Stokes coefficients (the inverse of synthesis).</p>
 <b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>grid</code></td><td>n x m</td><td>double</td><td>required</td></tr><tr><td><code>latVec</code></td><td>n x m</td><td>double</td><td>required</td></tr><tr><td><code>lonVec</code></td><td>n x m</td><td>double</td><td>required</td></tr><tr><td><code>nmax</code></td><td>1 x 1</td><td>double</td><td>required</td></tr></table>
-<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Quantity</code></td><td>1 x 1</td><td>string</td><td>&quot;geoid&quot;</td></tr><tr><td><code>Method</code></td><td>1 x 1</td><td>string</td><td>&quot;auto&quot;</td></tr><tr><td><code>Weights</code></td><td>1 x 1</td><td>string</td><td>&quot;none&quot;</td></tr><tr><td><code>Kaula</code></td><td>1 x 1</td><td>double</td><td>0</td></tr><tr><td><code>kn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>hn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>rho_ave</code></td><td>1 x 1</td><td>double</td><td>5517</td></tr><tr><td><code>rho_water</code></td><td>1 x 1</td><td>double</td><td>1000</td></tr><tr><td><code>GM</code></td><td>1 x 1</td><td>double</td><td>3.986004415e14</td></tr><tr><td><code>R</code></td><td>1 x 1</td><td>double</td><td>6378136.3</td></tr><tr><td><code>Epoch</code></td><td>1 x 1</td><td>double</td><td>NaN</td></tr><tr><td><code>Name</code></td><td>1 x 1</td><td>string</td><td>&quot;analysis&quot;</td></tr><tr><td><code>LatType</code></td><td>1 x 1</td><td>string</td><td>&quot;geocentric&quot;</td></tr><tr><td><code>Flattening</code></td><td>1 x 1</td><td>double</td><td>1/298.257223563</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Quantity</code></td><td>1 x 1</td><td>string</td><td>&quot;geoid&quot;</td></tr><tr><td><code>Method</code></td><td>1 x 1</td><td>string</td><td>&quot;auto&quot;</td></tr><tr><td><code>Weights</code></td><td>1 x 1</td><td>string</td><td>&quot;none&quot;</td></tr><tr><td><code>Kaula</code></td><td>1 x 1</td><td>double</td><td>0</td></tr><tr><td><code>kn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>hn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>rho_ave</code></td><td>1 x 1</td><td>double</td><td>5517</td></tr><tr><td><code>rho_water</code></td><td>1 x 1</td><td>double</td><td>1000</td></tr><tr><td><code>GM</code></td><td>1 x 1</td><td>double</td><td>3.986004415e14</td></tr><tr><td><code>R</code></td><td>1 x 1</td><td>double</td><td>6378136.3</td></tr><tr><td><code>Epoch</code></td><td>1 x 1</td><td>double</td><td>NaN</td></tr><tr><td><code>Name</code></td><td>1 x 1</td><td>string</td><td>&quot;analysis&quot;</td></tr><tr><td><code>LatType</code></td><td>1 x 1</td><td>string</td><td>&quot;geocentric&quot;</td></tr><tr><td><code>Flattening</code></td><td>1 x 1</td><td>double</td><td>1/298.257223563</td></tr><tr><td><code>Fill</code></td><td>1 x 1</td><td>double</td><td>NaN</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
 <tr><td><code>obj</code></td><td>(1 x 1) shCoefficients   Stokes coefficients estimated from the grid (exact on ring grids; Kaula for scattered points)</td></tr>
 <tr><td><code>info</code></td><td>(1,1) struct   the estimation diagnostics, as returned by shLowLevel.shAnalysisGrid</td></tr>
@@ -2622,4 +2644,4 @@ code itself.</p>
 <tr><td><code>obj</code></td><td>(1 x 1) shClimatology   copy with the note appended to its history</td></tr>
 </table>
 </div>
-<p class="provenance">Developed by Matthias Weigelt with the help of Claude (Fable 5), 10-Sep-2026 (v5.7.1). Generated by tools - do not edit.</p></div></body></html>
+<p class="provenance">Developed by Matthias Weigelt with the help of Claude (Fable 5), 10-Sep-2026 (v5.8.0). Generated by tools - do not edit.</p></div></body></html>

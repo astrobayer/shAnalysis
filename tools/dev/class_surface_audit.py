@@ -93,6 +93,8 @@ EXCEPTIONS = {
                    "coefficients"),
     "readSHM": ("reads GravIS SHM files for the GravIS chains, which are "
                 "exceptions themselves"),
+    "readGrid": ("reads a GRID - the input of shCoefficients.analysis - "
+                 "rather than a field of the classes"),
     "plotBasinSeries": _PLOT,
     "plotCovariance": _PLOT,
     "writeAnimation": _PLOT,
