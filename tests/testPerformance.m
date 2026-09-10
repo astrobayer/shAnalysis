@@ -36,8 +36,8 @@ classdef testPerformance < matlab.perftest.TestCase
 %       kalman_step_p200               a 12-epoch VAR(1) filter chain
 %     Each is timed Repeats times after one untimed warm-up; the MEDIAN
 %     is compared against a factor x the baseline for THIS machine. The
-%     factor is per benchmark, not global (v5.3.0): TightFactor 1.5 for
-%     the four workloads whose measured between-run spread earned it,
+%     factor is per benchmark, not global (v5.3.0): TightFactor 1.3 for
+%     the eight workloads whose measured between-run spread earned it,
 %     BudgetFactor 3 for the rest. See the constants for the criterion
 %     and for why one number could not serve both kinds of benchmark.
 %     A machine with no baseline row FILTERS the budget (assumeNotEmpty)
@@ -93,12 +93,11 @@ properties (Constant)
     %   legendre_n360                  1.031   1.036         57-88 ms
     %   analysis_rings_n60             1.007   1.079         40-70 ms
     %   apply_ddk_n300                 1.072   1.059         15-23 ms
-    %   ---- above: <= 1.1 on BOTH machines -> TightFactor ----
-    %   synthesis_fft_n180             -       1.007         31 ms
-    %   synthesis_direct_n180          -       1.022         30 ms
-    %   kalman_step_p200               -       1.035         18 ms
-    %   leakage_1iter_n48              -       1.046         47 ms
-    %   ---- above: new in v5.4.1, waiting for A8 ----
+    %   synthesis_fft_n180             1.002   1.007         31-40 ms
+    %   synthesis_direct_n180          1.021   1.022         30-39 ms
+    %   kalman_step_p200               1.009   1.035         18-30 ms
+    %   leakage_1iter_n48              1.007   1.046         47-81 ms
+    %   ---- above: TightFactor.  below: BudgetFactor ----
     %   legendre_n96                   1.024   1.532          8-12 ms
     %   five point-synthesis budgets   <=1.608 <=1.685        1-22 ms
     %
@@ -115,9 +114,19 @@ properties (Constant)
     % replaced: leakage n24 -> n48, Kalman p40 -> p200, and the synthesis
     % pair n60 / 1 deg -> n180 / 0.5 deg.
     %
-    % The four new ones join TightBudgets when A8 has measured them at
-    % least twice and they hold <= 1.1 there too - the rule that kept
-    % apply_ddk_n300 out for one release and let it in for this one.
+    % THE CRITERION, stated precisely because the loose wording failed
+    % within a day. A workload is tight when (a) its A8 run-to-run spread
+    % over at least two runs is <= 1.1, and (b) no run on EITHER machine
+    % has come in more than 1.1 ABOVE its baseline. The first wording -
+    % max/min <= 1.1 on both machines - also counts FAST runs. On
+    % 2026-09-10 a full-suite run on a quiet desktop came in 0.84x below
+    % baselines taken while it was busy; under that wording
+    % analysis_rings_n60, the steadiest budget on A8 (1.007), would have
+    % been demoted for the machine being idle. A fast run cannot fail an
+    % upper bound. It does erode SENSITIVITY on that machine - a baseline
+    % taken under load masks part of a regression there - so the 1.3x
+    % guarantee A9 asks for holds on A8, the CI gate, and on a
+    % workstation the budgets err loose.
     %
     % TightFactor is 1.3, down from 1.5, because the evidence now allows
     % the number A9 actually asks for. The worst deviation any single run
@@ -135,7 +144,13 @@ properties (Constant)
     BudgetFactor = 3;           % everything not listed below
     TightFactor = 1.3;          % see above: 1.23x over the worst tight run
     TightBudgets = ["legendre_n360", "legendre_n720", ...
-                    "analysis_rings_n60", "apply_ddk_n300"];
+                    "analysis_rings_n60", "apply_ddk_n300", ...
+                    "leakage_1iter_n48", "kalman_step_p200", ...
+                    "synthesis_direct_n180", "synthesis_fft_n180"];
+    % The last four joined in the same release that created them, on two
+    % A8 runs of the same commit (2c7b779: the PR run and a
+    % workflow_dispatch) - 1.007, 1.009, 1.021 and 1.002. That is the
+    % rule being met, not bent: it asks for two A8 runs, and there were.
     % apply_ddk_n300 joined in v5.4.1. v5.3.0 held it back on ONE A8
     % observation, which gives no spread at all; six A8 runs later
     % (2026-09-09, PRs #102 and #103) its worst run-to-run ratio is
@@ -616,12 +631,13 @@ methods
         %FACTORFOR Budget factor for one benchmark: TightFactor if it has
         %   earned it, BudgetFactor otherwise.
         %
-        %   The criterion is stated, not fitted per benchmark: a workload
-        %   is tight only if its WORST observed run-to-run ratio, over
-        %   several runs on BOTH machines, was <= 1.1. Size is necessary
-        %   but not sufficient: leakage_1iter_n24 ran 23 ms and still swung
-        %   1.306 on A8, because what varied was small-grid BLAS thread
-        %   scheduling, not the timer. Re-measure before adding one.
+        %   The criterion is stated, not fitted per benchmark - see the
+        %   constants for its precise form: A8 spread <= 1.1 over at
+        %   least two runs, and no run on either machine more than 1.1
+        %   above its baseline. Size is necessary but not sufficient:
+        %   leakage_1iter_n24 ran 23 ms and still swung 1.306 on A8,
+        %   because what varied was small-grid BLAS thread scheduling,
+        %   not the timer. Re-measure before adding one.
         if ismember(bench, tc.TightBudgets)
             f = tc.TightFactor;
         else

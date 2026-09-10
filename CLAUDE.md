@@ -188,7 +188,7 @@ do not see; **L** = polish.
 | A6 | L | **CLOSED v3.33.1** — README points at `ci.yml` instead of naming a tag it would have to keep in step (`fixture_tag_audit.py` already gates the tag itself). Original finding: README line 108 still says CI "pulls the orphan branch 'testdata'"; CI has pinned the tag `fixtures-2026-08` since v3.26.1/ci v2.9.0. | `README.md`, `ci.yml` |
 | A7 | M | **CLOSED v3.34.0**, and partly wrong as written — `demos.xml` now exists, generated from the `demo_shAnalysis` registry (16 cases, gated both ways), and the Help browser reaches a page per entity via `html/ref/index.html`. The search database was **never missing as a capability**: `setup_shAnalysis(Docs=true)` has always run `builddocsearchdb` on `html/`; only the built index is absent from the repo, deliberately (a binary artifact belongs on the machine that searches it). No second option was added. **Unverified in Tier B**: whether `builddocsearchdb` descends into `html/ref/` — confirm on the acceptance machine. Original finding: `doc` integration is incomplete: no `helpsearch-v*` database, no `demos.xml`, `info.xml` present. | `ls html/` |
 | A8 | M | **CLOSED v3.34.0** — all 250 pages link one `html/shAnalysis.css`; the inline blocks turned out to be ONE stylesheet copied fifty times (49 byte-identical + one in the generated reference), so merging them lost nothing, and `make_apiref.py` emits the link so the copy cannot return. 46 structural headings renamed to one spelling. `doc_sync_audit.py` gates the stylesheet, the link and the heading vocabulary; `refpages_audit.py` gates the generated skeleton. Original finding: The 50 hand-written `html/` pages use five different heading vocabularies for the same thing ("See also"/"See Also", "Outputs"/"Output Arguments", "Example"/"Examples", "Inputs / Outputs", "Options") and each page inlines its own `<style>` block (no shared stylesheet). 196 API entities have a dedicated page only inside the 304 KB monolith. | heading histogram over `html/*.html` |
-| A9 | M | **STILL OPEN after v5.4.1 - on evidence only, not on work.** The noise had a cause: small-grid multithreaded BLAS. One `leakageCorrect` iteration at nmax 24 ran 12.4 ms / p90-p10 1.44 at 16 threads and 9.3 ms / 1.15 at ONE thread, which is how a 23 ms workload swung 1.306 on A8 untouched. Four workloads were replaced with sizes where threading pays (leakage n24->n48, Kalman p40->p200, grid synthesis n60/1deg -> n180/0.5deg; between-run 1.046, 1.035, 1.022, 1.007 on MATTHIASPC). `apply_ddk_n300` joined the tight tier on six A8 runs (1.072). `TightFactor` 1.5 -> **1.3** - A9's own number - with 1.23x headroom over the worst tight-tier run (1.057). **A9 closes when the four new workloads hold <= 1.1 over two A8 runs and are promoted**: then every lane A9 names has a budget that catches a 1.3x regression. | `tests/perf_baseline.csv` |
+| A9 | M | **CLOSED v5.4.1.** Every lane it names - `legendreALF`, `shSynthesis`, `shAnalysisGrid`, `applyDDK`, `leakageCorrect`, the Kalman step - now has a budget on A8 that fails CI on a 1.3x regression, which is the finding's own wording. The road there: v5.3.0 refuted a global 1.3 (a 23 ms workload swung 1.306 on A8, untouched); v5.4.1 found the cause - small-grid multithreaded BLAS (one thread was 1.32x faster and steadier) - and replaced four workloads with sizes where threading pays. Eight are tight at `TightFactor` 1.3 (A8 spreads 1.002-1.072); the rest are small by construction or are crossover brackets and stay at 3x. Stated limit: a desktop moves ~1.2x between sessions, so the 1.3x guarantee holds on A8, the CI gate; on a workstation the budgets err loose. | `tests/perf_baseline.csv` |
 | A10 | L | **CLOSED v3.34.1** — and the finding was **larger than recorded**: 13 package functions plus **22 public class methods** (A18). `tools/dev/name_coverage.py` measures it now, over the whole public surface, with comments stripped so a name in a `% see also` line does not count; it states its own reach in its last line (naming is not exercise). 32 new tests, each asserting a property the function's own help states. One allowed exception, `runAllTests`, with its reason in the gate. Original finding: package functions never named in `tests/`, coverage by name not measured. | `python3 tools/dev/name_coverage.py` |
 | A17 | M | **CLOSED v3.34.1** — `gridHandover` continues its signature with `...`, so `api_extract.py` (single-line regex) parsed the file to NOTHING: no entity in `api_data.py`, no reference page, while `apiReference.html` sent the reader to "as built by shLowLevel.gridHandover, which documents every field". `refpages_audit`'s COVER check compares pages against that same artifact, so it was silent by construction. **Four parsers of the public surface exist; two were blind the same way and agreed with each other** — which is why the new SURFACE check in `doc_sync_audit.py` compares against the FILESYSTEM (MATLAB's file/function rule is ground truth), not a second parser. `api_extract` now refuses to write an incomplete artifact. Pinned by `tools/tests/test_api_extract.py` (5 of 7 fail pre-fix). | `python3 tools/doc_sync_audit.py` |
 | A18 | M | **CLOSED v3.34.1** — A10's blind spot was not only the package: **22 public class methods** were named by no test either — every operator (`plus`, `minus`, `uminus`, `mtimes`, `times`), `disp` on all three classes, `compare`, `fan`, `spectrum`, `triangle`, and eight `shClimatology` methods. Operators were deliberately NOT allowlisted: they are callable by name, and a test checking `plus(a,b)` against `a + b` is stronger than one checking either alone. | `python3 tools/dev/name_coverage.py` |
@@ -301,7 +301,7 @@ Approved by Matthias on 2026-09-09 as option (a), the hard break.
   bump `fixtures-2026-09`).
 - **Size**: M. **Version**: MAJOR (4.0.0) under (a).
 
-### WP2 — Speed budgets, then speed   `[~] STEP 1 DONE (v5.0.2+v5.0.3+v5.3.0); STEP 2 B2 DONE (v5.1.0), CORRECTED (v5.3.0)`
+### WP2 — Speed budgets, then speed   `[~] STEP 1 DONE, A9 CLOSED (v5.4.1); STEP 2 B2 DONE (v5.1.0), CORRECTED (v5.3.0); B1 open`
 Approved by Matthias on 2026-09-09 ("Go ahead with WP2"), which
 supersedes the "A9 is ok" acceptance recorded the same day.
 
@@ -546,6 +546,23 @@ Original scope below.
 ## 6. Records
 
 ### 6.1 Decisions (append-only; date, decision, evidence)
+- 2026-09-10 — **A9 CLOSED.** Two A8 runs of `2c7b779` put the four new
+  workloads at 1.007 (leakage n48), 1.009 (Kalman p200), 1.021 and 1.002
+  (synthesis direct/fft n180); all four joined the tight tier at 1.3.
+  Every lane A9 names now fails CI on a 1.3x regression. Promoted in the
+  same release that created them because the rule asks for two A8 runs
+  and there were two - not because the release wanted to close.
+- 2026-09-10 — **The promotion criterion was refined, in the open, after
+  a run that would have broken it.** "max/min <= 1.1 on both machines"
+  counts fast runs; a quiet-desktop run 0.84x below its baselines would
+  have demoted `analysis_rings_n60`, the steadiest budget on A8, for the
+  machine being idle. Refined to: A8 spread <= 1.1 over >= 2 runs, and no
+  run on either machine more than 1.1 ABOVE its baseline - the direction
+  an upper bound can actually fail in. Applied to every tight budget,
+  not only the new ones, and the cost (desktop sensitivity) is written
+  into the code. Recorded here because a criterion changed at the moment
+  it bites looks exactly like one bent to fit - the difference has to be
+  shown, not asserted.
 - 2026-09-10 — **A workstation's between-SESSION spread is larger than
   its between-run spread - and here it erred the safe way.** The v5.4.1
   full-suite run measured `analysis_rings_n60` at 33.9 ms and
@@ -1133,7 +1150,7 @@ Original scope below.
 | v5.2.0 (WP5 5c + help_audit scoping) | ☑ 15 gates + mlint + make_demos + 13 self-test suites, 0 findings | ☑ **CI self-hosted (A8) at `b65f9a2` by workflow_dispatch, green — 326 runs, 320 passed, 0 failed, 6 filtered**; the ELEVENTH exact count prediction running, per class as well as in total (Contract 76, Correctness 164, Performance 26, Robustness 53, Science 7), and exactly the 6 the row predicted. Read back by the v5.3.0 session — the run had gone green and nobody had looked, which is also how the n50 baselines sat unused. | ☐ no PR (branch was unmerged) | ☐ |
 | v5.3.0 (A22, A23, A24; A9 two-factor; WP2 both machines) | ☑ 15 gates + mlint + make_demos + 13 self-test suites, 0 findings; `NO_BASELINE` empty, 14 budgets, both machines baselined | ☑ **Tier A LOCAL on MATTHIASPC (R2026a), the first since the bridge returned** — 328 runs, count prediction matched EXACTLY (Contract 77, Correctness 164, Performance 27, Robustness 53, Science 7). Only 2 filter here, not 4: `E:\DATAPOOL` supplies the SINEX and GravIS fixtures. Then ☑ **CI self-hosted (A8) at `2a38d25` via PR #102, green — 328 runs, 323 passed, 0 failed, 5 filtered** (the 4 real-data fixtures plus `apply_ddk_n300`, which A8 had no baseline for): the TWELFTH exact count prediction running, per class as well as in total. That run also measured `apply_ddk_n300` at 23.0 ms, which is what argued it OUT of `TightBudgets` — one A8 observation is not a spread. With that baseline committed, A8 at `3c003e3` is green again with **328 runs, 324 passed, 0 failed, and only the 4 optional real-data fixtures filtered**: all fourteen speed budgets now ASSERT on both machines, which is what WP2 step 1 was for. | ☑ PR #102 | ◐ pending |
 | v5.4.0 (WP5 5b: leakageDataDriven) | ☑ 15 gates + mlint + make_demos + 13 self-test suites + the new oracle, 0 findings | ☑ **Tier A LOCAL on MATTHIASPC (R2026a) — 335 runs, 333 passed, 0 failed, 2 filtered**; the count prediction matched EXACTLY, per class as well as in total (Contract 79, Correctness 168, Performance 27, Robustness 54, Science 7). All 7 new tests pass. Two red rounds locally first, both mine and both in the TESTS, not the function: a string-array `sprintf` format, and a `badNmax` case that tripped `badSize` first because the grid was not sliced with the latitudes. Then ☑ **CI self-hosted (A8) at `c1dc1d3` via PR #103, green — 335 runs, 331 passed, 0 failed, 4 filtered** (exactly the optional real-data fixtures): the THIRTEENTH exact count prediction running, per class as well as in total, and all seven new tests ran there. | ☑ PR #103 | ☑ 2026-09-10 |
-| v5.4.1 (A9: four workloads replaced, apply_ddk_n300 promoted, TightFactor 1.3, leakageCorrect duplicate chain) | ☑ 15 gates + mlint + make_demos + 13 self-test suites, 0 findings; `leakageCorrect` change bitwise on 16 outputs | ☑ **Tier A LOCAL on MATTHIASPC — 335 runs, 333 passed, 0 failed, 2 filtered**; count exact per class; all fourteen budgets asserted, the four tight ones at 1.3 | ◐ pending | ◐ pending |
+| v5.4.1 (A9: four workloads replaced, apply_ddk_n300 promoted, TightFactor 1.3, leakageCorrect duplicate chain) | ☑ 15 gates + mlint + make_demos + 13 self-test suites, 0 findings; `leakageCorrect` change bitwise on 16 outputs | ☑ **Tier A LOCAL on MATTHIASPC — 335 runs, 333 passed, 0 failed, 2 filtered**; count exact per class; all fourteen budgets asserted, the four tight ones at 1.3. Then ☑ **A8 twice at `2c7b779`** (PR run + `workflow_dispatch`): 335 runs, 327 passed, 0 failed, 8 filtered each - the four fixtures plus the four new workloads, as predicted, per class as well as in total. Those two runs are the evidence the promotion rests on. | ☑ PR #104 (A8 x2) | ◐ pending |
 | v5.0.3 (WP2 step 1 baselines) | ☑ 14 gates + mlint + make_demos + 13 self-test suites, 0 findings; `NO_BASELINE` empty | ☑ **CI self-hosted (A8) at `b70c947`, green — 315 runs, 311 passed, 0 failed, 4 filtered**; the EIGHTH exact count prediction running, per class as well as in total. All ten budgets PASSED (they filtered at `f6d5529`), and the only filtered are the four real-data fixtures. Triggered by `workflow_dispatch`, not a PR — #99 merged mid-session and `ci.yml` runs only on push-to-main, pull_request and workflow_dispatch. | ☐ no PR (#99 merged; not asked) | ☐ |
 
 **Tier A debt: DISCHARGED for all nine releases.** The local MATLAB
@@ -1456,17 +1473,7 @@ OPEN** — it was believed merged on 2026-09-09; `state: open`,
 again at `d110752`. 5.0.0, 5.0.1 and now 5.0.2 sit on the branch behind
 it. **Do not treat the branch as merged; check `git ls-remote` first.**
 
-**All twenty-two audit findings are closed except A9, which WP2 reopened
-the same day it was accepted**, and WP6 is complete:
-
-- **A9** — DOWNGRADED in v5.0.3, not closed. The ten budgets assert (A8
-  baselines committed, `NO_BASELINE` empty), so a workload that blows up
-  fails CI. A **1.3x** creep in `legendreALF`, `shSynthesis`,
-  `shAnalysisGrid`, `applyDDK`, `leakageCorrect` or the Kalman step
-  still ships unnoticed, because the threshold is 3x. It closes when
-  that factor is set from several runs' medians — NOT from the
-  within-run spread the first run produced.
-- Everything else in §4.1 is CLOSED.
+**Every audit finding in §4.1 is CLOSED** - A9 last, in v5.4.1, after WP2 reopened it the day it was accepted. A22-A24 were found and closed on the way.
 
 **WP3, WP4, WP5 and WP7 wait on approval only** — see the 2026-09-09
 correction in §6.1. Their acceptance is a MATLAB test against a committed
@@ -1517,11 +1524,7 @@ internet, which unblocks all three stuck items at once:
    buildable and testable WITHOUT network; only the live URL needs it.
 
 **Next concrete actions, in order of what they buy:**
-1. **Close A9.** v5.4.1 replaced the four workloads that could not be
-   budgeted. Read their `PERFBASE` lines from TWO A8 runs (the PR run
-   plus one `workflow_dispatch`); if each holds <= 1.1 there, commit the
-   A8 baselines as medians, add the four to `TightBudgets`, and mark A9
-   CLOSED. If one does not, it stays at 3x and A9 says which and why.
+1. **A9 is CLOSED (v5.4.1).** Mark PR #104 ready and merge it.
 2. **Then WP3** (ellipsoidal surface), then **WP7** (class surface) -
    the order Matthias agreed on 2026-09-10. Confirm WP3's tick and its
    self-consistency-only acceptance when starting it.

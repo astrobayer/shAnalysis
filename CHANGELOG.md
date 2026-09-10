@@ -1,10 +1,10 @@
 # Changelog
 
-## [5.4.1] - 2026-09-10 - A9: the noise had a cause, and it was not the timer
+## [5.4.1] - 2026-09-10 - A9 closed: the noise had a cause, and it was not the timer
 
-A PATCH: four speed-budget workloads replaced, one promoted, the tight
-factor set to the number A9 asks for, and one wasted chain removed from
-`leakageCorrect` with bitwise-identical output. No documented call or
+A PATCH that closes A9: four speed-budget workloads replaced, five promoted
+to a tight tier at the number A9 asks for, and one wasted chain removed
+from `leakageCorrect` with bitwise-identical output. No documented call or
 identifier changes.
 
 ### Why the small budgets were noisy
@@ -37,8 +37,8 @@ steady in v5.3.0:
 
 Their old baselines are deleted, not carried over: a baseline measured on
 a workload that no longer runs is a budget that passes vacuously. The new
-ones are baselined on MATTHIASPC and **filter on A8** until it measures
-them.
+ones were baselined on MATTHIASPC first and filtered on A8 until it had
+measured them twice (below).
 
 ### A sizing mistake, caught by the check it was sized for
 
@@ -74,13 +74,41 @@ nmax 24 and 48, including `ResidualRegion` differing from `Mask`, where
 the two residuals genuinely differ). At nmax 48 one iteration went from
 69 to 47 ms, as the 3 -> 2 chain count predicts.
 
-### What A9 still waits for
+### A9 is closed
 
-Only evidence. The four new workloads need two A8 runs holding <= 1.1;
-then they join the tight tier at 1.3, and every lane A9 names -
-`legendreALF`, `shSynthesis`, `shAnalysisGrid`, `applyDDK`,
-`leakageCorrect`, the Kalman step - has a budget that catches a 1.3x
-regression. That is A9's own wording, and it closes there.
+Two A8 runs of one commit (`2c7b779`: the PR run and a `workflow_dispatch`)
+measured the four new workloads:
+
+| workload | A8 run 1 | A8 run 2 | spread |
+|---|---|---|---|
+| `leakage_1iter_n48` | 81.19 ms | 80.66 ms | 1.007 |
+| `kalman_step_p200` | 29.55 ms | 29.80 ms | 1.009 |
+| `synthesis_direct_n180` | 38.61 ms | 37.83 ms | 1.021 |
+| `synthesis_fft_n180` | 39.64 ms | 39.55 ms | 1.002 |
+
+All four join the tight tier at 1.3, with their A8 baselines as the median
+of those runs. Every lane A9 names - `legendreALF`, `shSynthesis`,
+`shAnalysisGrid`, `applyDDK`, `leakageCorrect`, the Kalman step - now has a
+budget that fails CI on a 1.3x regression. That is the finding's own
+wording, and it closes there.
+
+Both runs: **335 runs, 327 passed, 0 failed, 8 filtered** - the four
+real-data fixtures and the four workloads A8 had no baseline for yet,
+exactly as predicted.
+
+### The criterion needed stating precisely, and why is on record
+
+It read "worst run-to-run ratio <= 1.1 on both machines". A max/min ratio
+counts FAST runs too - and on 2026-09-10 a full-suite run on a quiet
+desktop came in 0.84x below baselines taken while it was busy. Under that
+wording `analysis_rings_n60`, the steadiest budget on A8 (1.007), would
+have been demoted for the machine being idle. A fast run cannot fail an
+upper bound. The criterion is now: A8 spread <= 1.1 over at least two
+runs, and no run on either machine more than 1.1 above its baseline.
+
+That is not free, and the code says so: a baseline taken under load masks
+part of a regression on that machine. The 1.3x guarantee holds on A8, the
+CI gate; on a workstation the budgets err loose.
 
 ### Noticed, deliberately not acted on
 
