@@ -23,10 +23,10 @@ says whether it was *read* or *inferred*.
 
 | Fact | Value | Evidence |
 |---|---|---|
-| Version | **5.10.0**, 10-Sep-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
+| Version | **5.11.0**, 10-Sep-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
 | Branches | `main` only; `claude/getframe-recapture` and `claude/readshm` are gone (merged/deleted) | `GET /branches` |
 | Public surface | 3 classes / 83 methods, 127 `+shLowLevel` functions (+5 private), 3 root functions. 74 of the 127 are reachable from a class method; each of the other 53 is a named exception (35) or in a backlog that may only shrink (18) | `tools/dev/api_extract.py`; `tools/dev/class_surface_audit.py` |
-| Tests | 5 classes, **361 methods / 375 runs**: Correctness 178, Contract 106, Robustness 57, Science 7, Performance 13 methods (27 runs, `budgetCase` x14 + `nmaxP` x2). On A8 5 filter out without the optional real-data fixtures (the GravIS-grid test joined them in v5.8.0); on MATTHIASPC only 2 do, because `E:\DATAPOOL` supplies the SINEX files and the GravIS folder. The counter has matched the runner EXACTLY on the last ten green A8 runs and on every local Tier-A run. | `python3 tools/dev/count_tests.py` |
+| Tests | 5 classes, **363 methods / 377 runs**: Correctness 179, Contract 106, Robustness 57, Science 8, Performance 13 methods (27 runs, `budgetCase` x14 + `nmaxP` x2). On A8 6 filter out without the optional real-data fixtures (the GravIS-grid test joined them in v5.8.0, the ESMGFZ check in v5.11.0); on MATTHIASPC only 2 do, because `E:\DATAPOOL` supplies the SINEX files, the GravIS folder and - with `SHX_EARTHROTATION_FOLDER` set for the run, no preference is stored - the ESMGFZ series. The counter has matched the runner EXACTLY on the last ten green A8 runs and on every local Tier-A run. | `python3 tools/dev/count_tests.py` |
 | Python oracles | 22 `tools/dev/validate_*.py` + `tools/audit/*` | listing |
 | Docs | **26** hand-written `html/*.html` (24 per-entity duplicates retired in v5.0.1, WP6 stage 3) + **217 generated `html/ref/*.html`** (one per entity + index, `make_refpages.py`), one shared `html/shAnalysis.css`, `helptoc.xml`, `info.xml`, guide PDF, generated `html/apiReference.html`. `docs/` holds the PDF and `apiExamples.json` only - no HTML page lives outside `html/` (gated). | listing |
 | CI | `gates` job on ubuntu (help_audit, doc_sync_audit, no_map_renderer, toolbox_dependency_audit, nv_casing_audit, fixture_tag_audit, gate self-tests `tools/tests/`, `count_tests`, `name_coverage`, `class_surface_audit`, `error_id_audit`, `option_values_audit`, `refpages_audit`, `make_demos --check`, `perf_baseline_audit`) + `runAllTests (self-hosted)` on A8/R2026a; fixtures from tag `fixtures-2026-08` | `.github/workflows/ci.yml` |
@@ -473,13 +473,13 @@ proposal stays below as the record.
   inversion) plus one published station series comparison.
 - **Size**: XL. **Version**: MINOR (new API; nothing existing changes).
 
-### WP5 — Geoscience add-ons (C3–C7)   `[~] 5e DONE v5.8.0, the method of scale v5.9.0, 5a v5.10.0 (length of day in ms waits on a source); 5d approved 2026-09-10` (tick per row)
+### WP5 — Geoscience add-ons (C3–C7)   `[~] 5e DONE v5.8.0, the method of scale v5.9.0, 5a v5.10.0 + v5.11.0; 5d approved and its method set 2026-09-10` (tick per row)
 | Row | Function | Oracle | Size |
 |---|---|---|---|
-| 5a `[x]` **DONE v5.10.0** (approved 2026-09-10; Chen & Wilson 2003 eq. (1), supplied): `shLowLevel.rotationExcitation` and `ts.excitation`. The Earth's constants are required inputs; chi3 stays dimensionless, because the length-of-day conversion is not in the paper; no published series compared yet | `shSeries.excitation(kn=…, Convention=…) → table(t, chi1, chi2, dLOD)` from C21/S21/C20 with the IERS 2010 conventions and the Love-number/frame factors; input in the pole-tide convention `poleTideConvert` knows | Chen & Wilson formulas; a published GRACE excitation series | S–M |
+| 5a `[x]` **DONE v5.10.0 + v5.11.0** (approved 2026-09-10; Chen & Wilson 2003 eq. (1), supplied): `shLowLevel.rotationExcitation` and `ts.excitation`, with the IERS 2010 constants by default and dLOD in ms (ESMGFZ PDD eq. 2.8, read as 2 pi / Omega and confirmed against the observed length of day); checked against ESMGFZ HAM + SLAM by an opt-in test | `shSeries.excitation(kn=…, Convention=…) → table(t, chi1, chi2, dLOD)` from C21/S21/C20 with the IERS 2010 conventions and the Love-number/frame factors; input in the pole-tide convention `poleTideConvert` knows | Chen & Wilson formulas; a published GRACE excitation series | S–M |
 | 5b `[x]` **DONE v5.4.0**; its follow-on, the method of scale (`Method = "scale"`, thesis eq. 3.28), **DONE v5.9.0** | `shLowLevel.leakageDataDriven(gridSeries, latDeg, lonDeg, Mask=, Filter=)` - Vishwakarma's method of deviation. **Unblocked by Matthias supplying the author's PhD thesis** (chapter 3, eqs. 3.19-3.29) on 2026-09-09; the row had been STOPPED because the equations were unreachable, and that block was real - two details decide whether the method works and neither is guessable: the deviation integral is weighted by the FILTERED catchment function, and the leakage extrapolation corrects a PHASE while the deviation integral deliberately gets none. Oracle `tools/dev/validate_leakage_datadriven.py`: decomposition closes to 4.3e-15, filter self-adjointness 5.0e-16, phase measure/shift are mutual inverses to 7.1e-15 deg, closed loop removes 63% of the damage (MATLAB 55.3% on the `testCorrectness` fixture, whose grid and basin geometry differ). Three deviations from this row's sketch, all recorded in the changelog: `Filter=` not `Radius=` (matches `leakageCorrect`), a grid stack not an `shSeries` (a class method is WP7), and NOT `leakageCorrect`'s `info` layout - the two return different things, a corrected field against a corrected series. | thesis eqs. + closed loop | M |
 | 5c `[x]` **DONE v5.2.0** (the row was never ticked when it shipped; corrected in v5.4.1) | `removeGIA(gia, Sigma=…)` accepting a σ field; σ propagated into `basinAverage` sigmas and `mcPropagate` | analytic vs MC on a synthetic ensemble | S |
-| 5d `[x]` approved 2026-09-10; the Swarm method is still to be settled | Swarm: `fetchICGEM` Swarm series read and `combineCenters`-style rescaling to GRACE noise for 2017-07..2018-05; `shSeries.select` gap policy | published Swarm-vs-GRACE degree-RMS ratio | M |
+| 5d `[x]` approved 2026-09-10; method set the same day: a 750 km Gaussian, the overlapping periods, Swarm epochs flagged, the QuantumFrontiers HLSST_SLR_COMB2023s series | Swarm: `fetchICGEM` Swarm series read and `combineCenters`-style rescaling to GRACE noise for 2017-07..2018-05; `shSeries.select` gap policy | published Swarm-vs-GRACE degree-RMS ratio | M |
 | 5e `[x]` **DONE v5.8.0** (approved 2026-09-10): `shLowLevel.readGrid`, and `Fill` on `analysis`; the real file is the GravIS TWS grid instead of GLDAS | `shLowLevel.readGrid(ncfile, Var=…)` (netCDF → grid + metadata, inverse of `writeGrid`) so GLDAS/WGHM enter `shCoefficients.analysis` | `writeGrid` roundtrip; one GLDAS file | S |
 Version: MINOR per approved row.
 
@@ -599,6 +599,37 @@ of 125.
 ## 6. Records
 
 ### 6.1 Decisions (append-only; date, decision, evidence)
+- 2026-09-10 — **5a's open points decided** (Matthias: "length of day is
+  a time and consequently ms is correct. mas is an angle"; "for M,R,C,A
+  use the IERS conventions 2010"; "go ahead and download the data. Store
+  them in E:\DATAPOOL\EarthRotation and not in the repo"). Executed as
+  5.11.0. The ESMGFZ AAM, OAM, HAM and SLAM series for 2002-2026 and
+  their Product Description Document are in that folder, not the repo.
+- 2026-09-10 — **5d's method set** (Matthias: "Use a 750km Gaussian
+  smooting"; "Use the overlapping periods"; "Flag the Swarm Epochs";
+  "You can use the QuantumFrontiers/HLSST_SLR_COMB2023s time-series. It
+  contains Swarm but many more satellite but no kbr. It should be
+  slightly better than Swarm but poorer than a GRACE solution with
+  KBR"). The series is not in the data pool: the local
+  `HLSST+SLR/QF/RL01_60` is COMB2019s, and RL02 is Matthias's own.
+- 2026-09-10 — **IERS 2010 lists none of M, C and A; they are derived,
+  and checked against a second publication.** M = GM/G, C - A =
+  J2 M a_E^2, C = (C - A)/H, A the mean equatorial moment, R = a_E (the
+  table has no mean radius). C and A agree with ESMGFZ's Table 2.1 to
+  0.03 percent.
+- 2026-09-10 — **The length-of-day relation came from ESMGFZ's document,
+  and its misprint was read by the units, then checked against data.**
+  Eq. (2.8) prints 2 pi Omega; only 2 pi / Omega is a time. The observed
+  length of day against the ESMGFZ model gives slope 1.097 and
+  correlation 0.943; the printed form would give 2e8.
+- 2026-09-10 — **The axial factor stays 0.753, and the question goes to
+  Matthias.** ESMGFZ's prefactors give 0.844 - 12 percent more, close to
+  C / Cm - and the model comparison cannot tell the two apart. It is an
+  option, and the difference is in the help and the changelog.
+- 2026-09-10 — **The new opt-in data is found through an environment
+  variable, and no preference was written.** `SHX_EARTHROTATION_FOLDER`
+  (or an `EarthRotationFolder` preference, not set on this machine); the
+  local runner sets the variable for its own session only.
 - 2026-09-10 — **5a shipped as 5.10.0 without the length of day in
   ms.** The approval named mas and ms, but the conversion of chi3 into
   a length-of-day change is not in Chen & Wilson (2003), the source
@@ -1405,9 +1436,10 @@ of 125.
 | v5.6.0 (WP7: eight class delegates, `Surface` through `toGrid`/`map`, `class_surface_audit`) | ☑ 16 gates + mlint + make_demos + 14 self-test suites, 0 findings; reach 58 -> 69 of 124; the 11 WP7 tests passed on their first run | ☑ **Tier A LOCAL on MATTHIASPC — 357 runs, 355 passed, 0 failed, 2 filtered**; count exact per class (Contract 94, Correctness 173, Performance 27, Robustness 56, Science 7), and all 27 performance runs asserted. Then ☑ **CI self-hosted (A8) at `78cfea9` via PR #106, green — 357 runs, 353 passed, 0 failed, 4 filtered** (exactly the optional real-data fixtures); `count_tests` confirmed the prediction per class as well as in total, and `class_surface_audit` ran in the gates job with 0 findings | ☑ PR #106 | ☑ 2026-09-10 |
 | v5.7.0 (A25 `filterSpec` + eight lanes; `g.synthesisPoints`, `g.gradientTensor`, `g.vdkApply`; A27) | ☑ 16 gates + mlint + make_demos + 14 self-test suites, 0 findings; 19 valid-spec lane outputs bitwise identical before/after (plus 4 from oceanChain and greenlandChain, run on an extracted copy of the old tree and on the new; obpChain not run, for want of GAD data) | ☑ **Tier A LOCAL on MATTHIASPC — 364 runs, 362 passed, 0 failed, 2 filtered**; count exact per class (Contract 101, Correctness 173, Performance 27, Robustness 56, Science 7), and all 27 performance runs asserted. Then ☑ **CI self-hosted (A8) at `5eab68a` via PR #107, green — 364 runs, 360 passed, 0 failed, 4 filtered** (exactly the optional real-data fixtures); `count_tests` confirmed the prediction per class as well as in total, and `class_surface_audit` and `doc_sync_audit` ran in the gates job with 0 findings | ☑ PR #107 | ☑ 2026-09-10 |
 | v5.7.1 (A28 in both ocean chains, A26, A29 `.gitattributes`) | ☑ 16 gates + mlint + make_demos + 15 self-test suites, 0 findings; `doc_sync`'s new xref check fired on the corrupted guide before it was rebuilt | ☑ **Tier A LOCAL on MATTHIASPC — 365 runs, 363 passed, 0 failed, 2 filtered**; count exact per class (Contract 102, Correctness 173, Performance 27, Robustness 56, Science 7), and all 27 performance runs asserted. The two `noOcean` messages were reworded while it ran - `no_map_renderer` read "coastline" in them - message text only, which no test reads. Then ☑ **CI self-hosted (A8) at `38a9a4f` via PR #108, green — 365 runs, 361 passed, 0 failed, 4 filtered** (exactly the optional real-data fixtures); `count_tests` confirmed the prediction per class as well as in total, and `doc_sync_audit` - with its two new A29 checks - and `test_doc_sync_pdf` (11 tests) passed on the ubuntu gates job | ☑ PR #108 | ☑ 2026-09-10 |
-| v5.8.0 (WP5 5e: `readGrid`, `analysis(..., Fill =)`, one CF time decoder) | ☑ 16 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings; `readMascon` bitwise on the real CSR file and a synthetic one | ☑ **Tier A LOCAL on MATTHIASPC — 371 runs, 369 passed, 0 failed, 2 filtered**; count exact per class (Contract 104, Correctness 176, Performance 27, Robustness 57, Science 7), all 27 performance runs asserted, and the GravIS-grid test ran here on the real file. `readMascon`'s epoch assignment was split in two while it ran (`help_audit` reads `s.f = ...` assignments only); the mascon and `readGrid` tests then ran again on the final code - 14 run, 13 passed, 1 filtered (`SHX_MASCON_FILE`) - and `readMascon` was still bitwise on the real CSR file. Then ☑ **CI self-hosted (A8) at `96a1630` via PR #110, green — 371 runs, 366 passed, 0 failed, 5 filtered** (the four optional fixtures plus the GravIS grid), per class exactly as predicted (Contract 104, Correctness 176, Performance 27, Robustness 57, Science 7) | ☑ PR #110 | ◐ pending |
-| v5.9.0 (WP5: the method of scale, `leakageDataDriven(..., Method = "scale")`) | ☑ 16 gates + mlint + make_demos + 15 self-test suites + the extended oracle (CLAIMs 4 and 5), 0 findings; the default path bitwise on 4 of 4 configurations captured before the edit | ☑ **Tier A LOCAL on MATTHIASPC — 373 runs, 371 passed, 0 failed, 2 filtered**; count exact per class (Contract 105, Correctness 177, Performance 27, Robustness 57, Science 7), all 27 performance runs asserted, and the two new tests passed on their first run. Then ☑ **CI self-hosted (A8) at `beaa434` via PR #111, green — 373 runs, 368 passed, 0 failed, 5 filtered** (the four optional fixtures plus the GravIS grid), per class exactly as predicted, and both new tests ran there | ☑ PR #111 | ◐ pending |
-| v5.10.0 (WP5 5a: `rotationExcitation`, `ts.excitation`) | ☑ 16 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings; reach 73 -> 74 of 127, 9 delegates pinned | ☑ **Tier A LOCAL on MATTHIASPC — 375 runs, 373 passed, 0 failed, 2 filtered**; count exact per class (Contract 106, Correctness 178, Performance 27, Robustness 57, Science 7), all 27 performance runs asserted, and the two new tests passed on their first run | ◐ pending | ◐ pending |
+| v5.8.0 (WP5 5e: `readGrid`, `analysis(..., Fill =)`, one CF time decoder) | ☑ 16 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings; `readMascon` bitwise on the real CSR file and a synthetic one | ☑ **Tier A LOCAL on MATTHIASPC — 371 runs, 369 passed, 0 failed, 2 filtered**; count exact per class (Contract 104, Correctness 176, Performance 27, Robustness 57, Science 7), all 27 performance runs asserted, and the GravIS-grid test ran here on the real file. `readMascon`'s epoch assignment was split in two while it ran (`help_audit` reads `s.f = ...` assignments only); the mascon and `readGrid` tests then ran again on the final code - 14 run, 13 passed, 1 filtered (`SHX_MASCON_FILE`) - and `readMascon` was still bitwise on the real CSR file. Then ☑ **CI self-hosted (A8) at `96a1630` via PR #110, green — 371 runs, 366 passed, 0 failed, 5 filtered** (the four optional fixtures plus the GravIS grid), per class exactly as predicted (Contract 104, Correctness 176, Performance 27, Robustness 57, Science 7) | ☑ PR #110 | ☑ 2026-09-10 |
+| v5.9.0 (WP5: the method of scale, `leakageDataDriven(..., Method = "scale")`) | ☑ 16 gates + mlint + make_demos + 15 self-test suites + the extended oracle (CLAIMs 4 and 5), 0 findings; the default path bitwise on 4 of 4 configurations captured before the edit | ☑ **Tier A LOCAL on MATTHIASPC — 373 runs, 371 passed, 0 failed, 2 filtered**; count exact per class (Contract 105, Correctness 177, Performance 27, Robustness 57, Science 7), all 27 performance runs asserted, and the two new tests passed on their first run. Then ☑ **CI self-hosted (A8) at `beaa434` via PR #111, green — 373 runs, 368 passed, 0 failed, 5 filtered** (the four optional fixtures plus the GravIS grid), per class exactly as predicted, and both new tests ran there | ☑ PR #111 | ☑ 2026-09-10 |
+| v5.10.0 (WP5 5a: `rotationExcitation`, `ts.excitation`) | ☑ 16 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings; reach 73 -> 74 of 127, 9 delegates pinned | ☑ **Tier A LOCAL on MATTHIASPC — 375 runs, 373 passed, 0 failed, 2 filtered**; count exact per class (Contract 106, Correctness 178, Performance 27, Robustness 57, Science 7), all 27 performance runs asserted, and the two new tests passed on their first run. Then ☑ **CI self-hosted (A8) at `81704d3` via PR #112, green — 375 runs, 370 passed, 0 failed, 5 filtered**, per class exactly as predicted, and both new tests ran there | ☑ PR #112 | ☑ 2026-09-10 |
+| v5.11.0 (WP5 5a: dLOD in ms, IERS 2010 constants, the ESMGFZ check) | ☑ 16 gates + mlint + make_demos + 15 self-test suites + the extended oracle (CLAIMs 4-6, the EOP check run with the data), 0 findings | ☑ **Tier A LOCAL on MATTHIASPC — 377 runs, 375 passed, 0 failed, 2 filtered**; count exact per class (Contract 106, Correctness 179, Performance 27, Robustness 57, Science 8), all 27 performance runs asserted, and the ESMGFZ check ran here against the real data (`SHX_EARTHROTATION_FOLDER` set for the run) | ◐ pending | ◐ pending |
 | v5.0.3 (WP2 step 1 baselines) | ☑ 14 gates + mlint + make_demos + 13 self-test suites, 0 findings; `NO_BASELINE` empty | ☑ **CI self-hosted (A8) at `b70c947`, green — 315 runs, 311 passed, 0 failed, 4 filtered**; the EIGHTH exact count prediction running, per class as well as in total. All ten budgets PASSED (they filtered at `f6d5529`), and the only filtered are the four real-data fixtures. Triggered by `workflow_dispatch`, not a PR — #99 merged mid-session and `ci.yml` runs only on push-to-main, pull_request and workflow_dispatch. | ☐ no PR (#99 merged; not asked) | ☐ |
 
 **Tier A debt: DISCHARGED for all nine releases.** The local MATLAB
@@ -1432,6 +1464,19 @@ confirmation that the counter is right about a real run and not only
 about the source.
 
 ### 6.3 What the next session could be wrong for not reading
+- **A published equation can be dimensionally wrong.** ESMGFZ's eq.
+  (2.8) prints 2 pi Omega where only 2 pi / Omega is a time. Check the
+  units of every equation taken from a document, and confirm a
+  correction against data before shipping it.
+- **A file's name is not its content.** The data pool's
+  `deformationLoveNumbers_*` tables hold h' and l' in two unlabelled
+  columns; the load Love numbers k' are in the test data's
+  `loadLoveNumbers_Gegout97.txt`. `readLoveNumbers` refused the first,
+  which is how it surfaced.
+- **A patch that fails must stop what comes after it.** A probe patch
+  missed its anchor (a `\n` collapsed in the heredoc) and the chain ran
+  MATLAB on the old file anyway. Chain with `&&`, and match lines by how
+  they start rather than by escaped text.
 - **Write error identifiers whole in tests.** A test that built them as
   `[id 'noEarth']` from a prefix variable was invisible to the PINS rule,
   which reads literals - it read the prefix itself as a pin nothing
@@ -1866,7 +1911,7 @@ internet, which unblocks all three stuck items at once:
    became an option on `leakageDataDriven`, not a third leakage method
    on `shSeries`: it shares every estimate with the method of deviation.
 6. **B1 (packed Legendre)** remains the weaker WP2 step-2 candidate.
-7. **WP5**: 5e DONE in v5.8.0, the method of scale in v5.9.0, 5a in v5.10.0 - its length of day in ms and a published-series comparison wait on Matthias (a source, a download). Next 5d, whose Swarm method is still to be settled with Matthias. **WP4 is moved out** to a separate GNSS toolbox (2026-09-10); do not start it here.
+7. **WP5**: 5e DONE in v5.8.0, the method of scale in v5.9.0, 5a in v5.10.0 and v5.11.0. Next 5d, with the method Matthias set on 2026-09-10: a 750 km Gaussian, the overlapping periods, Swarm epochs flagged, and the QuantumFrontiers HLSST_SLR_COMB2023s series - not in the data pool, whose `HLSST+SLR/QF/RL01_60` is COMB2019s. **WP4 is moved out** to a separate GNSS toolbox (2026-09-10); do not start it here.
 
 **What a Tier-A session should know about running the suite here.** The
 MATLAB MCP tool times out on anything suite-sized. Run it detached and

@@ -238,3 +238,103 @@ verifyLessThan(testCase, mG, -0.01, ...
 verifyGreaterThan(testCase, mG, -1.0, ...
     'and by a physically plausible amount');
 end
+
+% ------------------------------------------------ WP5 5a: Earth rotation
+function testExcitationAgainstESMGFZ(testCase)
+%TESTEXCITATIONAGAINSTESMGFZ GRACE's Earth-rotation excitation against an
+%   independent model: ts.excitation on a GSM series, with the TN-14 C20,
+%   against the ESMGFZ hydrological (HAM) plus barystatic sea-level (SLAM)
+%   mass terms averaged over each GRACE month. A GSM series has the
+%   atmosphere and the ocean removed, so these are what it should see -
+%   apart from the ice sheets and GIA, which the model lacks and which put
+%   opposite trends into the raw series, so both are detrended. What must
+%   hold is the SIGN of every term: a flipped frame for chi2, or a wrong
+%   sign in dLOD, turns its correlation negative. Measured on COST-G
+%   RL02.1 (255 months, 2002-2026) with the Gegout97 k2' and TN-14
+%   version 3: 0.343 (chi1), 0.583 (chi2), 0.690 (dLOD); the bound 0.2
+%   asserts the sign and leaves room for another product. Opt-in, as the
+%   other real-data tests: set SHX_SERIES_FOLDER and
+%   SHX_EARTHROTATION_FOLDER, or the SeriesFolder and EarthRotationFolder
+%   preferences.
+sf = getenv('SHX_SERIES_FOLDER');
+if isempty(sf), sf = getpref('shAnalysis', 'SeriesFolder', ''); end
+ef = getenv('SHX_EARTHROTATION_FOLDER');
+if isempty(ef), ef = getpref('shAnalysis', 'EarthRotationFolder', ''); end
+assumeTrue(testCase, isfolder(sf) && isfolder(fullfile(ef, 'ESMGFZ', 'HAM')) ...
+    && isfolder(fullfile(ef, 'ESMGFZ', 'SLAM')), ['set SHX_SERIES_FOLDER ' ...
+    '(a GSM series of monthly .gfc files) and SHX_EARTHROTATION_FOLDER ' ...
+    '(a folder holding ESMGFZ/HAM and ESMGFZ/SLAM)']);
+d = shxTestDataDir();
+kn = readmatrix(fullfile(d, 'loadLoveNumbers_Gegout97.txt'), ...
+    FileType = 'text', NumHeaderLines = 2);
+ts = shSeries.read(fullfile(sf, '*.gfc'));
+[tbl, info] = ts.excitation(kn = kn, ...
+    TN14 = fullfile(d, 'TN-14_C30_C20_SLR_GSFC.txt'));
+[mjdH, ham] = readEAMFolder(fullfile(ef, 'ESMGFZ', 'HAM'), 6);
+[mjdS, slam] = readEAMFolder(fullfile(ef, 'ESMGFZ', 'SLAM'), 3);
+[mjd, ia, ib] = intersect(round(2 * mjdH), round(2 * mjdS));
+mjd = mjd / 2;
+mass = ham(ia, 1:3) + slam(ib, 1:3);
+T = ts.nEpochs;
+model = nan(T, 3);
+for k = 1:T
+    win = monthWindow(ts.names(k), ts.epochs(k));
+    in = mjd >= win(1) & mjd < win(2);
+    if any(in)
+        model(k, :) = mean(mass(in, :), 1);
+    end
+end
+ok = all(isfinite(model), 2);
+verifyGreaterThan(testCase, nnz(ok), 24, 'too few months overlap the model');
+mas = 180 / pi * 3600e3;
+g = [tbl.chi1, tbl.chi2, tbl.dLOD];
+m = [model(:, 1:2) * mas, model(:, 3) * info.lodScale];
+names = ["chi1", "chi2", "dLOD"];
+t = ts.epochs(ok);
+for j = 1:3
+    a = detrendOn(t, g(ok, j));
+    b = detrendOn(t, m(ok, j));
+    r = (a' * b) / sqrt((a' * a) * (b' * b));
+    verifyGreaterThan(testCase, r, 0.2, sprintf( ...
+        '%s: detrended correlation with ESMGFZ HAM+SLAM is %.3f', names(j), r));
+end
+end
+
+function y = detrendOn(t, x)
+%DETRENDON x minus its least-squares line in t.
+X = [ones(numel(t), 1), t(:) - mean(t)];
+y = x - X * (X \ x);
+end
+
+function win = monthWindow(name, epoch)
+%MONTHWINDOW the MJD span of a GRACE month from its file name
+%   (yyyyddd-yyyyddd), or 30 days centred on the epoch.
+tok = regexp(char(name), '(\d{4})(\d{3})-(\d{4})(\d{3})', 'tokens', 'once');
+if numel(tok) == 4
+    v = str2double(tok);
+    win = [datenum(v(1), 1, v(2)), datenum(v(3), 1, v(4)) + 1] - 678942;
+else
+    y = floor(epoch);
+    mid = datenum(y, 1, 1) + (epoch - y) * ...
+        (datenum(y + 1, 1, 1) - datenum(y, 1, 1));
+    win = [mid - 15, mid + 15] - 678942;
+end
+end
+
+function [mjd, x] = readEAMFolder(folder, ncol)
+%READEAMFOLDER every yearly ESMGFZ file in FOLDER: the MJD and the NCOL
+%   values that follow YYYY MM DD HH MJD on each data line.
+f = dir(fullfile(folder, 'ESMGFZ_*_2*.asc'));
+f = f(~contains({f.name}, '_mean_'));
+mjd = [];
+x = [];
+for k = 1:numel(f)
+    L = splitlines(string(fileread(fullfile(f(k).folder, f(k).name))));
+    isData = ~cellfun(@isempty, regexp(cellstr(L), ...
+        '^\s*\d{4}\s+\d{2}\s+\d{2}\s+\d{2}\s+\d', 'once'));
+    v = sscanf(char(strjoin(L(isData), " ")), '%f');
+    v = reshape(v, 5 + ncol, []).';
+    mjd = [mjd; v(:, 5)]; %#ok<AGROW>
+    x = [x; v(:, 6:end)]; %#ok<AGROW>
+end
+end

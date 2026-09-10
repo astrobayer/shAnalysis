@@ -4874,3 +4874,36 @@ verifyEqual(testCase, off.chi1, ref.chi1, 'AbsTol', 1e-12 * 30);
 verifyEqual(testCase, off.chi2, ref.chi2, 'AbsTol', 1e-12 * 20);
 verifyEqual(testCase, off.chi3, ref.chi3, 'AbsTol', 1e-12 * 5e-10);
 end
+
+function testRotationExcitationIERS2010AndLengthOfDay(testCase)
+%TESTROTATIONEXCITATIONIERS2010ANDLENGTHOFDAY the default constants are the
+%   IERS Conventions (2010) Table 1.1 values turned into M, C and A by the
+%   definitions of J2 and H, and dLOD is chi3 times the rotation period
+%   2 pi / Omega (ESMGFZ Product Description, eq. 2.8 read dimensionally).
+%   Every number is pinned from tools/dev/validate_excitation.py CLAIMs 4
+%   and 5, which also checks C and A against ESMGFZ's own Table 2.1.
+kn = [0; 0.027; -0.301];
+[u, info] = shLowLevel.rotationExcitation(1e-10, 1e-10, C20 = 1e-10, ...
+    kn = kn, Reference = "none");
+% the same arithmetic in both - one division for M, two products and a
+% division for C - so 1e-14 bounds a few eps of round-off
+verifyEqual(testCase, info.earth.M, 5.9721863901424573e+24, 'RelTol', 1e-14);
+verifyEqual(testCase, info.earth.R, 6378136.6);
+verifyEqual(testCase, info.earth.C, 8.0343718677901266e+37, 'RelTol', 1e-14);
+verifyEqual(testCase, info.earth.A, 8.008068981341215e+37, 'RelTol', 1e-14);
+verifyEqual(testCase, u.chi1, -38.636008081516209, 'RelTol', 1e-14);
+verifyEqual(testCase, u.chi3, -4.8560214957516874e-10, 'RelTol', 1e-14);
+verifyEqual(testCase, info.lodScale, 86164100.637189433, 'RelTol', 1e-14);
+verifyEqual(testCase, u.dLOD, -0.041841472485630353, 'RelTol', 1e-14);
+verifyEqual(testCase, u.dLOD, info.lodScale * u.chi3);
+% mass moved towards the equator lowers C20 and must lengthen the day
+d = shLowLevel.rotationExcitation(0, 0, C20 = -1e-10, kn = kn, ...
+    Reference = "none");
+verifyGreaterThan(testCase, d.dLOD, 0);
+% dLOD scales with the rotation period, 2 pi / Omega
+[~, i2] = shLowLevel.rotationExcitation(0, 0, kn = kn, ...
+    Omega = 2 * 7.292115e-5);
+verifyEqual(testCase, i2.lodScale, info.lodScale / 2, 'RelTol', 1e-15);
+% without C20 there is no axial term at all
+verifyEmpty(testCase, shLowLevel.rotationExcitation(0, 0, kn = kn).dLOD);
+end

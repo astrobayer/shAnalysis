@@ -2061,25 +2061,27 @@ methods
         %   Chen & Wilson (2003) eq. (1) solved for the excitation - and
         %   returns one row per epoch: t [yr], chi1 and chi2 [mas].
         %   shLowLevel.rotationExcitation documents the equation, the
-        %   frame of chi2 (towards 90 E, not the IERS pole's 90 W) and why
-        %   the Earth's constants are required.
+        %   frame of chi2 (towards 90 E, not the IERS pole's 90 W) and the
+        %   Earth's constants (IERS 2010 unless given).
         %
         %   [TBL, INFO] = ts.excitation(..., TN14 = TN) replaces C20 from
         %   the TN-14 table first (ts.applyTN14) and adds chi3, the axial
-        %   excitation. Without TN14 the axial term is refused - left out
+        %   excitation, and dLOD, the change in the length of day [ms].
+        %   Without TN14 the axial term is refused - left out
         %   of the table - because GRACE determines C20 worst of all its
         %   coefficients, and a series cannot tell whether its C20 was
         %   replaced already. Passing TN14 makes it so either way.
         %
         %   Outputs
         %     tbl   table  one row per epoch: t [yr], chi1 and chi2 [mas],
-        %           and chi3 (dimensionless) when TN14 is given
+        %           and chi3 (dimensionless) and dLOD [ms] when TN14 is
+        %           given
         %     info  (1,1) struct  as returned by
         %           shLowLevel.rotationExcitation, which documents every field
         %
         %   Options
-        %     Earth (required)  the Earth's M, R, C and A; see
-        %         shLowLevel.rotationExcitation
+        %     Earth (lane default)  "IERS2010", or a struct with the Earth's
+        %         M, R, C and A; see shLowLevel.rotationExcitation
         %     kn (required)  load Love numbers; kn(3) is k2'
         %     TN14 ([])  a TN-14 file name or a shLowLevel.readTN14 struct;
         %         gives chi3
@@ -2087,9 +2089,10 @@ methods
         %     Reference (lane default)  remove the series mean, or not
         %     PolarFactor (lane default)  the 1.098 of eq. (1)
         %     AxialFactor (lane default)  the 0.753 of eq. (1)
+        %     Omega (lane default)  the Earth's mean angular velocity
         %
         %   Example
-        %     tbl = ts.excitation(Earth = E, kn = kn, TN14 = tnFile);
+        %     tbl = ts.excitation(kn = kn, TN14 = tnFile);
         arguments
             obj
             opts.Earth
@@ -2099,6 +2102,7 @@ methods
             opts.Reference
             opts.PolarFactor
             opts.AxialFactor
+            opts.Omega
         end
         src = obj;
         fwd = rmfield(opts, intersect(fieldnames(opts), {'TN14', 'Tolerance'}));
@@ -2118,7 +2122,8 @@ methods
         tbl.Properties.VariableUnits = {'yr', 'mas', 'mas'};
         if ~isempty(chi.chi3)
             tbl.chi3 = chi.chi3;
-            tbl.Properties.VariableUnits{end} = '1';
+            tbl.dLOD = chi.dLOD;
+            tbl.Properties.VariableUnits(end-1:end) = {'1', 'ms'};
         end
     end
 

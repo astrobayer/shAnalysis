@@ -1,5 +1,72 @@
 # Changelog
 
+## [5.11.0] - 2026-09-10 - WP5 5a: the length of day, the IERS constants, a real-data check
+
+A MINOR: `Earth` defaults to the IERS Conventions (2010), and
+`rotationExcitation` and `ts.excitation` return the change in the length
+of day in ms.
+
+### Added
+- `dLOD`, the change in the length of day [ms], beside chi3:
+  `dLOD = (2 pi / Omega) chi3`, eq. (2.8) of the ESMGFZ Product
+  Description Document (Dobslaw & Dill 2019) with its eqs. (2.3) and
+  (2.13). `ts.excitation(..., TN14 = ...)` adds it as a column,
+  `info.lodScale` gives the ms per unit chi3, and `Omega`
+  (7.292115e-5 rad/s, ESMGFZ Table 2.1) is an option.
+- `Earth = "IERS2010"`, the default: M, R, C and A from the IERS
+  Conventions (2010), Table 1.1. The table gives G, GM, a_E, J2 and the
+  dynamical flattening H, so M = GM/G, C - A = J2 M a_E^2,
+  C = (C - A)/H and R = a_E. `info.earth` reports the four used; a
+  struct of your own still works.
+- `testExcitationAgainstESMGFZ` in testScience, opt-in: GRACE's
+  excitation against the ESMGFZ hydrology (HAM) plus sea-level (SLAM)
+  model series. It reads the new `SHX_EARTHROTATION_FOLDER` (or the
+  `EarthRotationFolder` preference) and `SHX_SERIES_FOLDER`.
+- `validate_excitation.py` CLAIMs 4-6: the IERS 2010 constants and their
+  agreement with ESMGFZ's own table; the dLOD scale and sign; and,
+  opt-in, the observed length of day against the ESMGFZ model.
+
+### Changed
+- `Earth` is no longer required. Omitting it now means IERS 2010, where
+  5.10.0 refused the call with `noEarth`. `noEarth` now means an `Earth`
+  that is neither a convention name nor a struct with M, R, C and A; an
+  unknown convention name raises `badEarth`. No call that worked in
+  5.10.0 changes its result.
+
+### Measured
+- **The ESMGFZ document prints eq. (2.8) as 2 pi Omega, which is not a
+  time.** Read as 2 pi / Omega it is, and the data agree. The observed
+  length of day (EOP 14 C04, 2002-2022, 241 months, a 25-month running
+  mean removed) against the ESMGFZ atmosphere, ocean, hydrology and sea
+  level converted that way gives correlation 0.943 and slope 1.097; read
+  as printed, the slope would be 2e8. The Python oracle and a MATLAB
+  probe agree to the digits.
+- **GRACE against the model.** COST-G RL02.1 (255 months) with the TN-14
+  C20, against ESMGFZ HAM + SLAM, detrended: correlation 0.343 (chi1),
+  0.583 (chi2), 0.690 (dLOD) - every sign agrees. The raw series
+  correlate negatively (-0.66, -0.63, -0.39), because GRACE holds the
+  ice-sheet loss and GIA that the model lacks.
+- **IERS 2010 against ESMGFZ's constants:** C and A agree with ESMGFZ's
+  Table 2.1 to 0.03 percent.
+- **The axial factor.** ESMGFZ's prefactors give 0.844 where Chen &
+  Wilson's eq. (1) has 0.753 - 12 percent, close to C / Cm = 1.129 - while
+  the polar ones agree to 0.3 percent. `AxialFactor` stays 0.753: the
+  model comparison (a dLOD amplitude ratio of 0.94) cannot tell the two
+  apart.
+
+### Data, outside the repository
+- The ESMGFZ AAM, OAM, HAM and SLAM series for 2002-2026 (27 MB) and the
+  Product Description Document (16.7 MB), downloaded to the data pool's
+  EarthRotation folder.
+
+### Tests
+- 375 -> 377 runs: `testRotationExcitationIERS2010AndLengthOfDay` in
+  testCorrectness (the IERS constants, the unit responses and the dLOD
+  scale and sign, pinned from the oracle), and `testExcitationAgainstESMGFZ`
+  in testScience (opt-in, so A8 now filters six tests).
+  `testRotationExcitationContract` moved its `noEarth` pin to a malformed
+  `Earth`, and gained the unknown-convention and dLOD checks.
+
 ## [5.10.0] - 2026-09-10 - WP5 5a: Earth-rotation excitation
 
 A MINOR: new API - `shLowLevel.rotationExcitation` and `shSeries.excitation`.

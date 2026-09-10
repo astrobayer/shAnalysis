@@ -103,6 +103,9 @@ filter themselves out when it is unset. Pass the paths to
 <tr><td><code class="inline">SHX_GRAVIS_FOLDER</code> <span class="tag">v5.8.0</span></td>
 <td>the <a href="ref/shLowLevel_readGrid.html">readGrid</a> check against a real CF grid; the <code class="inline">GravisFolder</code> preference works as well</td>
 <td>the GravIS folder holding the Level-3 grid <code class="inline">GRAVIS-3_GFZOP_0600_TWS_GRID_GFZ_0006.nc</code> (gravis.gfz.de)</td></tr>
+<tr><td><code class="inline">SHX_EARTHROTATION_FOLDER</code> <span class="tag">v5.11.0</span></td>
+<td>the Earth-rotation check in <code class="inline">testScience</code>: GRACE&rsquo;s excitation (<a href="ref/shSeries_excitation.html">ts.excitation</a>) against the ESMGFZ model series. It needs <code class="inline">SHX_SERIES_FOLDER</code> as well; the <code class="inline">EarthRotationFolder</code> and <code class="inline">SeriesFolder</code> preferences work too</td>
+<td>a folder holding the ESMGFZ effective angular momentum functions in <code class="inline">ESMGFZ/HAM</code> and <code class="inline">ESMGFZ/SLAM</code> (esmdata.gfz.de, no login)</td></tr>
 </table>
 <div class="note"><b>This is not tidiness.</b> The fixture suite cannot see the class of failure that
 only appears on real data of real length: three bugs surfaced the first time the toolbox ran against
