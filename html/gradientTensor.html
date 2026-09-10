@@ -11,6 +11,9 @@
     Height=250e3);      % G.uu G.nn G.ee G.un G.ue G.ne  [1/s^2]</pre>
 <h2>Description</h2>
 <p>All six independent components at satellite altitude (GOCE diagnostics; 1 E&ouml;tv&ouml;s = 1e-9 s&#8315;&sup2;). Second latitude derivatives of the Legendre functions come from the frozen first-derivative stencil applied twice (<a href="ref/shLowLevel_shSynthesisDeformation.html">legendreALFDeriv</a>, exact; validated vs numerical second differences at the FD floor). Validation invariants: Laplace trace(G) = 0 at 7e-16 of max|G| (built in as info.maxTraceResidual), G<sub>uu</sub> identical to the 'gravity_gradient_rr' kernel route. East-involving components are NaN at the poles.</p>
+<h2>From a coefficient object <span class="tag">v5.7.0</span></h2>
+<p><code class="inline">[G, info] = g.gradientTensor(lat, lon, Height = 255e3)</code> is the same call with the
+object's coefficients, GM and R filled in; its options go to this function only when you give them.</p>
 <h2>See Also</h2><p class="seealso"><a href="shSynthesis.html">shSynthesis</a> <a href="ref/shLowLevel_shSynthesisDeformation.html">shSynthesisDeformation</a></p>
 <p style="color:#999;font-size:11px;margin-top:40px;">shAnalysis v2.4 &mdash; Claude (Fable 5), 2026-08-07</p>
 </div><p class="provenance">Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>

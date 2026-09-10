@@ -66,7 +66,8 @@ function [out, rep] = twsChain(folder, gravisFolder, opts)
 %
 %   Error identifiers
 %     shLowLevel:twsChain:badFilter
-%         Filter is not "none", "gauss<radiusKm>" or "DDKn" with n in 1..8
+%         Filter is refused by shLowLevel.filterSpec: it is not a W
+%         struct, "none", "gauss<radiusKm>" or "DDK1" to "DDK8"
 %     shLowLevel:twsChain:emptyBasin
 %         a basin covers no grid point at the chosen GridStep
 %     shLowLevel:twsChain:missingBasins
@@ -95,6 +96,12 @@ arguments
     opts.R (1,1) double = 6378136.3
     opts.Quiet (1,1) logical = false
 end
+% the Filter spec is read FIRST, by the one parser of the vocabulary,
+% so a malformed spec fails before any data is touched (A25)
+[fspec, msg] = shLowLevel.filterSpec(opts.Filter);
+if msg ~= ""
+    error('shLowLevel:twsChain:badFilter', '%s', msg);
+end
 if isempty(opts.kn)
     error('shLowLevel:twsChain:noKn', ...
         ['Load Love numbers are required (kn=). The chain will not ' ...
@@ -108,43 +115,38 @@ steps = strings(1, 0);
 [ts, l2b] = shLowLevel.gravisL2B(folder, gravisFolder, ...
     GIAFile = opts.GIAFile, SpanEnd = opts.SpanEnd, Quiet = opts.Quiet);
 ep = ts.epochs(:); T = ts.nEpochs; nmax = ts.nmax;
-% ---- filter
+% ---- filter (the spec was read before the data)
 Cs = ts.Cs; Ss = ts.Ss; filtName = "custom W";
-if isstruct(opts.Filter)
-    ts = ts.applyDDK(opts.Filter); Cs = ts.Cs; Ss = ts.Ss;
-elseif opts.Filter == "none"
-    filtName = "none";
-elseif startsWith(opts.Filter, "gauss")
-    rkm = double(extractAfter(opts.Filter, "gauss"));
-    w = shLowLevel.shGaussianWeights(nmax, rkm); w = w(:);
-    for k = 1:T
-        Cs(:,:,k) = Cs(:,:,k) .* w; Ss(:,:,k) = Ss(:,:,k) .* w;
-    end
-    filtName = opts.Filter;
-elseif startsWith(opts.Filter, "DDK")
-    ddkMap = ["1d14p","1d13p","1d12p","5d11p","1d11p","5d10p","1d10p","5d9p"];
-    n = double(extractAfter(opts.Filter, "DDK"));
-    if ~(n >= 1 && n <= 8)
-        error('shLowLevel:twsChain:badFilter', 'DDKn needs n in 1..8, got %s.', opts.Filter);
-    end
-    fn = "Wbd_2-120.a_" + ddkMap(n) + "_4";
-    cand = [fullfile(char(opts.DDKFolder), char(fn)); ...
-            fullfile(char(gravisFolder), char(fn)); ...
-            fullfile(shLowLevel.dataFolder(), 'ddk', char(fn))];
-    fp = "";
-    for c = 1:size(cand, 1)
-        if isfile(strtrim(cand(c, :))), fp = strtrim(cand(c, :)); break; end
-    end
-    if strlength(fp) == 0
-        error('shLowLevel:twsChain:missingDDK', ...
-            ['DDK binary %s not found (DDKFolder, GRAVISFOLDER, data ' ...
-             'folder). Get it from github.com/strawpants/GRACE-filter.'], fn);
-    end
-    W = shLowLevel.readDDK(fp);
-    ts = ts.applyDDK(W); Cs = ts.Cs; Ss = ts.Ss;
-    filtName = opts.Filter;
-else
-    error('shLowLevel:twsChain:badFilter', 'Unknown Filter: %s', string(opts.Filter));
+switch fspec.kind
+    case "W"
+        ts = ts.applyDDK(fspec.W); Cs = ts.Cs; Ss = ts.Ss;
+    case "none"
+        filtName = "none";
+    case "gauss"
+        w = shLowLevel.shGaussianWeights(nmax, fspec.radiusKm); w = w(:);
+        for k = 1:T
+            Cs(:,:,k) = Cs(:,:,k) .* w; Ss(:,:,k) = Ss(:,:,k) .* w;
+        end
+        filtName = fspec.name;
+    otherwise
+        % the released file names have one home, shLowLevel.ddkNames
+        % (this chain carried its own copy of the eight until v5.7.0)
+        fn = shLowLevel.ddkNames(); fn = fn(fspec.ddk);
+        cand = [fullfile(char(opts.DDKFolder), char(fn)); ...
+                fullfile(char(gravisFolder), char(fn)); ...
+                fullfile(shLowLevel.dataFolder(), 'ddk', char(fn))];
+        fp = "";
+        for c = 1:size(cand, 1)
+            if isfile(strtrim(cand(c, :))), fp = strtrim(cand(c, :)); break; end
+        end
+        if strlength(fp) == 0
+            error('shLowLevel:twsChain:missingDDK', ...
+                ['DDK binary %s not found (DDKFolder, GRAVISFOLDER, data ' ...
+                 'folder). Get it from github.com/strawpants/GRACE-filter.'], fn);
+        end
+        W = shLowLevel.readDDK(fp);
+        ts = ts.applyDDK(W); Cs = ts.Cs; Ss = ts.Ss;
+        filtName = fspec.name;
 end
 steps(end+1) = "filter: " + filtName;
 % ---- basins

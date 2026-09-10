@@ -141,6 +141,9 @@ function [out, rep] = oceanChain(folder, opts)
 %
 %   Error identifiers
 %     shLowLevel:oceanChain:missingKn  kn not supplied
+%     shLowLevel:oceanChain:badFilter  Filter is not "none" or a valid
+%         "gauss<radiusKm>" (read by shLowLevel.filterSpec; before
+%         v5.7.0 any other text became a NaN radius)
 %
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5),
 %   2026-08-12 (v3.9.0).
@@ -161,6 +164,12 @@ arguments
     opts.RemoveLandLeakage (1,1) logical = false
     opts.LandLeakIter (1,1) double {mustBePositive} = 1
     opts.Quiet (1,1) logical = true
+end
+% the Filter spec is read FIRST, by the one parser of the vocabulary,
+% so a malformed spec fails before any data is touched (A25)
+[fspec, msg] = shLowLevel.filterSpec(opts.Filter, Allowed = ["none", "gauss"]);
+if msg ~= ""
+    error('shLowLevel:oceanChain:badFilter', '%s', msg);
 end
 if isempty(opts.kn)
     error('shLowLevel:oceanChain:missingKn', ...
@@ -225,8 +234,8 @@ if opts.CoastBufferKm > 0
         "coast buffer %g km: mask %d -> %d pixels", ...
         opts.CoastBufferKm, a0, nnz(mk));
 end
-if opts.Filter ~= "none"
-    rkm = double(extractAfter(opts.Filter, "gauss"));
+if fspec.kind == "gauss"
+    rkm = fspec.radiusKm;
     wf = shLowLevel.shGaussianWeights(nmaxS, rkm); wf = wf(:);
     for k = 1:T
         Cs(:,:,k) = Cs(:,:,k) .* wf;

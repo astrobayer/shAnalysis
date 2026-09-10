@@ -69,6 +69,9 @@ function [out, rep] = obpChain(folder, opts)
 %
 %   Error identifiers
 %     shLowLevel:obpChain:missingKn        kn not supplied
+%     shLowLevel:obpChain:badFilter        Filter is not "none" or a valid
+%         "gauss<radiusKm>" (read by shLowLevel.filterSpec; before
+%         v5.7.0 any other text became a NaN radius)
 %     shLowLevel:obpChain:missingGAD       GADFolder empty
 %     shLowLevel:obpChain:emptyRefPeriod   no epochs inside RefPeriod
 %
@@ -87,6 +90,12 @@ arguments
     opts.Filter (1,1) string = "gauss445"
     opts.RefPeriod (1,2) double = [2002.25, 2020.25]
     opts.Quiet (1,1) logical = true
+end
+% the Filter spec is read FIRST, by the one parser of the vocabulary,
+% so a malformed spec fails before any data is touched (A25)
+[fspec, msg] = shLowLevel.filterSpec(opts.Filter, Allowed = ["none", "gauss"]);
+if msg ~= ""
+    error('shLowLevel:obpChain:badFilter', '%s', msg);
 end
 if isempty(opts.kn)
     error('shLowLevel:obpChain:missingKn', ...
@@ -109,8 +118,8 @@ Cs = ts.Cs; Ss = ts.Ss;
 [Cs, Ss, nGad] = addGADFolder(Cs, Ss, ep, opts.GADFolder);
 steps(end+1) = sprintf("GAD restored for %d/%d epochs (folder %s)", ...
     nGad, T, opts.GADFolder);
-if opts.Filter ~= "none"
-    rkm = double(extractAfter(opts.Filter, "gauss"));
+if fspec.kind == "gauss"
+    rkm = fspec.radiusKm;
     nmaxS = size(Cs, 1) - 1;
     wf = shLowLevel.shGaussianWeights(nmaxS, rkm); wf = wf(:);
     for k = 1:T

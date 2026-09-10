@@ -131,12 +131,9 @@ BACKLOG = {
     "resolutionMap": "filter-kernel half-widths of a filter operator",
     "seaLevelFingerprint": "elastic sea-level fingerprint of a load",
     "sensitivityKernel": "a basin kernel with a leakage/noise trade-off",
-    "shSynthesisGradientTensor": "the full gradient tensor, beside g.gradient",
     "signalVarianceKaula": "Kaula signal variance, an input of the VDK filter",
     "slepianBasis": "a Slepian basis for a region",
     "slepianProject": "projection onto a Slepian basis, and back",
-    "synthesisPoints": "values at scattered 3-D points, beside g.synthesis",
-    "vdkApply": "VDK decorrelation of one solution, beside applyDDK",
 }
 
 DELEGATES = {
@@ -145,6 +142,9 @@ DELEGATES = {
     ("shSeries", "leakageCorrect"): "leakageCorrect",
     ("shSeries", "leakageDataDriven"): "leakageDataDriven",
     ("shCoefficients", "errorMap"): "errorMap",
+    ("shCoefficients", "synthesisPoints"): "synthesisPoints",
+    ("shCoefficients", "gradientTensor"): "shSynthesisGradientTensor",
+    ("shCoefficients", "vdkApply"): "vdkApply",
 }
 
 

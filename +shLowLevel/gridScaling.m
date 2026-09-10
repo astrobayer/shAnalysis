@@ -77,7 +77,8 @@ function [k, info] = gridScaling(model, latDeg, lonDeg, opts)
 %     shLowLevel:gridScaling:badClip
 %         Clip is not [lo hi] with lo < hi
 %     shLowLevel:gridScaling:badFilter
-%         Filter is not a W struct, "none", "gauss<radiusKm>" or "DDKn"
+%         Filter is refused by shLowLevel.filterSpec: it is not a W
+%         struct, "none", "gauss<radiusKm>" or "DDK1" to "DDK8"
 %     shLowLevel:gridScaling:badNmax
 %         the grid supports nmax < 2; give at least 3 latitudes
 %     shLowLevel:gridScaling:badSize
@@ -116,7 +117,7 @@ if ~isfinite(nmax)
 end
 assert(nmax >= 2, 'shLowLevel:gridScaling:badNmax', ...
     'The grid supports nmax = %d; give at least 3 latitudes.', nmax);
-wFilt = resolveFilter(opts.Filter, nmax);
+[wFilt, fname] = resolveFilter(opts.Filter, nmax);
 
 num = zeros(nLat, nLon);
 den = zeros(nLat, nLon);
@@ -154,7 +155,7 @@ info = struct('covered', nnz(fin) / numel(k), ...
     'kMin', minOr(k(onSignal)), 'kMax', maxOr(k(onSignal)), ...
     'onSignal', nnz(onSignal), ...
     'clipped', nClip, 'nmax', nmax, ...
-    'filter', string(filterName(opts.Filter)), 'epochs', T);
+    'filter', fname, 'epochs', T);
 if ~opts.Quiet
     fprintf(['gridScaling: k median %.3f (range %.3f..%.3f) over the ' ...
              '%d pixels the model gives mass to; %.1f%% of the grid has ' ...
@@ -197,33 +198,22 @@ end
 out = shLowLevel.shSynthesis(C, S, GM, R, latDeg, lonDeg);
 end
 
-function w = resolveFilter(F, nmax)
-if isstruct(F)
-    w = F;
-    return
+function [w, name] = resolveFilter(F, nmax)
+%RESOLVEFILTER Build the filter a spec names - shLowLevel.filterSpec
+%   reads the spec, so the vocabulary has one parser (A25).
+[spec, msg] = shLowLevel.filterSpec(F);
+if msg ~= ""
+    error('shLowLevel:gridScaling:badFilter', '%s', msg);
 end
-assert(isstring(F) || ischar(F), 'shLowLevel:gridScaling:badFilter', ...
-    'Filter must be a string or a W struct.');
-F = string(F);
-if F == "none"
-    w = [];
-elseif startsWith(F, "gauss")
-    r = double(extractAfter(F, "gauss"));
-    assert(isfinite(r) && r > 0, 'shLowLevel:gridScaling:badFilter', ...
-        'Gaussian filter must be "gauss<radiusKm>" (got "%s").', F);
-    w = shLowLevel.shGaussianWeights(nmax, r);
-elseif startsWith(F, "DDK")
-    w = shLowLevel.readDDK(char(F), Nmax = nmax);
-else
-    error('shLowLevel:gridScaling:badFilter', ...
-        'Filter must be "none", "gauss<km>", "DDKn", or a W struct.');
-end
-end
-
-function s = filterName(F)
-if isstruct(F)
-    s = F.name;
-else
-    s = char(string(F));
+name = spec.name;
+switch spec.kind
+    case "W"
+        w = spec.W;
+    case "none"
+        w = [];
+    case "gauss"
+        w = shLowLevel.shGaussianWeights(nmax, spec.radiusKm);
+    otherwise
+        w = shLowLevel.readDDK(char(spec.name), Nmax = nmax);
 end
 end

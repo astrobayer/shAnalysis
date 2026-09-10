@@ -30,12 +30,12 @@ plot(out.epochs, out.oceanMean)          % barystatic curve, +1.49 mm/yr</code><
 <h2>Output Arguments</h2>
 <table><tr><th>Name</th><th>Description</th></tr><tr><td><code>out</code></td><td class="desc">(1 x 1) struct with fields epochs    (T x 1) decimal years oceanMean (T x 1) area-weighted ocean-mean EWH [cm] trend     (1 x 1) barystatic trend [mm/yr] trendGt   (1 x 1) the same as mass rate [Gt/yr] over the mask trendSigma (1 x 1) OLS 1-sigma of the trend [mm/yr] (no AR correction - stated, not hidden) ampAnnual (1 x 1) annual amplitude of the ocean mean [mm] sigMon    (1 x 1) open-ocean residual RMS after the per-pixel trend+seasonal fit [m] (the honest noise proxy) oceanArea (1 x 1) mask area [m^2] circulationRMS (1 x 1) area-weighted RMS of the separated residual circulation [m] (NaN unless SeparateCirculation) nModes    (1 x 1) EOF modes the North rule kept (0 unless SeparateCirculation) lamModes  (K x 1) variance per EOF mode ([] unless SeparateCirculation)</td></tr><tr><td><code>rep</code></td><td class="desc">(1,1) struct  fields steps         (1,K) string  the stages applied, with parameters, including any dropped or uncovered epochs version       (1,1) string  <a href="shLowLevel_version.html"><code>shLowLevel.version</code></a> at run time nEpochs       (1,1) double  epochs processed nGadRestored  (1,1) double  months the GAD restore reached nGaaApplied   (1,1) double  months the GAA correction reached</td></tr></table>
 <h2>Error Identifiers</h2>
-<table><tr><th>Identifier</th><th>Raised when</th></tr><tr><td><code>shLowLevel:oceanChain:missingKn</code></td><td class="desc">kn not supplied</td></tr></table>
+<table><tr><th>Identifier</th><th>Raised when</th></tr><tr><td><code>shLowLevel:oceanChain:missingKn</code></td><td class="desc">kn not supplied</td></tr><tr><td><code>shLowLevel:oceanChain:badFilter</code></td><td class="desc">Filter is not &quot;none&quot; or a valid &quot;gauss&lt;radiusKm&gt;&quot; (read by shLowLevel.filterSpec; before v5.7.0 any other text became a NaN radius)</td></tr></table>
 <h2>Version History</h2>
 <p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
 <h2>See Also</h2>
 <p class="none">No other entity is named in this help block.</p>
-<p class="prov">shAnalysis v5.6.0 (10-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+<p class="prov">shAnalysis v5.7.0 (10-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
 </div>
 </body>
 </html>

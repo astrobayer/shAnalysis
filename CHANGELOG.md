@@ -1,5 +1,84 @@
 # Changelog
 
+## [5.7.0] - 2026-09-10 - A25, and three more class routes
+
+A MINOR: new API - `shLowLevel.filterSpec` and three `shCoefficients`
+methods. Every valid filter spec gives bitwise the numbers it gave before;
+what changes is that a malformed spec is now refused, loudly, by every lane.
+
+### A25: one reader of the Filter vocabulary
+- `shLowLevel.filterSpec(F)` reads a filter specification - `"none"`,
+  `"gauss<radiusKm>"` with a radius greater than zero, `"DDK1"` to
+  `"DDK8"`, or a W struct - and says what it means. With two outputs it
+  never raises: it returns the reason, so each caller keeps raising under
+  its own documented identifier. `Allowed` states the kinds a caller admits.
+- The eight lanes that parsed it each on their own now call it:
+  `leakageCorrect`, `leakageDataDriven` and `gridScaling` (three copies of
+  one private `resolveFilter`, identical but for the identifier),
+  `standardChain`, `twsChain`, `gravisRegionChain` (and so `greenlandChain`
+  and `antarcticaChain`), `oceanChain` and `obpChain`. The chains read the
+  spec before any data, so a typo no longer costs a full read first.
+- `twsChain` carried its own copy of the eight DDK file names; it now uses
+  `shLowLevel.ddkNames`, which calls itself the single source of truth for
+  them. The eight names were compared and are identical.
+
+**Measured on the old code, before any edit** - the defects the finding
+had only inferred:
+- `twsChain(..., Filter = "gaussX")` ran and returned NaN in 255 of its
+  507 output numbers, without any error.
+- `oceanChain` and `obpChain` read any text as a Gaussian radius, so
+  `"DDK3"` became a radius of NaN, and `shGaussianWeights(60, NaN)` makes
+  60 of its 61 weights NaN.
+- The four chains that never checked the radius accepted a negative one,
+  and `shGaussianWeights(60, -5)` gives weights between 0.9992 and 1: no
+  filter at all, without a word.
+- Text that starts with `"DDK"` but is not `DDK1`..`DDK8` went to `readDDK`
+  as a FILE path in four lanes. It is now refused; pass the W struct
+  `readDDK(file)` returns instead.
+
+**Proven bitwise, not argued.** Every lane was run on every kind of spec
+before the edit and again after it - `leakageCorrect`, `leakageDataDriven`
+and `gridScaling` on fixtures (four specs each), `standardChain` on the
+shipped monthly file (four), and `twsChain` on the real GravIS data
+(three): all 19 outputs identical, and the only entries that differ are
+the refusals. `oceanChain` (with a latitude-band ocean mask) and `greenlandChain` (with a numeric `NoiseLevel`), which the first capture could not run for want of inputs, were then run on an extracted copy of the old tree and on the new one: four more outputs, all identical. `obpChain` could not be run here - it needs a GAD
+folder this machine does not have - so its valid path is equivalent by
+construction and not by measurement.
+
+### Three class routes off the backlog
+- `g.synthesisPoints(lat, lon, r, ...)` - `shLowLevel.synthesisPoints` at
+  scattered 3-D points.
+- `g.gradientTensor(lat, lon, ...)` - the full gradient tensor,
+  `shLowLevel.shSynthesisGradientTensor`.
+- `g.vdkApply(N, sigM, Index = idx, Alpha = ...)` -
+  `shLowLevel.vdkApply`, the coefficients taken in `Index` ordering
+  (default `shIndex(nmax, Nmin = 2)`) and put back, the degrees outside it
+  unchanged, the sigmas NaN as for `g.applyDDK`.
+- As for every WP7 delegate, a lane's options are forwarded only when
+  given, and each method is pinned bitwise against its lane with options
+  and without. The class-surface backlog shrinks from 21 to 18; reach
+  rises to 73 of 125.
+
+### Fixed
+- **`shLowLevel.vdkApply`'s documented `badSize` identifier could never be
+  raised** (A27). Its message passed `size(N)` - two numbers - to the
+  format, so MATLAB threw "Formatted arguments must be scalar" first. The
+  test written for `g.vdkApply` found it; it now passes scalars.
+
+### Recorded, not fixed
+- **A26**: `twsChain` looks for DDK files in `dataFolder/ddk`, `fetchDDK`
+  stores them in `dataFolder/DDK`; the two agree only on a
+  case-insensitive filesystem.
+- **A28**: `oceanChain` documents `OceanMask` as REQUIRED, defaults it to
+  `[]` and does not refuse it: without a mask it fails with
+  `MATLAB:badsubscript` at its trend fit. `gravisRegionChain` refuses the
+  same omission with `noOcean`.
+
+### Tests
+- 357 -> 364 runs (`testContract` 94 -> 101): four for `filterSpec` and
+  the lanes' refusals (every chain refuses a malformed spec before it
+  touches a folder that does not exist), three for the new routes.
+
 ## [5.6.0] - 2026-09-10 - WP7: the classes reach the lanes
 
 A MINOR: new API, and nothing existing changes. Eight methods put lanes

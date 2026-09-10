@@ -109,7 +109,7 @@ class TestCounting(unittest.TestCase):
         self.assertEqual(c["runs"], c["methods"])
 
 
-EXPECTED_RUNS = 357          # v5.6.0: 346 + 11 WP7 delegation tests
+EXPECTED_RUNS = 364          # v5.7.0: 357 + 4 A25 + 3 backlog tests
                              # (5 correctness, 4 contract, 2 robustness)
 
 

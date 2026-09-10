@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shLowLevel.filterSpec &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shLowLevel.filterSpec</nav>
+<h1>shLowLevel.filterSpec</h1>
+<p class="h1line">Read a filter specification - the one parser of the vocabulary.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>[spec, msg] = shLowLevel.filterSpec(F)</code><code>[spec, msg] = shLowLevel.filterSpec(F, Allowed=[&quot;none&quot;, &quot;gauss&quot;, &quot;ddk&quot;, &quot;W&quot;])</code></div>
+<h2>Description</h2>
+<p>SPEC = shLowLevel.filterSpec(F) reads F, a filter specification in the form every lane with a Filter option takes, and says what it means:</p>
+<h2>Examples</h2>
+<details class="example"><summary>From the help block</summary><div><pre><code>    spec = shLowLevel.filterSpec(&quot;gauss300&quot;);    % kind &quot;gauss&quot;, radiusKm 300
+    [s, msg] = shLowLevel.filterSpec(&quot;DDK3&quot;, Allowed = [&quot;none&quot;, &quot;gauss&quot;]);
+    % s.kind is &quot;&quot; and msg says why
+
+  See also shLowLevel.shGaussianWeights, shLowLevel.readDDK,
+  shLowLevel.ddkNames, shLowLevel.designFilter.</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>F</code></td><td>n x m</td><td>-</td><td><code>required</code></td><td class="desc">text scalar or struct  the specification</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>Allowed</code></td><td>1 x :</td><td>string</td><td><code>[&quot;none&quot;, &quot;gauss&quot;, &quot;ddk&quot;, &quot;W&quot;]</code></td><td class="desc">([&quot;none&quot;,&quot;gauss&quot;,&quot;ddk&quot;,&quot;W&quot;])  the kinds the caller admits. The GravIS grid chains admit only &quot;none&quot; and &quot;gauss&quot;</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>spec</code></td><td class="desc">(1,1) struct  fields kind      (1,1) string  &quot;none&quot; | &quot;gauss&quot; | &quot;ddk&quot; | &quot;W&quot;, or &quot;&quot; when F is refused radiusKm  (1,1) double  the Gaussian radius [km]; NaN otherwise ddk       (1,1) double  the DDK number, 1 to 8; NaN otherwise W         struct | []  the filter for kind &quot;W&quot;; [] otherwise name      (1,1) string  the label the lanes report: W.name for a struct (&quot;custom W&quot; when it has none), the text itself otherwise</td></tr><tr><td><code>msg</code></td><td class="desc">(1,1) string  &quot;&quot; when F is accepted, else the reason</td></tr></table>
+<h2>Error Identifiers</h2>
+<table><tr><th>Identifier</th><th>Raised when</th></tr><tr><td><code>shLowLevel:filterSpec:badSpec</code></td><td class="desc">F is refused and the caller asked for one output only</td></tr></table>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<ul class="seealso"><li><a href="shLowLevel_shGaussianWeights.html"><code>shLowLevel.shGaussianWeights</code></a></li><li><a href="shLowLevel_readDDK.html"><code>shLowLevel.readDDK</code></a></li><li><a href="shLowLevel_ddkNames.html"><code>shLowLevel.ddkNames</code></a></li></ul>
+<p class="prov">shAnalysis v5.7.0 (10-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

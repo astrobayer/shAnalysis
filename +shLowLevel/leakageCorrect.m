@@ -152,7 +152,8 @@ function [mCorr, info] = leakageCorrect(grid, latDeg, lonDeg, opts)
 %
 %   Error identifiers
 %     shLowLevel:leakageCorrect:badFilter
-%         Filter is not a W struct, "none", "gauss<radiusKm>" or "DDKn"
+%         Filter is refused by shLowLevel.filterSpec: it is not a W
+%         struct, "none", "gauss<radiusKm>" or "DDK1" to "DDK8"
 %     shLowLevel:leakageCorrect:badMask
 %         Mask does not have the size of grid
 %     shLowLevel:leakageCorrect:badNmax
@@ -217,7 +218,7 @@ if useMask
     assert(any(mask(:)), 'shLowLevel:leakageCorrect:emptyMask', ...
         'Mask selects no pixels - nothing to solve for.');
 end
-wFilt = resolveFilter(opts.Filter, nmax);
+[wFilt, fname] = resolveFilter(opts.Filter, nmax);
 % Where the discrepancy principle looks. The residual must be measured
 % WHERE THE MODEL IS RESPONSIBLE. With a mask the model describes one
 % region while the data contains every other mass signal on the globe -
@@ -260,7 +261,7 @@ if scale == 0                            % nothing to correct
         'step', [], 'converged', true, 'stoppedBy', "zeroField", ...
         'residualRMS', 0, 'residualRMSGlobal', 0, ...
         'noiseLevel', opts.NoiseLevel, 'nmax', nmax, ...
-        'filter', string(filterName(opts.Filter)), 'masked', useMask);
+        'filter', fname, 'masked', useMask);
     return
 end
 
@@ -322,7 +323,7 @@ info = struct('iterations', k, 'residual', hist(end), 'history', hist, ...
     'residualRMS', rmsOver(rEnd, resSel), ...
     'residualRMSGlobal', rmsOver(rEnd, true(size(grid))), ...
     'noiseLevel', opts.NoiseLevel, 'nmax', nmax, ...
-    'filter', string(filterName(opts.Filter)), 'masked', useMask);
+    'filter', fname, 'masked', useMask);
 if opts.NoiseLevel == 0
     warning('shLowLevel:leakageCorrect:unregularised', ...
         ['No NoiseLevel given, so the iteration is UNREGULARISED and ' ...
@@ -370,34 +371,22 @@ end
 out = shLowLevel.shSynthesis(C, S, GM, R, latDeg, lonDeg);
 end
 
-function w = resolveFilter(F, nmax)
-%RESOLVEFILTER "none" | "gauss<km>" | "DDKn" | W struct -> weights or W.
-if isstruct(F)
-    w = F;
-    return
+function [w, name] = resolveFilter(F, nmax)
+%RESOLVEFILTER Build the filter a spec names - shLowLevel.filterSpec
+%   reads the spec, so the vocabulary has one parser (A25).
+[spec, msg] = shLowLevel.filterSpec(F);
+if msg ~= ""
+    error('shLowLevel:leakageCorrect:badFilter', '%s', msg);
 end
-assert(isstring(F) || ischar(F), 'shLowLevel:leakageCorrect:badFilter', ...
-    'Filter must be a string or a W struct.');
-F = string(F);
-if F == "none"
-    w = [];
-elseif startsWith(F, "gauss")
-    r = double(extractAfter(F, "gauss"));
-    assert(isfinite(r) && r > 0, 'shLowLevel:leakageCorrect:badFilter', ...
-        'Gaussian filter must be "gauss<radiusKm>" (got "%s").', F);
-    w = shLowLevel.shGaussianWeights(nmax, r);
-elseif startsWith(F, "DDK")
-    w = shLowLevel.readDDK(char(F), Nmax = nmax);
-else
-    error('shLowLevel:leakageCorrect:badFilter', ...
-        'Filter must be "none", "gauss<km>", "DDKn", or a W struct.');
-end
-end
-
-function s = filterName(F)
-if isstruct(F)
-    s = F.name;
-else
-    s = char(string(F));
+name = spec.name;
+switch spec.kind
+    case "W"
+        w = spec.W;
+    case "none"
+        w = [];
+    case "gauss"
+        w = shLowLevel.shGaussianWeights(nmax, spec.radiusKm);
+    otherwise
+        w = shLowLevel.readDDK(char(spec.name), Nmax = nmax);
 end
 end

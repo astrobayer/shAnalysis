@@ -6,7 +6,7 @@
   <type>toolbox</type>
   <icon>HelpIcon.DEMOS</icon>
   <description>Selectable demonstrations of every toolbox
-  capability (v5.6.0). Each case runs standalone and uses real data
+  capability (v5.7.0). Each case runs standalone and uses real data
   when it is present, synthetic known-truth data otherwise.
   </description>
   <demosection>

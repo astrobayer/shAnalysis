@@ -131,7 +131,8 @@ function [fHat, info] = leakageDataDriven(gridSeries, latDeg, lonDeg, opts)
 %
 %   Error identifiers
 %     shLowLevel:leakageDataDriven:badFilter
-%         Filter is not a W struct, "none", "gauss<radiusKm>" or "DDKn"
+%         Filter is refused by shLowLevel.filterSpec: it is not a W
+%         struct, "none", "gauss<radiusKm>" or "DDK1" to "DDK8"
 %     shLowLevel:leakageDataDriven:badMask
 %         Mask is missing, or is not nLat x nLon
 %     shLowLevel:leakageDataDriven:badNmax
@@ -196,7 +197,7 @@ end
 assert(nmax >= 2, 'shLowLevel:leakageDataDriven:badNmax', ...
     'The grid supports nmax = %d; give at least 3 latitudes.', nmax);
 
-wFilt = resolveFilter(opts.Filter, nmax);
+[wFilt, fname] = resolveFilter(opts.Filter, nmax);
 
 % Quadrature weight per cell. Every integral below is a RATIO against the
 % catchment area, so the sphere radius and the longitude spacing cancel
@@ -254,7 +255,7 @@ info = struct('filtered', gbarC, 'leakage', lHat, 'deviation', dFHat, ...
     'phaseDeg', phaseDeg, 'leakageRatio', leakRatio, ...
     'deviationRatio', devRatio, ...
     'areaFraction', area / sum(cellW, 'all'), ...
-    'nmax', nmax, 'filter', string(filterName(opts.Filter)));
+    'nmax', nmax, 'filter', fname);
 end
 
 % ------------------------------------------------------------- helpers
@@ -327,36 +328,22 @@ c = A \ target(:);
 r = c(2);
 end
 
-function w = resolveFilter(F, nmax)
-%RESOLVEFILTER "none" | "gauss<km>" | "DDKn" | W struct -> weights or W.
-if isstruct(F)
-    w = F;
-    return
+function [w, name] = resolveFilter(F, nmax)
+%RESOLVEFILTER Build the filter a spec names - shLowLevel.filterSpec
+%   reads the spec, so the vocabulary has one parser (A25).
+[spec, msg] = shLowLevel.filterSpec(F);
+if msg ~= ""
+    error('shLowLevel:leakageDataDriven:badFilter', '%s', msg);
 end
-assert(isstring(F) || ischar(F), ...
-    'shLowLevel:leakageDataDriven:badFilter', ...
-    'Filter must be a string or a W struct.');
-F = string(F);
-if F == "none"
-    w = [];
-elseif startsWith(F, "gauss")
-    r = double(extractAfter(F, "gauss"));
-    assert(isfinite(r) && r > 0, ...
-        'shLowLevel:leakageDataDriven:badFilter', ...
-        'Gaussian filter must be "gauss<radiusKm>" (got "%s").', F);
-    w = shLowLevel.shGaussianWeights(nmax, r);
-elseif startsWith(F, "DDK")
-    w = shLowLevel.readDDK(char(F), Nmax = nmax);
-else
-    error('shLowLevel:leakageDataDriven:badFilter', ...
-        'Filter must be "none", "gauss<km>", "DDKn", or a W struct.');
-end
-end
-
-function s = filterName(F)
-if isstruct(F)
-    s = F.name;
-else
-    s = char(string(F));
+name = spec.name;
+switch spec.kind
+    case "W"
+        w = spec.W;
+    case "none"
+        w = [];
+    case "gauss"
+        w = shLowLevel.shGaussianWeights(nmax, spec.radiusKm);
+    otherwise
+        w = shLowLevel.readDDK(char(spec.name), Nmax = nmax);
 end
 end
