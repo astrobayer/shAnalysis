@@ -1,5 +1,51 @@
 # Changelog
 
+## [5.9.0] - 2026-09-10 - WP5: the method of scale
+
+A MINOR: new API - `Method` on `shLowLevel.leakageDataDriven` and
+`shSeries.leakageDataDriven`.
+
+### Added
+- `leakageDataDriven(..., Method = "scale")`: Vishwakarma's method of
+  scale (thesis eq. 3.28), the second of the two data-driven corrections.
+  It removes the same leakage estimate as the method of deviation - phase
+  step included - and then scales the remainder up,
+  `fHat = s (gbar_c - lhat)`, instead of subtracting a deviation
+  integral. The scale factor `s = int R / int R Rbar` (eq. 2.27) depends
+  on the catchment and the filter only; `info.scale` reports it whichever
+  method ran, and `info.method` names the one that did.
+  `ts.leakageDataDriven` forwards `Method`.
+- The help states the thesis's two caveats: `s` rests on the
+  uniform-layer approximation (eq. 2.26), so it repairs the attenuation
+  exactly only for a uniform layer; and `s` grows as the catchment
+  shrinks, which amplifies errors in small catchments.
+- `validate_leakage_datadriven.py` CLAIM 4: for a uniform layer inside the
+  catchment, `s` times the filtered catchment average returns the layer
+  (to 1.5e-16). CLAIM 5: the method of scale on the closed loop.
+
+### Unchanged
+- The default is still the method of deviation, and it is bitwise
+  unchanged. Four configurations (Gaussian 300 and 500 km, a fractional
+  mask, DDK3) were captured before the edit and are identical after, apart
+  from the two new `info` fields.
+
+### Measured
+- On the closed loops the method of scale removes more of the damage than
+  the method of deviation: 75.0% against 55.3% on the `testCorrectness`
+  fixture, and 78.6% against 62.9% in the oracle. **This ranks nothing.**
+  Both fixtures put a uniform layer inside the catchment, which is exactly
+  the case the scale factor is exact for. A real catchment's signal is
+  not uniform, and the thesis's caveat applies, so the default stays the
+  method of deviation.
+
+### Tests
+- 371 -> 373 runs: `testLeakageMethodOfScale` in `testCorrectness` (the
+  formula bitwise; `s` recomputed through the same chain; `s` holding no
+  data; the uniform-layer identity; the closed loop) and
+  `testLeakageDataDrivenMethodContract` in `testContract` (the default is
+  the method of deviation bit for bit, an unknown method is refused, and
+  `ts.leakageDataDriven` forwards `Method`).
+
 ## [5.8.0] - 2026-09-10 - WP5 5e: CF grids in, and analysis refuses NaN
 
 A MINOR: new API - `shLowLevel.readGrid`, and `Fill` on

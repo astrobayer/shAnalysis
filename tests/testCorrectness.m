@@ -4764,3 +4764,59 @@ m = shLowLevel.readMascon(f);
 verifyEqual(testCase, m.epoch, info.epochs, ...
     'readMascon and readGrid read one time axis two ways');
 end
+
+% ------------------------------------------------ WP5: the method of scale
+function testLeakageMethodOfScale(testCase)
+%TESTLEAKAGEMETHODOFSCALE the method of scale (thesis eq. 3.28) on the 5b
+%   closed loop. FHAT is s (gbar_c - lhat), bitwise; s is int R / int R
+%   Rbar (eq. 2.27), recomputed here through the same chain; s holds no
+%   data - it is the same for any series on one catchment and filter; for
+%   a uniform layer inside the catchment it repairs the attenuation
+%   exactly, the case the uniform-layer approximation (2.26) makes exact;
+%   and on the closed loop it moves the catchment mean towards the truth.
+f = leakageDDCFixture();
+[fHat, info] = shLowLevel.leakageDataDriven(f.filtered, f.lat, f.lon, ...
+    Mask = f.mask, Filter = "gauss500", Nmax = f.nmax, Method = "scale");
+verifyEqual(testCase, info.method, "scale");
+verifyEqual(testCase, fHat, info.scale * (info.filtered - info.leakage));
+
+% s through the same analysis-filter-synthesis chain. Measured bitwise on
+% MATTHIASPC; 4 eps allows another summation order of the catchment sums.
+GM = 3.986004415e14; Rref = 6378136.3;
+W = shLowLevel.shGaussianWeights(f.nmax, 500);
+[C, S] = shLowLevel.shAnalysisGrid(f.mask, f.lat, f.lon, f.nmax, ...
+    GM = GM, R = Rref);
+Rbar = shLowLevel.shSynthesis(C.*W(:), S.*W(:), GM, Rref, f.lat, f.lon);
+s = f.area / sum(f.mask .* Rbar .* f.cellW, "all");
+verifyEqual(testCase, info.scale, s, 'RelTol', 4*eps);
+
+% no data in s: the method of deviation on the same series reports it too
+[~, iDev] = shLowLevel.leakageDataDriven(f.filtered, f.lat, f.lon, ...
+    Mask = f.mask, Filter = "gauss500", Nmax = f.nmax);
+verifyEqual(testCase, iDev.scale, info.scale);
+
+% a uniform layer confined to the catchment, as the filter delivers it
+T = numel(info.filtered);
+layer = 0.3 + 0.1 * sin(2*pi*(0:T-1)'/12);
+U = zeros(size(f.filtered));
+for k = 1:T
+    U(:, :, k) = layer(k) * Rbar;
+end
+[~, iU] = shLowLevel.leakageDataDriven(U, f.lat, f.lon, Mask = f.mask, ...
+    Filter = "gauss500", Nmax = f.nmax, Method = "scale");
+verifyEqual(testCase, iU.scale, info.scale);
+% worst measured 3.7e-16 here, 1.5e-16 in the oracle's CLAIM 4; 1e-14
+% bounds the round-off of the ~2500-term weighted catchment sum
+verifyEqual(testCase, iU.scale * iU.filtered, layer, 'RelTol', 1e-14);
+
+% the closed loop: measured 75.0% of the RMS damage removed on THIS
+% fixture (ratio 0.250; the method of deviation 0.447). The bound is
+% directional, as in testLeakageDataDrivenRemovesFilteringDamage. The
+% fixture's catchment signal is a uniform layer - the case s is exact
+% for - so this ranks nothing; the oracle's CLAIM 5 measures 78.6%.
+errFiltered = sqrt(mean((info.filtered - f.truth).^2));
+errScale = sqrt(mean((fHat - f.truth).^2));
+verifyLessThan(testCase, errScale, 0.5 * errFiltered, sprintf( ...
+    'the method of scale must beat doing nothing: filtered %.5f, scaled %.5f', ...
+    errFiltered, errScale));
+end

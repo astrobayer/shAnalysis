@@ -3,7 +3,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="shAnalysis.css">
 </head><body><div class="content">
-<h1>shAnalysis API reference (v5.8.0)</h1>
+<h1>shAnalysis API reference (v5.9.0)</h1>
 <p>Generated from the source arguments blocks and help text - inputs,
 name-value options with defaults, and outputs for every public function
 and method. Regenerated with every release; the source of truth is the
@@ -838,10 +838,10 @@ code itself.</p>
 <p class="h1line">Model-free leakage/damage correction of a catchment mean.</p>
 <p>FHAT = shLowLevel.leakageDataDriven(GRIDSERIES, LATDEG, LONDEG, Mask = R, Filter = F) repairs the catchment average of a FILTERED time series using correction terms built from the filtered fields alone - Vishwakarma&#x27;s &quot;method of deviation&quot;. No hydrological model is involved, which is the whole point: it is the model-independent counterpart of shLowLevel.leakageCorrect&#x27;s forward model.</p>
 <b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>gridSeries</code></td><td>nLat x nLon x T</td><td>double</td><td>required</td></tr><tr><td><code>latDeg</code></td><td>1 x nLat</td><td>double</td><td>required</td></tr><tr><td><code>lonDeg</code></td><td>1 x nLon</td><td>double</td><td>required</td></tr></table>
-<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Mask</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>Filter</code></td><td>n x m</td><td>-</td><td>&quot;gauss300&quot;</td></tr><tr><td><code>Nmax</code></td><td>1 x 1</td><td>double</td><td>NaN</td></tr><tr><td><code>GM</code></td><td>1 x 1</td><td>double</td><td>3.986004415e14</td></tr><tr><td><code>R</code></td><td>1 x 1</td><td>double</td><td>6378136.3</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Mask</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>Filter</code></td><td>n x m</td><td>-</td><td>&quot;gauss300&quot;</td></tr><tr><td><code>Nmax</code></td><td>1 x 1</td><td>double</td><td>NaN</td></tr><tr><td><code>Method</code></td><td>1 x 1</td><td>string</td><td>&quot;deviation&quot;</td></tr><tr><td><code>GM</code></td><td>1 x 1</td><td>double</td><td>3.986004415e14</td></tr><tr><td><code>R</code></td><td>1 x 1</td><td>double</td><td>6378136.3</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
 <tr><td><code>fHat</code></td><td>(T x 1) double  corrected catchment average, same unit as gridSeries</td></tr>
-<tr><td><code>info</code></td><td>(1,1) struct  fields filtered     (T x 1) double  the uncorrected catchment average of the input - what a user would have had without this function leakage      (T x 1) double  lhat, the estimated true leakage that was removed deviation    (T x 1) double  dFhat, the estimated deviation integral that was removed leakageOnce  (T x 1) double  lbar, leakage from the once filtered fields (before extrapolation) leakageTwice (T x 1) double  lbarbar, from the twice filtered fields deviationOnce  (T x 1) double  dFbar deviationTwice (T x 1) double  dFbarbar phaseDeg     (1,1) double  phase difference applied to the leakage series, in degrees leakageRatio (1,1) double  amplitude factor applied to the leakage series deviationRatio (1,1) double  amplitude factor applied to the deviation integral areaFraction (1,1) double  catchment area over the sphere; multiply by 5.1006e8 km^2 for a rough size, and compare against the ~65000 km^2 the method wants nmax         (1,1) double  degree the chain worked at filter       (1,1) string  the filter that was re-applied</td></tr>
+<tr><td><code>info</code></td><td>(1,1) struct  fields filtered     (T x 1) double  the uncorrected catchment average of the input - what a user would have had without this function leakage      (T x 1) double  lhat, the estimated true leakage that was removed deviation    (T x 1) double  dFhat, the estimated deviation integral that was removed leakageOnce  (T x 1) double  lbar, leakage from the once filtered fields (before extrapolation) leakageTwice (T x 1) double  lbarbar, from the twice filtered fields deviationOnce  (T x 1) double  dFbar deviationTwice (T x 1) double  dFbarbar phaseDeg     (1,1) double  phase difference applied to the leakage series, in degrees leakageRatio (1,1) double  amplitude factor applied to the leakage series deviationRatio (1,1) double  amplitude factor applied to the deviation integral areaFraction (1,1) double  catchment area over the sphere; multiply by 5.1006e8 km^2 for a rough size, and compare against the ~65000 km^2 the method wants nmax         (1,1) double  degree the chain worked at filter       (1,1) string  the filter that was re-applied scale        (1,1) double  s, the scale factor of the method of scale, int R / int R Rbar (eq. 2.27); reported whichever Method ran method       (1,1) string  &quot;deviation&quot; or &quot;scale&quot; - the correction FHAT is</td></tr>
 </table>
 <b>Example</b><pre>    % ewh is (nLat x nLon x T) of Gaussian-300 filtered fields
     [fHat, info] = shLowLevel.leakageDataDriven(ewh, lat, lon, ...
@@ -853,11 +853,14 @@ code itself.</p>
     Vishwakarma, B. D. (2017), Understanding and repairing the signal
       damage due to filtering of mass change estimates from the GRACE
       satellite mission, PhD thesis, Institute of Geodesy, University
-      of Stuttgart - chapter 3, eqs. (3.19)-(3.29).
+      of Stuttgart - chapter 2, eqs. (2.22)-(2.28) for the scale
+      factor, and chapter 3, eqs. (3.19)-(3.29).
     Vishwakarma, Horwath, Devaraju, Groh &amp; Sneeuw (2017), A data-driven
       approach for repairing the hydrological catchment signal damage
       due to filtering of GRACE products, Water Resour. Res. 53,
       9824-9844, doi:10.1002/2017WR021150.
+    Vishwakarma, Devaraju &amp; Sneeuw (2016), Water Resour. Res. 52,
+      doi:10.1002/2016WR018960 - the method of scale.
     Phillips, Nerem, Fox-Kemper, Famiglietti &amp; Rajagopalan (2012), The
       influence of ENSO on global terrestrial water storage using
       GRACE, Geophys. Res. Lett. 39, L16705, doi:10.1029/2012GL052495
@@ -2388,9 +2391,9 @@ code itself.</p>
 <div class="entry" id="shSeries.leakageDataDriven">
 <h3><code>shSeries.leakageDataDriven(obj, latDeg, lonDeg, opts)</code></h3>
 <p class="h1line">Model-free leakage correction of a catchment mean.</p>
-<p>[FHAT, INFO] = ts.leakageDataDriven(LAT, LON, Mask = R, Filter = F, kn = KN) synthesizes every epoch on the grid (g.synthesis, geocentric, Quantity &quot;ewh&quot; unless told otherwise) and runs shLowLevel.leakageDataDriven on the stack with the series&#x27; GM and R - Vishwakarma&#x27;s method of deviation, which repairs the catchment average from the filtered fields alone. FHAT is the corrected catchment mean, one value per epoch. shLowLevel.leakageDataDriven documents the method, the catchment size it is designed for (about 65000 km^2 and up), and why it needs at least 12 epochs and no NaN.</p>
+<p>[FHAT, INFO] = ts.leakageDataDriven(LAT, LON, Mask = R, Filter = F, kn = KN) synthesizes every epoch on the grid (g.synthesis, geocentric, Quantity &quot;ewh&quot; unless told otherwise) and runs shLowLevel.leakageDataDriven on the stack with the series&#x27; GM and R - Vishwakarma&#x27;s method of deviation, or with Method = &quot;scale&quot; the method of scale; both repair the catchment average from the filtered fields alone. FHAT is the corrected catchment mean, one value per epoch. shLowLevel.leakageDataDriven documents the method, the catchment size it is designed for (about 65000 km^2 and up), and why it needs at least 12 epochs and no NaN.</p>
 <b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td>required</td></tr><tr><td><code>latDeg</code></td><td>1 x :</td><td>double</td><td>required</td></tr><tr><td><code>lonDeg</code></td><td>1 x :</td><td>double</td><td>required</td></tr></table>
-<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Filter</code></td><td>required</td><td>-</td><td>-</td></tr><tr><td><code>Quantity</code></td><td>1 x 1</td><td>string</td><td>&quot;ewh&quot;</td></tr><tr><td><code>kn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>Mask</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>Nmax</code></td><td>lane default</td><td>-</td><td>-</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Filter</code></td><td>required</td><td>-</td><td>-</td></tr><tr><td><code>Quantity</code></td><td>1 x 1</td><td>string</td><td>&quot;ewh&quot;</td></tr><tr><td><code>kn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>Mask</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>Nmax</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>Method</code></td><td>lane default</td><td>-</td><td>-</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
 <tr><td><code>fHat</code></td><td>(T x 1) double  corrected catchment average, in the unit of Quantity</td></tr>
 <tr><td><code>info</code></td><td>(1,1) struct  as returned by shLowLevel.leakageDataDriven, which documents every field</td></tr>
@@ -2644,4 +2647,4 @@ code itself.</p>
 <tr><td><code>obj</code></td><td>(1 x 1) shClimatology   copy with the note appended to its history</td></tr>
 </table>
 </div>
-<p class="provenance">Developed by Matthias Weigelt with the help of Claude (Fable 5), 10-Sep-2026 (v5.8.0). Generated by tools - do not edit.</p></div></body></html>
+<p class="provenance">Developed by Matthias Weigelt with the help of Claude (Fable 5), 10-Sep-2026 (v5.9.0). Generated by tools - do not edit.</p></div></body></html>

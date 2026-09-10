@@ -75,6 +75,11 @@ THE DATA-DRIVEN ESTIMATE
 
   A closed-loop run is the only honest test of that extrapolation, so
   CLAIM 3 measures how much of the filtering damage it actually removes.
+  CLAIM 4 pins the scale factor of the method of scale (thesis eq. 2.27,
+  s = int R / int R Rbar): for a uniform layer inside the catchment, s times
+  the filtered catchment average returns the layer exactly - the case the
+  uniform-layer approximation (2.26) makes exact. CLAIM 5 runs the method of
+  scale, f = s (gbar_c - lhat) (eq. 3.28), on CLAIM 3's closed loop (v5.9.0).
 
 Run: python3 tools/dev/validate_leakage_datadriven.py
 Nonzero exit if any claim fails.
@@ -451,12 +456,53 @@ def check_recovery(sph, R, area):
     return err_corrected < 0.5 * err_filtered
 
 
+def scale_factor(sph, R, Rbar):
+    """Thesis eq. (2.27): s = int R dOmega / int R Rbar dOmega - a property of
+    the catchment and the filter alone, with no data in it."""
+    return sph.integral(R) / sph.integral(R * Rbar)
+
+
+def check_scale_uniform(sph, R, Rbar, area):
+    """CLAIM 4: for a uniform layer c inside the catchment, s times the
+    filtered catchment average is c. That is the case the uniform-layer
+    approximation (2.26) makes exact, so it pins s and its orientation."""
+    s = scale_factor(sph, R, Rbar)
+    c = 0.37
+    fbar_c = catchment_average(sph, sph.smooth(c * R), R, area)
+    err = abs(s * fbar_c - c) / c
+    print("  SCALE     s = %.6f (int R / int R Rbar); uniform layer: "
+          "|s Fbar_c - c| / c = %.2e" % (s, err))
+    return err < 1e-12
+
+
+def check_scale_recovery(sph, R, area):
+    """CLAIM 5: the method of scale, f = s (gbar_c - lhat) (eq. 3.28), on
+    CLAIM 3's closed loop. Directional, as CLAIM 3: it must move towards the
+    truth. It is reported beside the method of deviation, not ranked
+    against it - one synthetic basin cannot settle which is better."""
+    fields, truth = synthetic_series(sph, R, T=48)
+    gbar_series = [sph.smooth(g) for g in fields]
+    Rbar = sph.smooth(R)
+    out = data_driven(sph, gbar_series, R, Rbar, area)
+    s = scale_factor(sph, R, Rbar)
+    fscale = s * (out["gbar_c"] - out["lhat"])
+    err_filtered = rms(out["gbar_c"] - truth)
+    err_scale = rms(fscale - truth)
+    err_dev = rms(out["fhat"] - truth)
+    print("  SCALE REC RMS filtered %.5f m; method of scale %.5f m (%.1f%% of "
+          "the damage removed); method of deviation %.5f m"
+          % (err_filtered, err_scale,
+             100.0 * (1.0 - err_scale / err_filtered), err_dev))
+    return err_scale < err_filtered
+
+
 def main():
     sph = Sphere(nmax=30, radius_km=500.0)
     R = sph.cap(0.0, 30.0, 15.0)
     Rbar = sph.smooth(R)
     area = sph.integral(R)
-    print("validate_leakage_datadriven: Vishwakarma method of deviation")
+    print("validate_leakage_datadriven: Vishwakarma methods of deviation "
+          "and of scale")
     print("  grid nmax=%d, Gaussian 500 km, cap radius 15 deg, "
           "A/4pi = %.4f" % (sph.nmax, area / (4 * np.pi)))
     ok = [
@@ -464,6 +510,8 @@ def main():
         check_identity(sph, R, area),
         check_adjoint(sph, R, Rbar, area),
         check_recovery(sph, R, area),
+        check_scale_uniform(sph, R, Rbar, area),
+        check_scale_recovery(sph, R, area),
     ]
     if all(ok):
         print("validate_leakage_datadriven: OK - all claims hold")
