@@ -2866,3 +2866,49 @@ verifyTrue(testCase, isequal(tbl2.chi3, ax.chi3) && ...
 verifyEqual(testCase, tbl2.Properties.VariableUnits, ...
     {'yr', 'mas', 'mas', '1', 'ms'});
 end
+
+% ------------------------------------------------ WP5 5d: the gap series
+function testBridgeGapsContract(testCase)
+%TESTBRIDGEGAPSCONTRACT the refusals of shLowLevel.bridgeGaps, and
+%   ts.bridgeGaps is the lane, bitwise, with options and with the lane's
+%   default smoothing.
+[ref, br] = bridgeCaseContract();
+verifyError(testCase, @() shLowLevel.bridgeGaps(ref, br, MinOverlap = 7), ...
+    'shLowLevel:bridgeGaps:noOverlap');
+brGM = shSeries(br.Cs, Ss = br.Ss, Epochs = br.epochs, GM = 3.9860044e14);
+verifyError(testCase, @() shLowLevel.bridgeGaps(ref, brGM, MinOverlap = 6), ...
+    'shLowLevel:bridgeGaps:constantsMismatch');
+bad = br.Cs;
+bad(2, 1, 3) = NaN;
+brNaN = shSeries(bad, Ss = br.Ss, Epochs = br.epochs);
+verifyError(testCase, @() shLowLevel.bridgeGaps(ref, brNaN, MinOverlap = 6), ...
+    'shLowLevel:bridgeGaps:nanInput');
+[a, ia] = ref.bridgeGaps(br, RadiusKm = 0, MinOverlap = 6);
+[b, ib] = shLowLevel.bridgeGaps(ref, br, RadiusKm = 0, MinOverlap = 6);
+verifyTrue(testCase, isequaln(a.Cs, b.Cs) && isequaln(a.sigmaCs, b.sigmaCs) ...
+    && isequal(a.names, b.names) && isequaln(ia, ib), ...
+    'ts.bridgeGaps is not the lane, with options');
+[a, ia] = ref.bridgeGaps(br, MinOverlap = 6);
+[b, ib] = shLowLevel.bridgeGaps(ref, br, MinOverlap = 6);
+verifyTrue(testCase, isequaln(a.Cs, b.Cs) && isequaln(ia, ib), ...
+    'ts.bridgeGaps is not the lane, with the default smoothing');
+verifyEqual(testCase, ia.radiusKm, 750);
+end
+
+function [ref, br] = bridgeCaseContract()
+%BRIDGECASECONTRACT eight monthly fields at nmax 4; the reference lacks
+%   months 4 and 7, the bridge has them all.
+rng(95);
+Cs = zeros(5, 5, 8);
+Ss = Cs;
+for t = 1:8
+    Cs(:, :, t) = tril(randn(5)) * 1e-10;
+    s = tril(randn(5)) * 1e-10;
+    s(:, 1) = 0;
+    Ss(:, :, t) = s;
+end
+ep = 2010 + ((1:8)' - 0.5) / 12;
+keep = [1 2 3 5 6 8];
+ref = shSeries(Cs(:, :, keep), Ss = Ss(:, :, keep), Epochs = ep(keep));
+br = shSeries(0.9 * Cs + 1e-11 * tril(ones(5)), Ss = 0.9 * Ss, Epochs = ep);
+end

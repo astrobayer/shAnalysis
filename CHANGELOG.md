@@ -1,5 +1,61 @@
 # Changelog
 
+## [5.12.0] - 2026-09-10 - WP5 5d: bridging the GRACE gaps
+
+A MINOR: new API - `shLowLevel.bridgeGaps` and `shSeries.bridgeGaps`.
+
+### Added
+- `shLowLevel.bridgeGaps(ref, bridge)` fills every month a reference
+  series lacks within its span from a second series, calibrated on the
+  months both have. Both are truncated to the lower nmax and smoothed with
+  a 750 km Gaussian (`RadiusKm`); per coefficient the offset between the
+  overlap means is removed; per degree a scale regresses the reference's
+  anomalies on the bridge's; a filled month is R0 + s_n (B - B0), and its
+  sigma is the overlap residual RMS of that degree. Filled months are
+  named "bridge:" plus their name in the bridge series, and
+  `info.bridged` marks them.
+- `ts.bridgeGaps(tsB)`, a thin delegate.
+- `parseGraceFilename` reads QuantumFrontiers-style monthly names,
+  `..._YYYY_MM`, so the HLSST+SLR series at ICGEM gets its epochs in
+  `shSeries.read`.
+- `tools/dev/validate_bridge.py`: the method written out, a small case the
+  tests pin, the identity case, and - on a synthetic series with held-out
+  months - a scale that halves the fill error and a predicted sigma that
+  matches the actual one (0.98).
+- `testBridgeGapsAgainstGRACE` in testScience, opt-in, with the new
+  `SHX_BRIDGE_FOLDER` (or the `BridgeFolder` preference) and
+  `SHX_SERIES_FOLDER`.
+
+### Measured
+- **The two variants.** QuantumFrontiers HLSST_SLR_COMB2023s at ICGEM
+  (240 Kalman-filtered and 240 unfiltered monthly solutions, 2003-2022,
+  degree 60) against COST-G RL02.1 GSM, both at 750 km, over the 208
+  months both have: the fill's error over degrees 3-60 is 45 percent of
+  the GRACE signal for the Kalman variant (41 with the scale) and 92
+  percent for the unfiltered one (62). The unfiltered variant is
+  noise-dominated above degree 10 at this radius, so the Kalman variant
+  is the one to use.
+- **Held out and bridged back.** With TN-14 applied first, 35 of the 209
+  GRACE months inside the HLSST span were removed and filled: the error is
+  0.381 of the GRACE signal over degrees 3-60, and the actual error 1.03
+  times the predicted sigma. The HLSST formal sigmas are 3 to 6 times too
+  small at low degrees, which is why the sigma comes from the overlap.
+- **32 months are filled** on the full run: June 2003, the 2011-2017
+  battery-management months, July 2017 to May 2018, and August and
+  September 2018.
+- **Tide system.** COST-G's files are tide-free and HLSST's zero-tide; the
+  offset step takes up the 4.2e-9 difference in C20.
+
+### Data, outside the repository
+- HLSST_SLR_COMB2023s (both variants, 83 MB), fetched with the toolbox's
+  own `fetchICGEM` into the data pool's series folder.
+
+### Tests
+- 377 -> 381 runs: `testParseGraceFilenameQuantumFrontiersMonthly` and
+  `testBridgeGapsCalibration` in testCorrectness, `testBridgeGapsContract`
+  in testContract, and `testBridgeGapsAgainstGRACE` in testScience (opt-in,
+  so A8 now filters seven tests).
+
 ## [5.11.0] - 2026-09-10 - WP5 5a: the length of day, the IERS constants, a real-data check
 
 A MINOR: `Earth` defaults to the IERS Conventions (2010), and

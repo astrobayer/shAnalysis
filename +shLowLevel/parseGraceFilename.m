@@ -9,6 +9,9 @@ function meta = parseGraceFilename(filename)
 %   coverage span. Best-effort: fields are NaN/"unknown" when the pattern
 %   does not match (static models, renamed files); callers can always
 %   override via explicit options.
+%   Monthly and daily names outside that convention are read as well:
+%   ITSG's ..._YYYY-MM and ..._YYYY-MM-DD, and QuantumFrontiers'
+%   ..._YYYY_MM (the HLSST+SLR series at ICGEM, v5.12.0).
 %
 %   Inputs
 %     filename  char/string   path or bare filename
@@ -64,6 +67,17 @@ if isempty(tok)
             meta.epochStop  = y + mo / 12;
             meta.epoch      = y + (mo - 0.5) / 12;
             if startsWith(base, "ITSG"), meta.productType = "GSM"; end
+        end
+    end
+    % QuantumFrontiers-style monthly names: ..._YYYY_MM (v5.12.0), the
+    % HLSST+SLR series at ICGEM, e.g. ..._COMB2023s_unfiltered_2017_08
+    tok4 = regexp(base, '_(\d{4})_(\d{2})$', 'tokens', 'once');
+    if isempty(tok3) && ~isempty(tok4)
+        y = str2double(tok4{1}); mo = str2double(tok4{2});
+        if mo >= 1 && mo <= 12
+            meta.epochStart = y + (mo - 1) / 12;
+            meta.epochStop  = y + mo / 12;
+            meta.epoch      = y + (mo - 0.5) / 12;
         end
     end
     return

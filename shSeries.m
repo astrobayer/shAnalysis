@@ -2054,6 +2054,45 @@ methods
             fwd{:});
     end
 
+    function [out, info] = bridgeGaps(obj, bridge, opts)
+        %BRIDGEGAPS Fill the months this series lacks from a second series.
+        %   [OUT, INFO] = ts.bridgeGaps(TSB) is shLowLevel.bridgeGaps(ts,
+        %   TSB): it fills every month ts lacks within its span from the
+        %   series TSB, calibrated on the months both have - an offset, a
+        %   per-degree scale and a per-degree sigma - and names each filled
+        %   month "bridge:" plus its name in TSB. Both series are truncated
+        %   to the lower nmax and smoothed with a 750 km Gaussian unless
+        %   told otherwise; shLowLevel.bridgeGaps documents the method, what
+        %   it was measured to do on GRACE and HLSST, and why TN-14 comes
+        %   first.
+        %
+        %   Inputs
+        %     bridge  (1,1) shSeries  the series that fills the gaps
+        %
+        %   Outputs
+        %     out   (1,1) shSeries  this series' months and the filled ones
+        %     info  (1,1) struct  as returned by shLowLevel.bridgeGaps, which
+        %           documents every field
+        %
+        %   Options
+        %     RadiusKm (lane default)  Gaussian radius [km]; 0 for none
+        %     Tolerance (lane default)  month matching [yr]
+        %     MinOverlap (lane default)  the fewest matched months accepted
+        %
+        %   Example
+        %     ts = ts.applyTN14(tnFile);
+        %     [tsF, info] = ts.bridgeGaps(hlsst);
+        arguments
+            obj
+            bridge
+            opts.RadiusKm
+            opts.Tolerance
+            opts.MinOverlap
+        end
+        args = namedargs2cell(opts);
+        [out, info] = shLowLevel.bridgeGaps(obj, bridge, args{:});
+    end
+
     function [tbl, info] = excitation(obj, opts)
         %EXCITATION Earth-rotation excitation of the series' degree-2 terms.
         %   [TBL, INFO] = ts.excitation(Earth = E, kn = KN) runs
