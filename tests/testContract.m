@@ -2912,3 +2912,33 @@ keep = [1 2 3 5 6 8];
 ref = shSeries(Cs(:, :, keep), Ss = Ss(:, :, keep), Epochs = ep(keep));
 br = shSeries(0.9 * Cs + 1e-11 * tril(ones(5)), Ss = 0.9 * Ss, Epochs = ep);
 end
+
+% ------------------------------------------------ A30: NaN in the analysis
+function testNaNNeverReachesAnAnalysis(testCase)
+%TESTNANNEVERREACHESANANALYSIS A30. One NaN in a grid reaches every
+%   coefficient of shAnalysisGrid, so the lane refuses it, in both of its
+%   layouts; and the two lanes that fed it NaN refuse under their own
+%   identifiers - leakageCorrect without a Mask (it reported 'diverged'),
+%   gridScaling with a NaN model (it returned no finite k, silently).
+%   leakageCorrect's tolerance of NaN outside both regions with a Mask
+%   stays pinned in testLeakageCorrectRejectsNaNInsideMask.
+lat = linspace(-89, 89, 33);
+lon = (0:33) * (360 / 34);
+[LO, LA] = meshgrid(lon, lat);
+disc = cosd(LA) .* cosd(LO - 40) >= cosd(20);
+field = 0.1 * disc + 0.02 * cosd(LA) .* sind(2 * LO);
+bad = field;
+bad(LA < -60) = NaN;
+verifyError(testCase, @() shLowLevel.shAnalysisGrid(bad, lat, lon, 16), ...
+    'shLowLevel:shAnalysisGrid:nanInGrid');
+verifyError(testCase, @() shLowLevel.shAnalysisGrid(bad(:), LA(:), LO(:), 4, ...
+    Method = "ls"), 'shLowLevel:shAnalysisGrid:nanInGrid');
+res = cosd(LA) .* cosd(LO - 40) >= cosd(45);
+verifyError(testCase, @() shLowLevel.leakageCorrect(bad, lat, lon, ...
+    ResidualRegion = res, MaxIter = 5, NoiseLevel = 1e-3, Quiet = true), ...
+    'shLowLevel:leakageCorrect:nanInput');
+model = repmat(field, 1, 1, 12);
+model(repmat(LA < -60, 1, 1, 12)) = NaN;
+verifyError(testCase, @() shLowLevel.gridScaling(model, lat, lon, Quiet = true), ...
+    'shLowLevel:gridScaling:nanInput');
+end

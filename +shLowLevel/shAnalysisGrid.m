@@ -70,6 +70,8 @@ function [C, S, info] = shAnalysisGrid(grid, latVec, lonVec, nmax, opts)
 %     shLowLevel:shAnalysisGrid:badGrid
 %         the rings method needs a uniform full-circle longitude vector
 %         with nlon > 2*nmax, or the orders alias
+%     shLowLevel:shAnalysisGrid:nanInGrid
+%         GRID holds NaN or Inf, which would reach every coefficient
 %     shLowLevel:shAnalysisGrid:badInput
 %         GRID is neither numel(lat) x numel(lon) nor a vector matching the
 %         lat/lon point lists; Method="rings" got a scattered set; or
@@ -135,6 +137,16 @@ if method == "ls" && isRing                    % flatten the ring grid
     [LO, LA] = meshgrid(lon, lat);
     lat = LA(:); lon = LO(:); grid = grid(:);
     isScat = true; %#ok<NASGU>
+end
+
+% one NaN in the grid reaches every coefficient: each is a sum over all
+% of it (A30)
+if ~all(isfinite(grid(:)))
+    error('shLowLevel:shAnalysisGrid:nanInGrid', ...
+        ['GRID holds %d non-finite value(s). Every coefficient is a sum ' ...
+         'over all of it, so one NaN reaches them all: fill or drop ' ...
+         'them first (shCoefficients.analysis takes Fill =).'], ...
+        nnz(~isfinite(grid)));
 end
 
 latRad = deg2rad(lat); lonRad = deg2rad(lon);

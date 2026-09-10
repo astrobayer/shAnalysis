@@ -109,7 +109,7 @@ class TestCounting(unittest.TestCase):
         self.assertEqual(c["runs"], c["methods"])
 
 
-EXPECTED_RUNS = 381          # v5.12.0: 377 + the parser, two bridgeGaps tests, the HLSST check
+EXPECTED_RUNS = 382          # v5.12.1: 381 + the A30 NaN refusals
                              # (5 correctness, 4 contract, 2 robustness)
 
 
