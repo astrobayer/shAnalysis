@@ -1547,3 +1547,42 @@ v = shLowLevel.shSynthesis(C, S, GM, R, 90, lon, Quantity = "potential", ...
     Surface = "ellipsoid");
 verifyLessThan(testCase, max(abs(v - v(1))) / abs(v(1)), 1e-12);
 end
+
+% ------------------------------------------ WP5 5e: a real CF grid
+function testReadGridOnTheGravISGrid(testCase)
+%TESTREADGRIDONTHEGRAVISGRID the GravIS Level-3 TWS grid, read independently
+%   by scipy in validate_readgrid.py CLAIM 3: the axes, the epochs, the
+%   ocean NaN and four land cells, the same stored doubles; then into
+%   analysis, which refuses the NaN until Fill is given. Opt-in, as the
+%   other real-data tests: the grid is 470 MB and does not ship.
+gf = getenv('SHX_GRAVIS_FOLDER');
+if isempty(gf), gf = getpref('shAnalysis', 'GravisFolder', ''); end
+f = fullfile(gf, 'GRAVIS-3_GFZOP_0600_TWS_GRID_GFZ_0006.nc');
+assumeTrue(testCase, isfile(f), ['set SHX_GRAVIS_FOLDER (or the ' ...
+    'GravisFolder preference) to a folder holding ' ...
+    'GRAVIS-3_GFZOP_0600_TWS_GRID_GFZ_0006.nc']);
+[tws, lat, lon, info] = shLowLevel.readGrid(f, Var = "tws");
+verifyEqual(testCase, size(tws), [180 360 256]);
+verifyEqual(testCase, [lat(1) lat(end) lon(1) lon(end)], [89.5 -89.5 0.5 359.5]);
+verifyEqual(testCase, info.units, "cm");
+verifyEqual(testCase, nnz(isnan(tws(:, :, 1))), 50090);
+% the oracle prints the epochs to 12 decimals
+verifyEqual(testCase, info.epochs([1 end]), ...
+    [2002.293949739980; 2026.287671232877], 'AbsTol', 1e-12);
+pins = [ -3.5 299.5  38.0889525086834  45.4425198018684
+          0.5  20.5  -4.34974389344529 -2.20421046756647
+         61.5  99.5  14.1325393794519  10.5241995489841
+         45.5  10.5   6.95832556320998 -6.57850620081513];
+for k = 1:size(pins, 1)
+    i = find(lat == pins(k, 1));
+    j = find(lon == pins(k, 2));
+    % the oracle prints 15 significant digits of the same stored doubles
+    verifyEqual(testCase, squeeze(tws(i, j, [1 end]))', pins(k, 3:4), ...
+        'RelTol', 1e-14);
+end
+verifyError(testCase, @() shCoefficients.analysis(tws(:, :, 1) / 100, lat, ...
+    lon, 30, LatType = "geodetic"), 'shCoefficients:analysis:nanInGrid');
+g = shCoefficients.analysis(tws(:, :, 1) / 100, lat, lon, 30, ...
+    LatType = "geodetic", Fill = 0);
+verifyTrue(testCase, all(isfinite([g.C(:); g.S(:)])));
+end

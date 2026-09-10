@@ -2668,3 +2668,92 @@ verifyError(testCase, @() shLowLevel.oceanChain(nf, kn = kn), ...
 verifyError(testCase, @() shLowLevel.obpChain(nf, kn = kn, GADFolder = nf), ...
     'shLowLevel:obpChain:noOcean');
 end
+
+% ------------------------------------------ WP5 5e: readGrid and analysis' Fill
+function testReadGridContract(testCase)
+%TESTREADGRIDCONTRACT every refusal of readGrid, each on a file built to
+%   provoke it and nothing else.
+verifyError(testCase, @() shLowLevel.readGrid([tempname, '.nc']), ...
+    'shLowLevel:readGrid:fileNotFound');
+d = tempname;
+mkdir(d);
+c = onCleanup(@() rmIfFolder(d));
+nf = @(n) fullfile(d, n + ".nc");
+% no coordinates at all
+f = nf("nocoord");
+nccreate(f, 'q', 'Dimensions', {'n', 3});
+verifyError(testCase, @() shLowLevel.readGrid(f), 'shLowLevel:readGrid:noCoordinates');
+% a grid holding two fields, a time axis in months, a calendar without leap years
+f = nf("two");
+wgrid(f, 'days since 2002-01-01', "");
+nccreate(f, 'b', 'Dimensions', {'lat', 3, 'lon', 4});
+verifyError(testCase, @() shLowLevel.readGrid(f), 'shLowLevel:readGrid:whichVar');
+verifyError(testCase, @() shLowLevel.readGrid(f, Var = "nope"), 'shLowLevel:readGrid:noVar');
+f = nf("months");
+wgrid(f, 'months since 2002-01', "");
+verifyError(testCase, @() shLowLevel.readGrid(f), 'shLowLevel:readGrid:badTimeUnits');
+f = nf("noleap");
+wgrid(f, 'days since 2002-01-01', "noleap");
+verifyError(testCase, @() shLowLevel.readGrid(f), 'shLowLevel:readGrid:badCalendar');
+% coordinates, but nothing on them
+f = nf("nodata");
+wcoords(f);
+nccreate(f, 'q', 'Dimensions', {'n', 3});
+verifyError(testCase, @() shLowLevel.readGrid(f), 'shLowLevel:readGrid:noData');
+% a third axis without a coordinate variable, and a fourth axis
+f = nf("band");
+wcoords(f);
+nccreate(f, 'a', 'Dimensions', {'lat', 3, 'lon', 4, 'band', 2});
+verifyError(testCase, @() shLowLevel.readGrid(f), 'shLowLevel:readGrid:noTimeUnits');
+f = nf("fourd");
+wcoords(f);
+nccreate(f, 'a', 'Dimensions', {'lat', 3, 'lon', 4, 'band', 2, 'time', 1});
+verifyError(testCase, @() shLowLevel.readGrid(f), 'shLowLevel:readGrid:badDims');
+end
+
+function wcoords(f)
+%WCOORDS lat (3) and lon (4) coordinates for the readGrid contract files.
+nccreate(f, 'lat', 'Dimensions', {'lat', 3});
+ncwrite(f, 'lat', [-30; 0; 30]);
+ncwriteatt(f, 'lat', 'units', 'degrees_north');
+nccreate(f, 'lon', 'Dimensions', {'lon', 4});
+ncwrite(f, 'lon', [0; 90; 180; 270]);
+ncwriteatt(f, 'lon', 'units', 'degrees_east');
+end
+
+function wgrid(f, timeUnits, calendar)
+%WGRID a (lat, lon, time) field 'a' with the given time units and calendar.
+wcoords(f);
+nccreate(f, 'time', 'Dimensions', {'time', 2});
+ncwrite(f, 'time', [0; 1]);
+ncwriteatt(f, 'time', 'units', timeUnits);
+if strlength(calendar) > 0
+    ncwriteatt(f, 'time', 'calendar', char(calendar));
+end
+nccreate(f, 'a', 'Dimensions', {'lat', 3, 'lon', 4, 'time', 2});
+end
+
+function testAnalysisRefusesNaNUntilToldWhatTheyMean(testCase)
+%TESTANALYSISREFUSESNANUNTILTOLDWHATTHEYMEAN a grid with NaN used to reach
+%   every coefficient without an error. analysis now refuses it until Fill
+%   says what the gaps mean - and with Fill it is exactly the analysis of
+%   the filled grid, while Fill changes nothing on a grid without NaN.
+lat = -85:10:85;
+lon = 0:10:350;
+[LO, LA] = meshgrid(lon, lat);
+G = sind(LA) .* cosd(LO) + 0.1;
+Gn = G;
+Gn(LA > 60 & LO < 90) = NaN;
+verifyError(testCase, @() shCoefficients.analysis(Gn, lat, lon, 8), ...
+    'shCoefficients:analysis:nanInGrid');
+a = shCoefficients.analysis(Gn, lat, lon, 8, Fill = 0);
+Gz = Gn;
+Gz(isnan(Gz)) = 0;
+b = shCoefficients.analysis(Gz, lat, lon, 8);
+verifyTrue(testCase, isequal(a.C, b.C) && isequal(a.S, b.S), ...
+    'Fill = 0 is not the analysis of the zero-filled grid');
+p = shCoefficients.analysis(G, lat, lon, 8, Fill = 5);
+q = shCoefficients.analysis(G, lat, lon, 8);
+verifyTrue(testCase, isequal(p.C, q.C) && isequal(p.S, q.S), ...
+    'Fill changed a grid that holds no NaN');
+end

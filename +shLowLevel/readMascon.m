@@ -94,17 +94,15 @@ tu = localAtt(info, vT, 'units');
 assert(~isempty(tu), 'shLowLevel:readMascon:noTimeUnits', ...
     ['Time variable ''%s'' carries no units attribute - cannot convert ' ...
      'to decimal years. Read the file with ncread and convert manually.'], vT);
-tok = regexp(char(tu), 'days\s+since\s+(\d{4})-(\d{2})-(\d{2})', 'tokens', 'once');
-if isempty(tok)
+% the toolbox's one CF time decoder, shared with readGrid since v5.8.0 -
+% the pattern this reader had of its own took two-digit months only
+[ep, why] = cfTimeToYears(tRaw, tu);
+if why ~= ""
     error('shLowLevel:readMascon:unknownTimeUnits', ...
-        ['Time units "%s" not recognized (expected "days since ' ...
-         'YYYY-MM-DD..."). Refusing to guess: returning the raw values ' ...
-         'as decimal years once shipped raw days silently.'], char(tu));
+        ['%s. Refusing to guess: returning the raw values as decimal ' ...
+         'years once shipped raw days silently.'], why);
 end
-t0 = datetime(str2double(tok{1}), str2double(tok{2}), str2double(tok{3}));
-tt = t0 + days(tRaw);
-y0 = dateshift(tt, 'start', 'year');
-mas.epoch = year(tt) + days(tt - y0) ./ days(y0 + calyears(1) - y0);
+mas.epoch = ep;
 E = double(ncread(filename, vE));
 % normalize to (lat, lon, time) by DIMENSION NAME, not by size: a size
 % heuristic cannot disambiguate a square grid (nlat == nlon) and would

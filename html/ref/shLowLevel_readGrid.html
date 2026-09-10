@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shLowLevel.readGrid &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shLowLevel.readGrid</nav>
+<h1>shLowLevel.readGrid</h1>
+<p class="h1line">Read a gridded field or stack from a CF netCDF file.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>[grid, latDeg, lonDeg, info] = shLowLevel.readGrid(filename)</code><code>[grid, latDeg, lonDeg, info] = shLowLevel.readGrid(filename, Var=&quot;&quot;)</code></div>
+<h2>Description</h2>
+<p>[GRID, LAT, LON, INFO] = shLowLevel.readGrid(FILE) reads the one latitude-longitude field in FILE - a 2-D grid, or a 3-D stack with a time axis - and returns it in the toolbox&#x27;s layout: GRID is (nlat x nlon) or (nlat x nlon x T), LAT and LON are column vectors [deg], and INFO.epochs holds the epochs as decimal years. It is the inverse of <a href="shLowLevel_writeGrid.html"><code>shLowLevel.writeGrid</code></a>, and it reads CF grids from elsewhere too - hydrological models, GravIS Level-3 grids - so that they can enter <a href="shCoefficients_analysis.html"><code>shCoefficients.analysis</code></a>. [...] = shLowLevel.readGrid(FILE, Var = NAME) names the variable when the file holds several on the grid, as GravIS grids do (tws, std_tws, leakage, model_atmosphere).</p>
+<h2>Examples</h2>
+<details class="example"><summary>From the help block</summary><div><pre><code>    f = fullfile(getpref(&#x27;shAnalysis&#x27;, &#x27;GravisFolder&#x27;), ...
+        &#x27;GRAVIS-3_GFZOP_0600_TWS_GRID_GFZ_0006.nc&#x27;);
+    [tws, lat, lon, info] = shLowLevel.readGrid(f, Var = &quot;tws&quot;);  % cm
+    g = shCoefficients.analysis(tws(:, :, 1) / 100, lat, lon, 60, ...
+        Quantity = &quot;ewh&quot;, kn = kn, LatType = &quot;geodetic&quot;, Fill = 0);
+
+  See also shLowLevel.writeGrid, shLowLevel.readMascon,
+  shCoefficients.analysis.</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>filename</code></td><td>n x m</td><td>-</td><td><code>required</code></td><td class="desc">char/string  path of the .nc file</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>Var</code></td><td>1 x 1</td><td>string</td><td><code>&quot;&quot;</code></td><td class="desc">the variable to read; &quot;&quot; reads the only variable on the latitude-longitude grid, and refuses when there are several</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>grid</code></td><td class="desc">(nlat x nlon) or (nlat x nlon x T) double  the field, NaN where the file has no value</td></tr><tr><td><code>latDeg</code></td><td class="desc">(nlat,1) double  latitudes [deg], in the file&#x27;s order</td></tr><tr><td><code>lonDeg</code></td><td class="desc">(nlon,1) double  longitudes [deg], 0..360, ascending</td></tr><tr><td><code>info</code></td><td class="desc">(1,1) struct  fields var          (1,1) string  the variable read units        (1,1) string  its units attribute (&quot;&quot; if none) longName     (1,1) string  its long_name attribute (&quot;&quot; if none) latType      (1,1) string  the lat_type attribute writeGrid stores; &quot;&quot; when the file does not say epochs       (T,1) double  epochs [decimal years]; [] for a 2-D grid timeUnits    (1,1) string  the time axis&#x27; units; &quot;&quot; for 2-D calendar     (1,1) string  its calendar attribute (&quot;&quot; if none) conventions  (1,1) string  the global Conventions attribute title        (1,1) string  the global title attribute file         (1,1) string  the file read</td></tr></table>
+<h2>Error Identifiers</h2>
+<table><tr><th>Identifier</th><th>Raised when</th></tr><tr><td><code>shLowLevel:readGrid:fileNotFound</code></td><td class="desc">FILE does not exist</td></tr><tr><td><code>shLowLevel:readGrid:noCoordinates</code></td><td class="desc">no 1-D latitude or longitude coordinate - not a regular grid</td></tr><tr><td><code>shLowLevel:readGrid:noVar</code></td><td class="desc">Var names no variable in the file</td></tr><tr><td><code>shLowLevel:readGrid:noData</code></td><td class="desc">no variable lies on the latitude-longitude grid</td></tr><tr><td><code>shLowLevel:readGrid:whichVar</code></td><td class="desc">several variables do and Var was not given</td></tr><tr><td><code>shLowLevel:readGrid:badDims</code></td><td class="desc">the variable has dimensions other than latitude, longitude and one time axis</td></tr><tr><td><code>shLowLevel:readGrid:noTimeUnits</code></td><td class="desc">the third axis has no coordinate variable with a units attribute</td></tr><tr><td><code>shLowLevel:readGrid:badTimeUnits</code></td><td class="desc">its units are not &quot;&lt;unit&gt; since &lt;date&gt;&quot;</td></tr><tr><td><code>shLowLevel:readGrid:badCalendar</code></td><td class="desc">its calendar is not a standard (Gregorian) one</td></tr></table>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<ul class="seealso"><li><a href="shLowLevel_writeGrid.html"><code>shLowLevel.writeGrid</code></a></li><li><a href="shLowLevel_readMascon.html"><code>shLowLevel.readMascon</code></a></li><li><a href="shCoefficients_analysis.html"><code>shCoefficients.analysis</code></a></li></ul>
+<p class="prov">shAnalysis v5.8.0 (10-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

@@ -1,5 +1,62 @@
 # Changelog
 
+## [5.8.0] - 2026-09-10 - WP5 5e: CF grids in, and analysis refuses NaN
+
+A MINOR: new API - `shLowLevel.readGrid`, and `Fill` on
+`shCoefficients.analysis`.
+
+### Added
+- `shLowLevel.readGrid(file, Var = ...)` reads a latitude-longitude field
+  or stack from a CF netCDF file into the toolbox's layout -
+  (nlat x nlon [x T]), longitudes 0..360 ascending, epochs as decimal
+  years. It is the inverse of `writeGrid` and the way in for grids from
+  elsewhere: hydrological models, GravIS Level-3 grids. Dimensions are
+  found by name and coordinates by their standard name or units, in any
+  order; latitudes keep the file's order; fill values become NaN, as
+  `ncread` applies them. The latitude type is reported, never assumed:
+  `writeGrid` records `lat_type`, and a grid from elsewhere reports "" -
+  by convention those are geodetic, so pass `LatType = "geodetic"` to
+  `analysis`.
+- `shCoefficients.analysis(..., Fill = value)`. A grid holding NaN - a
+  land-only model grid, a masked field - used to reach every coefficient
+  without an error. `analysis` now refuses it
+  (`shCoefficients:analysis:nanInGrid`) until `Fill` says what the gaps
+  mean. With `Fill` it is bitwise the analysis of the filled grid; on a
+  grid without NaN it changes nothing.
+- `tools/dev/validate_readgrid.py`: an independent CF time decoder
+  (Python's datetime) and an independent read of the GravIS grid (scipy),
+  pinning the values the tests check.
+
+### Changed
+- **One CF time decoder.** `readMascon` had a pattern of its own that read
+  `days since YYYY-MM-DD` with two-digit months only, and so refused
+  GravIS's `days since 2002-4-18 00:00:00`. Both readers now call one
+  private decoder: days, hours, minutes or seconds, one- or two-digit
+  fields, an optional clock time. On the real CSR mascon file
+  `readMascon`'s output is bitwise unchanged - captured before the edit:
+  the epochs, the axes, the units, a sample of the values, their sum and
+  their NaN count. A reference time with a non-zero clock was read at
+  midnight before; it is read at the stated time now.
+
+### Measured
+- **The GravIS TWS grid** `GRAVIS-3_GFZOP_0600_TWS_GRID_GFZ_0006.nc`, this
+  row's real file (a GLDAS file needs an Earthdata login): `readGrid` and
+  scipy give the same stored doubles at four land cells, 50,090 NaN - the
+  ocean - in the first epoch, and 256 epochs from 2002.29 to 2026.29. It
+  then enters `analysis` with `Fill = 0`.
+- **A MATLAB behaviour the oracle could not see.** `regexp(..., 'tokens',
+  'once')` DROPS the tokens of an optional group that did not take part,
+  instead of returning them empty, so the decoder's first draft failed on
+  the CSR file, whose time units carry no clock. Python's `re` returns
+  `None` for such a group; the capture on the real file is what found it.
+
+### Tests
+- 365 -> 371 runs: three in `testCorrectness` (the `writeGrid` round trip;
+  any dimension order and longitude range; one time decoder for both
+  readers), two in `testContract` (`readGrid`'s nine refusals; `Fill`),
+  and one real-file test in `testRobustness`. That one is skipped without
+  the GravIS folder, so A8 now skips five tests, not four.
+
 ## [5.7.1] - 2026-09-10 - A28, A26, and a guide PDF git no longer rewrites
 
 A PATCH: three fixes. One new error identifier per ocean chain, on a path

@@ -1642,11 +1642,20 @@ methods (Static)
         %     GM (3.986004415e14), R (6378136.3), Epoch (NaN)  stored on
         %         the returned object
         %     Name ("analysis")  (1 x 1) string stored as the object name
+        %     Fill (NaN)  the value that replaces NaN in GRID - e.g. 0 where a
+        %         land-only grid has no ocean value. NaN, the default,
+        %         refuses a grid that holds NaN: what the gaps mean is the
+        %         caller's call, and NaN would otherwise reach every
+        %         coefficient without an error (v5.8.0)
         %
         %   Outputs
         %     obj        (1 x 1) shCoefficients   Stokes coefficients estimated from the grid (exact on ring grids; Kaula for scattered points)
         %     info       (1,1) struct   the estimation diagnostics, as
         %                returned by shLowLevel.shAnalysisGrid
+        %
+        %   Error identifiers
+        %     shCoefficients:analysis:nanInGrid
+        %         GRID holds NaN and no Fill was given
         %
         arguments
             grid double
@@ -1668,6 +1677,17 @@ methods (Static)
             opts.LatType (1,1) string ...
                 {mustBeMember(opts.LatType, ["geocentric","geodetic"])} = "geocentric"
             opts.Flattening (1,1) double = 1/298.257223563
+            opts.Fill (1,1) double = NaN
+        end
+        nNaN = nnz(isnan(grid));
+        if nNaN > 0
+            if isnan(opts.Fill)
+                error('shCoefficients:analysis:nanInGrid', ...
+                    ['GRID holds %d NaN value(s) - a land-only or masked ' ...
+                     'grid. analysis will not decide what they mean: pass ' ...
+                     'Fill = value (0 for "no mass there").'], nNaN);
+            end
+            grid(isnan(grid)) = opts.Fill;
         end
         if opts.LatType == "geodetic"
             latVec = shLowLevel.geodetic2geocentric(latVec, ...
