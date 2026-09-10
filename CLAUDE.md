@@ -471,14 +471,14 @@ proposal stays below as the record.
   inversion) plus one published station series comparison.
 - **Size**: XL. **Version**: MINOR (new API; nothing existing changes).
 
-### WP5 — Geoscience add-ons (C3–C7)   `[ ] approved` (tick per row)
+### WP5 — Geoscience add-ons (C3–C7)   `[~] rows 5a, 5d, 5e and the 5b follow-on (method of scale) approved 2026-09-10` (tick per row)
 | Row | Function | Oracle | Size |
 |---|---|---|---|
-| 5a `[ ]` | `shSeries.excitation(kn=…, Convention=…) → table(t, chi1, chi2, dLOD)` from C21/S21/C20 with the IERS 2010 conventions and the Love-number/frame factors; input in the pole-tide convention `poleTideConvert` knows | Chen & Wilson formulas; a published GRACE excitation series | S–M |
+| 5a `[x]` approved 2026-09-10; equations from Chen & Wilson (2003, GRL), supplied | `shSeries.excitation(kn=…, Convention=…) → table(t, chi1, chi2, dLOD)` from C21/S21/C20 with the IERS 2010 conventions and the Love-number/frame factors; input in the pole-tide convention `poleTideConvert` knows | Chen & Wilson formulas; a published GRACE excitation series | S–M |
 | 5b `[x]` **DONE v5.4.0** | `shLowLevel.leakageDataDriven(gridSeries, latDeg, lonDeg, Mask=, Filter=)` - Vishwakarma's method of deviation. **Unblocked by Matthias supplying the author's PhD thesis** (chapter 3, eqs. 3.19-3.29) on 2026-09-09; the row had been STOPPED because the equations were unreachable, and that block was real - two details decide whether the method works and neither is guessable: the deviation integral is weighted by the FILTERED catchment function, and the leakage extrapolation corrects a PHASE while the deviation integral deliberately gets none. Oracle `tools/dev/validate_leakage_datadriven.py`: decomposition closes to 4.3e-15, filter self-adjointness 5.0e-16, phase measure/shift are mutual inverses to 7.1e-15 deg, closed loop removes 63% of the damage (MATLAB 55.3% on the `testCorrectness` fixture, whose grid and basin geometry differ). Three deviations from this row's sketch, all recorded in the changelog: `Filter=` not `Radius=` (matches `leakageCorrect`), a grid stack not an `shSeries` (a class method is WP7), and NOT `leakageCorrect`'s `info` layout - the two return different things, a corrected field against a corrected series. | thesis eqs. + closed loop | M |
 | 5c `[x]` **DONE v5.2.0** (the row was never ticked when it shipped; corrected in v5.4.1) | `removeGIA(gia, Sigma=…)` accepting a σ field; σ propagated into `basinAverage` sigmas and `mcPropagate` | analytic vs MC on a synthetic ensemble | S |
-| 5d `[ ]` | Swarm: `fetchICGEM` Swarm series read and `combineCenters`-style rescaling to GRACE noise for 2017-07..2018-05; `shSeries.select` gap policy | published Swarm-vs-GRACE degree-RMS ratio | M |
-| 5e `[ ]` | `shLowLevel.readGrid(ncfile, Var=…)` (netCDF → grid + metadata, inverse of `writeGrid`) so GLDAS/WGHM enter `shCoefficients.analysis` | `writeGrid` roundtrip; one GLDAS file | S |
+| 5d `[x]` approved 2026-09-10; the Swarm method is still to be settled | Swarm: `fetchICGEM` Swarm series read and `combineCenters`-style rescaling to GRACE noise for 2017-07..2018-05; `shSeries.select` gap policy | published Swarm-vs-GRACE degree-RMS ratio | M |
+| 5e `[x]` approved 2026-09-10 | `shLowLevel.readGrid(ncfile, Var=…)` (netCDF → grid + metadata, inverse of `writeGrid`) so GLDAS/WGHM enter `shCoefficients.analysis` | `writeGrid` roundtrip; one GLDAS file | S |
 Version: MINOR per approved row.
 
 ### WP6 — Documentation to the MathWorks layout   `[~] STAGES 1-2 DONE in v3.34.0`
@@ -597,6 +597,15 @@ of 125.
 ## 6. Records
 
 ### 6.1 Decisions (append-only; date, decision, evidence)
+- 2026-09-10 — **WP5 rows 5a, 5d, 5e and the 5b follow-on (the method
+  of scale) approved** (Matthias: "Chen and Wilson paper is attached. For
+  everything else, continue as suggested."). Order: 5e, the method of
+  scale, 5a, 5d, one PR each. Adopted with the recommendations: the
+  GravIS L3 TWS grid is 5e's real file instead of GLDAS (whose download
+  needs an Earthdata login); `analysis` refuses NaN unless a fill value
+  is given; the method of scale is `Method = "deviation" | "scale"` on
+  `leakageDataDriven`; 5a returns mas and ms and refuses dLOD without the
+  TN-14 C20. 5d's method stays open until Matthias settles it.
 - 2026-09-10 — **WP4 moved out of shAnalysis, to a GNSS toolbox of its
   own** (Matthias: "This sounds a lot like a toolbox by itself. GNSS
   data need preprocessing." ... "Inversion and joint combination shall
@@ -1777,7 +1786,7 @@ internet, which unblocks all three stuck items at once:
    machinery plus a geometric factor, and would be a third leakage
    method on `shSeries`.
 6. **B1 (packed Legendre)** remains the weaker WP2 step-2 candidate.
-7. **WP5 5a/5d/5e** wait on data or a policy decision from Matthias. **WP4 is moved out** to a separate GNSS toolbox (2026-09-10); do not start it here.
+7. **WP5 5a, 5d, 5e and the method of scale** approved 2026-09-10, in progress in that order (5e on `wp5-5e-readgrid`). **WP4 is moved out** to a separate GNSS toolbox (2026-09-10); do not start it here.
 
 **What a Tier-A session should know about running the suite here.** The
 MATLAB MCP tool times out on anything suite-sized. Run it detached and
