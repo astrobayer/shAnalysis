@@ -1,5 +1,50 @@
 # Changelog
 
+## [5.10.0] - 2026-09-10 - WP5 5a: Earth-rotation excitation
+
+A MINOR: new API - `shLowLevel.rotationExcitation` and `shSeries.excitation`.
+
+### Added
+- `shLowLevel.rotationExcitation(C21, S21, Earth = E, kn = kn)`: the
+  mass-load excitation of polar motion that the degree-2, order-1
+  coefficients carry - Chen & Wilson (2003) eq. (1), solved for the
+  excitation. chi1 and chi2 come in mas; with `C20 = ...` it adds chi3,
+  the axial excitation. The changes are taken about the series mean
+  (`Reference = "mean"`), or the input is taken as changes (`"none"`).
+  The factors 1.098 and 0.753 are the paper's (after Eubanks 1993) and
+  are options.
+- `ts.excitation(Earth = E, kn = kn)`: the lane on the series' C21 and
+  S21, as a table of t, chi1 and chi2. With `TN14 = table` it replaces
+  C20 from TN-14 first and adds chi3. Without it the axial term is left
+  out: GRACE determines C20 worst of all its coefficients, and a series
+  cannot tell whether its C20 was already replaced.
+- `tools/dev/validate_excitation.py`: eq. (1) as printed and solved,
+  written independently of the MATLAB code. The inverse pair closes to
+  2.4e-16; the unit responses it prints are what the tests pin.
+
+### Not done, and why
+- **The Earth's constants are required inputs, with no defaults.** Chen
+  & Wilson give no values for M, R, C and A, and the toolbox hardcodes no
+  physical constant, so the caller supplies them - as for the Love
+  numbers.
+- **No length-of-day change in ms.** The conversion of chi3 into a
+  length-of-day change is not in the paper the function is written from,
+  so chi3 is returned as eq. (1)'s dimensionless excitation until a
+  source for the conversion is at hand.
+- **No comparison with a published excitation series.** It needs the
+  atmospheric and oceanic angular momentum (ESMGFZ) or a published GRACE
+  series, and neither is in the data pool.
+- chi1 and chi2 are in the frame of the coefficients, y towards 90 E,
+  which eq. (1) fixes; the IERS pole coordinate y points to 90 W. The
+  help says so, and there is no `Convention` option.
+
+### Tests
+- 373 -> 375 runs: `testRotationExcitationInvertsChenWilson` in
+  `testCorrectness` (the oracle's unit responses, the inverse pair against
+  eq. (1) as printed, mean removal) and `testRotationExcitationContract`
+  in `testContract` (six refusals, the bitwise delegate, and the axial
+  term only from a TN-14 C20).
+
 ## [5.9.0] - 2026-09-10 - WP5: the method of scale
 
 A MINOR: new API - `Method` on `shLowLevel.leakageDataDriven` and

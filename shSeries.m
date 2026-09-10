@@ -2054,6 +2054,74 @@ methods
             fwd{:});
     end
 
+    function [tbl, info] = excitation(obj, opts)
+        %EXCITATION Earth-rotation excitation of the series' degree-2 terms.
+        %   [TBL, INFO] = ts.excitation(Earth = E, kn = KN) runs
+        %   shLowLevel.rotationExcitation on the series' C21 and S21 -
+        %   Chen & Wilson (2003) eq. (1) solved for the excitation - and
+        %   returns one row per epoch: t [yr], chi1 and chi2 [mas].
+        %   shLowLevel.rotationExcitation documents the equation, the
+        %   frame of chi2 (towards 90 E, not the IERS pole's 90 W) and why
+        %   the Earth's constants are required.
+        %
+        %   [TBL, INFO] = ts.excitation(..., TN14 = TN) replaces C20 from
+        %   the TN-14 table first (ts.applyTN14) and adds chi3, the axial
+        %   excitation. Without TN14 the axial term is refused - left out
+        %   of the table - because GRACE determines C20 worst of all its
+        %   coefficients, and a series cannot tell whether its C20 was
+        %   replaced already. Passing TN14 makes it so either way.
+        %
+        %   Outputs
+        %     tbl   table  one row per epoch: t [yr], chi1 and chi2 [mas],
+        %           and chi3 (dimensionless) when TN14 is given
+        %     info  (1,1) struct  as returned by
+        %           shLowLevel.rotationExcitation, which documents every field
+        %
+        %   Options
+        %     Earth (required)  the Earth's M, R, C and A; see
+        %         shLowLevel.rotationExcitation
+        %     kn (required)  load Love numbers; kn(3) is k2'
+        %     TN14 ([])  a TN-14 file name or a shLowLevel.readTN14 struct;
+        %         gives chi3
+        %     Tolerance (applyTN14 default)  epoch matching for TN14 [yr]
+        %     Reference (lane default)  remove the series mean, or not
+        %     PolarFactor (lane default)  the 1.098 of eq. (1)
+        %     AxialFactor (lane default)  the 0.753 of eq. (1)
+        %
+        %   Example
+        %     tbl = ts.excitation(Earth = E, kn = kn, TN14 = tnFile);
+        arguments
+            obj
+            opts.Earth
+            opts.kn
+            opts.TN14 = []
+            opts.Tolerance
+            opts.Reference
+            opts.PolarFactor
+            opts.AxialFactor
+        end
+        src = obj;
+        fwd = rmfield(opts, intersect(fieldnames(opts), {'TN14', 'Tolerance'}));
+        if ~isempty(opts.TN14)
+            tnArgs = {};
+            if isfield(opts, 'Tolerance')
+                tnArgs = {'Tolerance', opts.Tolerance};
+            end
+            src = obj.applyTN14(opts.TN14, tnArgs{:});
+            fwd.C20 = squeeze(src.Cs(3, 1, :));
+        end
+        args = namedargs2cell(fwd);
+        [chi, info] = shLowLevel.rotationExcitation(squeeze(src.Cs(3, 2, :)), ...
+            squeeze(src.Ss(3, 2, :)), args{:});
+        tbl = table(obj.epochs, chi.chi1, chi.chi2, ...
+            'VariableNames', {'t', 'chi1', 'chi2'});
+        tbl.Properties.VariableUnits = {'yr', 'mas', 'mas'};
+        if ~isempty(chi.chi3)
+            tbl.chi3 = chi.chi3;
+            tbl.Properties.VariableUnits{end} = '1';
+        end
+    end
+
     function disp(obj)
         %DISP Compact display: months, span, gaps, processing history.
         %   disp(TS) prints the product type, the number of epochs, the

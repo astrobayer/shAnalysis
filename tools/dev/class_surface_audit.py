@@ -143,6 +143,7 @@ DELEGATES = {
     ("shSeries", "eof"): "eofAnalysis",
     ("shSeries", "leakageCorrect"): "leakageCorrect",
     ("shSeries", "leakageDataDriven"): "leakageDataDriven",
+    ("shSeries", "excitation"): "rotationExcitation",
     ("shCoefficients", "errorMap"): "errorMap",
     ("shCoefficients", "synthesisPoints"): "synthesisPoints",
     ("shCoefficients", "gradientTensor"): "shSynthesisGradientTensor",

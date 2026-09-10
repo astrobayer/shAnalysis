@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shLowLevel.rotationExcitation &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shLowLevel.rotationExcitation</nav>
+<h1>shLowLevel.rotationExcitation</h1>
+<p class="h1line">Earth-rotation excitation of the degree-2 coefficients.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>[chi, info] = shLowLevel.rotationExcitation(C21, S21)</code><code>[chi, info] = shLowLevel.rotationExcitation(C21, S21, Earth=[], kn=[], C20=[], ...)</code></div>
+<h2>Description</h2>
+<p>CHI = shLowLevel.rotationExcitation(C21, S21, Earth = E, kn = KN) is the mass-load excitation of polar motion that a series of degree-2, order-1 Stokes coefficients carries. It is Chen &amp; Wilson (2003) eq. (1) solved for the excitation:</p>
+<h2>Examples</h2>
+<details class="example"><summary>From the help block</summary><div><pre><code>    E = struct(&#x27;M&#x27;, M, &#x27;R&#x27;, Rmean, &#x27;C&#x27;, C, &#x27;A&#x27;, A);   % your constants
+    chi = shLowLevel.rotationExcitation(squeeze(ts.Cs(3, 2, :)), ...
+        squeeze(ts.Ss(3, 2, :)), Earth = E, kn = kn);</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>C21</code></td><td>: x 1</td><td>double</td><td><code>required</code></td><td class="desc">double  C21 at each epoch, 4-pi normalised</td></tr><tr><td><code>S21</code></td><td>: x 1</td><td>double</td><td><code>required</code></td><td class="desc">double  S21 at each epoch</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>Earth</code></td><td>n x m</td><td>-</td><td><code>[]</code></td><td class="desc">REQUIRED: a struct with fields M [kg], R [m], and C and A [kg m^2] - the Earth&#x27;s mass, mean radius and two principal moments of inertia, from a source of the caller&#x27;s choice</td></tr><tr><td><code>kn</code></td><td>n x m</td><td>double</td><td><code>[]</code></td><td class="desc">REQUIRED: load Love numbers, kn(1) degree 0; only kn(3), the degree-2 value, is used (readLoveNumbers)</td></tr><tr><td><code>C20</code></td><td>: x 1</td><td>double</td><td><code>[]</code></td><td class="desc">(T,1) double  C20 at each epoch; gives chi3. Pass the SLR value (TN-14), not GRACE&#x27;s own</td></tr><tr><td><code>Reference</code></td><td>1 x 1</td><td>string</td><td><code>&quot;mean&quot;</code></td><td class="desc">&quot;mean&quot; | &quot;none&quot;: remove each coefficient&#x27;s mean over the series, or take the input as changes</td></tr><tr><td><code>PolarFactor</code></td><td>1 x 1</td><td>double</td><td><code>1.098</code></td><td class="desc">the factor in the first two lines of eq. (1)</td></tr><tr><td><code>AxialFactor</code></td><td>1 x 1</td><td>double</td><td><code>0.753</code></td><td class="desc">the factor in the third line of eq. (1)</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>chi</code></td><td class="desc">(1,1) struct  the excitation, fields chi1         (T,1) double  polar-motion excitation along x [mas] chi2         (T,1) double  along y, towards 90 E [mas] chi3         (T,1) double  axial excitation, dimensionless; empty without C20</td></tr><tr><td><code>info</code></td><td class="desc">(1,1) struct  fields k2           (1,1) double  the load Love number used, kn(3) polarScale   (1,1) double  chi1 [mas] per unit dC21 (and chi2 per unit dS21) axialScale   (1,1) double  chi3 per unit dC20 removedMean  (1,3) double  the means of C21, S21 and C20 that were removed: zeros with Reference = &quot;none&quot;, NaN for C20 when it was not given</td></tr></table>
+<h2>Error Identifiers</h2>
+<table><tr><th>Identifier</th><th>Raised when</th></tr><tr><td><code>shLowLevel:rotationExcitation:noEarth</code></td><td class="desc">Earth was not given, or lacks one of M, R, C and A</td></tr><tr><td><code>shLowLevel:rotationExcitation:badEarth</code></td><td class="desc">a constant is not a positive finite scalar, or C does not exceed A</td></tr><tr><td><code>shLowLevel:rotationExcitation:missingLoveNumbers</code></td><td class="desc">kn was not given</td></tr><tr><td><code>shLowLevel:rotationExcitation:knTooShort</code></td><td class="desc">kn has no degree-2 entry</td></tr><tr><td><code>shLowLevel:rotationExcitation:badSize</code></td><td class="desc">C21, S21 and C20 do not hold one value per epoch each</td></tr><tr><td><code>shLowLevel:rotationExcitation:nanInput</code></td><td class="desc">an input holds NaN or Inf, which the mean cannot skip</td></tr></table>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<ul class="seealso"><li><a href="shSeries_excitation.html"><code>shSeries.excitation</code></a></li><li><a href="shLowLevel_readTN14.html"><code>shLowLevel.readTN14</code></a></li><li><a href="shLowLevel_poleTideConvert.html"><code>shLowLevel.poleTideConvert</code></a></li></ul>
+<p class="prov">shAnalysis v5.10.0 (10-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

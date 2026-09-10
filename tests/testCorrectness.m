@@ -4820,3 +4820,57 @@ verifyLessThan(testCase, errScale, 0.5 * errFiltered, sprintf( ...
     'the method of scale must beat doing nothing: filtered %.5f, scaled %.5f', ...
     errFiltered, errScale));
 end
+
+% ------------------------------------------------ WP5 5a: Earth rotation
+function testRotationExcitationInvertsChenWilson(testCase)
+%TESTROTATIONEXCITATIONINVERTSCHENWILSON rotationExcitation is Chen &
+%   Wilson (2003) eq. (1) solved for the excitation. Checked three ways:
+%   the unit responses against tools/dev/validate_excitation.py, which
+%   solves the equation independently; the inverse pair - eq. (1) as
+%   printed, written out here, turns the excitation into coefficient
+%   changes and the lane must return it; and a static field on every
+%   epoch changes nothing. The constants are the oracle's SYNTHETIC round
+%   numbers of the Earth's order: test inputs, not the Earth's constants.
+E = struct('M', 6.0e24, 'R', 6.4e6, 'C', 8.0e37, 'A', 7.97e37);
+kn = [0; 0.027; -0.301];
+% unit responses, pinned from the oracle's CLAIM 1: two evaluations of one
+% closed form that differ only in the order of the products, so 1e-14
+% bounds a few eps of round-off
+[u, info] = shLowLevel.rotationExcitation(1e-10, 1e-10, C20 = 1e-10, ...
+    Earth = E, kn = kn, Reference = "none");
+verifyEqual(testCase, u.chi1, -34.266095109520862, 'RelTol', 1e-14);
+verifyEqual(testCase, u.chi2, u.chi1);
+verifyEqual(testCase, u.chi3, -4.933245801278163e-10, 'RelTol', 1e-14);
+verifyEqual(testCase, info.k2, -0.301);
+
+% the inverse pair: eq. (1) as printed, from excitations to coefficients
+mas = 180 / pi * 3600e3;
+t = (0:23)' / 12;
+chi1 = 30 * cos(2*pi*t);
+chi2 = 20 * sin(2*pi*t + 0.4);
+chi3 = 5e-10 * cos(4*pi*t);
+k2 = kn(3);
+r2m = E.R^2 * E.M;
+dC21 = -(1 + k2) * sqrt(3/5) * (E.C - E.A) / (1.098 * r2m) * chi1 / mas;
+dS21 = -(1 + k2) * sqrt(3/5) * (E.C - E.A) / (1.098 * r2m) * chi2 / mas;
+dC20 = -(1 + k2) * 3 / (2 * sqrt(5)) * E.C / (0.753 * r2m) * chi3;
+back = shLowLevel.rotationExcitation(dC21, dS21, C20 = dC20, Earth = E, ...
+    kn = kn, Reference = "none");
+% relative to each amplitude; the oracle closes this pair to 2.4e-16, and
+% 1e-14 bounds the ten or so products of the two scale factors
+verifyEqual(testCase, back.chi1, chi1, 'AbsTol', 1e-14 * 30);
+verifyEqual(testCase, back.chi2, chi2, 'AbsTol', 1e-14 * 20);
+verifyEqual(testCase, back.chi3, chi3, 'AbsTol', 1e-14 * 5e-10);
+
+% a static field on every epoch goes with the mean. The offsets are of the
+% order of the changes, so removing them costs ~20 eps: 1e-12 bounds it.
+% (The oracle's CLAIM 2 also removes a realistic C20 of -4.8e-4, where the
+% loss is 7.5e-10 relative - the digits a double holds, not the method.)
+off = shLowLevel.rotationExcitation(dC21 + 1e-9, dS21 - 3e-9, ...
+    C20 = dC20 + 2e-10, Earth = E, kn = kn);
+ref = shLowLevel.rotationExcitation(dC21, dS21, C20 = dC20, Earth = E, ...
+    kn = kn);
+verifyEqual(testCase, off.chi1, ref.chi1, 'AbsTol', 1e-12 * 30);
+verifyEqual(testCase, off.chi2, ref.chi2, 'AbsTol', 1e-12 * 20);
+verifyEqual(testCase, off.chi3, ref.chi3, 'AbsTol', 1e-12 * 5e-10);
+end
