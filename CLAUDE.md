@@ -23,12 +23,12 @@ says whether it was *read* or *inferred*.
 
 | Fact | Value | Evidence |
 |---|---|---|
-| Version | **5.3.0**, 09-Sep-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
+| Version | **5.4.0**, 09-Sep-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
 | Branches | `main` only; `claude/getframe-recapture` and `claude/readshm` are gone (merged/deleted) | `GET /branches` |
-| Public surface | 3 classes / 71 methods, 122 `+shLowLevel` functions (+4 private), 3 root functions | `tools/dev/api_extract.py` run in sandbox |
-| Tests | 5 classes, **314 methods / 328 runs**: Correctness 164, Contract 77, Robustness 53, Science 7, Performance 13 methods (27 runs, `budgetCase` x14 + `nmaxP` x2). On A8 4 filter out without the optional real-data fixtures; on MATTHIASPC only 2 do, because `E:\DATAPOOL` supplies the SINEX and GravIS files. The counter has matched the runner EXACTLY on the last nine green A8 runs and on the first two local Tier-A runs (269, 301, 304, 304, 305, 305, 315, 315, 319, then 322 and 328 locally); the one time it did not was A16, before it existed. | `python3 tools/dev/count_tests.py` |
-| Python oracles | 17 `tools/dev/validate_*.py` + `tools/audit/*` | listing |
-| Docs | **26** hand-written `html/*.html` (24 per-entity duplicates retired in v5.0.1, WP6 stage 3) + **200 generated `html/ref/*.html`** (one per entity + index, `make_refpages.py`), one shared `html/shAnalysis.css`, `helptoc.xml`, `info.xml`, guide PDF, generated `html/apiReference.html`. `docs/` holds the PDF and `apiExamples.json` only - no HTML page lives outside `html/` (gated). | listing |
+| Public surface | 3 classes / 71 methods, 123 `+shLowLevel` functions (+4 private), 3 root functions | `tools/dev/api_extract.py` run in sandbox |
+| Tests | 5 classes, **321 methods / 335 runs**: Correctness 168, Contract 79, Robustness 54, Science 7, Performance 13 methods (27 runs, `budgetCase` x14 + `nmaxP` x2). On A8 4 filter out without the optional real-data fixtures; on MATTHIASPC only 2 do, because `E:\DATAPOOL` supplies the SINEX and GravIS files. The counter has matched the runner EXACTLY on the last ten green A8 runs and on every local Tier-A run. | `python3 tools/dev/count_tests.py` |
+| Python oracles | 18 `tools/dev/validate_*.py` + `tools/audit/*` | listing |
+| Docs | **26** hand-written `html/*.html` (24 per-entity duplicates retired in v5.0.1, WP6 stage 3) + **201 generated `html/ref/*.html`** (one per entity + index, `make_refpages.py`), one shared `html/shAnalysis.css`, `helptoc.xml`, `info.xml`, guide PDF, generated `html/apiReference.html`. `docs/` holds the PDF and `apiExamples.json` only - no HTML page lives outside `html/` (gated). | listing |
 | CI | `gates` job on ubuntu (help_audit, doc_sync_audit, no_map_renderer, toolbox_dependency_audit, nv_casing_audit, fixture_tag_audit, gate self-tests `tools/tests/`, `count_tests`, `name_coverage`, `error_id_audit`, `option_values_audit`, `refpages_audit`, `make_demos --check`, `perf_baseline_audit`) + `runAllTests (self-hosted)` on A8/R2026a; fixtures from tag `fixtures-2026-08` | `.github/workflows/ci.yml` |
 | Namespace | `+shLowLevel` (renamed from `+shx` in v3.0.0). Any memory saying `shx.*` is stale. | README §History |
 
@@ -444,7 +444,7 @@ gone, so A8 is the only machine that can be calibrated from here.
 | Row | Function | Oracle | Size |
 |---|---|---|---|
 | 5a `[ ]` | `shSeries.excitation(kn=…, Convention=…) → table(t, chi1, chi2, dLOD)` from C21/S21/C20 with the IERS 2010 conventions and the Love-number/frame factors; input in the pole-tide convention `poleTideConvert` knows | Chen & Wilson formulas; a published GRACE excitation series | S–M |
-| 5b `[ ]` | `shLowLevel.leakageDataDriven(ts, mask, Radius=…) ` (Vishwakarma 2017 method of deviation), returned with the same `info` layout as `leakageCorrect` so `basinAverage` consumes both | equations of the paper in numpy; agreement with `leakageCorrect` on the GravIS basins within the published spread | M |
+| 5b `[x]` **DONE v5.4.0** | `shLowLevel.leakageDataDriven(gridSeries, latDeg, lonDeg, Mask=, Filter=)` - Vishwakarma's method of deviation. **Unblocked by Matthias supplying the author's PhD thesis** (chapter 3, eqs. 3.19-3.29) on 2026-09-09; the row had been STOPPED because the equations were unreachable, and that block was real - two details decide whether the method works and neither is guessable: the deviation integral is weighted by the FILTERED catchment function, and the leakage extrapolation corrects a PHASE while the deviation integral deliberately gets none. Oracle `tools/dev/validate_leakage_datadriven.py`: decomposition closes to 4.3e-15, filter self-adjointness 5.0e-16, phase measure/shift are mutual inverses to 7.1e-15 deg, closed loop removes 63% of the damage (MATLAB 55.3% on the `testCorrectness` fixture, whose grid and basin geometry differ). Three deviations from this row's sketch, all recorded in the changelog: `Filter=` not `Radius=` (matches `leakageCorrect`), a grid stack not an `shSeries` (a class method is WP7), and NOT `leakageCorrect`'s `info` layout - the two return different things, a corrected field against a corrected series. | thesis eqs. + closed loop | M |
 | 5c `[ ]` | `removeGIA(gia, Sigma=…)` accepting a σ field; σ propagated into `basinAverage` sigmas and `mcPropagate` | analytic vs MC on a synthetic ensemble | S |
 | 5d `[ ]` | Swarm: `fetchICGEM` Swarm series read and `combineCenters`-style rescaling to GRACE noise for 2017-07..2018-05; `shSeries.select` gap policy | published Swarm-vs-GRACE degree-RMS ratio | M |
 | 5e `[ ]` | `shLowLevel.readGrid(ncfile, Var=…)` (netCDF → grid + metadata, inverse of `writeGrid`) so GLDAS/WGHM enter `shCoefficients.analysis` | `writeGrid` roundtrip; one GLDAS file | S |
@@ -546,6 +546,46 @@ Original scope below.
 ## 6. Records
 
 ### 6.1 Decisions (append-only; date, decision, evidence)
+- 2026-09-09 — **WP5 5b was unblocked by a PDF, and the block was real.**
+  The previous session STOPPED the row rather than reconstruct the
+  method from a half-remembered description, and that was right: the
+  paper is paywalled (Wiley 403s from here) and the open restatements
+  describe the method without giving a single equation. Matthias supplied
+  the author's PhD thesis, which carries the derivation. Two details
+  decide whether the method works and NEITHER is guessable — the
+  deviation integral is weighted by the FILTERED catchment function
+  (eq. 3.19), and the leakage extrapolation corrects a PHASE while the
+  deviation integral deliberately gets none, because the thesis measured
+  those phase differences and found no consistent relation. A confident
+  reconstruction would have got both wrong and still produced numbers.
+- 2026-09-09 — **The authors' MATLAB bundle is GPL-3 and shAnalysis is
+  MIT, so nothing was copied from it.** The `DataDrivenCorrection`
+  bundle (gis.uni-stuttgart.de) was read to confirm the method; the
+  implementation is written from the thesis equations, which is what §2
+  requires anyway ("reuse is by re-implementation"). Copying would have
+  forced shAnalysis to GPL. Recorded here because the temptation is
+  strongest exactly when a reference implementation is at hand, and
+  because a future session should not "improve" the code by aligning it
+  with that bundle.
+- 2026-09-09 — **A closed-loop percentage is not enough to test a phase
+  method.** The oracle's CLAIM 0 — that measuring a phase and applying
+  one are mutual inverses — caught a sign error that left the other
+  three claims passing while the correction was applied BACKWARDS. It
+  cost 80 degrees on a -40 degree input. An estimator that is internally
+  consistent can still be consistently wrong; assert the inverse pair.
+- 2026-09-09 — **The oracle's first transform pair was wrong and the
+  IDENTITY claim is what said so.** A hand-written analysis/synthesis
+  pair made `smooth(constant)` return zero, so the decomposition missed
+  by 61%. Replaced with the pair already validated in
+  `validate_leakage.py` — the A17 lesson: two parsers of one fact
+  disagree, and the newer one is usually the wrong one.
+- 2026-09-09 — **`leakageDataDriven` refuses fewer than 12 epochs and
+  refuses NaN.** Both correction steps are regressions over the WHOLE
+  series, so they cannot skip a gap, and below one annual cycle the
+  phase is unidentifiable — the regression still returns an angle, which
+  is the dangerous part. `leakageCorrect` tolerates NaN outside its mask
+  because it works per epoch; this one cannot, and the difference is in
+  both help blocks rather than left to be discovered.
 - 2026-09-09 — **TIER A IS BACK, on the acceptance machine.** The MATLAB
   MCP bridge answers again (R2026a Update 4, 16 threads, working tree at
   the acceptance path in §3), which retires the 2026-09-08 entry "Tier A
@@ -1047,6 +1087,7 @@ Original scope below.
 | v5.1.1 (A8 numbers + matched-pair budget) | ☑ 15 gates + mlint + make_demos + 13 self-test suites, 0 findings | ☑ **CI self-hosted (A8) at `e8875fe`, green — 320 runs, 315 passed, 0 failed, 5 filtered**; the TENTH exact count prediction running. The matched pair measured: direct@200 0.0155142 s, clenshaw@200 0.0034370 s. | ☑ PR #101 | ◐ pending |
 | v5.2.0 (WP5 5c + help_audit scoping) | ☑ 15 gates + mlint + make_demos + 13 self-test suites, 0 findings | ☑ **CI self-hosted (A8) at `b65f9a2` by workflow_dispatch, green — 326 runs, 320 passed, 0 failed, 6 filtered**; the ELEVENTH exact count prediction running, per class as well as in total (Contract 76, Correctness 164, Performance 26, Robustness 53, Science 7), and exactly the 6 the row predicted. Read back by the v5.3.0 session — the run had gone green and nobody had looked, which is also how the n50 baselines sat unused. | ☐ no PR (branch was unmerged) | ☐ |
 | v5.3.0 (A22, A23, A24; A9 two-factor; WP2 both machines) | ☑ 15 gates + mlint + make_demos + 13 self-test suites, 0 findings; `NO_BASELINE` empty, 14 budgets, both machines baselined | ☑ **Tier A LOCAL on MATTHIASPC (R2026a), the first since the bridge returned** — 328 runs, count prediction matched EXACTLY (Contract 77, Correctness 164, Performance 27, Robustness 53, Science 7). Only 2 filter here, not 4: `E:\DATAPOOL` supplies the SINEX and GravIS fixtures. Then ☑ **CI self-hosted (A8) at `2a38d25` via PR #102, green — 328 runs, 323 passed, 0 failed, 5 filtered** (the 4 real-data fixtures plus `apply_ddk_n300`, which A8 had no baseline for): the TWELFTH exact count prediction running, per class as well as in total. That run also measured `apply_ddk_n300` at 23.0 ms, which is what argued it OUT of `TightBudgets` — one A8 observation is not a spread. With that baseline committed, A8 at `3c003e3` is green again with **328 runs, 324 passed, 0 failed, and only the 4 optional real-data fixtures filtered**: all fourteen speed budgets now ASSERT on both machines, which is what WP2 step 1 was for. | ☑ PR #102 | ◐ pending |
+| v5.4.0 (WP5 5b: leakageDataDriven) | ☑ 15 gates + mlint + make_demos + 13 self-test suites + the new oracle, 0 findings | ☑ **Tier A LOCAL on MATTHIASPC (R2026a) — 335 runs, 333 passed, 0 failed, 2 filtered**; the count prediction matched EXACTLY, per class as well as in total (Contract 79, Correctness 168, Performance 27, Robustness 54, Science 7). All 7 new tests pass. Two red rounds locally first, both mine and both in the TESTS, not the function: a string-array `sprintf` format, and a `badNmax` case that tripped `badSize` first because the grid was not sliced with the latitudes. Then ☑ **CI self-hosted (A8) at `c1dc1d3` via PR #103, green — 335 runs, 331 passed, 0 failed, 4 filtered** (exactly the optional real-data fixtures): the THIRTEENTH exact count prediction running, per class as well as in total, and all seven new tests ran there. | ☑ PR #103 | ◐ pending |
 | v5.0.3 (WP2 step 1 baselines) | ☑ 14 gates + mlint + make_demos + 13 self-test suites, 0 findings; `NO_BASELINE` empty | ☑ **CI self-hosted (A8) at `b70c947`, green — 315 runs, 311 passed, 0 failed, 4 filtered**; the EIGHTH exact count prediction running, per class as well as in total. All ten budgets PASSED (they filtered at `f6d5529`), and the only filtered are the four real-data fixtures. Triggered by `workflow_dispatch`, not a PR — #99 merged mid-session and `ci.yml` runs only on push-to-main, pull_request and workflow_dispatch. | ☐ no PR (#99 merged; not asked) | ☐ |
 
 **Tier A debt: DISCHARGED for all nine releases.** The local MATLAB
@@ -1071,6 +1112,29 @@ confirmation that the counter is right about a real run and not only
 about the source.
 
 ### 6.3 What the next session could be wrong for not reading
+- **A pushed SHA is not a running CI.** `ci.yml` fires on push-to-main,
+  `pull_request` and `workflow_dispatch` only. When the branch's PR is
+  merged mid-session, a further push to that branch raises NO event and
+  the commit sits there green-looking and unverified. §3.7 says to read
+  the SHA back with `git ls-remote`, and that is not sufficient: also
+  check `gh run list` actually shows a run for it, and open a new PR if
+  it does not. This has now happened twice (v5.0.3 after #99, v5.4.0
+  after #102).
+- **A method's published description is not its equations.** Three open
+  restatements of the data-driven correction describe it accurately in
+  prose ("uses twice-filtered fields to determine leakage and deviation
+  integrals") and none gives a formula. Prose is enough to believe you
+  understand a method and not enough to implement it. If the equations
+  are not in hand, the row is STOPPED — say so, do not approximate.
+- **`hilbert()` is Signal Processing Toolbox.** So is a lot of what a
+  time-series method reaches for. The analytic signal is ten lines of
+  FFT; check `toolbox_dependency_audit` will pass BEFORE designing
+  around a function.
+- **When you implement an estimator, assert its inverse.** Measuring a
+  phase and applying one must round-trip. Without that assertion a sign
+  error is invisible: every other claim still passes and the correction
+  is simply applied the wrong way round, which looks like the method
+  underperforming rather than like a bug.
 - **Read the branch before you pick a version number.** This session
   built a v5.2.0 on `main` while a cloud session's v5.2.0 sat unmerged
   two commits ahead, with a handover addressed to exactly this kind of
@@ -1396,29 +1460,26 @@ internet, which unblocks all three stuck items at once:
    buildable and testable WITHOUT network; only the live URL needs it.
 
 **Next concrete actions, in order of what they buy:**
-1. **Get v5.2.0 and v5.3.0 merged.** Both are green and neither is on
-   `main`. v5.2.0 (WP5 5c) went green on A8 at `b65f9a2` on 2026-09-09
-   and sat unread; v5.3.0 is green under local Tier A (328 runs, 0
-   failed) and needs one A8 run to confirm the budgets there. `main` is
-   `ea816eb`.
-2. **A9's remaining work is specific now, and it is not "more runs".**
-   `leakage_1iter_n24` moved 1.306 across three A8 runs of untouched code
-   at 23 ms, and the Kalman step 1.267 at 1.2 ms; both are still at the
-   loose 3x factor. A9 closes by making THOSE two steady enough to
-   budget — a bigger Kalman problem, and finding out why one
-   `leakageCorrect` iteration varies 30% on A8 — not by choosing a
-   braver number. The four tight budgets show the mechanism works.
-3. **`apply_ddk_n300` has no A8 baseline.** It filters there until the
-   next A8 run prints its `PERFBASE` line. Read the line back and commit
-   it — v5.2.0's n50 pair sat "awaiting A8" for a release while A8 had
-   already measured it.
+1. **v5.2.0 and v5.3.0 are MERGED** (PR #102; `main` is `bb6dbcb`).
+   v5.4.0 is green on A8 and waiting on PR #103. **Check `gh run list`
+   after every push** - see the CI-trigger note in 6.3, which cost a
+   round here.
+2. **A9's remaining work is specific.** `leakage_1iter_n24` moved 1.306
+   across three A8 runs of untouched code at 23 ms, and the Kalman step
+   1.267 at 1.2 ms; both are still at the loose 3x factor. A9 closes by
+   making THOSE two steady enough to budget, not by choosing a braver
+   number. `apply_ddk_n300` becomes the fourth tight budget as soon as A8
+   has measured it TWICE.
+3. **WP5 5b is done; the obvious follow-ons are not.** The method of
+   SCALE (Vishwakarma et al. 2016, thesis eq. 3.28) is the same machinery
+   with a purely geometric factor `s = int A R / int A R Rbar` and would
+   be a small addition. And `leakageDataDriven` is the natural first
+   customer for a `shSeries.leakage` method in WP7.
 4. **B1 (packed Legendre) is still the open half of WP2 step 2**, and
-   still the weaker candidate: `legendre_n720` is 171 ms against
-   `synthesis_points_n60`'s 11 ms, and it is one of the four workloads
-   already steady enough for a 1.5x budget.
-5. **WP3/WP4/WP5/WP7 wait on Matthias's tick** (and, for some rows, on
-   data — see above). WP5 5b additionally waits on the Vishwakarma 2017
-   equations; a bridge session has internet and can fetch them.
+   still the weaker candidate.
+5. **WP3, WP4, WP5 5a/5d/5e and WP7 wait on Matthias's tick** (and, for
+   some rows, on data). WP4 and 5e need `geodesy.unr.edu` and a GLDAS
+   file; 5a needs a published excitation series; 5d a Swarm fetch policy.
 
 **What a Tier-A session should know about running the suite here.** The
 MATLAB MCP tool times out on anything suite-sized. Run it detached and
@@ -1476,5 +1537,8 @@ runs, 323 passed, 0 failed, 5 filtered) - the TWELFTH exact count
 prediction, and the first release since the bridge returned. With
 apply_ddk_n300's A8 baseline committed, `3c003e3` runs 328 with 324
 passed and only the 4 optional fixtures filtered: every speed budget
-asserts on both machines. |
+asserts on both machines.
+5.4.0 (WP5 5b) green both ways: local 335 runs / 333 passed / 2
+filtered, and A8 at `c1dc1d3` via PR #103 with 335 / 331 / 0 failed /
+4 filtered - the THIRTEENTH exact count prediction. |
 Developed by Matthias Weigelt with the help of Claude.*

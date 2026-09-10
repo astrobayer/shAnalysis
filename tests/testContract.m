@@ -2048,3 +2048,75 @@ verifyError(testCase, ...
     @() shLowLevel.shSynthesis(C, S, GM, R, lat, lon, P = zeros(2, 2, 1)), ...
     'shLowLevel:shSynthesis:badP');
 end
+
+function testLeakageDataDrivenIDs(testCase)
+%TESTLEAKAGEDATADRIVENIDS WP5 5b: every identifier the function raises.
+%   Seven guards, each pinned. tooFewEpochs and nanInput exist because
+%   the phase and amplitude steps are regressions over the WHOLE series:
+%   they cannot skip a gap, and below one annual cycle they fit noise.
+%   Refusing is better than returning a confident number from four
+%   months of data.
+lat = linspace(-89, 89, 25);
+lon = (0:25) * (360/26);
+R = zeros(numel(lat), numel(lon)); R(10:14, 5:9) = 1;
+good = repmat(R, 1, 1, 12) .* reshape(1:12, 1, 1, []) * 0.01;
+verifyError(testCase, @() shLowLevel.leakageDataDriven(good(:,:,1:4), ...
+    lat, lon, Mask = R), "shLowLevel:leakageDataDriven:tooFewEpochs");
+bad = good; bad(3, 3, 2) = NaN;
+verifyError(testCase, @() shLowLevel.leakageDataDriven(bad, lat, lon, ...
+    Mask = R), "shLowLevel:leakageDataDriven:nanInput");
+verifyError(testCase, @() shLowLevel.leakageDataDriven(good, lat, lon), ...
+    "shLowLevel:leakageDataDriven:badMask");
+verifyError(testCase, @() shLowLevel.leakageDataDriven(good, lat, lon, ...
+    Mask = R(1:3, 1:3)), "shLowLevel:leakageDataDriven:badMask");
+verifyError(testCase, @() shLowLevel.leakageDataDriven(good, lat, lon, ...
+    Mask = zeros(size(R))), "shLowLevel:leakageDataDriven:emptyMask");
+verifyError(testCase, @() shLowLevel.leakageDataDriven(good(1:3,:,:), ...
+    lat, lon, Mask = R), "shLowLevel:leakageDataDriven:badSize");
+verifyError(testCase, @() shLowLevel.leakageDataDriven(good, lat, lon, ...
+    Mask = R, Filter = "wavelet"), ...
+    "shLowLevel:leakageDataDriven:badFilter");
+verifyError(testCase, @() shLowLevel.leakageDataDriven(good, lat, lon, ...
+    Mask = R, Filter = "gaussnope"), ...
+    "shLowLevel:leakageDataDriven:badFilter");
+% the grid must be sliced too, or badSize fires first and the badNmax
+% guard is never reached - which is exactly what happened here
+verifyError(testCase, @() shLowLevel.leakageDataDriven(good(1:3,:,:), ...
+    lat(1:3), lon, Mask = R(1:3,:), Nmax = 1), ...
+    "shLowLevel:leakageDataDriven:badNmax");
+end
+
+function testLeakageDataDrivenInfoFields(testCase)
+%TESTLEAKAGEDATADRIVENINFOFIELDS Every field the help documents must
+%   exist and have the documented shape. help_audit checks the two
+%   agree statically; this checks the code actually builds them.
+lat = linspace(-89, 89, 33);
+lon = (0:33) * (360/34);
+[LO, LA] = meshgrid(lon, lat);
+R = double(sind(LA)*sind(0) + cosd(LA)*cosd(0).*cosd(LO - 40) >= cosd(20));
+T = 24; t = (0:T-1)'/12;
+g = zeros(numel(lat), numel(lon), T);
+for k = 1:T
+    g(:,:,k) = (0.1*sin(2*pi*t(k)) + 0.02*t(k)) * R;
+end
+[fHat, info] = shLowLevel.leakageDataDriven(g, lat, lon, Mask = R);
+verifyEqual(testCase, size(fHat), [T 1]);
+for f = ["filtered", "leakage", "deviation", "leakageOnce", ...
+        "leakageTwice", "deviationOnce", "deviationTwice"]
+    verifyTrue(testCase, isfield(info, f), ...
+        sprintf("info lacks the documented field %s", f));
+    verifyEqual(testCase, size(info.(f)), [T 1], ...
+        sprintf("info.%s must be T x 1", f));
+end
+for f = ["phaseDeg", "leakageRatio", "deviationRatio", ...
+        "areaFraction", "nmax", "filter"]
+    verifyTrue(testCase, isfield(info, f), ...
+        sprintf("info lacks the documented field %s", f));
+    verifyEqual(testCase, numel(info.(f)), 1, ...
+        sprintf("info.%s must be scalar", f));
+end
+verifyClass(testCase, info.filter, "string");
+verifyEqual(testCase, info.filter, "gauss300");   % the documented default
+verifyGreaterThan(testCase, info.areaFraction, 0);
+verifyLessThan(testCase, info.areaFraction, 1);
+end

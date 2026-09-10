@@ -4414,3 +4414,127 @@ Zs = gs.synthesis(lat, lon, Quantity = "geoid");
 verifyEqual(testCase, A, sqrt(Zc.^2 + Zs.^2));
 verifyEqual(testCase, ph, atan2(Zs, Zc));
 end
+
+function ddcFixture = leakageDDCFixture()
+%LEAKAGEDDCFIXTURE Closed loop for the data-driven leakage correction.
+%   A catchment signal, a neighbour that is deliberately OUT OF PHASE
+%   with it, and a distant third signal. Out-of-phase leakage is the
+%   case the method exists for - in-phase leakage is just an amplitude
+%   error and a scale factor would handle it.
+nmax = 24;
+lat = linspace(-89, 89, 2*nmax + 1);
+lon = (0:(2*nmax + 1)) * (360 / (2*nmax + 2));
+[LO, LA] = meshgrid(lon, lat);
+capf = @(lat0, lon0, rad) double(sind(LA)*sind(lat0) + ...
+    cosd(LA)*cosd(lat0).*cosd(LO - lon0) >= cosd(rad));
+R = capf(0, 30, 18);
+neigh = capf(6, 58, 14) .* (1 - R);
+far = capf(-40, 200, 20);
+T = 48;
+t = (0:T-1)'/12;
+inside = 0.20*sin(2*pi*t) + 0.05*t;
+outside = 0.30*sin(2*pi*t + 2.1);      % ~120 deg out of phase
+GM = 3.986004415e14; Rref = 6378136.3;
+W = shLowLevel.shGaussianWeights(nmax, 500);
+truth = zeros(numel(lat), numel(lon), T);
+filt = zeros(size(truth));
+for k = 1:T
+    g = inside(k)*R + outside(k)*neigh + 0.10*sin(2*pi*t(k) + 0.7)*far;
+    truth(:,:,k) = g;
+    [C, S] = shLowLevel.shAnalysisGrid(g, lat, lon, nmax, GM = GM, R = Rref);
+    filt(:,:,k) = shLowLevel.shSynthesis(C.*W(:), S.*W(:), GM, Rref, lat, lon);
+end
+cellW = repmat(cosd(lat(:)), 1, numel(lon));
+area = sum(R .* cellW, "all");
+fTrue = zeros(T, 1);
+for k = 1:T
+    fTrue(k) = sum(truth(:,:,k) .* R .* cellW, "all") / area;
+end
+ddcFixture = struct("lat", lat, "lon", lon, "mask", R, "filtered", filt, ...
+    "truth", fTrue, "nmax", nmax, "cellW", cellW, "area", area);
+end
+
+function testLeakageDataDrivenRemovesFilteringDamage(testCase)
+%TESTLEAKAGEDATADRIVENREMOVESFILTERINGDAMAGE WP5 5b, the science claim.
+%   The method of deviation must move the catchment mean TOWARDS the
+%   truth, in a closed loop where the truth is known. Measured on THIS
+%   fixture at 55.3% of the RMS damage removed (ratio 0.447); the bound
+%   is 0.75 because a closed
+%   loop on one synthetic basin cannot pin a percentage that would
+%   transfer to a real catchment - what must hold is the direction, by
+%   a margin far outside round-off. The Python oracle
+%   tools/dev/validate_leakage_datadriven.py measures 63% on its own
+%   Gauss-Legendre grid; the two differ because the grids differ, not
+%   because the method does.
+f = leakageDDCFixture();
+[fHat, info] = shLowLevel.leakageDataDriven(f.filtered, f.lat, f.lon, ...
+    Mask = f.mask, Filter = "gauss500", Nmax = f.nmax);
+errFiltered = sqrt(mean((info.filtered - f.truth).^2));
+errCorrected = sqrt(mean((fHat - f.truth).^2));
+verifyLessThan(testCase, errCorrected, 0.75 * errFiltered, sprintf( ...
+    'the correction must beat doing nothing: filtered %.5f, corrected %.5f', ...
+    errFiltered, errCorrected));
+% and the leakage it removed must be a real quantity, not a rounding
+verifyGreaterThan(testCase, sqrt(mean(info.leakage.^2)), 1e-3);
+end
+
+function testLeakageDataDrivenDecompositionIsConsistent(testCase)
+%TESTLEAKAGEDATADRIVENDECOMPOSITIONISCONSISTENT The returned pieces must
+%   add up: fHat = filtered - deviation - leakage, bitwise. That is the
+%   whole method in one line (thesis eq. 3.29), so if info reports
+%   something that does not reconstruct the output, one of them is lying.
+f = leakageDDCFixture();
+[fHat, info] = shLowLevel.leakageDataDriven(f.filtered, f.lat, f.lon, ...
+    Mask = f.mask, Filter = "gauss500", Nmax = f.nmax);
+verifyEqual(testCase, fHat, info.filtered - info.deviation - info.leakage);
+end
+
+function testLeakageDataDrivenFilteredMeanIsTheAreaWeightedAverage(testCase)
+%TESTLEAKAGEDATADRIVENFILTEREDMEANISTHEAREAWEIGHTEDAVERAGE info.filtered
+%   is what the user would have had without the function, so it must be
+%   the plain cos(lat)-weighted catchment average of the input -
+%   recomputed here independently rather than trusted.
+f = leakageDDCFixture();
+[~, info] = shLowLevel.leakageDataDriven(f.filtered, f.lat, f.lon, ...
+    Mask = f.mask, Filter = "gauss500", Nmax = f.nmax);
+T = numel(info.filtered);
+want = zeros(T, 1);
+for k = 1:T
+    want(k) = sum(f.filtered(:,:,k) .* f.mask .* f.cellW, "all") / f.area;
+end
+verifyEqual(testCase, info.filtered, want, "RelTol", 1e-12);
+end
+
+function testLeakageDataDrivenPhaseFollowsTheLeakage(testCase)
+%TESTLEAKAGEDATADRIVENPHASEFOLLOWSTHELEAKAGE Metamorphic: the phase step
+%   must respond to the thing it measures. Two runs differing ONLY in
+%   the phase of the signal outside the catchment must not report the
+%   same phase - if they do, the Hilbert regression is not looking at
+%   the leakage at all, which a single closed-loop number would hide.
+f = leakageDDCFixture();
+[~, a] = shLowLevel.leakageDataDriven(f.filtered, f.lat, f.lon, ...
+    Mask = f.mask, Filter = "gauss500", Nmax = f.nmax);
+% rebuild with the outside signal in phase with the inside one
+nmax = f.nmax; lat = f.lat; lon = f.lon;
+[LO, LA] = meshgrid(lon, lat);
+capf = @(lat0, lon0, rad) double(sind(LA)*sind(lat0) + ...
+    cosd(LA)*cosd(lat0).*cosd(LO - lon0) >= cosd(rad));
+neigh = capf(6, 58, 14) .* (1 - f.mask);
+far = capf(-40, 200, 20);
+T = 48; t = (0:T-1)'/12;
+GM = 3.986004415e14; Rref = 6378136.3;
+W = shLowLevel.shGaussianWeights(nmax, 500);
+filt2 = zeros(size(f.filtered));
+for k = 1:T
+    g = (0.20*sin(2*pi*t(k)) + 0.05*t(k))*f.mask ...
+        + 0.30*sin(2*pi*t(k))*neigh ...
+        + 0.10*sin(2*pi*t(k) + 0.7)*far;
+    [C, S] = shLowLevel.shAnalysisGrid(g, lat, lon, nmax, GM = GM, R = Rref);
+    filt2(:,:,k) = shLowLevel.shSynthesis(C.*W(:), S.*W(:), GM, Rref, lat, lon);
+end
+[~, b] = shLowLevel.leakageDataDriven(filt2, lat, lon, ...
+    Mask = f.mask, Filter = "gauss500", Nmax = nmax);
+verifyNotEqual(testCase, a.phaseDeg, b.phaseDeg);
+verifyTrue(testCase, isfinite(a.phaseDeg) && abs(a.phaseDeg) <= 180);
+verifyTrue(testCase, isfinite(b.phaseDeg) && abs(b.phaseDeg) <= 180);
+end

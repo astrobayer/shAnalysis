@@ -1,5 +1,92 @@
 # Changelog
 
+## [5.4.0] - 2026-09-09 - WP5 5b: leakage correction without a model
+
+`shLowLevel.leakageDataDriven` repairs the catchment average of a filtered
+time series using correction terms built from the filtered fields alone.
+It is the model-independent counterpart of `leakageCorrect`'s forward
+model - Vishwakarma's "method of deviation".
+
+### The row was blocked on equations, and the block was real
+
+WP5 5b sat stopped because the method could not be implemented from a
+half-remembered description, and the paper was unreachable. Matthias
+supplied the author's PhD thesis, which carries the full derivation
+(chapter 3, eqs. 3.19-3.29). That was the whole blocker.
+
+It was a real one. Two details decide whether the method works and
+neither is guessable:
+
+- the deviation integral is weighted by the **filtered** catchment
+  function, not the mask (eq. 3.19);
+- the leakage extrapolation corrects a **phase** difference, not just an
+  amplitude - and the deviation integral deliberately gets **no** phase
+  correction, because the thesis measured those phase differences and
+  found no consistent relation. That asymmetry looks like an omission
+  and is a finding.
+
+### Why the correction is exact algebra, not a fit
+
+For a filter that leaves a constant alone (`W(0) = 1`), the filtered
+catchment average splits with no approximation:
+
+```
+gbar_c = f_c + dF_c + l_c
+```
+
+true average, deviation integral (what the filter does to the catchment's
+own signal, because it is not a uniform layer), and leakage in from
+outside. So `f_c = gbar_c - dF_c - l_c` is a rearrangement. The hard part
+is that both corrections need the unfiltered field, which nobody has - so
+they are estimated from the once- and twice-filtered fields and
+extrapolated one filtering step back.
+
+### Measured, not asserted
+
+`tools/dev/validate_leakage_datadriven.py` checks four claims:
+
+| claim | result |
+|---|---|
+| the decomposition closes | 4.3e-15 relative |
+| the two forms of the deviation integral agree (filter self-adjointness) | 5.0e-16 |
+| measuring a phase and applying it are mutual inverses | 7.1e-15 deg |
+| a closed loop moves towards the truth | **63%** of the RMS damage removed |
+
+MATLAB removes **55.3%** on the `testCorrectness` fixture; the two differ
+because the grids and the basin geometry differ (Gauss-Legendre against
+equiangular), not because the method does. Both numbers were measured on
+the configuration they are quoted for - an earlier draft of this entry
+carried 57%, which was a third configuration's figure.
+
+The phase claim earned its place immediately: it caught a sign error that
+left every other claim passing while the correction was applied backwards.
+A closed-loop percentage alone would not have found it.
+
+### Deviations from the WP sketch, stated rather than smuggled
+
+- The option is `Filter=` (`"gauss<km>"` | `"DDKn"` | `"none"` | a W
+  struct), not `Radius=`, so it matches `leakageCorrect` and accepts the
+  filters the data actually saw.
+- The input is a grid stack, not an `shSeries`: `shLowLevel` works on
+  arrays, and a class method belongs to WP7.
+- The `info` layout is NOT `leakageCorrect`'s, because the two return
+  different things - a corrected field against a corrected series. It
+  carries the method's own pieces instead, each documented.
+- The function needs **at least 12 epochs** and refuses NaN. Both steps
+  are regressions over the whole series: they cannot skip a gap, and
+  below one annual cycle the phase is unidentifiable. Returning a
+  confident angle from four months would be worse than refusing.
+
+`hilbert()` is Signal Processing Toolbox, so the analytic signal is built
+by FFT here - the base-MATLAB rule again.
+
+### Licence
+
+The authors publish a MATLAB `DataDrivenCorrection` bundle under GPL-3.
+shAnalysis is MIT, so nothing here derives from that code: the
+implementation is written from the thesis equations, which is what
+CLAUDE.md section 2 requires anyway ("reuse is by re-implementation").
+Citations are in the function's References block.
 ## [5.3.0] - 2026-09-09 - MATLAB has no crossover, and the budget factor is finally a measurement
 
 First Tier-A session since the local bridge was lost: MATLAB R2026a runs on
