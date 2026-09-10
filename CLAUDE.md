@@ -23,12 +23,12 @@ says whether it was *read* or *inferred*.
 
 | Fact | Value | Evidence |
 |---|---|---|
-| Version | **5.12.2**, 10-Sep-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
+| Version | **5.13.0**, 10-Sep-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
 | Branches | `main` only; `claude/getframe-recapture` and `claude/readshm` are gone (merged/deleted) | `GET /branches` |
-| Public surface | 3 classes / 84 methods, 128 `+shLowLevel` functions (+5 private), 3 root functions. 75 of the 128 are reachable from a class method; each of the other 53 is a named exception (35) or in a backlog that may only shrink (18) | `tools/dev/api_extract.py`; `tools/dev/class_surface_audit.py` |
-| Tests | 5 classes, **368 methods / 382 runs**: Correctness 181, Contract 108, Robustness 57, Science 9, Performance 13 methods (27 runs, `budgetCase` x14 + `nmaxP` x2). On A8 7 filter out without the optional real-data fixtures (the GravIS-grid test joined them in v5.8.0, the ESMGFZ check in v5.11.0, the HLSST check in v5.12.0); on MATTHIASPC only 2 do, because `E:\DATAPOOL` supplies the SINEX files, the GravIS folder and - with `SHX_EARTHROTATION_FOLDER` and `SHX_BRIDGE_FOLDER` set for the run, no preference is stored - the ESMGFZ and HLSST series. The counter has matched the runner EXACTLY on the last ten green A8 runs and on every local Tier-A run. | `python3 tools/dev/count_tests.py` |
+| Public surface | 3 classes / 90 methods, 128 `+shLowLevel` functions (+5 private), 3 root functions. 79 of the 128 are reachable from a class method; each of the other 49 is a named exception (35) or in a backlog that may only shrink (14) | `tools/dev/api_extract.py`; `tools/dev/class_surface_audit.py` |
+| Tests | 5 classes, **370 methods / 384 runs**: Correctness 181, Contract 110, Robustness 57, Science 9, Performance 13 methods (27 runs, `budgetCase` x14 + `nmaxP` x2). On A8 7 filter out without the optional real-data fixtures (the GravIS-grid test joined them in v5.8.0, the ESMGFZ check in v5.11.0, the HLSST check in v5.12.0); on MATTHIASPC only 2 do, because `E:\DATAPOOL` supplies the SINEX files, the GravIS folder and - with `SHX_EARTHROTATION_FOLDER` and `SHX_BRIDGE_FOLDER` set for the run, no preference is stored - the ESMGFZ and HLSST series. The counter has matched the runner EXACTLY on the last ten green A8 runs and on every local Tier-A run. | `python3 tools/dev/count_tests.py` |
 | Python oracles | 23 `tools/dev/validate_*.py` + `tools/audit/*` | listing |
-| Docs | **26** hand-written `html/*.html` (24 per-entity duplicates retired in v5.0.1, WP6 stage 3) + **219 generated `html/ref/*.html`** (one per entity + index, `make_refpages.py`), one shared `html/shAnalysis.css`, `helptoc.xml`, `info.xml`, guide PDF, generated `html/apiReference.html`. `docs/` holds the PDF and `apiExamples.json` only - no HTML page lives outside `html/` (gated). | listing |
+| Docs | **26** hand-written `html/*.html` (24 per-entity duplicates retired in v5.0.1, WP6 stage 3) + **225 generated `html/ref/*.html`** (one per entity + index, `make_refpages.py`), one shared `html/shAnalysis.css`, `helptoc.xml`, `info.xml`, guide PDF, generated `html/apiReference.html`. `docs/` holds the PDF and `apiExamples.json` only - no HTML page lives outside `html/` (gated). | listing |
 | CI | `gates` job on ubuntu (help_audit, doc_sync_audit, no_map_renderer, toolbox_dependency_audit, nv_casing_audit, fixture_tag_audit, gate self-tests `tools/tests/`, `count_tests`, `name_coverage`, `class_surface_audit`, `error_id_audit`, `option_values_audit`, `refpages_audit`, `make_demos --check`, `perf_baseline_audit`) + `runAllTests (self-hosted)` on A8/R2026a; fixtures from tag `fixtures-2026-08` | `.github/workflows/ci.yml` |
 | Namespace | `+shLowLevel` (renamed from `+shx` in v3.0.0). Any memory saying `shx.*` is stale. | README §History |
 
@@ -562,7 +562,9 @@ exception list lives in the gate, not in this file.
 
 **v5.7.0** took the backlog's three cheapest routes - `g.synthesisPoints`,
 `g.gradientTensor`, `g.vdkApply` - so 18 lanes remain there; reach is 73
-of 125.
+of 125. **v5.13.0** took four more - `poleTideConvert` and
+`slepianProject` on both classes, `estimateDegree1` and `combineCenters`
+on the series - so 14 remain; reach is 79 of 128.
 
 - **Goal**: `Contents.m` promises "Classes (single point of access)", but the
   validated chains, the Kalman lane, EOF, leakage, error maps, deformation
@@ -599,6 +601,13 @@ of 125.
 ## 6. Records
 
 ### 6.1 Decisions (append-only; date, decision, evidence)
+- 2026-09-10 — **Item 4 of the agreed order, the class-surface
+  backlog: the four cheapest routes, 5.13.0.** `poleTideConvert` (the
+  object form on a field, the raw form at every epoch on a series, which
+  keeps names, sigmas and history), `estimateDegree1`, `combineCenters`
+  and `slepianProject` - thin delegates, pinned bitwise. The backlog is
+  14. The rest take grids, load regions or function handles, where a
+  method would do more than forward; they stay listed, not forced.
 - 2026-09-10 — **B1 is measured and not built, by WP2's own bar.** The
   latitude-first recursion is 1.11-1.69x faster raw, and every caller
   indexes P(n+1, m+1, :), so a drop-in pays a permute back and lands at
@@ -1492,7 +1501,8 @@ of 125.
 | v5.11.0 (WP5 5a: dLOD in ms, IERS 2010 constants, the ESMGFZ check) | ☑ 16 gates + mlint + make_demos + 15 self-test suites + the extended oracle (CLAIMs 4-6, the EOP check run with the data), 0 findings | ☑ **Tier A LOCAL on MATTHIASPC — 377 runs, 375 passed, 0 failed, 2 filtered**; count exact per class (Contract 106, Correctness 179, Performance 27, Robustness 57, Science 8), all 27 performance runs asserted, and the ESMGFZ check ran here against the real data (`SHX_EARTHROTATION_FOLDER` set for the run). Then ☑ **CI self-hosted (A8) at `413a54a` via PR #113, green — 377 runs, 371 passed, 0 failed, 6 filtered** (the ESMGFZ check joined the optional fixtures), per class exactly as predicted | ☑ PR #113 | ☑ 2026-09-10 |
 | v5.12.0 (WP5 5d: `bridgeGaps`, `ts.bridgeGaps`, the `_YYYY_MM` file names) | ☑ 16 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ☑ **Tier A LOCAL on MATTHIASPC — 381 runs, 379 passed, 0 failed, 2 filtered**; count exact per class (Contract 107, Correctness 181, Performance 27, Robustness 57, Science 9), all 27 performance runs asserted, and both real-data checks - ESMGFZ and HLSST - ran here (`SHX_EARTHROTATION_FOLDER` and `SHX_BRIDGE_FOLDER` set for the run). Then ☑ **CI self-hosted (A8) at `a86dfd0` via PR #114, green — 381 runs, 374 passed, 0 failed, 7 filtered**, per class exactly as predicted | ☑ PR #114 | ☑ 2026-09-10 |
 | v5.12.1 (A30: NaN refused by `shAnalysisGrid`, `leakageCorrect` without a Mask, `gridScaling`) | ☑ 16 gates + mlint + make_demos + 15 self-test suites, 0 findings; the four working paths bitwise before and after | ☑ **Tier A LOCAL on MATTHIASPC — 382 runs, 380 passed, 0 failed, 2 filtered**; count exact per class (Contract 108, Correctness 181, Performance 27, Robustness 57, Science 9), all 27 performance runs asserted. Then ☑ **CI self-hosted (A8) at `6675806` via PR #115, green — 382 runs, 375 passed, 0 failed, 7 filtered**, per class exactly as predicted, and `testNaNNeverReachesAnAnalysis` ran there | ☑ PR #115 | ◐ pending |
-| v5.12.2 (WP2: B1 and the FFT/direct sweep measured, neither built; the `Method` help) | ☑ 16 gates + mlint + make_demos + 15 self-test suites, 0 findings; documentation only | ☑ **Tier A LOCAL on MATTHIASPC — 382 runs, 380 passed, 0 failed, 2 filtered**; count exact per class (Contract 108, Correctness 181, Performance 27, Robustness 57, Science 9), all 27 performance runs asserted | ◐ pending | ◐ pending |
+| v5.12.2 (WP2: B1 and the FFT/direct sweep measured, neither built; the `Method` help) | ☑ 16 gates + mlint + make_demos + 15 self-test suites, 0 findings; documentation only | ☑ **Tier A LOCAL on MATTHIASPC — 382 runs, 380 passed, 0 failed, 2 filtered**; count exact per class (Contract 108, Correctness 181, Performance 27, Robustness 57, Science 9), all 27 performance runs asserted. Then ☑ **CI self-hosted (A8) at `8a8141b` via PR #116, green — 382 runs, 375 passed, 0 failed, 7 filtered**, per class exactly as predicted | ☑ PR #116 | ◐ pending |
+| v5.13.0 (WP7 backlog: `poleTideConvert`, `estimateDegree1`, `combineCenters`, `slepianProject` behind the classes) | ☑ 16 gates + mlint + make_demos + 15 self-test suites, 0 findings; reach 75 -> 79 of 128, 16 delegates pinned | ☑ **Tier A LOCAL on MATTHIASPC — 384 runs, 382 passed, 0 failed, 2 filtered**; count exact per class (Contract 110, Correctness 181, Performance 27, Robustness 57, Science 9), all 27 performance runs asserted, and both new tests passed on their first run | ◐ pending | ◐ pending |
 | v5.0.3 (WP2 step 1 baselines) | ☑ 14 gates + mlint + make_demos + 13 self-test suites, 0 findings; `NO_BASELINE` empty | ☑ **CI self-hosted (A8) at `b70c947`, green — 315 runs, 311 passed, 0 failed, 4 filtered**; the EIGHTH exact count prediction running, per class as well as in total. All ten budgets PASSED (they filtered at `f6d5529`), and the only filtered are the four real-data fixtures. Triggered by `workflow_dispatch`, not a PR — #99 merged mid-session and `ci.yml` runs only on push-to-main, pull_request and workflow_dispatch. | ☐ no PR (#99 merged; not asked) | ☐ |
 
 **Tier A debt: DISCHARGED for all nine releases.** The local MATLAB
@@ -1980,7 +1990,7 @@ internet, which unblocks all three stuck items at once:
    on `shSeries`: it shares every estimate with the method of deviation.
 6. **B1 (packed Legendre): MEASURED, NOT BUILT (v5.12.2)** - 1.11-1.69x
    raw, 0.92-0.99x as a drop-in; below the 2x bar.
-7. **WP5 is DONE**: 5e in v5.8.0, the method of scale in v5.9.0, 5a in v5.10.0 and v5.11.0, 5d in v5.12.0. Nothing of WP5 is open: the axial factor keeps eq. (1)'s 0.753 by Matthias's decision, and ESMGFZ's 0.844 is an `AxialFactor` away. Then the order Matthias agreed on 2026-09-10: A30 (DONE v5.12.1), B1 and the FFT/direct sweep (both measured, neither built, v5.12.2), and the class-surface backlog - next. **WP4 is moved out** to a separate GNSS toolbox (2026-09-10); do not start it here.
+7. **WP5 is DONE**: 5e in v5.8.0, the method of scale in v5.9.0, 5a in v5.10.0 and v5.11.0, 5d in v5.12.0. Nothing of WP5 is open: the axial factor keeps eq. (1)'s 0.753 by Matthias's decision, and ESMGFZ's 0.844 is an `AxialFactor` away. Then the order Matthias agreed on 2026-09-10: A30 (DONE v5.12.1), B1 and the FFT/direct sweep (both measured, neither built, v5.12.2), and the class-surface backlog (four routes in v5.13.0; the 14 lanes left each need more than a forward). **WP4 is moved out** to a separate GNSS toolbox (2026-09-10); do not start it here.
 
 **What a Tier-A session should know about running the suite here.** The
 MATLAB MCP tool times out on anything suite-sized. Run it detached and

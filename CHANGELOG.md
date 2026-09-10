@@ -1,5 +1,29 @@
 # Changelog
 
+## [5.13.0] - 2026-09-10 - WP7 backlog: four more lanes behind the classes
+
+A MINOR: six class methods, each a thin delegate.
+
+### Added
+- `g.poleTideConvert` and `ts.poleTideConvert`: C21/S21 moved to another
+  mean-pole convention - on a field through `shLowLevel.poleTideConvert`'s
+  object form, on a series through its raw form at every epoch, which
+  keeps the series' names, sigmas and history.
+- `ts.estimateDegree1(ocean, kn = ...)`: the geocentre coefficients of
+  every epoch (Swenson, Chambers & Wahr 2008), ready for `ts.addDegree1`.
+- `ts.combineCenters({tsB, tsC})`: the VCE combination of this series with
+  other centres', on this series' epochs.
+- `g.slepianProject(G, idx)` and `ts.slepianProject(G, idx)`: projection
+  onto a Slepian basis, and back.
+- Each is pinned bitwise to its lane in testContract. The class-surface
+  gate's backlog shrinks from 18 to 14, and 79 of the 128 public lanes are
+  now reached from a class. The fourteen that remain take grids, load
+  regions or function handles, where a method would do more than forward.
+
+### Tests
+- 382 -> 384 runs: `testCoefficientsBacklogRoutesAreTheirLanes` and
+  `testSeriesBacklogRoutesAreTheirLanes` in testContract.
+
 ## [5.12.2] - 2026-09-10 - WP2: two speed candidates measured, neither built
 
 A PATCH: documentation and records only; no code path changes.

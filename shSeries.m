@@ -2054,6 +2054,151 @@ methods
             fwd{:});
     end
 
+    function out = poleTideConvert(obj, opts)
+        %POLETIDECONVERT Move every epoch's C21/S21 to another mean pole.
+        %   OUT = ts.poleTideConvert(From = "IERS2010", To = "IERS2018")
+        %   applies shLowLevel.poleTideConvert to each epoch at its own
+        %   epoch, in the raw (C, S, EPOCH) form, so the series keeps its
+        %   names, its sigmas and its history. That function documents the
+        %   two models and the adjustment.
+        %
+        %   Outputs
+        %     out  (1,1) shSeries  the converted series, history appended
+        %
+        %   Options
+        %     From (lane default)  the convention of this series
+        %     To (lane default)  the convention to move to
+        %     Mode (lane default)  the solid tide, the ocean tide, or both
+        %     SolidCoef (lane default)  the solid-tide coefficient
+        %     OceanCoef (lane default)  the ocean-tide coefficient
+        %
+        %   Example
+        %     ts18 = ts.poleTideConvert(From = "IERS2010", To = "IERS2018");
+        arguments
+            obj
+            opts.From
+            opts.To
+            opts.Mode
+            opts.SolidCoef
+            opts.OceanCoef
+        end
+        args = namedargs2cell(opts);
+        out = obj;
+        for k = 1:obj.nEpochs
+            [C2, S2] = shLowLevel.poleTideConvert(obj.Cs(:, :, k), ...
+                obj.Ss(:, :, k), obj.epochs(k), args{:});
+            out.Cs(:, :, k) = C2;
+            out.Ss(:, :, k) = S2;
+        end
+        out.history(end+1) = "poleTideConvert: C21/S21 of every epoch moved to another mean pole";
+    end
+
+    function [d1, info] = estimateDegree1(obj, ocean, opts)
+        %ESTIMATEDEGREE1 Geocentre coefficients of every epoch, from the series.
+        %   [D1, INFO] = ts.estimateDegree1(OCEAN, kn = KN) is
+        %   shLowLevel.estimateDegree1(ts, OCEAN, ...): C10, C11 and S11 for
+        %   every epoch by the method of Swenson, Chambers & Wahr (2008).
+        %   That function documents the method, its grid and its outputs;
+        %   D1 drops straight into ts.addDegree1.
+        %
+        %   Inputs
+        %     ocean  logical  the ocean mask on the LatDeg x LonDeg grid
+        %
+        %   Outputs
+        %     d1    (1,1) struct  as returned by shLowLevel.estimateDegree1,
+        %           which documents every field
+        %     info  (1,1) struct  as returned by shLowLevel.estimateDegree1,
+        %           which documents every field
+        %
+        %   Options
+        %     kn (lane default)  load Love numbers, which the method needs
+        %     OceanModel (lane default)  an ocean-bottom-pressure model grid
+        %     LatDeg (lane default)  latitudes of the working grid
+        %     LonDeg (lane default)  longitudes of the working grid
+        %     Nmax (lane default)  degree of the analysis
+        %
+        %   Example
+        %     d1 = ts.estimateDegree1(ocean, kn = kn);
+        %     ts = ts.addDegree1(d1);
+        arguments
+            obj
+            ocean
+            opts.kn
+            opts.OceanModel
+            opts.LatDeg
+            opts.LonDeg
+            opts.Nmax
+        end
+        args = namedargs2cell(opts);
+        [d1, info] = shLowLevel.estimateDegree1(obj, ocean, args{:});
+    end
+
+    function [tsComb, info] = combineCenters(obj, others, opts)
+        %COMBINECENTERS Combine this series with other centres' by VCE.
+        %   [TSCOMB, INFO] = ts.combineCenters({TSB, TSC}) is
+        %   shLowLevel.combineCenters({ts, TSB, TSC}): one variance factor
+        %   per centre and month, by variance-component estimation, on the
+        %   epochs of this series. That function documents the method and
+        %   what its posterior sigmas can and cannot claim.
+        %
+        %   Inputs
+        %     others  (1,:) cell  the other centres' series, same nmax
+        %
+        %   Outputs
+        %     tsComb  (1,1) shSeries  the combined series
+        %     info    (1,1) struct  as returned by shLowLevel.combineCenters,
+        %             which documents every field
+        %
+        %   Options
+        %     Tolerance (lane default)  epoch matching [yr]
+        %     AllowMissing (lane default)  combine months some centres lack
+        %     Robust (lane default)  the median variance factor per month
+        %     MaxIter (lane default)  the most VCE iterations
+        %     Tol (lane default)  the VCE convergence tolerance
+        %
+        %   Example
+        %     [ts, info] = tsITSG.combineCenters({tsCSR, tsGFZ});
+        arguments
+            obj
+            others (1,:) cell
+            opts.Tolerance
+            opts.AllowMissing
+            opts.Robust
+            opts.MaxIter
+            opts.Tol
+        end
+        args = namedargs2cell(opts);
+        [tsComb, info] = shLowLevel.combineCenters([{obj}, others], args{:});
+    end
+
+    function [a, rec] = slepianProject(obj, G, idx)
+        %SLEPIANPROJECT Project every epoch onto a Slepian basis, and back.
+        %   [A, REC] = ts.slepianProject(G, IDX) is
+        %   shLowLevel.slepianProject(ts.Cs, ts.Ss, G, IDX), with the tapers
+        %   G and the index IDX of shLowLevel.slepianBasis: A holds one
+        %   column of Slepian coefficients per epoch, the regional modes in
+        %   time, and REC the series rebuilt from them.
+        %
+        %   Inputs
+        %     G    (P,K) double  Slepian tapers, from shLowLevel.slepianBasis
+        %     idx  (1,1) struct  the coefficient index they are ordered by
+        %
+        %   Outputs
+        %     a    (K,T) double  the Slepian coefficients per epoch
+        %     rec  (1,1) struct  as returned by shLowLevel.slepianProject,
+        %          which documents every field
+        %
+        %   Example
+        %     G = shLowLevel.slepianBasis(idx, @(la, lo) double(la > 60));
+        %     a = ts.slepianProject(G, idx);
+        arguments
+            obj
+            G
+            idx
+        end
+        [a, rec] = shLowLevel.slepianProject(obj.Cs, obj.Ss, G, idx);
+    end
+
     function [out, info] = bridgeGaps(obj, bridge, opts)
         %BRIDGEGAPS Fill the months this series lacks from a second series.
         %   [OUT, INFO] = ts.bridgeGaps(TSB) is shLowLevel.bridgeGaps(ts,
