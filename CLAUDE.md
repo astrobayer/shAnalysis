@@ -23,7 +23,7 @@ says whether it was *read* or *inferred*.
 
 | Fact | Value | Evidence |
 |---|---|---|
-| Version | **5.4.0**, 09-Sep-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
+| Version | **5.4.1**, 10-Sep-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
 | Branches | `main` only; `claude/getframe-recapture` and `claude/readshm` are gone (merged/deleted) | `GET /branches` |
 | Public surface | 3 classes / 71 methods, 123 `+shLowLevel` functions (+4 private), 3 root functions | `tools/dev/api_extract.py` run in sandbox |
 | Tests | 5 classes, **321 methods / 335 runs**: Correctness 168, Contract 79, Robustness 54, Science 7, Performance 13 methods (27 runs, `budgetCase` x14 + `nmaxP` x2). On A8 4 filter out without the optional real-data fixtures; on MATTHIASPC only 2 do, because `E:\DATAPOOL` supplies the SINEX and GravIS files. The counter has matched the runner EXACTLY on the last ten green A8 runs and on every local Tier-A run. | `python3 tools/dev/count_tests.py` |
@@ -188,7 +188,7 @@ do not see; **L** = polish.
 | A6 | L | **CLOSED v3.33.1** — README points at `ci.yml` instead of naming a tag it would have to keep in step (`fixture_tag_audit.py` already gates the tag itself). Original finding: README line 108 still says CI "pulls the orphan branch 'testdata'"; CI has pinned the tag `fixtures-2026-08` since v3.26.1/ci v2.9.0. | `README.md`, `ci.yml` |
 | A7 | M | **CLOSED v3.34.0**, and partly wrong as written — `demos.xml` now exists, generated from the `demo_shAnalysis` registry (16 cases, gated both ways), and the Help browser reaches a page per entity via `html/ref/index.html`. The search database was **never missing as a capability**: `setup_shAnalysis(Docs=true)` has always run `builddocsearchdb` on `html/`; only the built index is absent from the repo, deliberately (a binary artifact belongs on the machine that searches it). No second option was added. **Unverified in Tier B**: whether `builddocsearchdb` descends into `html/ref/` — confirm on the acceptance machine. Original finding: `doc` integration is incomplete: no `helpsearch-v*` database, no `demos.xml`, `info.xml` present. | `ls html/` |
 | A8 | M | **CLOSED v3.34.0** — all 250 pages link one `html/shAnalysis.css`; the inline blocks turned out to be ONE stylesheet copied fifty times (49 byte-identical + one in the generated reference), so merging them lost nothing, and `make_apiref.py` emits the link so the copy cannot return. 46 structural headings renamed to one spelling. `doc_sync_audit.py` gates the stylesheet, the link and the heading vocabulary; `refpages_audit.py` gates the generated skeleton. Original finding: The 50 hand-written `html/` pages use five different heading vocabularies for the same thing ("See also"/"See Also", "Outputs"/"Output Arguments", "Example"/"Examples", "Inputs / Outputs", "Options") and each page inlines its own `<style>` block (no shared stylesheet). 196 API entities have a dedicated page only inside the 304 KB monolith. | heading histogram over `html/*.html` |
-| A9 | M | **STILL OPEN after v5.3.0, and for a reason that is now specific.** Fifteen runs of untouched code (12 MATTHIASPC, 3 A8) measured the BETWEEN-run spread A9 always needed. **A9's own 1.3x target is REFUTED**: `leakage_1iter_n24` measured 23.1, 23.1 and **30.2 ms** across three A8 runs — 1.306 on a 23 ms workload, so not a timer artefact and not fixable by enlarging it. A 1.3 budget would have gone red on untouched code. But the four workloads at 15 ms and above never moved past 1.079 over those fifteen runs, so one global factor was letting the worst member set every budget. The factor is now PER BENCHMARK against a stated criterion (worst observed ratio <= 1.1 earns `TightFactor` 1.5; the rest keep 3): `legendre_n360`, `legendre_n720` and `analysis_rings_n60` qualify — two of the six lanes A9 names. `apply_ddk_n300` is the obvious fourth and was held back: A8 has measured it once, and at 23 ms it is the same size as `leakage_1iter_n24`, which swings 1.306 there. Granting tight status on one machine's evidence would have been applying the rule to whichever data happened to exist. What remains: `leakageCorrect` and the Kalman step are still at 3x, and A9 closes by making THEM steady enough to budget, not by choosing a braver number. The small point-synthesis budgets cannot be enlarged — they are crossover BRACKETS. | `tests/perf_baseline.csv` |
+| A9 | M | **STILL OPEN after v5.4.1 - on evidence only, not on work.** The noise had a cause: small-grid multithreaded BLAS. One `leakageCorrect` iteration at nmax 24 ran 12.4 ms / p90-p10 1.44 at 16 threads and 9.3 ms / 1.15 at ONE thread, which is how a 23 ms workload swung 1.306 on A8 untouched. Four workloads were replaced with sizes where threading pays (leakage n24->n48, Kalman p40->p200, grid synthesis n60/1deg -> n180/0.5deg; between-run 1.046, 1.035, 1.022, 1.007 on MATTHIASPC). `apply_ddk_n300` joined the tight tier on six A8 runs (1.072). `TightFactor` 1.5 -> **1.3** - A9's own number - with 1.23x headroom over the worst tight-tier run (1.057). **A9 closes when the four new workloads hold <= 1.1 over two A8 runs and are promoted**: then every lane A9 names has a budget that catches a 1.3x regression. | `tests/perf_baseline.csv` |
 | A10 | L | **CLOSED v3.34.1** — and the finding was **larger than recorded**: 13 package functions plus **22 public class methods** (A18). `tools/dev/name_coverage.py` measures it now, over the whole public surface, with comments stripped so a name in a `% see also` line does not count; it states its own reach in its last line (naming is not exercise). 32 new tests, each asserting a property the function's own help states. One allowed exception, `runAllTests`, with its reason in the gate. Original finding: package functions never named in `tests/`, coverage by name not measured. | `python3 tools/dev/name_coverage.py` |
 | A17 | M | **CLOSED v3.34.1** — `gridHandover` continues its signature with `...`, so `api_extract.py` (single-line regex) parsed the file to NOTHING: no entity in `api_data.py`, no reference page, while `apiReference.html` sent the reader to "as built by shLowLevel.gridHandover, which documents every field". `refpages_audit`'s COVER check compares pages against that same artifact, so it was silent by construction. **Four parsers of the public surface exist; two were blind the same way and agreed with each other** — which is why the new SURFACE check in `doc_sync_audit.py` compares against the FILESYSTEM (MATLAB's file/function rule is ground truth), not a second parser. `api_extract` now refuses to write an incomplete artifact. Pinned by `tools/tests/test_api_extract.py` (5 of 7 fail pre-fix). | `python3 tools/doc_sync_audit.py` |
 | A18 | M | **CLOSED v3.34.1** — A10's blind spot was not only the package: **22 public class methods** were named by no test either — every operator (`plus`, `minus`, `uminus`, `mtimes`, `times`), `disp` on all three classes, `compare`, `fan`, `spectrum`, `triangle`, and eight `shClimatology` methods. Operators were deliberately NOT allowlisted: they are callable by name, and a test checking `plus(a,b)` against `a + b` is stronger than one checking either alone. | `python3 tools/dev/name_coverage.py` |
@@ -445,7 +445,7 @@ gone, so A8 is the only machine that can be calibrated from here.
 |---|---|---|---|
 | 5a `[ ]` | `shSeries.excitation(kn=…, Convention=…) → table(t, chi1, chi2, dLOD)` from C21/S21/C20 with the IERS 2010 conventions and the Love-number/frame factors; input in the pole-tide convention `poleTideConvert` knows | Chen & Wilson formulas; a published GRACE excitation series | S–M |
 | 5b `[x]` **DONE v5.4.0** | `shLowLevel.leakageDataDriven(gridSeries, latDeg, lonDeg, Mask=, Filter=)` - Vishwakarma's method of deviation. **Unblocked by Matthias supplying the author's PhD thesis** (chapter 3, eqs. 3.19-3.29) on 2026-09-09; the row had been STOPPED because the equations were unreachable, and that block was real - two details decide whether the method works and neither is guessable: the deviation integral is weighted by the FILTERED catchment function, and the leakage extrapolation corrects a PHASE while the deviation integral deliberately gets none. Oracle `tools/dev/validate_leakage_datadriven.py`: decomposition closes to 4.3e-15, filter self-adjointness 5.0e-16, phase measure/shift are mutual inverses to 7.1e-15 deg, closed loop removes 63% of the damage (MATLAB 55.3% on the `testCorrectness` fixture, whose grid and basin geometry differ). Three deviations from this row's sketch, all recorded in the changelog: `Filter=` not `Radius=` (matches `leakageCorrect`), a grid stack not an `shSeries` (a class method is WP7), and NOT `leakageCorrect`'s `info` layout - the two return different things, a corrected field against a corrected series. | thesis eqs. + closed loop | M |
-| 5c `[ ]` | `removeGIA(gia, Sigma=…)` accepting a σ field; σ propagated into `basinAverage` sigmas and `mcPropagate` | analytic vs MC on a synthetic ensemble | S |
+| 5c `[x]` **DONE v5.2.0** (the row was never ticked when it shipped; corrected in v5.4.1) | `removeGIA(gia, Sigma=…)` accepting a σ field; σ propagated into `basinAverage` sigmas and `mcPropagate` | analytic vs MC on a synthetic ensemble | S |
 | 5d `[ ]` | Swarm: `fetchICGEM` Swarm series read and `combineCenters`-style rescaling to GRACE noise for 2017-07..2018-05; `shSeries.select` gap policy | published Swarm-vs-GRACE degree-RMS ratio | M |
 | 5e `[ ]` | `shLowLevel.readGrid(ncfile, Var=…)` (netCDF → grid + metadata, inverse of `writeGrid`) so GLDAS/WGHM enter `shCoefficients.analysis` | `writeGrid` roundtrip; one GLDAS file | S |
 Version: MINOR per approved row.
@@ -546,6 +546,51 @@ Original scope below.
 ## 6. Records
 
 ### 6.1 Decisions (append-only; date, decision, evidence)
+- 2026-09-10 — **A workstation's between-SESSION spread is larger than
+  its between-run spread - and here it erred the safe way.** The v5.4.1
+  full-suite run measured `analysis_rings_n60` at 33.9 ms and
+  `leakage_1iter_n48` at 38.7 ms against baselines of 40.2 and 46.9:
+  0.84x, on a quieter machine than the one the baselines were taken on.
+  Four back-to-back runs in one session understate how far a desktop
+  moves (~1.2x here); A8 does not move like that (<= 1.072 across runs
+  hours apart). For an UPPER bound the dangerous direction is a run
+  slower than baseline, and the worst such run in the tight tier is
+  still 1.057. The max/min criterion also counts fast runs, so it is
+  conservative, not wrong - but a baseline measured on a busy desktop
+  errs loose, and the CI gate that matters is A8.
+- 2026-09-10 — **Order agreed: A9, then WP3, then WP7** (Matthias: "Ok.
+  Let's do it in this order. Please continue with A9"). Read as the
+  go-ahead for WP3 and WP7 in that sequence; WP3's box is to be ticked
+  and its acceptance (self-consistency only, per the earlier "WP3
+  self-consistency is fine") confirmed when it starts.
+- 2026-09-10 — **The A9 noise was threads, not size, and not the
+  timer.** Forcing ONE thread made `leakage_1iter_n24` 1.32x faster and
+  its spread 1.44 -> 1.15. The budgets did not need braver factors; they
+  needed workloads big enough for 16-thread BLAS to pay for its
+  scheduling. Measured before deciding, which is why the fix is a size and
+  not a number.
+- 2026-09-10 — **The first grid-synthesis resize was sized on the wrong
+  code path, and the between-run check caught it.** A cold `shSynthesis`
+  sweep said nmax 120 / 1 deg was steady at 19 ms; the budget arm primes
+  the Legendre cache and times a 4 ms reduction, which measured 1.82
+  between runs. Re-sized on the arm itself. The stopping rule written
+  down beforehand - revert to n60 unless within-run <= ~1.05 AND
+  between-run <= 1.1 - is what kept this from becoming open-ended tuning.
+- 2026-09-10 — **`TightFactor` 1.5 -> 1.3.** The worst single-run
+  deviation from a tight-tier baseline is 1.057, so 1.3 leaves 1.23x.
+  It is set now, for the four workloads with two-machine evidence,
+  rather than with the promotions, so the next A8 runs test the factor
+  as well as the new workloads.
+- 2026-09-10 — **`leakageCorrect`'s duplicate residual chain was fixed
+  in the same release as the budgets it affects, and proven bitwise
+  first.** References were captured from the old code before the edit
+  (16 outputs, four configurations, nmax 24 and 48, ResidualRegion ~=
+  Mask included); all identical after. Fixing it after baselining would
+  have made the new leakage baseline lie - §6.3's first bullet.
+- 2026-09-10 — **FFT slower than direct at n180 / 0.5 deg is recorded,
+  not acted on.** 31.4 against 29.9 ms on one machine at one size. A
+  candidate like B2 was, to be measured across sizes before `auto` is
+  touched.
 - 2026-09-09 — **WP5 5b was unblocked by a PDF, and the block was real.**
   The previous session STOPPED the row rather than reconstruct the
   method from a half-remembered description, and that was right: the
@@ -1087,7 +1132,8 @@ Original scope below.
 | v5.1.1 (A8 numbers + matched-pair budget) | ☑ 15 gates + mlint + make_demos + 13 self-test suites, 0 findings | ☑ **CI self-hosted (A8) at `e8875fe`, green — 320 runs, 315 passed, 0 failed, 5 filtered**; the TENTH exact count prediction running. The matched pair measured: direct@200 0.0155142 s, clenshaw@200 0.0034370 s. | ☑ PR #101 | ◐ pending |
 | v5.2.0 (WP5 5c + help_audit scoping) | ☑ 15 gates + mlint + make_demos + 13 self-test suites, 0 findings | ☑ **CI self-hosted (A8) at `b65f9a2` by workflow_dispatch, green — 326 runs, 320 passed, 0 failed, 6 filtered**; the ELEVENTH exact count prediction running, per class as well as in total (Contract 76, Correctness 164, Performance 26, Robustness 53, Science 7), and exactly the 6 the row predicted. Read back by the v5.3.0 session — the run had gone green and nobody had looked, which is also how the n50 baselines sat unused. | ☐ no PR (branch was unmerged) | ☐ |
 | v5.3.0 (A22, A23, A24; A9 two-factor; WP2 both machines) | ☑ 15 gates + mlint + make_demos + 13 self-test suites, 0 findings; `NO_BASELINE` empty, 14 budgets, both machines baselined | ☑ **Tier A LOCAL on MATTHIASPC (R2026a), the first since the bridge returned** — 328 runs, count prediction matched EXACTLY (Contract 77, Correctness 164, Performance 27, Robustness 53, Science 7). Only 2 filter here, not 4: `E:\DATAPOOL` supplies the SINEX and GravIS fixtures. Then ☑ **CI self-hosted (A8) at `2a38d25` via PR #102, green — 328 runs, 323 passed, 0 failed, 5 filtered** (the 4 real-data fixtures plus `apply_ddk_n300`, which A8 had no baseline for): the TWELFTH exact count prediction running, per class as well as in total. That run also measured `apply_ddk_n300` at 23.0 ms, which is what argued it OUT of `TightBudgets` — one A8 observation is not a spread. With that baseline committed, A8 at `3c003e3` is green again with **328 runs, 324 passed, 0 failed, and only the 4 optional real-data fixtures filtered**: all fourteen speed budgets now ASSERT on both machines, which is what WP2 step 1 was for. | ☑ PR #102 | ◐ pending |
-| v5.4.0 (WP5 5b: leakageDataDriven) | ☑ 15 gates + mlint + make_demos + 13 self-test suites + the new oracle, 0 findings | ☑ **Tier A LOCAL on MATTHIASPC (R2026a) — 335 runs, 333 passed, 0 failed, 2 filtered**; the count prediction matched EXACTLY, per class as well as in total (Contract 79, Correctness 168, Performance 27, Robustness 54, Science 7). All 7 new tests pass. Two red rounds locally first, both mine and both in the TESTS, not the function: a string-array `sprintf` format, and a `badNmax` case that tripped `badSize` first because the grid was not sliced with the latitudes. Then ☑ **CI self-hosted (A8) at `c1dc1d3` via PR #103, green — 335 runs, 331 passed, 0 failed, 4 filtered** (exactly the optional real-data fixtures): the THIRTEENTH exact count prediction running, per class as well as in total, and all seven new tests ran there. | ☑ PR #103 | ◐ pending |
+| v5.4.0 (WP5 5b: leakageDataDriven) | ☑ 15 gates + mlint + make_demos + 13 self-test suites + the new oracle, 0 findings | ☑ **Tier A LOCAL on MATTHIASPC (R2026a) — 335 runs, 333 passed, 0 failed, 2 filtered**; the count prediction matched EXACTLY, per class as well as in total (Contract 79, Correctness 168, Performance 27, Robustness 54, Science 7). All 7 new tests pass. Two red rounds locally first, both mine and both in the TESTS, not the function: a string-array `sprintf` format, and a `badNmax` case that tripped `badSize` first because the grid was not sliced with the latitudes. Then ☑ **CI self-hosted (A8) at `c1dc1d3` via PR #103, green — 335 runs, 331 passed, 0 failed, 4 filtered** (exactly the optional real-data fixtures): the THIRTEENTH exact count prediction running, per class as well as in total, and all seven new tests ran there. | ☑ PR #103 | ☑ 2026-09-10 |
+| v5.4.1 (A9: four workloads replaced, apply_ddk_n300 promoted, TightFactor 1.3, leakageCorrect duplicate chain) | ☑ 15 gates + mlint + make_demos + 13 self-test suites, 0 findings; `leakageCorrect` change bitwise on 16 outputs | ☑ **Tier A LOCAL on MATTHIASPC — 335 runs, 333 passed, 0 failed, 2 filtered**; count exact per class; all fourteen budgets asserted, the four tight ones at 1.3 | ◐ pending | ◐ pending |
 | v5.0.3 (WP2 step 1 baselines) | ☑ 14 gates + mlint + make_demos + 13 self-test suites, 0 findings; `NO_BASELINE` empty | ☑ **CI self-hosted (A8) at `b70c947`, green — 315 runs, 311 passed, 0 failed, 4 filtered**; the EIGHTH exact count prediction running, per class as well as in total. All ten budgets PASSED (they filtered at `f6d5529`), and the only filtered are the four real-data fixtures. Triggered by `workflow_dispatch`, not a PR — #99 merged mid-session and `ci.yml` runs only on push-to-main, pull_request and workflow_dispatch. | ☐ no PR (#99 merged; not asked) | ☐ |
 
 **Tier A debt: DISCHARGED for all nine releases.** The local MATLAB
@@ -1112,6 +1158,17 @@ confirmation that the counter is right about a real run and not only
 about the source.
 
 ### 6.3 What the next session could be wrong for not reading
+- **Size a benchmark on the path the budget times.** A sweep of a cold
+  call measured a Legendre recursion; the budget arm primes the cache
+  and times the reduction behind it, 5x smaller and noisy. The proxy
+  looked rigorous and answered a different question.
+- **When a mid-sized workload is noisy, try one thread before anything
+  else.** If a single thread is steadier - and here it was also FASTER -
+  the spread is BLAS scheduling on small matrices, and no factor fixes
+  it. Only a bigger workload does.
+- **Write the stopping rule down before tuning.** "Revert unless
+  within-run <= 1.05 and between-run <= 1.1" is what made the synthesis
+  resize a two-round decision instead of an afternoon.
 - **A pushed SHA is not a running CI.** `ci.yml` fires on push-to-main,
   `pull_request` and `workflow_dispatch` only. When the branch's PR is
   merged mid-session, a further push to that branch raises NO event and
@@ -1460,26 +1517,21 @@ internet, which unblocks all three stuck items at once:
    buildable and testable WITHOUT network; only the live URL needs it.
 
 **Next concrete actions, in order of what they buy:**
-1. **v5.2.0 and v5.3.0 are MERGED** (PR #102; `main` is `bb6dbcb`).
-   v5.4.0 is green on A8 and waiting on PR #103. **Check `gh run list`
-   after every push** - see the CI-trigger note in 6.3, which cost a
-   round here.
-2. **A9's remaining work is specific.** `leakage_1iter_n24` moved 1.306
-   across three A8 runs of untouched code at 23 ms, and the Kalman step
-   1.267 at 1.2 ms; both are still at the loose 3x factor. A9 closes by
-   making THOSE two steady enough to budget, not by choosing a braver
-   number. `apply_ddk_n300` becomes the fourth tight budget as soon as A8
-   has measured it TWICE.
-3. **WP5 5b is done; the obvious follow-ons are not.** The method of
-   SCALE (Vishwakarma et al. 2016, thesis eq. 3.28) is the same machinery
-   with a purely geometric factor `s = int A R / int A R Rbar` and would
-   be a small addition. And `leakageDataDriven` is the natural first
-   customer for a `shSeries.leakage` method in WP7.
-4. **B1 (packed Legendre) is still the open half of WP2 step 2**, and
-   still the weaker candidate.
-5. **WP3, WP4, WP5 5a/5d/5e and WP7 wait on Matthias's tick** (and, for
-   some rows, on data). WP4 and 5e need `geodesy.unr.edu` and a GLDAS
-   file; 5a needs a published excitation series; 5d a Swarm fetch policy.
+1. **Close A9.** v5.4.1 replaced the four workloads that could not be
+   budgeted. Read their `PERFBASE` lines from TWO A8 runs (the PR run
+   plus one `workflow_dispatch`); if each holds <= 1.1 there, commit the
+   A8 baselines as medians, add the four to `TightBudgets`, and mark A9
+   CLOSED. If one does not, it stays at 3x and A9 says which and why.
+2. **Then WP3** (ellipsoidal surface), then **WP7** (class surface) -
+   the order Matthias agreed on 2026-09-10. Confirm WP3's tick and its
+   self-consistency-only acceptance when starting it.
+3. **Candidate, measure first: `shSynthesis` auto may pick FFT where
+   direct is faster on large grids** (n180 / 0.5 deg: 31.4 vs 29.9 ms on
+   MATTHIASPC). Sweep sizes on both machines before touching `auto`.
+4. **WP5 follow-ons**: the method of SCALE (thesis eq. 3.28) is the same
+   machinery plus a geometric factor; `shSeries.leakage` belongs in WP7.
+5. **B1 (packed Legendre)** remains the weaker WP2 step-2 candidate.
+6. **WP4, WP5 5a/5d/5e** wait on data or a policy decision from Matthias.
 
 **What a Tier-A session should know about running the suite here.** The
 MATLAB MCP tool times out on anything suite-sized. Run it detached and

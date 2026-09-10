@@ -1,5 +1,97 @@
 # Changelog
 
+## [5.4.1] - 2026-09-10 - A9: the noise had a cause, and it was not the timer
+
+A PATCH: four speed-budget workloads replaced, one promoted, the tight
+factor set to the number A9 asks for, and one wasted chain removed from
+`leakageCorrect` with bitwise-identical output. No documented call or
+identifier changes.
+
+### Why the small budgets were noisy
+
+`leakage_1iter_n24` moved between **23.1 and 30.2 ms** across seven A8
+runs of untouched code. It was not the timer - at 23 ms the timer is
+irrelevant. Measured on the acceptance machine:
+
+| one `leakageCorrect` iteration, nmax 24 | median | p90/p10 |
+|---|---|---|
+| 16 threads | 12.4 ms | 1.44 |
+| **1 thread** | **9.3 ms** | **1.15** |
+
+Slower **and** noisier with more threads. On a 49 x 50 grid,
+multithreaded BLAS spends more on thread scheduling than on arithmetic,
+and on a shared runner that scheduling is what moves between runs. The
+grid synthesis reduction showed the same signature (nmax 120 / 1 deg:
+1.49 at 16 threads, 1.04 at one).
+
+So the fix was not a braver factor. It was a workload large enough for
+threading to pay for itself - the same move that made `apply_ddk_n300`
+steady in v5.3.0:
+
+| replaced | by | between-run spread, MATTHIASPC |
+|---|---|---|
+| `leakage_1iter_n24` | `leakage_1iter_n48` | 1.694 within-run -> **1.046** |
+| `kalman_step_p40` | `kalman_step_p200` | 3.9 within-run -> **1.035** |
+| `synthesis_direct_n60` | `synthesis_direct_n180`, 0.5 deg | 1.689 -> **1.022** |
+| `synthesis_fft_n60` | `synthesis_fft_n180`, 0.5 deg | 1.709 -> **1.007** |
+
+Their old baselines are deleted, not carried over: a baseline measured on
+a workload that no longer runs is a budget that passes vacuously. The new
+ones are baselined on MATTHIASPC and **filter on A8** until it measures
+them.
+
+### A sizing mistake, caught by the check it was sized for
+
+The first grid-synthesis replacement was nmax 120 at 1 degree, chosen from
+a sweep that called `shSynthesis` cold: 19 ms, steady. The budget arm
+primes the Legendre cache and times only the reduction, which at that
+size is **4 ms** - and between runs it measured **1.82**, worse than the
+workload it replaced. The proxy timed a different code path from the one
+the budget measures. Re-sized on the arm's own path: nmax 180 / 0.5 deg.
+
+### `apply_ddk_n300` joins the tight tier
+
+v5.3.0 held it back on one A8 observation. Six A8 runs later its worst
+run-to-run ratio is 1.072 there and 1.059 on MATTHIASPC - the criterion,
+met on the evidence the criterion asks for. Its A8 baseline is now the
+median of those six runs.
+
+### `TightFactor` 1.5 -> 1.3
+
+The worst deviation any run has shown from its tight-tier baseline is
+**1.057**, so 1.3 leaves 1.23x of headroom - and 1.3 is the number A9
+asks for. For `legendreALF`, `shAnalysisGrid` and `applyDDK`, a 1.3x
+regression now fails CI. That margin exists only because every baseline
+is a median over runs.
+
+### `leakageCorrect` built its final residual twice
+
+`info.residualRMS` and `info.residualRMSGlobal` each re-ran the full
+analysis -> filter -> synthesis chain on the same field: 3.07
+chain-equivalents per one-iteration call where 2 suffice. Now built once.
+**Bitwise identical** on all 16 outputs checked (four configurations at
+nmax 24 and 48, including `ResidualRegion` differing from `Mask`, where
+the two residuals genuinely differ). At nmax 48 one iteration went from
+69 to 47 ms, as the 3 -> 2 chain count predicts.
+
+### What A9 still waits for
+
+Only evidence. The four new workloads need two A8 runs holding <= 1.1;
+then they join the tight tier at 1.3, and every lane A9 names -
+`legendreALF`, `shSynthesis`, `shAnalysisGrid`, `applyDDK`,
+`leakageCorrect`, the Kalman step - has a budget that catches a 1.3x
+regression. That is A9's own wording, and it closes there.
+
+### Noticed, deliberately not acted on
+
+At n180 / 0.5 deg the FFT synthesis path is **slower** than direct (31.4
+against 29.9 ms), while at n60 on A8 it was 1.40x faster. `auto` may pick
+the slower path on large grids, as `synthesisPoints` did before v5.3.0.
+One machine, one size: recorded as a candidate to measure, not changed.
+
+### Record
+
+WP5 row 5c was never ticked when v5.2.0 shipped it; corrected.
 ## [5.4.0] - 2026-09-09 - WP5 5b: leakage correction without a model
 
 `shLowLevel.leakageDataDriven` repairs the catchment average of a filtered
