@@ -223,8 +223,8 @@ do not see; **L** = polish.
 
 | # | Capability | Why it belongs here | Nearest existing building block |
 |---|---|---|---|
-| C1 | **GNSS inversion** (displacements → loading coefficients / TWS) and **joint GRACE+GNSS** estimation | forward exists (`shSynthesisDeformation`), inverse does not; the joint NEQ combination machinery (`neqCombine`, VCE) exists | `shAnalysisGrid` ("ls" mode), `neqCombine`, `vceRescale`, `slepianBasis` |
-| C2 | GNSS time-series I/O and station-wise comparison metrics (WRMS reduction, annual amplitude/phase, correlation with `effectiveCorr`) | today a user must write the reader and the metrics | `compareSeries`, `effectiveCorr`, `fitDeterministicModel` |
+| C1 | *(moved out to a GNSS toolbox, 2026-09-10 - see WP4)* **GNSS inversion** (displacements → loading coefficients / TWS) and **joint GRACE+GNSS** estimation | forward exists (`shSynthesisDeformation`), inverse does not; the joint NEQ combination machinery (`neqCombine`, VCE) exists | `shAnalysisGrid` ("ls" mode), `neqCombine`, `vceRescale`, `slepianBasis` |
+| C2 | *(moved out to a GNSS toolbox, 2026-09-10 - see WP4)* GNSS time-series I/O and station-wise comparison metrics (WRMS reduction, annual amplitude/phase, correlation with `effectiveCorr`) | today a user must write the reader and the metrics | `compareSeries`, `effectiveCorr`, `fitDeterministicModel` |
 | C3 | Earth-rotation excitation (χ1, χ2 from C21/S21; ΔLOD from C20) | degree-2 is the best-determined GRACE signal; standard in SHBundle/GRAMAT lanes | `shSeries`, `poleTideConvert` conventions |
 | C4 | Data-driven leakage correction (Vishwakarma et al. 2017) | model-independent alternative to the forward-model lane; "data-driven" appears only for the tvANS covariance | `leakageCorrect`, `basinKernel`, `shGaussianFilter` |
 | C5 | GIA as an ensemble (mean + per-coefficient σ, e.g. Caron 2018) propagated into basin sigmas | `removeGIA` takes one deterministic rate field | `removeGIA`, `mcPropagate` |
@@ -419,7 +419,20 @@ not an option, and the class methods forward `Surface`.
   EGM2008 geoid undulations at a handful of points as `reference`.
 - **Size**: S–M. **Version**: MINOR.
 
-### WP4 — GNSS lane (C1, C2)   `[ ] approved`
+### WP4 — GNSS lane (C1, C2)   `[-] MOVED OUT` (2026-09-10)
+**Moved out of shAnalysis by Matthias on 2026-09-10**, to become a GNSS
+toolbox of its own, to be worked on later ("GNSS data need preprocessing";
+"Inversion and joint combination shall also be part of the GNSS
+toolbox"). Nothing of WP4 was built. The proposal below, the facts
+gathered for it and the six questions that were open went into a
+handover note that is kept OUTSIDE this repository, by the same
+decision. Do not start WP4 here: the reader, the preprocessing,
+`compareGNSS`, `invertLoading` and `combineGRACEGNSS` belong to that
+toolbox. What shAnalysis offers it is the forward side - the
+deformation synthesis (`shSynthesisDeformation`, `g.deformation`), the
+Love numbers and their CE/CF/CM frames, and `neqCombine`. The original
+proposal stays below as the record.
+
 - **Goal**: close the loop forward ↔ inverse and make station comparison a
   one-call operation. Base MATLAB only; `lsqvce`/`referenceSystem` are not
   dependencies — VCE is already inside `neqCombine`/`vceRescale`, frames are
@@ -584,6 +597,15 @@ of 125.
 ## 6. Records
 
 ### 6.1 Decisions (append-only; date, decision, evidence)
+- 2026-09-10 — **WP4 moved out of shAnalysis, to a GNSS toolbox of its
+  own** (Matthias: "This sounds a lot like a toolbox by itself. GNSS
+  data need preprocessing." ... "Inversion and joint combination shall
+  also be part of the GNSS toolbox."). Nothing of WP4 had been built;
+  the question that prompted it was what the package would need. The
+  proposal, the facts gathered for it and the open questions went into
+  a handover note kept outside the repository, at Matthias's request.
+  C1 and C2 go with it. What stays here is the forward side such a
+  toolbox would call, which already exists.
 - 2026-09-10 — **A28, A26 and the `.gitattributes` fix approved**
   (Matthias: "#107 is merged. Continue with A28, A26 and the
   .gitattributes fix"). Executed as 5.7.1, one PATCH on one PR; the
@@ -1315,7 +1337,7 @@ of 125.
 | v5.5.0 (WP3: `Surface = "ellipsoid"`, `ellipsoidRadius`) | ☑ 15 gates + mlint + make_demos + 13 self-test suites + the new oracle, 0 findings; sphere path bitwise on 26/26 pre-WP3 outputs | ☑ **Tier A LOCAL on MATTHIASPC — 346 runs, 344 passed, 0 failed, 2 filtered**; count exact per class (Contract 83, Correctness 173, Performance 27, Robustness 56, Science 7); the 11 WP3 tests passed on their first run - no red round. Then ☑ **CI self-hosted (A8) at `3f99bf3` via PR #105, green — 346 runs, 342 passed, 0 failed, 4 filtered** (exactly the optional real-data fixtures); `count_tests` confirmed the prediction against the run, per class as well as in total, and all eleven WP3 tests ran there | ☑ PR #105 | ☑ 2026-09-10 |
 | v5.6.0 (WP7: eight class delegates, `Surface` through `toGrid`/`map`, `class_surface_audit`) | ☑ 16 gates + mlint + make_demos + 14 self-test suites, 0 findings; reach 58 -> 69 of 124; the 11 WP7 tests passed on their first run | ☑ **Tier A LOCAL on MATTHIASPC — 357 runs, 355 passed, 0 failed, 2 filtered**; count exact per class (Contract 94, Correctness 173, Performance 27, Robustness 56, Science 7), and all 27 performance runs asserted. Then ☑ **CI self-hosted (A8) at `78cfea9` via PR #106, green — 357 runs, 353 passed, 0 failed, 4 filtered** (exactly the optional real-data fixtures); `count_tests` confirmed the prediction per class as well as in total, and `class_surface_audit` ran in the gates job with 0 findings | ☑ PR #106 | ☑ 2026-09-10 |
 | v5.7.0 (A25 `filterSpec` + eight lanes; `g.synthesisPoints`, `g.gradientTensor`, `g.vdkApply`; A27) | ☑ 16 gates + mlint + make_demos + 14 self-test suites, 0 findings; 19 valid-spec lane outputs bitwise identical before/after (plus 4 from oceanChain and greenlandChain, run on an extracted copy of the old tree and on the new; obpChain not run, for want of GAD data) | ☑ **Tier A LOCAL on MATTHIASPC — 364 runs, 362 passed, 0 failed, 2 filtered**; count exact per class (Contract 101, Correctness 173, Performance 27, Robustness 56, Science 7), and all 27 performance runs asserted. Then ☑ **CI self-hosted (A8) at `5eab68a` via PR #107, green — 364 runs, 360 passed, 0 failed, 4 filtered** (exactly the optional real-data fixtures); `count_tests` confirmed the prediction per class as well as in total, and `class_surface_audit` and `doc_sync_audit` ran in the gates job with 0 findings | ☑ PR #107 | ☑ 2026-09-10 |
-| v5.7.1 (A28 in both ocean chains, A26, A29 `.gitattributes`) | ☑ 16 gates + mlint + make_demos + 15 self-test suites, 0 findings; `doc_sync`'s new xref check fired on the corrupted guide before it was rebuilt | ☑ **Tier A LOCAL on MATTHIASPC — 365 runs, 363 passed, 0 failed, 2 filtered**; count exact per class (Contract 102, Correctness 173, Performance 27, Robustness 56, Science 7), and all 27 performance runs asserted. The two `noOcean` messages were reworded while it ran - `no_map_renderer` read "coastline" in them - message text only, which no test reads | ◐ pending | ◐ pending |
+| v5.7.1 (A28 in both ocean chains, A26, A29 `.gitattributes`) | ☑ 16 gates + mlint + make_demos + 15 self-test suites, 0 findings; `doc_sync`'s new xref check fired on the corrupted guide before it was rebuilt | ☑ **Tier A LOCAL on MATTHIASPC — 365 runs, 363 passed, 0 failed, 2 filtered**; count exact per class (Contract 102, Correctness 173, Performance 27, Robustness 56, Science 7), and all 27 performance runs asserted. The two `noOcean` messages were reworded while it ran - `no_map_renderer` read "coastline" in them - message text only, which no test reads. Then ☑ **CI self-hosted (A8) at `38a9a4f` via PR #108, green — 365 runs, 361 passed, 0 failed, 4 filtered** (exactly the optional real-data fixtures); `count_tests` confirmed the prediction per class as well as in total, and `doc_sync_audit` - with its two new A29 checks - and `test_doc_sync_pdf` (11 tests) passed on the ubuntu gates job | ☑ PR #108 | ☑ 2026-09-10 |
 | v5.0.3 (WP2 step 1 baselines) | ☑ 14 gates + mlint + make_demos + 13 self-test suites, 0 findings; `NO_BASELINE` empty | ☑ **CI self-hosted (A8) at `b70c947`, green — 315 runs, 311 passed, 0 failed, 4 filtered**; the EIGHTH exact count prediction running, per class as well as in total. All ten budgets PASSED (they filtered at `f6d5529`), and the only filtered are the four real-data fixtures. Triggered by `workflow_dispatch`, not a PR — #99 merged mid-session and `ci.yml` runs only on push-to-main, pull_request and workflow_dispatch. | ☐ no PR (#99 merged; not asked) | ☐ |
 
 **Tier A debt: DISCHARGED for all nine releases.** The local MATLAB
@@ -1755,7 +1777,7 @@ internet, which unblocks all three stuck items at once:
    machinery plus a geometric factor, and would be a third leakage
    method on `shSeries`.
 6. **B1 (packed Legendre)** remains the weaker WP2 step-2 candidate.
-7. **WP4, WP5 5a/5d/5e** wait on data or a policy decision from Matthias.
+7. **WP5 5a/5d/5e** wait on data or a policy decision from Matthias. **WP4 is moved out** to a separate GNSS toolbox (2026-09-10); do not start it here.
 
 **What a Tier-A session should know about running the suite here.** The
 MATLAB MCP tool times out on anything suite-sized. Run it detached and
