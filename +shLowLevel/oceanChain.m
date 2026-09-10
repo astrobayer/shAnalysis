@@ -141,6 +141,9 @@ function [out, rep] = oceanChain(folder, opts)
 %
 %   Error identifiers
 %     shLowLevel:oceanChain:missingKn  kn not supplied
+%     shLowLevel:oceanChain:noOcean    OceanMask not supplied; it is
+%         REQUIRED, and before v5.7.1 its absence failed with
+%         MATLAB:badsubscript in the trend fit instead
 %     shLowLevel:oceanChain:badFilter  Filter is not "none" or a valid
 %         "gauss<radiusKm>" (read by shLowLevel.filterSpec; before
 %         v5.7.0 any other text became a NaN radius)
@@ -174,6 +177,16 @@ end
 if isempty(opts.kn)
     error('shLowLevel:oceanChain:missingKn', ...
         'oceanChain requires load Love numbers: pass kn = ... explicitly.');
+end
+if isempty(opts.OceanMask)
+    % documented as REQUIRED, and until v5.7.1 not refused: the empty mask
+    % reached the trend fit and failed there with MATLAB:badsubscript (A28)
+    error('shLowLevel:oceanChain:noOcean', ...
+        ['OceanMask is required: the ocean mean and the barystatic trend ' ...
+         'are integrals over it, and the toolbox assumes no land-ocean ' ...
+         'boundary of its own. Give a ' ...
+         'logical grid or an @(lat, lon) handle that is false over land ' ...
+         '(see shLowLevel.oceanRMS).']);
 end
 R = 6378136.3; GM = 3.986004415e14; Re = 6371e3;
 % ---- corrected series (shared core)

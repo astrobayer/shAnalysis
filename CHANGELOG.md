@@ -1,5 +1,46 @@
 # Changelog
 
+## [5.7.1] - 2026-09-10 - A28, A26, and a guide PDF git no longer rewrites
+
+A PATCH: three fixes. One new error identifier per ocean chain, on a path
+that used to crash or return an empty result; no valid call changes.
+
+### Fixed
+- **A28: `oceanChain` and `obpChain` refuse a missing `OceanMask`**
+  (`shLowLevel:oceanChain:noOcean`, `shLowLevel:obpChain:noOcean`). Both
+  document the mask as REQUIRED and defaulted it to `[]` without checking.
+  `oceanChain` then failed with `MATLAB:badsubscript` in its trend fit,
+  whatever the filter - measured with the preferences' data. `obpChain`
+  would have returned a grid with its land values intact and an empty
+  ocean-mean series, without an error - read from its code, because this
+  machine has no GAD folder to run it with. Both now refuse before any
+  data is read, as `gravisRegionChain` already did with `noOcean`.
+- **A26: `twsChain` looks for DDK files where `fetchDDK` puts them**,
+  `<dataFolder>/DDK`. It looked only in the lower-case `ddk` - the same
+  folder on Windows, a different one on Linux and macOS. `ddk` stays in the
+  list, after `DDK`, for files placed there by hand. This cannot be
+  observed on Windows, A8 included, where both spellings name one folder,
+  so it is verified by reading.
+- **A29: the guide PDF is no longer rewritten by git.** It is pure ASCII
+  (reportlab's ASCII85 streams), so git took it for text and
+  `core.autocrlf` converted it on a Windows checkout: the pull of #107 on
+  the acceptance machine inserted 3589 CR bytes and left `startxref`
+  pointing into the middle of a stream. The committed blob was always
+  intact. A new `.gitattributes` marks `*.pdf` - and the other binary types
+  - `binary`; text files are deliberately not normalized.
+
+### Checked from now on
+- `doc_sync_audit.py` fails when `.gitattributes` stops marking the guide
+  PDF binary, and when the PDF's `startxref` does not point at its xref
+  table. The second check was run on the corrupted working copy before it
+  was rebuilt, and it fired; the page-1 stamp check beside it had passed
+  that file, because ASCII85 ignores the inserted bytes. 11 self-tests,
+  the CRLF rewrite among the injected faults.
+
+### Tests
+- 364 -> 365 runs (`testContract` 101 -> 102): both ocean chains refuse a
+  missing mask before they touch a folder that does not exist.
+
 ## [5.7.0] - 2026-09-10 - A25, and three more class routes
 
 A MINOR: new API - `shLowLevel.filterSpec` and three `shCoefficients`

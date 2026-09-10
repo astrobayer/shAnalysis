@@ -73,6 +73,8 @@ function [out, rep] = obpChain(folder, opts)
 %         "gauss<radiusKm>" (read by shLowLevel.filterSpec; before
 %         v5.7.0 any other text became a NaN radius)
 %     shLowLevel:obpChain:missingGAD       GADFolder empty
+%     shLowLevel:obpChain:noOcean          OceanMask not supplied; it is
+%         REQUIRED, and before v5.7.1 its absence was not refused
 %     shLowLevel:obpChain:emptyRefPeriod   no epochs inside RefPeriod
 %
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5),
@@ -105,6 +107,17 @@ if strlength(opts.GADFolder) == 0
     error('shLowLevel:obpChain:missingGAD', ...
         ['OBP is GSM plus GAD by definition - pass GADFolder= ' ...
          '(fetch the files with shLowLevel.fetchGAX).']);
+end
+if isempty(opts.OceanMask)
+    % documented as REQUIRED, and until v5.7.1 not refused: an empty mask
+    % masked nothing, so the grid kept its land values and the ocean mean
+    % came back empty - read from the code, not run (no GAD data; A28)
+    error('shLowLevel:obpChain:noOcean', ...
+        ['OceanMask is required: the anomalies are set to NaN over land ' ...
+         'and the ocean mean is an integral over the ocean; the toolbox ' ...
+         'assumes no land-ocean boundary of its own. Give a logical ' ...
+         'grid or an @(lat, lon) ' ...
+         'handle that is false over land (see shLowLevel.oceanRMS).']);
 end
 R = 6378136.3; GM = 3.986004415e14; Re = 6371e3;
 % ---- corrected series (shared core)

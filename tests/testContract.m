@@ -2654,3 +2654,17 @@ verifyTrue(testCase, isequaln(g.vdkApply(N, sigM, Alpha = 0.5), ...
 verifyError(testCase, @() g.vdkApply(N(1:end-1, 1:end-1), sigM), ...
     'shLowLevel:vdkApply:badSize');
 end
+
+% ------------------------------------------------- A28: the mask is required
+function testOceanChainsRefuseAMissingMask(testCase)
+%TESTOCEANCHAINSREFUSEAMISSINGMASK both ocean chains document OceanMask as
+%   REQUIRED and defaulted it to [] without checking; oceanChain then failed
+%   with MATLAB:badsubscript in its trend fit (A28). Both now refuse before
+%   any data is read - the folder below does not exist.
+nf = string(tempname);
+kn = zeros(91, 1);
+verifyError(testCase, @() shLowLevel.oceanChain(nf, kn = kn), ...
+    'shLowLevel:oceanChain:noOcean');
+verifyError(testCase, @() shLowLevel.obpChain(nf, kn = kn, GADFolder = nf), ...
+    'shLowLevel:obpChain:noOcean');
+end
