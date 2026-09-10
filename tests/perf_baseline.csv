@@ -15,18 +15,22 @@
 # MATLAB happened to be launched - and a miss does not fail a budget, it
 # FILTERS it, leaving the workload unguarded without saying so.
 #
-# Every row is a MEDIAN OVER RUNS, not a single run (v5.2.0 - before that
+# Every row is a MEDIAN OVER RUNS, not a single run (v5.3.0 - before that
 # the A8 rows were single PERFBASE lines). samples says how many timings
 # stand behind it: 45 = 3 A8 runs x 15 repeats, 60 = 4 MATTHIASPC runs x 15;
 # min_s is the smallest sample seen in any of them. The reason is the
 # between-run spread recorded on BudgetFactor: a single run can land at
 # either end of it, and a baseline that landed at the fast end turns a
-# 3x budget into a 2x one without anyone choosing that. Three A8 rows are
-# single-run (samples 15) because A8 has measured them once: the n50 pair
-# and apply_ddk_n300. That is also why apply_ddk_n300 is not a tight
-# budget yet - see TightBudgets in testPerformance.m.
+# 3x budget into a 2x one without anyone choosing that. Two A8 rows are
+# single-run (samples 15) because A8 has measured them once: the n50 pair.
+# apply_ddk_n300's A8 row is the median of six runs (samples 90).
 #
-# Every budget now has a row on every machine that runs it.
+# Four workloads were replaced in v5.4.1 because they were small enough
+# that thread-scheduling noise, not the code, set their spread:
+# leakage_1iter_n24 -> _n48, kalman_step_p40 -> _p200, and the grid
+# synthesis pair synthesis_{direct,fft}_n60 -> _n180 on a 0.5-degree grid.
+# Their A8 rows are the median of two A8 runs of one commit (2c7b779,
+# samples 30), which is what let them join the tight tier in v5.4.1.
 #
 # min_s is recorded but NOT asserted: it is the statistic to tighten
 # BudgetFactor with once a spread has been observed across runs.
@@ -37,14 +41,14 @@
 # a memory-bound recursion.
 machine,matlab,benchmark,median_s,min_s,samples,measured
 A8,2026a,analysis_rings_n60,0.0699013,0.0687578,45,2026-09-09
-A8,2026a,apply_ddk_n300,0.0230291,0.0226336,15,2026-09-09
-A8,2026a,kalman_step_p40,0.0016711,0.0013586,45,2026-09-09
-A8,2026a,leakage_1iter_n24,0.0231963,0.0222312,45,2026-09-09
+A8,2026a,apply_ddk_n300,0.0230783,0.0223457,90,2026-09-09
+A8,2026a,kalman_step_p200,0.0296753,0.028796,30,2026-09-10
+A8,2026a,leakage_1iter_n48,0.0809248,0.0794622,30,2026-09-10
 A8,2026a,legendre_n360,0.0880597,0.0846225,45,2026-09-09
 A8,2026a,legendre_n720,0.284863,0.281566,45,2026-09-09
 A8,2026a,legendre_n96,0.0119399,0.0111723,45,2026-09-09
-A8,2026a,synthesis_direct_n60,0.0044529,0.0039347,45,2026-09-09
-A8,2026a,synthesis_fft_n60,0.0031261,0.0029098,45,2026-09-09
+A8,2026a,synthesis_direct_n180,0.0382202,0.0374126,30,2026-09-10
+A8,2026a,synthesis_fft_n180,0.0395952,0.0392149,30,2026-09-10
 A8,2026a,synthesis_points_n50_clenshaw,0.001067,0.0010408,15,2026-09-09
 A8,2026a,synthesis_points_n50_direct,0.0037977,0.0035658,15,2026-09-09
 A8,2026a,synthesis_points_n60,0.0188751,0.0173075,45,2026-09-09
@@ -52,13 +56,13 @@ A8,2026a,synthesis_points_n60_clenshaw,0.0033668,0.002111,45,2026-09-09
 A8,2026a,synthesis_points_n60_direct,0.0155334,0.0101218,45,2026-09-09
 MATTHIASPC,2026a,analysis_rings_n60,0.0401679,0.0391107,60,2026-09-09
 MATTHIASPC,2026a,apply_ddk_n300,0.0148968,0.0141557,60,2026-09-09
-MATTHIASPC,2026a,kalman_step_p40,0.00122255,0.001128,60,2026-09-09
-MATTHIASPC,2026a,leakage_1iter_n24,0.0143491,0.0121085,60,2026-09-09
+MATTHIASPC,2026a,kalman_step_p200,0.0183692,0.0168925,60,2026-09-10
+MATTHIASPC,2026a,leakage_1iter_n48,0.0468689,0.0454489,60,2026-09-10
 MATTHIASPC,2026a,legendre_n360,0.0570058,0.054605,60,2026-09-09
 MATTHIASPC,2026a,legendre_n720,0.170559,0.16768,60,2026-09-09
 MATTHIASPC,2026a,legendre_n96,0.00838295,0.0072303,60,2026-09-09
-MATTHIASPC,2026a,synthesis_direct_n60,0.00207385,0.0014904,60,2026-09-09
-MATTHIASPC,2026a,synthesis_fft_n60,0.0020998,0.0015177,60,2026-09-09
+MATTHIASPC,2026a,synthesis_direct_n180,0.029902,0.0291107,60,2026-09-10
+MATTHIASPC,2026a,synthesis_fft_n180,0.0314209,0.030749,60,2026-09-10
 MATTHIASPC,2026a,synthesis_points_n50_clenshaw,0.0007686,0.0005649,60,2026-09-09
 MATTHIASPC,2026a,synthesis_points_n50_direct,0.00222375,0.0020717,60,2026-09-09
 MATTHIASPC,2026a,synthesis_points_n60,0.0111767,0.0082277,60,2026-09-09

@@ -18,8 +18,8 @@ classdef testPerformance < matlab.perftest.TestCase
 %     testSpeedBudget asserts ten workloads against a per-machine
 %     baseline committed in tests/perf_baseline.csv:
 %       legendre_n96 / _n360 / _n720   the Holmes-Featherstone recursion
-%       synthesis_direct_n60           reduction only (cache primed)
-%       synthesis_fft_n60              the FFT-along-longitude path
+%       synthesis_direct_n180          reduction only, 0.5 deg (cache primed)
+%       synthesis_fft_n180             the FFT-along-longitude path, 0.5 deg
 %       synthesis_points_n60           2000 scattered points, clenshaw
 %       synthesis_points_n60_direct    200 scattered points, direct
 %       synthesis_points_n50_direct/_clenshaw  a SECOND matched pair at
@@ -32,12 +32,12 @@ classdef testPerformance < matlab.perftest.TestCase
 %         v5.1.0 shipped them at 2000 and 200, which cannot bracket it
 %       analysis_rings_n60             exact per-order ring analysis
 %       apply_ddk_n300                 order-block filter application
-%       leakage_1iter_n24              one leakageCorrect step
-%       kalman_step_p40                a 12-epoch VAR(1) filter chain
+%       leakage_1iter_n48              one leakageCorrect step
+%       kalman_step_p200               a 12-epoch VAR(1) filter chain
 %     Each is timed Repeats times after one untimed warm-up; the MEDIAN
 %     is compared against a factor x the baseline for THIS machine. The
-%     factor is per benchmark, not global (v5.3.0): TightFactor 1.5 for
-%     the four workloads whose measured between-run spread earned it,
+%     factor is per benchmark, not global (v5.3.0): TightFactor 1.3 for
+%     the eight workloads whose measured between-run spread earned it,
 %     BudgetFactor 3 for the rest. See the constants for the criterion
 %     and for why one number could not serve both kinds of benchmark.
 %     A machine with no baseline row FILTERS the budget (assumeNotEmpty)
@@ -67,8 +67,8 @@ properties (TestParameter)
         'legendre_n96',         'legendre_n96', ...
         'legendre_n360',        'legendre_n360', ...
         'legendre_n720',        'legendre_n720', ...
-        'synthesis_direct_n60', 'synthesis_direct_n60', ...
-        'synthesis_fft_n60',    'synthesis_fft_n60', ...
+        'synthesis_direct_n180', 'synthesis_direct_n180', ...
+        'synthesis_fft_n180',   'synthesis_fft_n180', ...
         'synthesis_points_n60', 'synthesis_points_n60', ...
         'synthesis_points_n60_direct', 'synthesis_points_n60_direct', ...
         'synthesis_points_n60_clenshaw', 'synthesis_points_n60_clenshaw', ...
@@ -76,76 +76,87 @@ properties (TestParameter)
         'synthesis_points_n50_clenshaw', 'synthesis_points_n50_clenshaw', ...
         'analysis_rings_n60',   'analysis_rings_n60', ...
         'apply_ddk_n300',       'apply_ddk_n300', ...
-        'leakage_1iter_n24',    'leakage_1iter_n24', ...
-        'kalman_step_p40',      'kalman_step_p40');
+        'leakage_1iter_n48',    'leakage_1iter_n48', ...
+        'kalman_step_p200',     'kalman_step_p200');
 end
 
 properties (Constant)
-    % A9 asks for a budget that catches a 1.3x creep. v5.3.0 measured
-    % what a budget can actually assert, and the answer is: it depends on
-    % the workload, so one factor cannot be the whole answer.
+    % A9 asks for a budget that catches a 1.3x creep. What a budget can
+    % honestly assert depends on the workload, so there are two factors,
+    % and v5.4.1 found out WHY the small workloads could not be tight.
     %
-    % The statistic is the BETWEEN-run spread. The within-run median/min
-    % cannot give it (15 repeats in one process on a quiet machine said
-    % <= 1.043, which means almost nothing). Twelve MATTHIASPC runs and
-    % three A8 runs, all 2026-09-09, on code nobody touched, give the
-    % worst run-to-run ratio per workload:
+    % The statistic is the BETWEEN-run spread - 15 repeats inside one
+    % process cannot give it. Worst run-to-run ratio per workload:
     %
-    %   legendre_n720                1.011      171 ms
-    %   analysis_rings_n60           1.079       40 ms
-    %   legendre_n360                1.036       57 ms
-    %   apply_ddk_n300               1.059       15 ms
-    %   ---- above: <= 1.1, tight. below: not ----
-    %   kalman_step_p40              1.267      1.2 ms
-    %   leakage_1iter_n24            1.306    23 ms on A8
-    %   legendre_n96                 1.532      8 ms
-    %   synthesis_direct_n60         1.689      1.7 ms
-    %   synthesis_points_n50_direct  1.540      2.2 ms
-    %   synthesis_points_n60         1.660       11 ms
-    %   synthesis_points_n60_direct  1.651      7.7 ms
-    %   synthesis_points_n50_clenshaw 1.655     0.8 ms
-    %   synthesis_points_n60_clenshaw 1.685     1.9 ms
-    %   synthesis_fft_n60            1.709      2.1 ms
+    %   workload                       A8      MATTHIASPC   size
+    %   legendre_n720                  1.011   1.029        171-285 ms
+    %   legendre_n360                  1.031   1.036         57-88 ms
+    %   analysis_rings_n60             1.007   1.079         40-70 ms
+    %   apply_ddk_n300                 1.072   1.059         15-23 ms
+    %   synthesis_fft_n180             1.002   1.007         31-40 ms
+    %   synthesis_direct_n180          1.021   1.022         30-39 ms
+    %   kalman_step_p200               1.009   1.035         18-30 ms
+    %   leakage_1iter_n48              1.007   1.046         47-81 ms
+    %   ---- above: TightFactor.  below: BudgetFactor ----
+    %   legendre_n96                   1.024   1.532          8-12 ms
+    %   five point-synthesis budgets   <=1.608 <=1.685        1-22 ms
     %
-    % Two facts follow, and they point opposite ways.
+    % WHY the small ones were noisy, measured 2026-09-10. One iteration of
+    % the old leakage_1iter_n24 took 12.4 ms at 16 threads with p90/p10
+    % 1.44, and 9.3 ms at ONE thread with 1.15 - slower AND noisier with
+    % more threads. On a 49 x 50 grid, multithreaded BLAS spends more on
+    % thread scheduling than on arithmetic, and on a shared runner that
+    % scheduling is what moves between runs: it is how a 23 ms workload
+    % swung 1.306 on A8 while nobody touched it. The grid synthesis
+    % reduction showed the same thing (nmax 120 / 1 deg: 1.49 at 16
+    % threads, 1.04 at one). So the fix was never a braver factor. It was
+    % a workload large enough for threading to pay, and four were
+    % replaced: leakage n24 -> n48, Kalman p40 -> p200, and the synthesis
+    % pair n60 / 1 deg -> n180 / 0.5 deg.
     %
-    % ONE: a single 1.3x budget is refuted, and not by a timer artefact.
-    % leakage_1iter_n24 measured 23.1, 23.1 and 30.2 ms in three A8 runs
-    % of untouched code - 1.306 on a 23 ms workload. A 1.3 budget would
-    % have gone red there, and a gate that cries wolf is worse than none.
+    % THE CRITERION, stated precisely because the loose wording failed
+    % within a day. A workload is tight when (a) its A8 run-to-run spread
+    % over at least two runs is <= 1.1, and (b) no run on EITHER machine
+    % has come in more than 1.1 ABOVE its baseline. The first wording -
+    % max/min <= 1.1 on both machines - also counts FAST runs. On
+    % 2026-09-10 a full-suite run on a quiet desktop came in 0.84x below
+    % baselines taken while it was busy; under that wording
+    % analysis_rings_n60, the steadiest budget on A8 (1.007), would have
+    % been demoted for the machine being idle. A fast run cannot fail an
+    % upper bound. It does erode SENSITIVITY on that machine - a baseline
+    % taken under load masks part of a regression there - so the 1.3x
+    % guarantee A9 asks for holds on A8, the CI gate, and on a
+    % workstation the budgets err loose.
     %
-    % TWO: the four workloads at 15 ms and above never moved more than
-    % 1.079, across fifteen runs on two machines, one of which was busy.
-    % Holding them at 3x because ten small benchmarks are noisy would be
-    % letting the worst member set every budget in the set.
+    % TightFactor is 1.3, down from 1.5, because the evidence now allows
+    % the number A9 actually asks for. The worst deviation any single run
+    % has shown from its tight-tier baseline is 1.057 (apply_ddk_n300 on
+    % A8, one run against the six-run median), so 1.3 leaves 1.23x of
+    % headroom. That margin exists only because every baseline is a
+    % median over runs: against a single-run baseline that landed at the
+    % fast end it would not.
     %
-    % Hence two factors. The tight four include three of the six lanes A9
-    % names (legendreALF, shAnalysisGrid, applyDDK), which is most of what
-    % the finding was actually worried about. The rest keep 3 because
-    % their spread forbids less - and the small ones cannot simply be
-    % enlarged: the n50/n60 pairs are crossover BRACKETS, and a bracket
-    % measured at a different point count measures nothing.
-    %
-    % 1.5 leaves 1.39x headroom over the worst tight observation (1.079).
-    % Every baseline below is a MEDIAN OVER RUNS, not one run, so the
-    % comparison is against the middle of the spread rather than whichever
-    % end a single run happened to land on - which is what makes 1.5 safe
-    % enough to assert. A9 is not closed: leakageCorrect and the Kalman
-    % step are still at 3x, and closing it means making THEM steady
-    % enough to budget, not choosing a braver number for them.
+    % What stays at BudgetFactor, and why that is correct rather than
+    % unfinished: the n50/n60 point pairs are crossover BRACKETS -
+    % enlarging them would destroy what they measure - and legendre_n96
+    % is small by construction. At 3x they guard against blow-ups, which
+    % is all a 1-10 ms workload on a 16-thread machine can promise.
     BudgetFactor = 3;           % everything not listed below
-    TightFactor = 1.5;          % <= 1.1 observed over 15 runs, 2 machines
+    TightFactor = 1.3;          % see above: 1.23x over the worst tight run
     TightBudgets = ["legendre_n360", "legendre_n720", ...
-                    "analysis_rings_n60"];
-    % apply_ddk_n300 is the obvious fourth and is deliberately NOT here.
-    % The criterion says "worst observed over fifteen runs on BOTH
-    % machines"; A8 has run it once (23.0 ms at 2a38d25), so it has no
-    % A8 spread at all. It was in this list for one round on
-    % MATTHIASPC evidence alone, and the A8 number is what argued it
-    % out: at 23 ms it is the same size as leakage_1iter_n24, which
-    % swings 1.306 on A8. Granting tight status on one machine's
-    % evidence would have been applying the rule to the data that
-    % happened to exist. Promote it when A8 has measured it twice.
+                    "analysis_rings_n60", "apply_ddk_n300", ...
+                    "leakage_1iter_n48", "kalman_step_p200", ...
+                    "synthesis_direct_n180", "synthesis_fft_n180"];
+    % The last four joined in the same release that created them, on two
+    % A8 runs of the same commit (2c7b779: the PR run and a
+    % workflow_dispatch) - 1.007, 1.009, 1.021 and 1.002. That is the
+    % rule being met, not bent: it asks for two A8 runs, and there were.
+    % apply_ddk_n300 joined in v5.4.1. v5.3.0 held it back on ONE A8
+    % observation, which gives no spread at all; six A8 runs later
+    % (2026-09-09, PRs #102 and #103) its worst run-to-run ratio is
+    % 1.072 there and 1.059 on MATTHIASPC. It meets the criterion on
+    % exactly the evidence the criterion asks for - which is the only
+    % way anything should get into this list.
     Repeats = 15;               % WP2: 15 repeats, median of the samples
 end
 
@@ -299,6 +310,12 @@ methods (Test)
         % measured against the direct path with the cache in the same
         % state, which is the only comparison that isolates the FFT.
         % One machine, one configuration: the number, not a law.
+        % Those two budgets became synthesis_{direct,fft}_n180 on a
+        % 0.5-degree grid in v5.4.1, because at n60 their spread was set
+        % by thread scheduling. The 1.40x above is the n60 figure. At n180
+        % / 0.5 deg MATTHIASPC measures direct 29.9 ms against fft 31.4
+        % ms - the FFT path is not faster there at all. One machine, one
+        % size: a reason to measure the crossover, not yet to change auto.
         g = tc.randomField(60);
         lat = -90:1:90; lon = 0:1:359;
         g.synthesis(lat, lon);                      % prime Legendre cache
@@ -433,14 +450,29 @@ methods
                 % count is set by memory (~129 MB), not by taste
                 lat = deg2rad(linspace(-89, 89, 31));
                 fcn = @() shLowLevel.legendreALF(720, lat);
-            case 'synthesis_direct_n60'
-                g = tc.randomField(60);
-                la = -90:1:90; lo = 0:1:359;
+            case 'synthesis_direct_n180'
+                % nmax 180 on a 0.5-degree grid, not nmax 60 on 1 degree
+                % (A9, 2026-09-10). The arm primes the Legendre cache, so
+                % what is timed is the REDUCTION alone - ~2 ms at n60, where
+                % it swung up to 1.69 between MATTHIASPC runs. That is the
+                % small-work threading noise of leakage_1iter_n24 again: at
+                % nmax 120 / 1 degree the reduction took 4.3 ms with
+                % p90/p10 1.49 at 16 threads and 1.04 at one.
+                % Sized on THIS path. The first attempt sized on a cold
+                % shSynthesis call, picked 120 / 1 degree from a 19 ms
+                % Legendre-dominated proxy, and measured 1.82 between runs
+                % on the real 4 ms arm. Within-run on the arm, p90/p10:
+                % 120/1deg 1.838, 120/0.5deg 1.058, 180/0.5deg 1.045.
+                g = tc.randomField(180);
+                la = -90:0.5:90; lo = 0:0.5:359.5;
                 g.synthesis(la, lo, Method = "direct");   % prime the cache
                 fcn = @() g.synthesis(la, lo, Method = "direct");
-            case 'synthesis_fft_n60'
-                g = tc.randomField(60);
-                la = -90:1:90; lo = 0:1:359;
+            case 'synthesis_fft_n180'
+                % same grid and degree as synthesis_direct_n180, so the
+                % pair still compares the FFT path against the direct one
+                % (within-run 1.025 on the arm)
+                g = tc.randomField(180);
+                la = -90:0.5:90; lo = 0:0.5:359.5;
                 g.synthesis(la, lo, Method = "fft");
                 fcn = @() g.synthesis(la, lo, Method = "fft");
             case 'synthesis_points_n60'
@@ -527,13 +559,29 @@ methods
                 g = tc.randomField(L);
                 C = g.C; S = g.S;
                 fcn = @() shLowLevel.applyDDK(C, S, W);
-            case 'leakage_1iter_n24'
-                [la, lo, obs, mask, nmax] = tc.leakageFixture();
+            case 'leakage_1iter_n48'
+                % nmax 48, not 24, and the reason is measured (A9,
+                % 2026-09-10). At 24 one iteration is ~10 ms of 49 x 50
+                % grid work, where 16-thread BLAS spends more on thread
+                % scheduling than on arithmetic: forced to ONE thread the
+                % same call ran 1.32x FASTER and far steadier (p90/p10
+                % 1.15 against 1.44). That scheduling is what moved the
+                % A8 median between 23.1 and 30.2 ms on untouched code.
+                % Sweep on MATTHIASPC, p90/p10 at 16 threads: nmax 24
+                % 1.694, 36 1.345, 48 1.028, 60 1.032, 72 1.046 - 48 is
+                % the smallest size at which threading pays for itself.
+                [la, lo, obs, mask, nmax] = tc.leakageFixture(48);
                 fcn = @() shLowLevel.leakageCorrect(obs, la, lo, ...
                     Filter = "gauss500", Mask = mask, Nmax = nmax, ...
                     MaxIter = 1, Quiet = true);
-            case 'kalman_step_p40'
-                [model, obs] = tc.kalmanFixture(40, 12);
+            case 'kalman_step_p200'
+                % P = 200, not 40. At 40 a 12-epoch chain runs in ~1.3 ms
+                % and the timer dominates: p90/p10 3.9 on MATTHIASPC (A8
+                % happened to be steady at 1.035, which is luck, not a
+                % property). Sweep: P 80 1.286, 120 1.069, 160 1.102,
+                % 200 1.059 at ~20 ms - the size class of the budgets
+                % already steady enough to be tight.
+                [model, obs] = tc.kalmanFixture(200, 12);
                 fcn = @() shLowLevel.kalmanFilter(model, obs);
             otherwise
                 error('testPerformance:workload:unknownCase', ...
@@ -541,10 +589,10 @@ methods
         end
     end
 
-    function [lat, lon, obs, mask, nmax] = leakageFixture(~)
+    function [lat, lon, obs, mask, nmax] = leakageFixture(~, nmax)
         % the 6-degree disc of tools/dev/validate_leakage.py, filtered
-        % with a 500 km Gaussian - the same problem testCorrectness uses
-        nmax = 24;
+        % with a 500 km Gaussian - the problem testCorrectness uses at
+        % nmax 24, here at whatever degree the budget asks for
         lat = linspace(-89, 89, 2 * nmax + 1);
         nlon = 2 * nmax + 2;
         lon = (0:nlon - 1) * (360 / nlon);
@@ -583,11 +631,13 @@ methods
         %FACTORFOR Budget factor for one benchmark: TightFactor if it has
         %   earned it, BudgetFactor otherwise.
         %
-        %   The criterion is stated, not fitted per benchmark: a workload
-        %   is tight only if its WORST observed run-to-run ratio over all
-        %   fifteen runs on both machines was <= 1.1. Four qualify, and
-        %   what they have in common is size - they are the four that run
-        %   for 15 ms or more. Re-measure before adding a fifth.
+        %   The criterion is stated, not fitted per benchmark - see the
+        %   constants for its precise form: A8 spread <= 1.1 over at
+        %   least two runs, and no run on either machine more than 1.1
+        %   above its baseline. Size is necessary but not sufficient:
+        %   leakage_1iter_n24 ran 23 ms and still swung 1.306 on A8,
+        %   because what varied was small-grid BLAS thread scheduling,
+        %   not the timer. Re-measure before adding one.
         if ismember(bench, tc.TightBudgets)
             f = tc.TightFactor;
         else
