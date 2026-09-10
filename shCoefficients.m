@@ -1273,6 +1273,152 @@ methods
             lonDeg, fwd{:});
     end
 
+    function val = synthesisPoints(obj, latDeg, lonDeg, r, opts)
+        %SYNTHESISPOINTS Field values at scattered 3-D points.
+        %   VAL = g.synthesisPoints(LAT, LON, RGEO) evaluates G pointwise at
+        %   equal-length vectors of geocentric latitude and longitude [deg]
+        %   and geocentric radius [m] - stations, satellite positions,
+        %   profiles - with the upward continuation (R/r)^n that a grid on
+        %   the sphere cannot give. It is shLowLevel.synthesisPoints with
+        %   G's coefficients, GM and R; that function documents the
+        %   quantities, the two summations and why "auto" means "clenshaw".
+        %   Its options go there only when given, so "(lane default)"
+        %   below is that function's. For points on the reference
+        %   ellipsoid pass RGEO = shLowLevel.ellipsoidRadius(LAT) + h.
+        %
+        %   Inputs
+        %     latDeg  (P,1) double  geocentric latitudes [deg]
+        %     lonDeg  (P,1) double  longitudes [deg]
+        %     r       (P,1) double  geocentric radii [m]
+        %
+        %   Outputs
+        %     val  (P,1) double  the quantity at each point
+        %
+        %   Options
+        %     Quantity (lane default)  the quantity evaluated
+        %     Nmin (lane default)  first degree included
+        %     Method (lane default)  which summation
+        %     ClenshawFrom (lane default)  point count where "auto" switches
+        %     MaxMemGB (lane default)  memory budget of the direct path [GB]
+        %
+        %   Example
+        %     r = shLowLevel.ellipsoidRadius(lat) + 450e3;
+        %     dg = g.synthesisPoints(lat, lon, r, Quantity = "disturbance");
+        arguments
+            obj
+            latDeg (:,1) double
+            lonDeg (:,1) double
+            r (:,1) double
+            opts.Quantity
+            opts.Nmin
+            opts.Method
+            opts.ClenshawFrom
+            opts.MaxMemGB
+        end
+        fwd = namedargs2cell(opts);
+        val = shLowLevel.synthesisPoints(obj.C, obj.S, obj.GM, obj.R, ...
+            latDeg, lonDeg, r, fwd{:});
+    end
+
+    function [comps, info] = gradientTensor(obj, latDeg, lonDeg, opts)
+        %GRADIENTTENSOR Full gravity gradient tensor in the local NEU frame.
+        %   [COMPS, INFO] = g.gradientTensor(LAT, LON) synthesizes the six
+        %   independent components of the disturbing gravity gradient
+        %   tensor - uu, nn, ee, un, ue, ne - the GOCE-style diagnostic.
+        %   It is shLowLevel.shSynthesisGradientTensor with G's
+        %   coefficients, GM and R; that function documents the formulas,
+        %   the Laplace self-check INFO carries, and the validation. Its
+        %   options go there only when given, so "(lane default)" below is
+        %   that function's - and its Height defaults to a satellite
+        %   ALTITUDE, not to the surface.
+        %
+        %   Inputs
+        %     latDeg  (1,:) double  geocentric latitudes [deg]
+        %     lonDeg  (1,:) double  longitudes [deg]
+        %
+        %   Outputs
+        %     comps  (1,1) struct  as returned by
+        %            shLowLevel.shSynthesisGradientTensor, which documents
+        %            every field: the six components, each (nlat x nlon)
+        %     info   (1,1) struct  as returned by
+        %            shLowLevel.shSynthesisGradientTensor, which documents
+        %            every field
+        %
+        %   Options
+        %     Height (lane default)  evaluation altitude above R [m]
+        %     Nmin (lane default)  degrees below Nmin are zeroed
+        %
+        %   Example
+        %     [G, info] = g.gradientTensor(-89:89, 0:359, Height = 255e3);
+        %     info.maxTraceResidual     % the Laplace self-check
+        arguments
+            obj
+            latDeg (1,:) double
+            lonDeg (1,:) double
+            opts.Height
+            opts.Nmin
+        end
+        fwd = namedargs2cell(opts);
+        [comps, info] = shLowLevel.shSynthesisGradientTensor(obj.C, obj.S, ...
+            obj.GM, obj.R, latDeg, lonDeg, fwd{:});
+    end
+
+    function [out, info] = vdkApply(obj, N, sigM, opts)
+        %VDKAPPLY Apply the VDK decorrelation filter with a month's normals.
+        %   [OUT, INFO] = g.vdkApply(N, SIGM) filters G with its own
+        %   monthly normal-equation matrix N, xf = (N + alpha M) \ (N x)
+        %   (Horvath et al. 2018), through shLowLevel.vdkApply, which
+        %   documents the filter, its relation to tvANS and its cost. G's
+        %   coefficients are taken in Index ordering - by default
+        %   shLowLevel.shIndex(nmax, Nmin = 2), the ordering of
+        %   shLowLevel.readSINEX(..., Index = idx) - filtered, and put back.
+        %   Coefficients outside Index pass through unchanged. As with
+        %   g.applyDDK the formal sigmas are NOT propagated through the
+        %   filter; they become NaN. Alpha goes to shLowLevel.vdkApply only
+        %   when given, so "(lane default)" below is that function's.
+        %
+        %   Inputs
+        %     N     (P x P) double  normal-equation matrix in Index ordering
+        %     sigM  (P x 1 | 1 x 2) double  the signal sigma per parameter,
+        %           or [a, b] for sigma = a * l^b, as shLowLevel.vdkApply
+        %           takes it
+        %
+        %   Outputs
+        %     out   (1 x 1) shCoefficients  the filtered field
+        %     info  (1,1) struct  as returned by shLowLevel.vdkApply, which
+        %           documents every field
+        %
+        %   Options
+        %     Index ([])  shLowLevel.shIndex struct N is ordered by; []
+        %         uses shLowLevel.shIndex(nmax, Nmin = 2)
+        %     Alpha (lane default)  filter strength
+        %
+        %   Example
+        %     idx = shLowLevel.shIndex(96, Nmin = 2);
+        %     snx = shLowLevel.readSINEX(f, Index = idx);
+        %     gf = g.vdkApply(snx.M, ab(mo, :), Index = idx, Alpha = 1);
+        arguments
+            obj
+            N double
+            sigM double
+            opts.Index = []
+            opts.Alpha
+        end
+        idx = opts.Index;
+        if isempty(idx), idx = shLowLevel.shIndex(obj.nmax, Nmin = 2); end
+        fwd = namedargs2cell(rmfield(opts, "Index"));
+        x = shLowLevel.vecFromCS(obj.C, obj.S, idx);
+        [xf, info] = shLowLevel.vdkApply(x, N, idx.n, sigM, fwd{:});
+        [cf, sf] = shLowLevel.csFromVec(xf, idx);
+        out = obj;
+        rows = idx.minDegree + 1 : idx.Lmax + 1;
+        out.C(rows, 1:idx.Lmax + 1) = cf(rows, :);
+        out.S(rows, 1:idx.Lmax + 1) = sf(rows, :);
+        out.sigmaC = nan(size(obj.C)); out.sigmaS = nan(size(obj.S));
+        out.history(end+1) = sprintf( ...
+            "VDK filter applied (alpha = %g, %d parameters)", info.alpha, info.P);
+    end
+
     function out = applyDDK(obj, W)
         %APPLYDDK Apply a DDK (order-block-diagonal) decorrelation filter.
         %   OUT = obj.applyDDK(W) with W from shLowLevel.readDDK (struct, .mat,

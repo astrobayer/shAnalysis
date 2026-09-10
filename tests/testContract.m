@@ -2509,3 +2509,148 @@ bs = ts.toGrid(lat, lon, Quantity = "gravity_disturbance", ...
     Surface = "ellipsoid", SemiMajorAxis = 6378000, LatType = "geocentric");
 verifyTrue(testCase, isequal(bs.Z(:, :, 2), z), 'ts.toGrid did not forward Surface');
 end
+
+% ------------------------------------------ A25: one filter-spec parser
+function testFilterSpecReadsTheVocabulary(testCase)
+%TESTFILTERSPECREADSTHEVOCABULARY each accepted form, and what it means.
+s = shLowLevel.filterSpec("none");
+verifyEqual(testCase, [s.kind, s.name], ["none", "none"]);
+s = shLowLevel.filterSpec("gauss300");
+verifyEqual(testCase, s.kind, "gauss");
+verifyEqual(testCase, s.radiusKm, 300);
+s = shLowLevel.filterSpec('gauss250');
+verifyEqual(testCase, [s.kind, s.name], ["gauss", "gauss250"]);
+verifyEqual(testCase, s.radiusKm, 250);
+s = shLowLevel.filterSpec("DDK3");
+verifyEqual(testCase, s.kind, "ddk");
+verifyEqual(testCase, s.ddk, 3);
+verifyTrue(testCase, isnan(s.radiusKm));
+W = struct('blocks', {{}}, 'nmax', 10, 'name', "myW");
+s = shLowLevel.filterSpec(W);
+verifyEqual(testCase, [s.kind, s.name], ["W", "myW"]);
+verifyTrue(testCase, isequal(s.W, W), 'a W struct must pass through unchanged');
+s = shLowLevel.filterSpec(rmfield(W, 'name'));
+verifyEqual(testCase, s.name, "custom W");
+end
+
+function testFilterSpecRefusesMalformedSpecs(testCase)
+%TESTFILTERSPECREFUSESMALFORMEDSPECS the spellings that one lane or another
+%   used to accept silently - a radius that is not a number, zero or
+%   negative, a DDK outside 1..8, a file name that happens to start with
+%   "DDK" - and the ones every lane refused. With two outputs the reason
+%   comes back; with one it is an error.
+bad = {"gauss", "gauss0", "gauss-5", "gaussX", "DDK0", "DDK9", "DDK3.mat", ...
+    "ddk3", "Gauss300", "", "bogus", 3, {"none"}, ["none", "gauss300"]};
+for i = 1:numel(bad)
+    [s, msg] = shLowLevel.filterSpec(bad{i});
+    verifyEqual(testCase, s.kind, "", sprintf('spec %d was accepted', i));
+    verifyNotEqual(testCase, msg, "", sprintf('spec %d carries no reason', i));
+    verifyError(testCase, @() shLowLevel.filterSpec(bad{i}), ...
+        'shLowLevel:filterSpec:badSpec');
+end
+end
+
+function testFilterSpecAllowedSubset(testCase)
+%TESTFILTERSPECALLOWEDSUBSET a caller admits a subset - the GravIS grid
+%   chains take only "none" and "gauss".
+[s, msg] = shLowLevel.filterSpec("DDK3", Allowed = ["none", "gauss"]);
+verifyEqual(testCase, s.kind, "");
+verifyTrue(testCase, contains(msg, "ddk"), 'the reason must name the kind');
+s = shLowLevel.filterSpec("gauss445", Allowed = ["none", "gauss"]);
+verifyEqual(testCase, s.radiusKm, 445);
+verifyError(testCase, @() shLowLevel.filterSpec(struct('name', "w"), ...
+    Allowed = ["none", "gauss"]), 'shLowLevel:filterSpec:badSpec');
+end
+
+function testLanesRefuseAMalformedFilterFirst(testCase)
+%TESTLANESREFUSEAMALFORMEDFILTERFIRST every lane refuses a malformed spec
+%   under its OWN identifier, and the chains do it before they touch their
+%   data: the folders below do not exist, so any other order would fail
+%   with a different identifier. oceanChain and obpChain used to read any
+%   text as a Gaussian radius, and the grid chains never checked one.
+nf = string(tempname);
+verifyError(testCase, @() shLowLevel.oceanChain(nf, Filter = "DDK3"), ...
+    'shLowLevel:oceanChain:badFilter');
+verifyError(testCase, @() shLowLevel.obpChain(nf, Filter = "gauss-1"), ...
+    'shLowLevel:obpChain:badFilter');
+verifyError(testCase, @() shLowLevel.greenlandChain(nf, nf, Filter = "gaussX"), ...
+    'shLowLevel:gravisRegionChain:badFilter');
+verifyError(testCase, @() shLowLevel.antarcticaChain(nf, nf, Filter = "DDK3"), ...
+    'shLowLevel:gravisRegionChain:badFilter');
+verifyError(testCase, @() shLowLevel.twsChain(nf, nf, Filter = "DDK9"), ...
+    'shLowLevel:twsChain:badFilter');
+verifyError(testCase, @() shLowLevel.standardChain(nf, Filter = "gauss0"), ...
+    'shLowLevel:standardChain:badFilter');
+lat = -80:20:80;
+lon = 0:30:330;
+verifyError(testCase, @() shLowLevel.gridScaling(ones(numel(lat), ...
+    numel(lon), 2), lat, lon, Filter = "gauss"), 'shLowLevel:gridScaling:badFilter');
+end
+
+% ------------------------------------------- WP7 backlog: three more routes
+function testCoefficientsSynthesisPointsIsTheLane(testCase)
+%TESTCOEFFICIENTSSYNTHESISPOINTSISTHELANE g.synthesisPoints is
+%   shLowLevel.synthesisPoints with the object's coefficients, GM and R.
+ts = wp7Series(12, 1, 85);
+g = ts.at(1);
+lat = [-60; -10; 35; 80];
+lon = [10; 100; 200; 300];
+r = shLowLevel.ellipsoidRadius(lat) + [0; 1e3; 450e3; 5e3];
+for q = ["potential", "disturbance", "anomaly"]
+    a = g.synthesisPoints(lat, lon, r, Quantity = q, Nmin = 0);
+    b = shLowLevel.synthesisPoints(g.C, g.S, g.GM, g.R, lat, lon, r, ...
+        Quantity = q, Nmin = 0);
+    verifyTrue(testCase, isequal(a, b), "g.synthesisPoints differs for " + q);
+end
+verifyTrue(testCase, isequal(g.synthesisPoints(lat, lon, r), ...
+    shLowLevel.synthesisPoints(g.C, g.S, g.GM, g.R, lat, lon, r)), ...
+    'with the lane defaults, g.synthesisPoints differs');
+end
+
+function testCoefficientsGradientTensorIsTheLane(testCase)
+%TESTCOEFFICIENTSGRADIENTTENSORISTHELANE g.gradientTensor is
+%   shLowLevel.shSynthesisGradientTensor with the object's C, S, GM and R.
+ts = wp7Series(10, 1, 88);
+g = ts.at(1);
+lat = -60:30:60;
+lon = 0:60:300;
+[a, ia] = g.gradientTensor(lat, lon, Height = 3e5, Nmin = 3);
+[b, ib] = shLowLevel.shSynthesisGradientTensor(g.C, g.S, g.GM, g.R, ...
+    lat, lon, Height = 3e5, Nmin = 3);
+verifyTrue(testCase, isequaln(a, b) && isequaln(ia, ib), ...
+    'g.gradientTensor differs from the lane');
+[a0, ia0] = g.gradientTensor(lat, lon);
+[b0, ib0] = shLowLevel.shSynthesisGradientTensor(g.C, g.S, g.GM, g.R, lat, lon);
+verifyTrue(testCase, isequaln(a0, b0) && isequaln(ia0, ib0), ...
+    'with the lane defaults, g.gradientTensor differs');
+end
+
+function testCoefficientsVdkApplyIsTheLane(testCase)
+%TESTCOEFFICIENTSVDKAPPLYISTHELANE the degrees inside Index are
+%   shLowLevel.vdkApply's answer, the ones outside pass through, the
+%   sigmas become NaN as for applyDDK, and the default Index is
+%   shIndex(nmax, Nmin = 2).
+ts = wp7Series(6, 1, 86);
+g = ts.at(1);
+idx = shLowLevel.shIndex(6, Nmin = 2);
+rng(87);
+A = randn(idx.P);
+N = (A * A' + idx.P * eye(idx.P)) * 1e20;
+sigM = [1e-10, -1.5];
+[out, info] = g.vdkApply(N, sigM, Alpha = 0.5);
+[xf, info2] = shLowLevel.vdkApply(shLowLevel.vecFromCS(g.C, g.S, idx), ...
+    N, idx.n, sigM, Alpha = 0.5);
+[cf, sf] = shLowLevel.csFromVec(xf, idx);
+verifyTrue(testCase, isequal(out.C(3:end, :), cf(3:end, :)) && ...
+    isequal(out.S(3:end, :), sf(3:end, :)), 'the filtered degrees are not the lane''s');
+verifyTrue(testCase, isequal(out.C(1:2, :), g.C(1:2, :)) && ...
+    isequal(out.S(1:2, :), g.S(1:2, :)), 'degrees outside Index must pass through');
+verifyTrue(testCase, isequaln(info, info2), 'INFO is not the lane''s');
+verifyTrue(testCase, all(isnan(out.sigmaC(:))) && all(isnan(out.sigmaS(:))), ...
+    'the sigmas must become NaN, as for applyDDK');
+verifyTrue(testCase, isequaln(g.vdkApply(N, sigM, Alpha = 0.5), ...
+    g.vdkApply(N, sigM, Index = idx, Alpha = 0.5)), ...
+    'the default Index is not shIndex(nmax, Nmin = 2)');
+verifyError(testCase, @() g.vdkApply(N(1:end-1, 1:end-1), sigM), ...
+    'shLowLevel:vdkApply:badSize');
+end

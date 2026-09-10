@@ -23,12 +23,12 @@ says whether it was *read* or *inferred*.
 
 | Fact | Value | Evidence |
 |---|---|---|
-| Version | **5.6.0**, 10-Sep-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
+| Version | **5.7.0**, 10-Sep-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
 | Branches | `main` only; `claude/getframe-recapture` and `claude/readshm` are gone (merged/deleted) | `GET /branches` |
-| Public surface | 3 classes / 79 methods, 124 `+shLowLevel` functions (+4 private), 3 root functions. 69 of the 124 are reachable from a class method; each of the other 55 is a named exception (34) or in a backlog that may only shrink (21) | `tools/dev/api_extract.py`; `tools/dev/class_surface_audit.py` |
-| Tests | 5 classes, **343 methods / 357 runs**: Correctness 173, Contract 94, Robustness 56, Science 7, Performance 13 methods (27 runs, `budgetCase` x14 + `nmaxP` x2). On A8 4 filter out without the optional real-data fixtures; on MATTHIASPC only 2 do, because `E:\DATAPOOL` supplies the SINEX and GravIS files. The counter has matched the runner EXACTLY on the last ten green A8 runs and on every local Tier-A run. | `python3 tools/dev/count_tests.py` |
+| Public surface | 3 classes / 82 methods, 125 `+shLowLevel` functions (+4 private), 3 root functions. 73 of the 125 are reachable from a class method; each of the other 52 is a named exception (34) or in a backlog that may only shrink (18) | `tools/dev/api_extract.py`; `tools/dev/class_surface_audit.py` |
+| Tests | 5 classes, **350 methods / 364 runs**: Correctness 173, Contract 101, Robustness 56, Science 7, Performance 13 methods (27 runs, `budgetCase` x14 + `nmaxP` x2). On A8 4 filter out without the optional real-data fixtures; on MATTHIASPC only 2 do, because `E:\DATAPOOL` supplies the SINEX and GravIS files. The counter has matched the runner EXACTLY on the last ten green A8 runs and on every local Tier-A run. | `python3 tools/dev/count_tests.py` |
 | Python oracles | 20 `tools/dev/validate_*.py` + `tools/audit/*` | listing |
-| Docs | **26** hand-written `html/*.html` (24 per-entity duplicates retired in v5.0.1, WP6 stage 3) + **210 generated `html/ref/*.html`** (one per entity + index, `make_refpages.py`), one shared `html/shAnalysis.css`, `helptoc.xml`, `info.xml`, guide PDF, generated `html/apiReference.html`. `docs/` holds the PDF and `apiExamples.json` only - no HTML page lives outside `html/` (gated). | listing |
+| Docs | **26** hand-written `html/*.html` (24 per-entity duplicates retired in v5.0.1, WP6 stage 3) + **214 generated `html/ref/*.html`** (one per entity + index, `make_refpages.py`), one shared `html/shAnalysis.css`, `helptoc.xml`, `info.xml`, guide PDF, generated `html/apiReference.html`. `docs/` holds the PDF and `apiExamples.json` only - no HTML page lives outside `html/` (gated). | listing |
 | CI | `gates` job on ubuntu (help_audit, doc_sync_audit, no_map_renderer, toolbox_dependency_audit, nv_casing_audit, fixture_tag_audit, gate self-tests `tools/tests/`, `count_tests`, `name_coverage`, `class_surface_audit`, `error_id_audit`, `option_values_audit`, `refpages_audit`, `make_demos --check`, `perf_baseline_audit`) + `runAllTests (self-hosted)` on A8/R2026a; fixtures from tag `fixtures-2026-08` | `.github/workflows/ci.yml` |
 | Namespace | `+shLowLevel` (renamed from `+shx` in v3.0.0). Any memory saying `shx.*` is stale. | README §History |
 
@@ -199,7 +199,10 @@ do not see; **L** = polish.
 | A22 | H | **CLOSED v5.3.0** — `synthesisPoints`'s `auto` sent every station list below 150 points down the SLOWER path. `ClenshawFrom = 150` was the crossover of the numpy prototype, transplanted to MATLAB where **there is no crossover at all**: `benchPointsCrossover` timed both summations on the SAME points and `clenshaw` won at every count measured — P = 1..2000 at nmax 60 and 120, P = 1..200 at nmax 360 — by 2.3x at the narrowest margin and 37x at a single point. The cause is structural: `direct` is bounded by `legendreALF`, which `clenshaw` never calls, so the margin GROWS with degree. Confirmed independently on A8 by the n50/n60 matched pairs, both in the SAME run (`b65f9a2`): 3.56x at 50 points, 6.99x at 200. The run before it put the 200-point pair at 4.61x, which is the between-run spread these small budgets are known for — the direction is what is reproducible, not the factor. Default is now 1, so `auto` is `clenshaw` everywhere; the option stays because `direct` is the bitwise path. `testSynthesisPointsAutoPicksTheFasterPath` needed NO edit — it pins the rule while driving `ClenshawFrom` by hand, which is exactly what that design bought. | `benchPointsCrossover` |
 | A23 | M | **CLOSED v5.3.0** — one machine had two labels. `machineId()` read `COMPUTERNAME` (`MATTHIASPC`) before falling back to `hostname` (`MatthiasPC`), so which label a baseline row needed depended on how MATLAB was launched. The failure is silent by construction: a row that misses does not FAIL its budget, it FILTERS it, so the machine looks green while guarding nothing. Label is now upper-cased (upper, so the committed `A8` rows are untouched) and `perf_baseline_audit.py` rejects a row that is not, fault-injected both ways plus a digits/punctuation case so the rule cannot reject legal names. | `python3 tools/dev/perf_baseline_audit.py` |
 | A24 | M | **CLOSED v5.3.0** — `mlint_lite` could not see a parse error. An edit put a real newline inside an `fprintf` format; the gate reported zero findings and MATLAB refused to parse the whole `testPerformance` class, so every test in it would have VANISHED rather than failed — and a Tier-B session has no other syntax check. **R7** reports a literal running off its line, read off the scanner that already had to know where a literal stops rather than from a second parser (the A17 lesson). Silent on the two legal shapes that look like it: a transpose after a value, and a literal split with `...`. Zero findings across all 149 `.m` files. | `python3 tools/dev/mlint_lite.py` |
-| A25 | M | **OPEN** - found in the WP7 survey (v5.6.0), deliberately not fixed there. The filter-spec vocabulary (`"none"`, `"gauss<radiusKm>"`, `"DDKn"`, a W struct) is parsed in **eight** places: a local `resolveFilter` copied into `leakageCorrect`, `leakageDataDriven` and `gridScaling`, and inline code in `standardChain`, `twsChain`, `gravisRegionChain`, `oceanChain` and `obpChain`. They do not accept the same set - `gravisRegionChain`, `oceanChain` and `obpChain` take only `"none"` and `"gaussN"` - so a spelling one lane learns is silently refused by another, and no gate compares them. The A17 shape: several parsers of one fact. Fix: one `+shLowLevel` resolver every lane calls, each lane stating the subset it admits. A generic class `filter(spec)` was declined for WP7 partly because it would have been a ninth. | `grep -nE 'resolveFilter\|startsWith\(.*"gauss"' +shLowLevel/*.m` |
+| A25 | M | **CLOSED v5.7.0** - `shLowLevel.filterSpec` is the one parser; the eight lanes call it and keep their own identifiers and admitted subsets. Every valid spec is bitwise unchanged on 19 captured outputs (plus 4 from oceanChain and greenlandChain, run on an extracted copy of the old tree and on the new; obpChain not run, for want of GAD data). It was worse than recorded, measured on the old code: `twsChain` turned `"gaussX"` into NaN in 255 of 507 outputs without an error, and four chains took a negative radius as no filter at all. Original finding: The filter-spec vocabulary (`"none"`, `"gauss<radiusKm>"`, `"DDKn"`, a W struct) is parsed in **eight** places: a local `resolveFilter` copied into `leakageCorrect`, `leakageDataDriven` and `gridScaling`, and inline code in `standardChain`, `twsChain`, `gravisRegionChain`, `oceanChain` and `obpChain`. They do not accept the same set - `gravisRegionChain`, `oceanChain` and `obpChain` take only `"none"` and `"gaussN"` - so a spelling one lane learns is silently refused by another, and no gate compares them. The A17 shape: several parsers of one fact. Fix: one `+shLowLevel` resolver every lane calls, each lane stating the subset it admits. A generic class `filter(spec)` was declined for WP7 partly because it would have been a ninth. | `grep -nE 'resolveFilter\|startsWith\(.*"gauss"' +shLowLevel/*.m` |
+| A26 | L | **OPEN** (found in v5.7.0). `twsChain` looks for DDK files in `dataFolder/ddk`; `fetchDDK` stores them in `dataFolder/DDK`. The two agree only on a case-insensitive filesystem, so on Linux or macOS a fetched DDK file is not found there (`DDKFolder` and the GravIS folder still are). Left alone in A25 so that release stayed bitwise. | `grep -n "'ddk'\|'DDK'" +shLowLevel/twsChain.m +shLowLevel/fetchDDK.m` |
+| A27 | M | **CLOSED v5.7.0** - `shLowLevel.vdkApply`'s documented `badSize` identifier could never be raised: its message passed `size(N)` to a `%d` slot, so `error` itself threw "Formatted arguments must be scalar". `error_id_audit` saw an identifier raised and documented and could not see that the raise throws; the bitwise test written for `g.vdkApply`, which drives the guard, found it. | `testCoefficientsVdkApplyIsTheLane` |
+| A28 | M | **OPEN** (found in v5.7.0). `oceanChain` documents `OceanMask` as REQUIRED, defaults it to `[]`, and does not refuse it: without a mask it fails with `MATLAB:badsubscript` in its trend fit, whatever the filter. `gravisRegionChain` refuses the same omission with `noOcean`. First misread as a consequence of `Filter = "DDK3"` - the same error for `"gauss445"` and `"none"` is what placed it. | `oceanChain` line 280, run with the preferences' data |
 | A15 | M | **CLOSED v4.0.0** with A3 — `kernelFactors`, `shSynthesisGradient` and `seaLevelFingerprint` now own their identifiers, and the tests that pinned the old names were remapped per raising file (the same old id mapped to two different owners, so a global replace would have been wrong). Original finding: A3 is **wider than the audit's 12**: `kernelFactors` (`shSynthesis:missingLoveNumbers`, `:badQuantity`, `:heightInvalid`), `shSynthesisGradient` (`shSynthesis:badInput`) and `seaLevelFingerprint` (`shSynthesis:missingLoveNumbers`) also raise identifiers they do not own. Unlike `shSynthesisDeformation`'s, these ARE documented and pinned by `testContract`/`testCorrectness`, so renaming them is a MAJOR change. Belongs in WP1's identifier sweep, not in a patch. | `grep -rn "shSynthesis:" --include=*.m` |
 | A14 | M | **CLOSED v3.33.1** — the three gate self-tests in `tools/tests/` (committed in v3.32/v3.33) were **never run by CI**, and `test_legacy_name_tolerated` had been broken since the v3.33.0 sweep drained `LEGACY` to empty — an untested instrument, silently. CI now runs `tools/tests/`; the stale test asserts the mechanism with a temporary entry instead of pinning a member name. | `.github/workflows/ci.yml` before/after |
 | A13 | L | **CLOSED v3.34.0** — the km conversion is the `RadiusKm` option, default unchanged at 6371 so no number moves, documented as the MEAN radius (deliberately not the coefficients' reference radius 6378.1363 km) and overridable. Pinned by `testResolutionMapRadiusIsAChoice`, a metamorphic test: the angular half-widths are radius-invariant, every km figure scales exactly with it, and `anisotropy` — a ratio — does not. That test also removes `resolutionMap` from A10's never-named list. | `+shLowLevel/resolutionMap.m` |
@@ -541,6 +544,10 @@ not exist; the "only argument forwarding" gate was not built - the
 bitwise tests prove more than a reading of the body could; and the
 exception list lives in the gate, not in this file.
 
+**v5.7.0** took the backlog's three cheapest routes - `g.synthesisPoints`,
+`g.gradientTensor`, `g.vdkApply` - so 18 lanes remain there; reach is 73
+of 125.
+
 - **Goal**: `Contents.m` promises "Classes (single point of access)", but the
   validated chains, the Kalman lane, EOF, leakage, error maps, deformation
   series and export exist only as `shLowLevel.*` calls with C,S,GM,R
@@ -576,6 +583,32 @@ exception list lives in the gate, not in this file.
 ## 6. Records
 
 ### 6.1 Decisions (append-only; date, decision, evidence)
+- 2026-09-10 — **A25 and the class-surface backlog approved** (Matthias:
+  "Please continue and do both A25 and the backlog items"), read as the
+  three routes the proposal named - `synthesisPoints`, the VDK filter, the
+  gradient tensor - not all 21. Executed as 5.7.0 on one branch and PR.
+- 2026-09-10 — **`filterSpec` does not raise when asked for two
+  outputs, so each lane keeps its own identifier.** The lanes' badFilter
+  identifiers are documented and test-pinned, and an identifier belongs
+  to the file that raises it (A3). A parser that raised its own would
+  have renamed four pinned identifiers - a MAJOR change - to remove
+  duplication.
+- 2026-09-10 — **It only parses; building the filter stays with each
+  lane.** The lanes apply filters differently (a class method, weights
+  times coefficients, a W through applyDDK) and each is pinned to its own
+  numbers. Moving the build into one place would have been a second
+  refactor hiding inside the first, with no bitwise guarantee.
+- 2026-09-10 — **A malformed spec is now refused where it used to be
+  accepted, and that is a MINOR, not a MAJOR.** No documented valid call
+  changes: `"gaussX"`, a negative radius and `"DDK<file>"` were never
+  in the vocabulary, and what they produced (NaN, no filter, a file read)
+  was a defect. Measured before the edit, so the release notes state
+  what it did rather than what it might have done.
+- 2026-09-10 — **Two defects found during A25 were recorded and left
+  open** (A26, A28), and one was fixed (A27). A27 sits on the lane behind
+  the new `g.vdkApply`, whose test exposed it; A26 and A28 are in lanes
+  A25 touched only for parsing, and fixing them would have mixed a
+  behaviour change into a release whose claim is "bitwise unchanged".
 - 2026-09-10 — **WP7's scope was settled by four answers** (Matthias):
   no generic `shCoefficients.filter`, no `shSeries.chain`, the two
   leakage lanes as two methods named after them, and a reachability
@@ -1261,6 +1294,7 @@ exception list lives in the gate, not in this file.
 | v5.4.1 (A9: four workloads replaced, apply_ddk_n300 promoted, TightFactor 1.3, leakageCorrect duplicate chain) | ☑ 15 gates + mlint + make_demos + 13 self-test suites, 0 findings; `leakageCorrect` change bitwise on 16 outputs | ☑ **Tier A LOCAL on MATTHIASPC — 335 runs, 333 passed, 0 failed, 2 filtered**; count exact per class; all fourteen budgets asserted, the four tight ones at 1.3. Then ☑ **A8 twice at `2c7b779`** (PR run + `workflow_dispatch`): 335 runs, 327 passed, 0 failed, 8 filtered each - the four fixtures plus the four new workloads, as predicted, per class as well as in total. Those two runs are the evidence the promotion rests on. A third A8 run, on the promotion commit `5d4980e` itself: 335 runs, 331 passed, 0 failed, 4 filtered - only the fixtures - with every budget asserting and the worst tight one at 1.030x. | ☑ PR #104 (A8 x3) | ☑ 2026-09-10 |
 | v5.5.0 (WP3: `Surface = "ellipsoid"`, `ellipsoidRadius`) | ☑ 15 gates + mlint + make_demos + 13 self-test suites + the new oracle, 0 findings; sphere path bitwise on 26/26 pre-WP3 outputs | ☑ **Tier A LOCAL on MATTHIASPC — 346 runs, 344 passed, 0 failed, 2 filtered**; count exact per class (Contract 83, Correctness 173, Performance 27, Robustness 56, Science 7); the 11 WP3 tests passed on their first run - no red round. Then ☑ **CI self-hosted (A8) at `3f99bf3` via PR #105, green — 346 runs, 342 passed, 0 failed, 4 filtered** (exactly the optional real-data fixtures); `count_tests` confirmed the prediction against the run, per class as well as in total, and all eleven WP3 tests ran there | ☑ PR #105 | ☑ 2026-09-10 |
 | v5.6.0 (WP7: eight class delegates, `Surface` through `toGrid`/`map`, `class_surface_audit`) | ☑ 16 gates + mlint + make_demos + 14 self-test suites, 0 findings; reach 58 -> 69 of 124; the 11 WP7 tests passed on their first run | ☑ **Tier A LOCAL on MATTHIASPC — 357 runs, 355 passed, 0 failed, 2 filtered**; count exact per class (Contract 94, Correctness 173, Performance 27, Robustness 56, Science 7), and all 27 performance runs asserted. Then ☑ **CI self-hosted (A8) at `78cfea9` via PR #106, green — 357 runs, 353 passed, 0 failed, 4 filtered** (exactly the optional real-data fixtures); `count_tests` confirmed the prediction per class as well as in total, and `class_surface_audit` ran in the gates job with 0 findings | ☑ PR #106 | ☑ 2026-09-10 |
+| v5.7.0 (A25 `filterSpec` + eight lanes; `g.synthesisPoints`, `g.gradientTensor`, `g.vdkApply`; A27) | ☑ 16 gates + mlint + make_demos + 14 self-test suites, 0 findings; 19 valid-spec lane outputs bitwise identical before/after (plus 4 from oceanChain and greenlandChain, run on an extracted copy of the old tree and on the new; obpChain not run, for want of GAD data) | ☑ **Tier A LOCAL on MATTHIASPC — 364 runs, 362 passed, 0 failed, 2 filtered**; count exact per class (Contract 101, Correctness 173, Performance 27, Robustness 56, Science 7), and all 27 performance runs asserted | ◐ pending | ◐ pending |
 | v5.0.3 (WP2 step 1 baselines) | ☑ 14 gates + mlint + make_demos + 13 self-test suites, 0 findings; `NO_BASELINE` empty | ☑ **CI self-hosted (A8) at `b70c947`, green — 315 runs, 311 passed, 0 failed, 4 filtered**; the EIGHTH exact count prediction running, per class as well as in total. All ten budgets PASSED (they filtered at `f6d5529`), and the only filtered are the four real-data fixtures. Triggered by `workflow_dispatch`, not a PR — #99 merged mid-session and `ci.yml` runs only on push-to-main, pull_request and workflow_dispatch. | ☐ no PR (#99 merged; not asked) | ☐ |
 
 **Tier A debt: DISCHARGED for all nine releases.** The local MATLAB
@@ -1285,6 +1319,23 @@ confirmation that the counter is right about a real run and not only
 about the source.
 
 ### 6.3 What the next session could be wrong for not reading
+- **Run the control before explaining the treatment.** `oceanChain`
+  failed with an index error on `Filter = "DDK3"`, and that went into
+  a help block as a consequence of the NaN radius. It failed the same way
+  on `"gauss445"` and `"none"`: the cause was a missing ocean mask
+  (A28). Compare against a valid input before attributing a failure to
+  the invalid one.
+- **A documented identifier can be unreachable.** `vdkApply` raised
+  `badSize` through an `error` call that itself threw, so the guard
+  never produced its identifier (A27). A static gate sees the identifier
+  raised and documented; only a test that DRIVES the guard sees the
+  raise fail. A delegate test that checks error pass-through is how it
+  surfaced.
+- **Measure a finding's defects before fixing them.** A25 was recorded
+  as duplication; running the old lanes on malformed specs turned it
+  into silent NaN results and a negative radius that meant no filter.
+  The release notes could say what the old code did only because the
+  references were captured before the first edit.
 - **Quote a number from the instrument you will ship, not from its
   prototype.** WP7's scope question carried a reach figure from a
   throwaway script; the gate, written an hour later on the repository's
@@ -1660,10 +1711,10 @@ internet, which unblocks all three stuck items at once:
 **Next concrete actions, in order of what they buy:**
 1. **The whole order agreed on 2026-09-10 is DONE**: A9 (v5.4.1), WP3
    (v5.5.0, merged via PR #105) and WP7 (v5.6.0, merged via PR #106).
-2. **In progress on `wp7-a25-backlog`: A25, one filter-spec resolver.** Eight parsers of `"gauss300"` /
+2. **DONE in v5.7.0: A25, one filter-spec resolver** (`shLowLevel.filterSpec`). Next in the same area: A28 (`oceanChain` should refuse a missing `OceanMask` with its own identifier) and A26 (`twsChain`'s `ddk` folder). Eight parsers of `"gauss300"` /
    `"DDK3"` / `"none"` / W, accepting different subsets. The resolver
    becomes the single home; each lane keeps its admitted subset.
-3. **In progress on `wp7-a25-backlog`: the class-surface BACKLOG** (21 lanes, `class_surface_audit.py`), its three cheapest routes.
+3. **The class-surface BACKLOG** (18 lanes after v5.7.0 took `synthesisPoints`, `vdkApply` and `shSynthesisGradientTensor`; `class_surface_audit.py`).
    Cheapest routes: `synthesisPoints` beside `g.synthesis`, `vdkApply`
    beside `applyDDK`, `shSynthesisGradientTensor` beside `g.gradient`.
    An entry that gets a method must leave the list in the same commit -

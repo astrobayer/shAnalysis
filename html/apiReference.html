@@ -3,7 +3,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="shAnalysis.css">
 </head><body><div class="content">
-<h1>shAnalysis API reference (v5.6.0)</h1>
+<h1>shAnalysis API reference (v5.7.0)</h1>
 <p>Generated from the source arguments blocks and help text - inputs,
 name-value options with defaults, and outputs for every public function
 and method. Regenerated with every release; the source of truth is the
@@ -43,6 +43,7 @@ code itself.</p>
 <a href="#shLowLevel.fetchITSGSINEX">fetchITSGSINEX</a>
 <a href="#shLowLevel.fetchLoveNumbers">fetchLoveNumbers</a>
 <a href="#shLowLevel.fetchTN">fetchTN</a>
+<a href="#shLowLevel.filterSpec">filterSpec</a>
 <a href="#shLowLevel.fitDeterministicModel">fitDeterministicModel</a>
 <a href="#shLowLevel.gaussLegendre">gaussLegendre</a>
 <a href="#shLowLevel.geocentric2geodetic">geocentric2geodetic</a>
@@ -572,6 +573,23 @@ code itself.</p>
     tn13 = shLowLevel.readTN13(fullfile(shLowLevel.dataFolder(), &quot;TN&quot;, ...
                &quot;TN-13_GEOC_CSR_RL06.3.txt&quot;));
     g1 = g.applyTN14(tn14).addDegree1(tn13);</pre>
+</div>
+<div class="entry" id="shLowLevel.filterSpec">
+<h3><code>shLowLevel.filterSpec(F, opts)</code></h3>
+<p class="h1line">Read a filter specification - the one parser of the vocabulary.</p>
+<p>SPEC = shLowLevel.filterSpec(F) reads F, a filter specification in the form every lane with a Filter option takes, and says what it means:</p>
+<b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>F</code></td><td>n x m</td><td>-</td><td>required</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Allowed</code></td><td>1 x :</td><td>string</td><td>[&quot;none&quot;, &quot;gauss&quot;, &quot;ddk&quot;, &quot;W&quot;]</td></tr></table>
+<b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
+<tr><td><code>spec</code></td><td>(1,1) struct  fields kind      (1,1) string  &quot;none&quot; | &quot;gauss&quot; | &quot;ddk&quot; | &quot;W&quot;, or &quot;&quot; when F is refused radiusKm  (1,1) double  the Gaussian radius [km]; NaN otherwise ddk       (1,1) double  the DDK number, 1 to 8; NaN otherwise W         struct | []  the filter for kind &quot;W&quot;; [] otherwise name      (1,1) string  the label the lanes report: W.name for a struct (&quot;custom W&quot; when it has none), the text itself otherwise</td></tr>
+<tr><td><code>msg</code></td><td>(1,1) string  &quot;&quot; when F is accepted, else the reason</td></tr>
+</table>
+<b>Example</b><pre>    spec = shLowLevel.filterSpec(&quot;gauss300&quot;);    % kind &quot;gauss&quot;, radiusKm 300
+    [s, msg] = shLowLevel.filterSpec(&quot;DDK3&quot;, Allowed = [&quot;none&quot;, &quot;gauss&quot;]);
+    % s.kind is &quot;&quot; and msg says why
+
+  See also shLowLevel.shGaussianWeights, shLowLevel.readDDK,
+  shLowLevel.ddkNames, shLowLevel.designFilter.</pre>
 </div>
 <div class="entry" id="shLowLevel.fitDeterministicModel">
 <h3><code>shLowLevel.fitDeterministicModel(X, tYears, opts)</code></h3>
@@ -1744,6 +1762,7 @@ code itself.</p>
 <a href="#shCoefficients.fromVec">fromVec</a>
 <a href="#shCoefficients.gaussian">gaussian</a>
 <a href="#shCoefficients.gradient">gradient</a>
+<a href="#shCoefficients.gradientTensor">gradientTensor</a>
 <a href="#shCoefficients.map">map</a>
 <a href="#shCoefficients.minus">minus</a>
 <a href="#shCoefficients.mtimes">mtimes</a>
@@ -1754,12 +1773,14 @@ code itself.</p>
 <a href="#shCoefficients.spectrum">spectrum</a>
 <a href="#shCoefficients.subtractNormalField">subtractNormalField</a>
 <a href="#shCoefficients.synthesis">synthesis</a>
+<a href="#shCoefficients.synthesisPoints">synthesisPoints</a>
 <a href="#shCoefficients.times">times</a>
 <a href="#shCoefficients.toGrid">toGrid</a>
 <a href="#shCoefficients.toReference">toReference</a>
 <a href="#shCoefficients.triangle">triangle</a>
 <a href="#shCoefficients.truncate">truncate</a>
 <a href="#shCoefficients.uminus">uminus</a>
+<a href="#shCoefficients.vdkApply">vdkApply</a>
 <a href="#shCoefficients.vec">vec</a>
 <a href="#shCoefficients.write">write</a>
 </p>
@@ -1929,6 +1950,19 @@ code itself.</p>
     [dq, info] = g.gradient(lat, lon, Quantity = &quot;ewh&quot;, kn = kn);
     info.hasUp        % false - EWH is a surface quantity</pre>
 </div>
+<div class="entry" id="shCoefficients.gradientTensor">
+<h3><code>shCoefficients.gradientTensor(obj, latDeg, lonDeg, opts)</code></h3>
+<p class="h1line">Full gravity gradient tensor in the local NEU frame.</p>
+<p>[COMPS, INFO] = g.gradientTensor(LAT, LON) synthesizes the six independent components of the disturbing gravity gradient tensor - uu, nn, ee, un, ue, ne - the GOCE-style diagnostic. It is shLowLevel.shSynthesisGradientTensor with G&#x27;s coefficients, GM and R; that function documents the formulas, the Laplace self-check INFO carries, and the validation. Its options go there only when given, so &quot;(lane default)&quot; below is that function&#x27;s - and its Height defaults to a satellite ALTITUDE, not to the surface.</p>
+<b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td>required</td></tr><tr><td><code>latDeg</code></td><td>1 x :</td><td>double</td><td>required</td></tr><tr><td><code>lonDeg</code></td><td>1 x :</td><td>double</td><td>required</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Height</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>Nmin</code></td><td>lane default</td><td>-</td><td>-</td></tr></table>
+<b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
+<tr><td><code>comps</code></td><td>(1,1) struct  as returned by shLowLevel.shSynthesisGradientTensor, which documents every field: the six components, each (nlat x nlon)</td></tr>
+<tr><td><code>info</code></td><td>(1,1) struct  as returned by shLowLevel.shSynthesisGradientTensor, which documents every field</td></tr>
+</table>
+<b>Example</b><pre>    [G, info] = g.gradientTensor(-89:89, 0:359, Height = 255e3);
+    info.maxTraceResidual     % the Laplace self-check</pre>
+</div>
 <div class="entry" id="shCoefficients.map">
 <h3><code>shCoefficients.map(obj, latDeg, lonDeg, opts)</code></h3>
 <p class="h1line">Synthesize and draw in one call, through geoMap.</p>
@@ -2019,6 +2053,18 @@ code itself.</p>
 <tr><td><code>lon</code></td><td>(1 x nlon) double   longitudes</td></tr>
 </table>
 </div>
+<div class="entry" id="shCoefficients.synthesisPoints">
+<h3><code>shCoefficients.synthesisPoints(obj, latDeg, lonDeg, r, opts)</code></h3>
+<p class="h1line">Field values at scattered 3-D points.</p>
+<p>VAL = g.synthesisPoints(LAT, LON, RGEO) evaluates G pointwise at equal-length vectors of geocentric latitude and longitude [deg] and geocentric radius [m] - stations, satellite positions, profiles - with the upward continuation (R/r)^n that a grid on the sphere cannot give. It is shLowLevel.synthesisPoints with G&#x27;s coefficients, GM and R; that function documents the quantities, the two summations and why &quot;auto&quot; means &quot;clenshaw&quot;. Its options go there only when given, so &quot;(lane default)&quot; below is that function&#x27;s. For points on the reference ellipsoid pass RGEO = shLowLevel.ellipsoidRadius(LAT) + h.</p>
+<b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td>required</td></tr><tr><td><code>latDeg</code></td><td>: x 1</td><td>double</td><td>required</td></tr><tr><td><code>lonDeg</code></td><td>: x 1</td><td>double</td><td>required</td></tr><tr><td><code>r</code></td><td>: x 1</td><td>double</td><td>required</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Quantity</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>Nmin</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>Method</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>ClenshawFrom</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>MaxMemGB</code></td><td>lane default</td><td>-</td><td>-</td></tr></table>
+<b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
+<tr><td><code>val</code></td><td>(P,1) double  the quantity at each point</td></tr>
+</table>
+<b>Example</b><pre>    r = shLowLevel.ellipsoidRadius(lat) + 450e3;
+    dg = g.synthesisPoints(lat, lon, r, Quantity = &quot;disturbance&quot;);</pre>
+</div>
 <div class="entry" id="shCoefficients.times">
 <h3><code>shCoefficients.times(a, b)</code></h3>
 <p class="h1line">Elementwise scaling .* (scalar or triangle matrix).</p>
@@ -2071,6 +2117,20 @@ code itself.</p>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
 <tr><td><code>out</code></td><td>(1 x 1) shCoefficients   negated coefficients (sigmas kept)</td></tr>
 </table>
+</div>
+<div class="entry" id="shCoefficients.vdkApply">
+<h3><code>shCoefficients.vdkApply(obj, N, sigM, opts)</code></h3>
+<p class="h1line">Apply the VDK decorrelation filter with a month&#x27;s normals.</p>
+<p>[OUT, INFO] = g.vdkApply(N, SIGM) filters G with its own monthly normal-equation matrix N, xf = (N + alpha M) \ (N x) (Horvath et al. 2018), through shLowLevel.vdkApply, which documents the filter, its relation to tvANS and its cost. G&#x27;s coefficients are taken in Index ordering - by default shLowLevel.shIndex(nmax, Nmin = 2), the ordering of shLowLevel.readSINEX(..., Index = idx) - filtered, and put back. Coefficients outside Index pass through unchanged. As with g.applyDDK the formal sigmas are NOT propagated through the filter; they become NaN. Alpha goes to shLowLevel.vdkApply only when given, so &quot;(lane default)&quot; below is that function&#x27;s.</p>
+<b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td>required</td></tr><tr><td><code>N</code></td><td>P x P</td><td>double</td><td>required</td></tr><tr><td><code>sigM</code></td><td>n x m</td><td>double</td><td>required</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Index</code></td><td>n x m</td><td>-</td><td>[]</td></tr><tr><td><code>Alpha</code></td><td>lane default</td><td>-</td><td>-</td></tr></table>
+<b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
+<tr><td><code>out</code></td><td>(1 x 1) shCoefficients  the filtered field</td></tr>
+<tr><td><code>info</code></td><td>(1,1) struct  as returned by shLowLevel.vdkApply, which documents every field</td></tr>
+</table>
+<b>Example</b><pre>    idx = shLowLevel.shIndex(96, Nmin = 2);
+    snx = shLowLevel.readSINEX(f, Index = idx);
+    gf = g.vdkApply(snx.M, ab(mo, :), Index = idx, Alpha = 1);</pre>
 </div>
 <div class="entry" id="shCoefficients.vec">
 <h3><code>shCoefficients.vec(obj, idx)</code></h3>
@@ -2562,4 +2622,4 @@ code itself.</p>
 <tr><td><code>obj</code></td><td>(1 x 1) shClimatology   copy with the note appended to its history</td></tr>
 </table>
 </div>
-<p class="provenance">Developed by Matthias Weigelt with the help of Claude (Fable 5), 10-Sep-2026 (v5.6.0). Generated by tools - do not edit.</p></div></body></html>
+<p class="provenance">Developed by Matthias Weigelt with the help of Claude (Fable 5), 10-Sep-2026 (v5.7.0). Generated by tools - do not edit.</p></div></body></html>

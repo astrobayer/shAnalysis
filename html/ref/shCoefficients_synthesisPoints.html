@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shCoefficients.synthesisPoints &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shCoefficients.synthesisPoints</nav>
+<h1>shCoefficients.synthesisPoints</h1>
+<p class="h1line">Field values at scattered 3-D points.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>val = shCoefficients.synthesisPoints(obj, latDeg, lonDeg, r)</code><code>val = shCoefficients.synthesisPoints(obj, latDeg, lonDeg, r, Quantity=..., Nmin=..., Method=..., ...)</code></div>
+<h2>Description</h2>
+<p>VAL = g.synthesisPoints(LAT, LON, RGEO) evaluates G pointwise at equal-length vectors of geocentric latitude and longitude [deg] and geocentric radius [m] - stations, satellite positions, profiles - with the upward continuation (R/r)^n that a grid on the sphere cannot give. It is <a href="shLowLevel_synthesisPoints.html"><code>shLowLevel.synthesisPoints</code></a> with G&#x27;s coefficients, GM and R; that function documents the quantities, the two summations and why &quot;auto&quot; means &quot;clenshaw&quot;. Its options go there only when given, so &quot;(lane default)&quot; below is that function&#x27;s. For points on the reference ellipsoid pass RGEO = <a href="shLowLevel_ellipsoidRadius.html"><code>shLowLevel.ellipsoidRadius</code></a>(LAT) + h.</p>
+<h2>Examples</h2>
+<details class="example"><summary>From the help block</summary><div><pre><code>    r = shLowLevel.ellipsoidRadius(lat) + 450e3;
+    dg = g.synthesisPoints(lat, lon, r, Quantity = &quot;disturbance&quot;);</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td><code>required</code></td><td class="desc">the object the method is called on</td></tr><tr><td><code>latDeg</code></td><td>: x 1</td><td>double</td><td><code>required</code></td><td class="desc">double  geocentric latitudes [deg]</td></tr><tr><td><code>lonDeg</code></td><td>: x 1</td><td>double</td><td><code>required</code></td><td class="desc">double  longitudes [deg]</td></tr><tr><td><code>r</code></td><td>: x 1</td><td>double</td><td><code>required</code></td><td class="desc">double  geocentric radii [m]</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>Quantity</code></td><td>lane default</td><td>-</td><td><code>-</code></td><td class="desc">the quantity evaluated</td></tr><tr><td><code>Nmin</code></td><td>lane default</td><td>-</td><td><code>-</code></td><td class="desc">first degree included</td></tr><tr><td><code>Method</code></td><td>lane default</td><td>-</td><td><code>-</code></td><td class="desc">which summation</td></tr><tr><td><code>ClenshawFrom</code></td><td>lane default</td><td>-</td><td><code>-</code></td><td class="desc">point count where &quot;auto&quot; switches</td></tr><tr><td><code>MaxMemGB</code></td><td>lane default</td><td>-</td><td><code>-</code></td><td class="desc">memory budget of the direct path [GB]</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>val</code></td><td class="desc">(P,1) double  the quantity at each point</td></tr></table>
+<h2>Error Identifiers</h2>
+<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<ul class="seealso"><li><a href="shLowLevel_synthesisPoints.html"><code>shLowLevel.synthesisPoints</code></a></li><li><a href="shLowLevel_ellipsoidRadius.html"><code>shLowLevel.ellipsoidRadius</code></a></li></ul>
+<p class="prov">shAnalysis v5.7.0 (10-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

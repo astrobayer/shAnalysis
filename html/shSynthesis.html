@@ -67,6 +67,9 @@ including the central term. Latitudes are geocentric and coefficients fully norm
 C(n+1,m+1) layout, as everywhere in the toolbox &mdash; convert with
 <a href="ref/shLowLevel_geodetic2geocentric.html">geodetic2geocentric</a> if your points are geodetic. The radial
 derivative identity &delta;g = &minus;dT/dr is pinned to 3e-10 by the test suite.</p>
+<p>From a coefficient object the same call is <code class="inline">g.synthesisPoints(lat, lon, r, ...)</code>
+<span class="tag">v5.7.0</span>, with the coefficients, GM and R filled in; its options go to
+<code class="inline">shLowLevel.synthesisPoints</code> only when you give them.</p>
 
 <h2>On the reference ellipsoid <span class="tag">v5.5.0</span></h2>
 <p>By default the series is evaluated on the sphere <code class="inline">r = R</code>. With

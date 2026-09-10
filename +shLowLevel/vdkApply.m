@@ -72,7 +72,7 @@ P = numel(x);
 if ~isequal(size(N), [P, P]) || numel(degOfPar) ~= P
     error('shLowLevel:vdkApply:badSize', ...
         'x (%d), N (%dx%d) and degOfPar (%d) are inconsistent.', ...
-        P, size(N), numel(degOfPar));
+        P, size(N, 1), size(N, 2), numel(degOfPar));
 end
 if numel(sigM) == 2 && isrow(sigM)
     s = sigM(1) * degOfPar.^sigM(2);

@@ -67,7 +67,8 @@ function [ts, rep] = standardChain(folder, opts)
 %
 %   Error identifiers
 %     shLowLevel:standardChain:badFilter
-%         Filter is not a W struct, "none", "gauss<radiusKm>" or "DDKn"
+%         Filter is refused by shLowLevel.filterSpec: it is not a W
+%         struct, "none", "gauss<radiusKm>" or "DDK1" to "DDK8"
 %     shLowLevel:standardChain:badGIA
 %         GIA is not an shCoefficients trend field [1/yr]
 %     shLowLevel:standardChain:noCoveredEpochs
@@ -99,6 +100,12 @@ arguments
     opts.OnMissing (1,1) string {mustBeMember(opts.OnMissing, ...
         ["drop", "error"])} = "drop"
     opts.Quiet (1,1) logical = false
+end
+% the Filter spec is read FIRST, by the one parser of the vocabulary,
+% so a malformed spec fails before any data is touched (A25)
+[fspec, msg] = shLowLevel.filterSpec(opts.Filter);
+if msg ~= ""
+    error('shLowLevel:standardChain:badFilter', '%s', msg);
 end
 steps = strings(1, 0);
 say = @(s) fprintf('  %s\n', s);
@@ -177,32 +184,20 @@ if ~isempty(opts.GIA)
     steps(end+1) = sprintf("GIA trend removed (t0 = %.2f)", t0);
     if ~opts.Quiet, fprintf('  %s\n', steps(end)); end
 end
-% ---- 5. filter
-F = opts.Filter;
-if isstruct(F)
-    ts = ts.applyDDK(F);
-    steps(end+1) = "filter: custom W (" + string(F.name) + ")";
-elseif isstring(F) || ischar(F)
-    F = string(F);
-    if F == "none"
+% ---- 5. filter (the spec was read before step 1)
+switch fspec.kind
+    case "W"
+        ts = ts.applyDDK(fspec.W);
+        steps(end+1) = "filter: custom W (" + fspec.name + ")";
+    case "none"
         steps(end+1) = "filter: none";
-    elseif startsWith(F, "gauss")
-        r = double(extractAfter(F, "gauss"));
-        assert(isfinite(r) && r > 0, 'shLowLevel:standardChain:badFilter', ...
-            'Gaussian filter must be "gauss<radiusKm>" (got "%s").', F);
-        ts = ts.gaussian(r);
-        steps(end+1) = sprintf("filter: Gaussian %g km", r);
-    elseif startsWith(F, "DDK")
-        Wf = shLowLevel.readDDK(char(F));
+    case "gauss"
+        ts = ts.gaussian(fspec.radiusKm);
+        steps(end+1) = sprintf("filter: Gaussian %g km", fspec.radiusKm);
+    otherwise
+        Wf = shLowLevel.readDDK(char(fspec.name));
         ts = ts.applyDDK(Wf);
-        steps(end+1) = "filter: " + F;
-    else
-        error('shLowLevel:standardChain:badFilter', ...
-            'Filter must be "none", "gauss<km>", "DDKn", or a W struct.');
-    end
-else
-    error('shLowLevel:standardChain:badFilter', ...
-        'Filter must be a string or a W struct.');
+        steps(end+1) = "filter: " + fspec.name;
 end
 if ~opts.Quiet, fprintf('  %s\n', steps(end)); end
 v = shLowLevel.version();

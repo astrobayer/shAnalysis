@@ -45,7 +45,10 @@ function [gt, rep] = gravisRegionChain(region, folder, gravisFolder, opts)
 %
 %   Error identifiers
 %     shLowLevel:gravisRegionChain:badFilter
-%         Filter is neither "none" nor "gauss<radiusKm>" for the grid stage
+%         Filter is neither "none" nor a valid "gauss<radiusKm>" for the
+%         grid stage, as shLowLevel.filterSpec reads it. Before v5.7.0 a
+%         radius that was not a number became NaN weights, and a negative
+%         one weights of about 1 - no filter
 %     shLowLevel:gravisRegionChain:missingBasins
 %         the basin GeoJSON was not found
 %     shLowLevel:gravisRegionChain:noKn
@@ -62,6 +65,12 @@ arguments
     folder (1,1) string
     gravisFolder (1,1) string
     opts (1,1) struct
+end
+% the Filter spec is read FIRST, by the one parser of the vocabulary,
+% so a malformed spec fails before any data is touched (A25)
+[fspec, msg] = shLowLevel.filterSpec(opts.Filter, Allowed = ["none", "gauss"]);
+if msg ~= ""
+    error('shLowLevel:gravisRegionChain:badFilter', '%s', msg);
 end
 if isempty(opts.kn)
     error('shLowLevel:gravisRegionChain:noKn', ...
@@ -95,13 +104,8 @@ else
     lat = (-90 + opts.GridStep/2 : opts.GridStep : 90)';
     lon = (opts.GridStep/2 : opts.GridStep : 360)';
     w = ones(nmax + 1, 1);
-    if startsWith(opts.Filter, "gauss")
-        rkm = double(extractAfter(opts.Filter, "gauss"));
-        w = shLowLevel.shGaussianWeights(nmax, rkm); w = w(:);
-    elseif opts.Filter ~= "none"
-        error('shLowLevel:gravisRegionChain:badFilter', ...
-            'Filter must be "none" or "gaussN" for the grid stage, got %s.', ...
-            opts.Filter);
+    if fspec.kind == "gauss"
+        w = shLowLevel.shGaussianWeights(nmax, fspec.radiusKm); w = w(:);
     end
     E = zeros(numel(lat), numel(lon), T); P = [];
     for k = 1:T

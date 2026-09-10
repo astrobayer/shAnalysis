@@ -164,6 +164,17 @@ phase from four months of data would be worse than no answer.</p>
 <code class="inline">info.leakage</code> and <code class="inline">info.deviation</code> for the
 two terms it removed, and <code class="inline">info.phaseDeg</code> for the shift it applied.</p>
 
+<h2 id="spec">One reader of the Filter vocabulary <span class="tag">v5.7.0</span></h2>
+<p>Every function here that takes <code class="inline">Filter</code> - and the chains that call them -
+reads it with <a href="ref/shLowLevel_filterSpec.html">shLowLevel.filterSpec</a>:
+<code class="inline">"none"</code>, <code class="inline">"gauss&lt;radiusKm&gt;"</code> with a radius greater than zero,
+<code class="inline">"DDK1"</code> to <code class="inline">"DDK8"</code>, or a W struct. Before v5.7.0 eight functions each parsed
+it on their own and did not agree. Measured on the old code: <code class="inline">twsChain</code> turned
+<code class="inline">"gaussX"</code> into NaN results without any error; the ocean chains read any text as a Gaussian, so
+<code class="inline">"DDK3"</code> became a radius of NaN, which makes nearly every weight NaN; and a
+negative radius gave weights of about 1 &mdash; no filter &mdash; in the four chains that never checked it. A malformed spec
+is now refused before any data is read, under each function's own identifier.</p>
+
 <h2>Validation</h2>
 <p>Both methods were implemented and checked in Python (<code class="inline">tools/dev/validate_leakage.py</code>)
 before the MATLAB port, against known truth: exact analysis/synthesis round trip (4e-16), zero in /
