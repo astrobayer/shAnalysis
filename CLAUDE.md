@@ -23,7 +23,7 @@ says whether it was *read* or *inferred*.
 
 | Fact | Value | Evidence |
 |---|---|---|
-| Version | **5.12.1**, 10-Sep-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
+| Version | **5.12.2**, 10-Sep-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
 | Branches | `main` only; `claude/getframe-recapture` and `claude/readshm` are gone (merged/deleted) | `GET /branches` |
 | Public surface | 3 classes / 84 methods, 128 `+shLowLevel` functions (+5 private), 3 root functions. 75 of the 128 are reachable from a class method; each of the other 53 is a named exception (35) or in a backlog that may only shrink (18) | `tools/dev/api_extract.py`; `tools/dev/class_surface_audit.py` |
 | Tests | 5 classes, **368 methods / 382 runs**: Correctness 181, Contract 108, Robustness 57, Science 9, Performance 13 methods (27 runs, `budgetCase` x14 + `nmaxP` x2). On A8 7 filter out without the optional real-data fixtures (the GravIS-grid test joined them in v5.8.0, the ESMGFZ check in v5.11.0, the HLSST check in v5.12.0); on MATTHIASPC only 2 do, because `E:\DATAPOOL` supplies the SINEX files, the GravIS folder and - with `SHX_EARTHROTATION_FOLDER` and `SHX_BRIDGE_FOLDER` set for the run, no preference is stored - the ESMGFZ and HLSST series. The counter has matched the runner EXACTLY on the last ten green A8 runs and on every local Tier-A run. | `python3 tools/dev/count_tests.py` |
@@ -217,7 +217,7 @@ do not see; **L** = polish.
 
 | # | Topic | What was read | What must be measured |
 |---|---|---|---|
-| B1 | `legendreALF` writes every `P(n+1,m+1,:)` into a 3-D array with page stride `(nmax+1)^2`; the inner `for n` loop touches `nlat` non-contiguous doubles per iteration. A `(nlat, n1*(n1+1)/2)` packed layout or per-latitude 2-D slabs is typically 2–5× faster in MATLAB. | source | wall time n=96/180 lat and n=720/1441 lat, 15 repeats, median ratio |
+| B1 | **MEASURED, NOT BUILT v5.12.2** - the latitude-first recursion is 1.11-1.69x faster raw and 0.92-0.99x as a drop-in (the permute back), below WP2's 2x bar; bitwise identical. Original: `legendreALF` writes every `P(n+1,m+1,:)` into a 3-D array with page stride `(nmax+1)^2`; the inner `for n` loop touches `nlat` non-contiguous doubles per iteration. A `(nlat, n1*(n1+1)/2)` packed layout or per-latitude 2-D slabs is typically 2–5× faster in MATLAB. | source | wall time n=96/180 lat and n=720/1441 lat, 15 repeats, median ratio |
 | B2 | `shSynthesis` forms the full `P` (or streams bands) and reduces with `sum(KC .* Pk, 1)` per latitude — two `(n1×n1)` dense passes per latitude. A Clenshaw/per-order recursion needs no `P` and is the standard for point synthesis (`synthesisPoints`, station lists). | source | same protocol; expected win largest for scattered points |
 | B3 | **ADDRESSED v5.5.0 (WP3)**: `Surface = "ellipsoid"` in synthesis and gradient, the radius from `shLowLevel.ellipsoidRadius`. Measured, the ellipsoid lies 21.4 km inside the sphere at the poles and (R/b)^(n+2) there is 1.23 at n 60 and 1.84 at n 180. Original: Evaluation surface is a sphere of radius `R` (+ scalar `Height`). Evaluating on the ellipsoid surface `r(φ)` (latitude-dependent height in the existing `(R/r)^p` law) is not offered. For geoid/gravity users the sphere approximation leaves a known ~few-cm/mGal signature at high latitudes. | `kernelFactors`, `shSynthesis` | closed-form check against ellipsoidal reference values (Python oracle) |
 
@@ -308,7 +308,7 @@ Approved by Matthias on 2026-09-09 as option (a), the hard break.
   bump `fixtures-2026-09`).
 - **Size**: M. **Version**: MAJOR (4.0.0) under (a).
 
-### WP2 — Speed budgets, then speed   `[~] STEP 1 DONE, A9 CLOSED (v5.4.1); STEP 2 B2 DONE (v5.1.0), CORRECTED (v5.3.0); B1 open`
+### WP2 — Speed budgets, then speed   `[x] STEP 1 DONE, A9 CLOSED (v5.4.1); STEP 2 B2 DONE (v5.1.0), CORRECTED (v5.3.0); B1 MEASURED, NOT BUILT (v5.12.2)`
 Approved by Matthias on 2026-09-09 ("Go ahead with WP2"), which
 supersedes the "A9 is ok" acceptance recorded the same day.
 
@@ -599,6 +599,16 @@ of 125.
 ## 6. Records
 
 ### 6.1 Decisions (append-only; date, decision, evidence)
+- 2026-09-10 — **B1 is measured and not built, by WP2's own bar.** The
+  latitude-first recursion is 1.11-1.69x faster raw, and every caller
+  indexes P(n+1, m+1, :), so a drop-in pays a permute back and lands at
+  0.92-0.99x. Changing nine callers for at most 1.7x is below the 2x the
+  WP set before anything was measured. Bitwise identical throughout.
+- 2026-09-10 — **`shSynthesis`'s `auto` keeps FFT: no path wins on both
+  machines.** On MATTHIASPC `direct` is 0-14 percent faster over the
+  whole call at 13 sizes; on A8 the FFT reduction ran 1.40x faster at
+  nmax 60. The gap is the longitude step alone, at most 7 ms. The help
+  row now states the sweep instead of one observation.
 - 2026-09-10 — **The next order agreed** (Matthias: "#113 and #114 is
   merged. Continue in the suggested order"): A30's lane guard, then B1
   (measure first), then the FFT/direct sweep, then the class-surface
@@ -1481,7 +1491,8 @@ of 125.
 | v5.10.0 (WP5 5a: `rotationExcitation`, `ts.excitation`) | ☑ 16 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings; reach 73 -> 74 of 127, 9 delegates pinned | ☑ **Tier A LOCAL on MATTHIASPC — 375 runs, 373 passed, 0 failed, 2 filtered**; count exact per class (Contract 106, Correctness 178, Performance 27, Robustness 57, Science 7), all 27 performance runs asserted, and the two new tests passed on their first run. Then ☑ **CI self-hosted (A8) at `81704d3` via PR #112, green — 375 runs, 370 passed, 0 failed, 5 filtered**, per class exactly as predicted, and both new tests ran there | ☑ PR #112 | ☑ 2026-09-10 |
 | v5.11.0 (WP5 5a: dLOD in ms, IERS 2010 constants, the ESMGFZ check) | ☑ 16 gates + mlint + make_demos + 15 self-test suites + the extended oracle (CLAIMs 4-6, the EOP check run with the data), 0 findings | ☑ **Tier A LOCAL on MATTHIASPC — 377 runs, 375 passed, 0 failed, 2 filtered**; count exact per class (Contract 106, Correctness 179, Performance 27, Robustness 57, Science 8), all 27 performance runs asserted, and the ESMGFZ check ran here against the real data (`SHX_EARTHROTATION_FOLDER` set for the run). Then ☑ **CI self-hosted (A8) at `413a54a` via PR #113, green — 377 runs, 371 passed, 0 failed, 6 filtered** (the ESMGFZ check joined the optional fixtures), per class exactly as predicted | ☑ PR #113 | ☑ 2026-09-10 |
 | v5.12.0 (WP5 5d: `bridgeGaps`, `ts.bridgeGaps`, the `_YYYY_MM` file names) | ☑ 16 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ☑ **Tier A LOCAL on MATTHIASPC — 381 runs, 379 passed, 0 failed, 2 filtered**; count exact per class (Contract 107, Correctness 181, Performance 27, Robustness 57, Science 9), all 27 performance runs asserted, and both real-data checks - ESMGFZ and HLSST - ran here (`SHX_EARTHROTATION_FOLDER` and `SHX_BRIDGE_FOLDER` set for the run). Then ☑ **CI self-hosted (A8) at `a86dfd0` via PR #114, green — 381 runs, 374 passed, 0 failed, 7 filtered**, per class exactly as predicted | ☑ PR #114 | ☑ 2026-09-10 |
-| v5.12.1 (A30: NaN refused by `shAnalysisGrid`, `leakageCorrect` without a Mask, `gridScaling`) | ☑ 16 gates + mlint + make_demos + 15 self-test suites, 0 findings; the four working paths bitwise before and after | ☑ **Tier A LOCAL on MATTHIASPC — 382 runs, 380 passed, 0 failed, 2 filtered**; count exact per class (Contract 108, Correctness 181, Performance 27, Robustness 57, Science 9), all 27 performance runs asserted | ◐ pending | ◐ pending |
+| v5.12.1 (A30: NaN refused by `shAnalysisGrid`, `leakageCorrect` without a Mask, `gridScaling`) | ☑ 16 gates + mlint + make_demos + 15 self-test suites, 0 findings; the four working paths bitwise before and after | ☑ **Tier A LOCAL on MATTHIASPC — 382 runs, 380 passed, 0 failed, 2 filtered**; count exact per class (Contract 108, Correctness 181, Performance 27, Robustness 57, Science 9), all 27 performance runs asserted. Then ☑ **CI self-hosted (A8) at `6675806` via PR #115, green — 382 runs, 375 passed, 0 failed, 7 filtered**, per class exactly as predicted, and `testNaNNeverReachesAnAnalysis` ran there | ☑ PR #115 | ◐ pending |
+| v5.12.2 (WP2: B1 and the FFT/direct sweep measured, neither built; the `Method` help) | ☑ 16 gates + mlint + make_demos + 15 self-test suites, 0 findings; documentation only | ☑ **Tier A LOCAL on MATTHIASPC — 382 runs, 380 passed, 0 failed, 2 filtered**; count exact per class (Contract 108, Correctness 181, Performance 27, Robustness 57, Science 9), all 27 performance runs asserted | ◐ pending | ◐ pending |
 | v5.0.3 (WP2 step 1 baselines) | ☑ 14 gates + mlint + make_demos + 13 self-test suites, 0 findings; `NO_BASELINE` empty | ☑ **CI self-hosted (A8) at `b70c947`, green — 315 runs, 311 passed, 0 failed, 4 filtered**; the EIGHTH exact count prediction running, per class as well as in total. All ten budgets PASSED (they filtered at `f6d5529`), and the only filtered are the four real-data fixtures. Triggered by `workflow_dispatch`, not a PR — #99 merged mid-session and `ci.yml` runs only on push-to-main, pull_request and workflow_dispatch. | ☐ no PR (#99 merged; not asked) | ☐ |
 
 **Tier A debt: DISCHARGED for all nine releases.** The local MATLAB
@@ -1961,14 +1972,15 @@ internet, which unblocks all three stuck items at once:
    beside `applyDDK`, `shSynthesisGradientTensor` beside `g.gradient`.
    An entry that gets a method must leave the list in the same commit -
    the gate enforces it.
-4. **Candidate, measure first: `shSynthesis` auto may pick FFT where
-   direct is faster on large grids** (n180 / 0.5 deg: 31.4 vs 29.9 ms on
-   MATTHIASPC). Sweep sizes on both machines before touching `auto`.
+4. **DONE v5.12.2, the FFT/direct sweep**: `direct` is 0-14 percent
+   faster on MATTHIASPC at 13 sizes, FFT 1.40x faster at n60 on A8; no path
+   wins on both machines, so `auto` keeps FFT.
 5. **WP5 follow-ons**: the method of scale is DONE (v5.9.0), and it
    became an option on `leakageDataDriven`, not a third leakage method
    on `shSeries`: it shares every estimate with the method of deviation.
-6. **B1 (packed Legendre)** remains the weaker WP2 step-2 candidate.
-7. **WP5 is DONE**: 5e in v5.8.0, the method of scale in v5.9.0, 5a in v5.10.0 and v5.11.0, 5d in v5.12.0. Nothing of WP5 is open: the axial factor keeps eq. (1)'s 0.753 by Matthias's decision, and ESMGFZ's 0.844 is an `AxialFactor` away. Then the order Matthias agreed on 2026-09-10: A30 (DONE v5.12.1), B1 (packed Legendre, measure first), the FFT/direct sweep of `shSynthesis` auto, and the class-surface backlog. **WP4 is moved out** to a separate GNSS toolbox (2026-09-10); do not start it here.
+6. **B1 (packed Legendre): MEASURED, NOT BUILT (v5.12.2)** - 1.11-1.69x
+   raw, 0.92-0.99x as a drop-in; below the 2x bar.
+7. **WP5 is DONE**: 5e in v5.8.0, the method of scale in v5.9.0, 5a in v5.10.0 and v5.11.0, 5d in v5.12.0. Nothing of WP5 is open: the axial factor keeps eq. (1)'s 0.753 by Matthias's decision, and ESMGFZ's 0.844 is an `AxialFactor` away. Then the order Matthias agreed on 2026-09-10: A30 (DONE v5.12.1), B1 and the FFT/direct sweep (both measured, neither built, v5.12.2), and the class-surface backlog - next. **WP4 is moved out** to a separate GNSS toolbox (2026-09-10); do not start it here.
 
 **What a Tier-A session should know about running the suite here.** The
 MATLAB MCP tool times out on anything suite-sized. Run it detached and

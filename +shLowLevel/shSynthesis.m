@@ -62,10 +62,14 @@ function [grid, lat, lon, P] = shSynthesis(C, S, GM, R, latVec, lonVec, opts)
 %     rho_water (1000) water density [kg/m^3] (used for "ewh")
 %     Method ("auto")  "auto" / "direct" / "fft": FFT-along-longitude
 %               synthesis for uniform full-circle longitude grids; 'auto'
-%               picks it whenever applicable. It is not always faster:
-%               1.40x at nmax 60 / 1 degree on A8, and slower than
-%               direct at nmax 180 / 0.5 degree on MATTHIASPC (this row
-%               claimed "5-20x" until v5.5.0; it was never measured).
+%               picks it whenever applicable. The two differ only in the
+%               last step, along longitude, and neither is faster
+%               everywhere: FFT ran 1.40x faster at nmax 60 / 1 degree
+%               on A8 (the reduction alone), while on MATTHIASPC the
+%               whole call is 0-14 percent faster with direct across 13
+%               sizes from nmax 30 / 1 degree to 360 / 0.5 degree
+%               (v5.12.2). 'auto' keeps FFT. (This row claimed "5-20x"
+%               until v5.5.0; it was never measured.)
 %               Symmetric latitude grids additionally reuse the Legendre
 %               recursion for +/-lat pairs via the parity relation.
 %
