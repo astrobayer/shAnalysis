@@ -32,8 +32,8 @@ function [out, rep] = twsChain(folder, gravisFolder, opts)
 %     Filter     ("DDK3")  "none" | "gaussN" | "DDKn" (n = 1..8) | a W
 %                struct from shLowLevel.readDDK
 %     DDKFolder  ("")  folder holding the Wbd_2-120.a_* binaries for
-%                the "DDKn" shorthand (default: GRAVISFOLDER, then the
-%                toolbox data folder)
+%                the "DDKn" shorthand (default: GRAVISFOLDER, then
+%                <dataFolder>/DDK, where shLowLevel.fetchDDK stores them)
 %     GIAFile    ("GRAVIS-2B_COSTG_0200_GIA_ICE-6G_D_VM5a_0001.gz")
 %                "" disables the GIA step - and reproduces the 7x
 %                larger trend RMS documented in V8
@@ -132,8 +132,13 @@ switch fspec.kind
         % the released file names have one home, shLowLevel.ddkNames
         % (this chain carried its own copy of the eight until v5.7.0)
         fn = shLowLevel.ddkNames(); fn = fn(fspec.ddk);
+        % fetchDDK stores the files in <dataFolder>/DDK. The lower-case
+        % 'ddk' this chain used to look in is kept for files placed there
+        % by hand: the two are one folder on Windows, two on Linux and
+        % macOS, where a fetched file was not found here (A26)
         cand = [fullfile(char(opts.DDKFolder), char(fn)); ...
                 fullfile(char(gravisFolder), char(fn)); ...
+                fullfile(shLowLevel.dataFolder(), 'DDK', char(fn)); ...
                 fullfile(shLowLevel.dataFolder(), 'ddk', char(fn))];
         fp = "";
         for c = 1:size(cand, 1)

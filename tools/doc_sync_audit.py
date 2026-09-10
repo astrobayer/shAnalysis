@@ -42,6 +42,7 @@ Developed by Matthias Weigelt with the help of Claude (Opus 5),
 """
 import html as _html
 import base64
+import fnmatch
 import os
 import zlib
 import re
@@ -427,6 +428,49 @@ def _pdf_inflate(chunk):
     return None
 
 
+def pdf_xref_offset_ok(path):
+    """(ok, offset): does the PDF's startxref point at its xref table?
+
+    A tool that rewrites line endings - core.autocrlf on a Windows checkout
+    is the one that did (A29) - shifts every byte after the first rewritten
+    line, so the offset lands in the middle of something else. A reader
+    that decodes the streams, as pdf_first_page_text does, does not notice:
+    ASCII85 ignores the inserted CR bytes."""
+    with open(path, "rb") as fh:
+        data = fh.read()
+    m = re.search(rb"startxref\s+(\d+)\s+%%EOF\s*$", data)
+    if not m:
+        return False, None
+    n = int(m.group(1))
+    return data[n:n + 4] == b"xref", n
+
+
+def gitattributes_binary(root, relpath):
+    """True when .gitattributes keeps RELPATH out of line-ending conversion
+    ('binary' or '-text'). As in git, the LAST matching line wins, and a
+    pattern without a slash matches the file name at any depth."""
+    p = os.path.join(root, ".gitattributes")
+    if not os.path.isfile(p):
+        return False
+    state = False
+    with open(p, encoding="utf-8") as fh:
+        for ln in fh:
+            ln = ln.strip()
+            if not ln or ln.startswith("#"):
+                continue
+            parts = ln.split()
+            pat, attrs = parts[0], parts[1:]
+            target = relpath if "/" in pat else relpath.rsplit("/", 1)[-1]
+            if not fnmatch.fnmatchcase(target, pat.lstrip("/")):
+                continue
+            for a in attrs:
+                if a in ("binary", "-text"):
+                    state = True
+                elif a == "text" or a.startswith("text="):
+                    state = False
+    return state
+
+
 def pdf_first_page_text(path):
     """Text of the first content stream. Standard library only."""
     with open(path, "rb") as fh:
@@ -542,6 +586,21 @@ def main():
                 probs.append("workflow guide PDF: stamped v%s, Contents.m "
                              "says %s - rebuild it with "
                              "tools/dev/make_guide.py" % (mp.group(1), ver))
+            # A29: the guide is pure ASCII, so git took it for text and a
+            # Windows checkout rewrote its line endings. The stamp check
+            # above cannot see that - it decodes streams, and ASCII85
+            # ignores the inserted bytes - but the xref offsets can.
+            xok, xoff = pdf_xref_offset_ok(pdf)
+            if not xok:
+                probs.append("workflow guide PDF: its startxref (%s) does not "
+                             "point at its xref table - the file was rewritten "
+                             "after it was built (a CRLF checkout inserts a byte "
+                             "per line; A29). Rebuild it with "
+                             "tools/dev/make_guide.py" % xoff)
+        if not gitattributes_binary(ROOT, "docs/shAnalysis_workflow_guide.pdf"):
+            probs.append(".gitattributes does not mark the guide PDF binary - it "
+                         "is pure ASCII, so git takes it for text and "
+                         "core.autocrlf rewrites it on a Windows checkout (A29)")
         if "API reference (v%s)" % ver not in api:
             probs.append("apiReference.html: title is not v%s - regenerate it"
                          % ver)

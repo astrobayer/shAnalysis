@@ -1,0 +1,16 @@
+# Binary artifacts: never convert their line endings, never diff them as text.
+#
+# The workflow guide PDF is pure ASCII (reportlab writes ASCII85 streams), so
+# git's heuristic took it for text and core.autocrlf rewrote it on a Windows
+# checkout: measured on 2026-09-10, a pull inserted 3589 CR bytes and its
+# startxref pointed into the middle of a stream instead of at the xref table.
+# tools/doc_sync_audit.py checks both that this line is here and that the
+# PDF's startxref still points at its xref table (CLAUDE.md, A29).
+#
+# Text files are deliberately NOT normalized here: that would rewrite every
+# file's line endings in one commit, for no defect.
+*.pdf binary
+*.png binary
+*.gz  binary
+*.mat binary
+*.nc  binary
