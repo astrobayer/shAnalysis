@@ -109,7 +109,7 @@ class TestCounting(unittest.TestCase):
         self.assertEqual(c["runs"], c["methods"])
 
 
-EXPECTED_RUNS = 375          # v5.10.0: 373 + 2 WP5 5a excitation tests
+EXPECTED_RUNS = 377          # v5.11.0: 375 + IERS/length-of-day + the ESMGFZ check
                              # (5 correctness, 4 contract, 2 robustness)
 
 
