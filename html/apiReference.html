@@ -3,7 +3,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="shAnalysis.css">
 </head><body><div class="content">
-<h1>shAnalysis API reference (v5.12.2)</h1>
+<h1>shAnalysis API reference (v5.13.0)</h1>
 <p>Generated from the source arguments blocks and help text - inputs,
 name-value options with defaults, and outputs for every public function
 and method. Regenerated with every release; the source of truth is the
@@ -1822,9 +1822,11 @@ code itself.</p>
 <a href="#shCoefficients.minus">minus</a>
 <a href="#shCoefficients.mtimes">mtimes</a>
 <a href="#shCoefficients.plus">plus</a>
+<a href="#shCoefficients.poleTideConvert">poleTideConvert</a>
 <a href="#shCoefficients.read">read</a>
 <a href="#shCoefficients.setCoefficient">setCoefficient</a>
 <a href="#shCoefficients.shCoefficients">shCoefficients</a>
+<a href="#shCoefficients.slepianProject">slepianProject</a>
 <a href="#shCoefficients.spectrum">spectrum</a>
 <a href="#shCoefficients.subtractNormalField">subtractNormalField</a>
 <a href="#shCoefficients.synthesis">synthesis</a>
@@ -2051,6 +2053,17 @@ code itself.</p>
 <tr><td><code>out</code></td><td>(1 x 1) shCoefficients   sum; sigmas RSS; epochs must match</td></tr>
 </table>
 </div>
+<div class="entry" id="shCoefficients.poleTideConvert">
+<h3><code>shCoefficients.poleTideConvert(obj, opts)</code></h3>
+<p class="h1line">Move C21/S21 to another mean-pole convention.</p>
+<p>OUT = g.poleTideConvert(From = &quot;IERS2010&quot;, To = &quot;IERS2018&quot;) is shLowLevel.poleTideConvert(g, ...): it moves C21 and S21 from the mean-pole model the processing centre removed the pole tide with to another, at the field&#x27;s own epoch. That function documents the two models and the adjustment.</p>
+<b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td>required</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>From</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>To</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>Mode</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>SolidCoef</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>OceanCoef</code></td><td>lane default</td><td>-</td><td>-</td></tr></table>
+<b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
+<tr><td><code>out</code></td><td>(1,1) shCoefficients  the converted field, history appended</td></tr>
+</table>
+<b>Example</b><pre>    g18 = g.poleTideConvert(From = &quot;IERS2010&quot;, To = &quot;IERS2018&quot;);</pre>
+</div>
 <div class="entry" id="shCoefficients.read">
 <h3><code>shCoefficients.read(filename, opts)</code></h3>
 <p class="h1line">Read an ICGEM .gfc/.gfct/.gfc.gz file into an shCoefficients.</p>
@@ -2078,6 +2091,18 @@ code itself.</p>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
 <tr><td><code>obj</code></td><td>(1 x 1) shCoefficients   immutable coefficient set with GM (3.986004415e14), R (6378136.3), epoch, sigmas, history</td></tr>
 </table>
+</div>
+<div class="entry" id="shCoefficients.slepianProject">
+<h3><code>shCoefficients.slepianProject(obj, G, idx)</code></h3>
+<p class="h1line">Project this field onto a Slepian basis, and back.</p>
+<p>[A, REC] = g.slepianProject(G, IDX) is shLowLevel.slepianProject(g.C, g.S, G, IDX), with the tapers G and the index IDX of shLowLevel.slepianBasis. A holds the Slepian coefficients, REC the field rebuilt from them.</p>
+<b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td>required</td></tr><tr><td><code>G</code></td><td>P x K</td><td>-</td><td>required</td></tr><tr><td><code>idx</code></td><td>1 x 1</td><td>-</td><td>required</td></tr></table>
+<b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
+<tr><td><code>a</code></td><td>(K,1) double  the Slepian coefficients</td></tr>
+<tr><td><code>rec</code></td><td>(1,1) struct  as returned by shLowLevel.slepianProject, which documents every field</td></tr>
+</table>
+<b>Example</b><pre>    G = shLowLevel.slepianBasis(idx, @(la, lo) double(la &gt; 60));
+    a = g.slepianProject(G, idx);</pre>
 </div>
 <div class="entry" id="shCoefficients.spectrum">
 <h3><code>shCoefficients.spectrum(obj, varargin)</code></h3>
@@ -2209,11 +2234,13 @@ code itself.</p>
 <a href="#shSeries.basinAverage">basinAverage</a>
 <a href="#shSeries.bridgeGaps">bridgeGaps</a>
 <a href="#shSeries.climatology">climatology</a>
+<a href="#shSeries.combineCenters">combineCenters</a>
 <a href="#shSeries.compare">compare</a>
 <a href="#shSeries.destripe">destripe</a>
 <a href="#shSeries.disp">disp</a>
 <a href="#shSeries.dropNaN">dropNaN</a>
 <a href="#shSeries.eof">eof</a>
+<a href="#shSeries.estimateDegree1">estimateDegree1</a>
 <a href="#shSeries.excitation">excitation</a>
 <a href="#shSeries.fan">fan</a>
 <a href="#shSeries.filter">filter</a>
@@ -2225,12 +2252,14 @@ code itself.</p>
 <a href="#shSeries.leakageDataDriven">leakageDataDriven</a>
 <a href="#shSeries.mean">mean</a>
 <a href="#shSeries.minus">minus</a>
+<a href="#shSeries.poleTideConvert">poleTideConvert</a>
 <a href="#shSeries.read">read</a>
 <a href="#shSeries.removeAlias">removeAlias</a>
 <a href="#shSeries.removeGIA">removeGIA</a>
 <a href="#shSeries.restore">restore</a>
 <a href="#shSeries.select">select</a>
 <a href="#shSeries.shSeries">shSeries</a>
+<a href="#shSeries.slepianProject">slepianProject</a>
 <a href="#shSeries.toGrid">toGrid</a>
 <a href="#shSeries.trendBreaks">trendBreaks</a>
 <a href="#shSeries.truncate">truncate</a>
@@ -2308,6 +2337,18 @@ code itself.</p>
 <tr><td><code>resid</code></td><td>(1 x 1) shSeries   residual series about the fit</td></tr>
 </table>
 </div>
+<div class="entry" id="shSeries.combineCenters">
+<h3><code>shSeries.combineCenters(obj, others, opts)</code></h3>
+<p class="h1line">Combine this series with other centres&#x27; by VCE.</p>
+<p>[TSCOMB, INFO] = ts.combineCenters({TSB, TSC}) is shLowLevel.combineCenters({ts, TSB, TSC}): one variance factor per centre and month, by variance-component estimation, on the epochs of this series. That function documents the method and what its posterior sigmas can and cannot claim.</p>
+<b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td>required</td></tr><tr><td><code>others</code></td><td>1 x :</td><td>cell</td><td>required</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Tolerance</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>AllowMissing</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>Robust</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>MaxIter</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>Tol</code></td><td>lane default</td><td>-</td><td>-</td></tr></table>
+<b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
+<tr><td><code>tsComb</code></td><td>(1,1) shSeries  the combined series</td></tr>
+<tr><td><code>info</code></td><td>(1,1) struct  as returned by shLowLevel.combineCenters, which documents every field</td></tr>
+</table>
+<b>Example</b><pre>    [ts, info] = tsITSG.combineCenters({tsCSR, tsGFZ});</pre>
+</div>
 <div class="entry" id="shSeries.compare">
 <h3><code>shSeries.compare(obj, others, varargin)</code></h3>
 <p class="h1line">Temporal comparison against other series (v2.6.0).</p>
@@ -2355,6 +2396,19 @@ code itself.</p>
 </table>
 <b>Example</b><pre>    [~, resid] = ts.climatology();
     [modes, pcs, ve] = resid.eof(NModes = 3);</pre>
+</div>
+<div class="entry" id="shSeries.estimateDegree1">
+<h3><code>shSeries.estimateDegree1(obj, ocean, opts)</code></h3>
+<p class="h1line">Geocentre coefficients of every epoch, from the series.</p>
+<p>[D1, INFO] = ts.estimateDegree1(OCEAN, kn = KN) is shLowLevel.estimateDegree1(ts, OCEAN, ...): C10, C11 and S11 for every epoch by the method of Swenson, Chambers &amp; Wahr (2008). That function documents the method, its grid and its outputs; D1 drops straight into ts.addDegree1.</p>
+<b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td>required</td></tr><tr><td><code>ocean</code></td><td>n x m</td><td>-</td><td>required</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>kn</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>OceanModel</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>LatDeg</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>LonDeg</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>Nmax</code></td><td>lane default</td><td>-</td><td>-</td></tr></table>
+<b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
+<tr><td><code>d1</code></td><td>(1,1) struct  as returned by shLowLevel.estimateDegree1, which documents every field</td></tr>
+<tr><td><code>info</code></td><td>(1,1) struct  as returned by shLowLevel.estimateDegree1, which documents every field</td></tr>
+</table>
+<b>Example</b><pre>    d1 = ts.estimateDegree1(ocean, kn = kn);
+    ts = ts.addDegree1(d1);</pre>
 </div>
 <div class="entry" id="shSeries.excitation">
 <h3><code>shSeries.excitation(obj, opts)</code></h3>
@@ -2478,6 +2532,17 @@ code itself.</p>
 <tr><td><code>out</code></td><td>(1 x 1) shSeries   per-month difference (series or single field)</td></tr>
 </table>
 </div>
+<div class="entry" id="shSeries.poleTideConvert">
+<h3><code>shSeries.poleTideConvert(obj, opts)</code></h3>
+<p class="h1line">Move every epoch&#x27;s C21/S21 to another mean pole.</p>
+<p>OUT = ts.poleTideConvert(From = &quot;IERS2010&quot;, To = &quot;IERS2018&quot;) applies shLowLevel.poleTideConvert to each epoch at its own epoch, in the raw (C, S, EPOCH) form, so the series keeps its names, its sigmas and its history. That function documents the two models and the adjustment.</p>
+<b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td>required</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>From</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>To</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>Mode</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>SolidCoef</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>OceanCoef</code></td><td>lane default</td><td>-</td><td>-</td></tr></table>
+<b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
+<tr><td><code>out</code></td><td>(1,1) shSeries  the converted series, history appended</td></tr>
+</table>
+<b>Example</b><pre>    ts18 = ts.poleTideConvert(From = &quot;IERS2010&quot;, To = &quot;IERS2018&quot;);</pre>
+</div>
 <div class="entry" id="shSeries.read">
 <h3><code>shSeries.read(files, opts)</code></h3>
 <p class="h1line">Read a series of gfc files (pattern or list), sorted by epoch.</p>
@@ -2542,6 +2607,18 @@ code itself.</p>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
 <tr><td><code>obj</code></td><td>(1 x 1) shSeries   epoch-sorted monthly stack with sigmas and history</td></tr>
 </table>
+</div>
+<div class="entry" id="shSeries.slepianProject">
+<h3><code>shSeries.slepianProject(obj, G, idx)</code></h3>
+<p class="h1line">Project every epoch onto a Slepian basis, and back.</p>
+<p>[A, REC] = ts.slepianProject(G, IDX) is shLowLevel.slepianProject(ts.Cs, ts.Ss, G, IDX), with the tapers G and the index IDX of shLowLevel.slepianBasis: A holds one column of Slepian coefficients per epoch, the regional modes in time, and REC the series rebuilt from them.</p>
+<b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td>required</td></tr><tr><td><code>G</code></td><td>P x K</td><td>-</td><td>required</td></tr><tr><td><code>idx</code></td><td>1 x 1</td><td>-</td><td>required</td></tr></table>
+<b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
+<tr><td><code>a</code></td><td>(K,T) double  the Slepian coefficients per epoch</td></tr>
+<tr><td><code>rec</code></td><td>(1,1) struct  as returned by shLowLevel.slepianProject, which documents every field</td></tr>
+</table>
+<b>Example</b><pre>    G = shLowLevel.slepianBasis(idx, @(la, lo) double(la &gt; 60));
+    a = ts.slepianProject(G, idx);</pre>
 </div>
 <div class="entry" id="shSeries.toGrid">
 <h3><code>shSeries.toGrid(obj, latDeg, lonDeg, opts)</code></h3>
@@ -2704,4 +2781,4 @@ code itself.</p>
 <tr><td><code>obj</code></td><td>(1 x 1) shClimatology   copy with the note appended to its history</td></tr>
 </table>
 </div>
-<p class="provenance">Developed by Matthias Weigelt with the help of Claude (Fable 5), 10-Sep-2026 (v5.12.2). Generated by tools - do not edit.</p></div></body></html>
+<p class="provenance">Developed by Matthias Weigelt with the help of Claude (Fable 5), 10-Sep-2026 (v5.13.0). Generated by tools - do not edit.</p></div></body></html>

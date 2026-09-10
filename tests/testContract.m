@@ -2942,3 +2942,74 @@ model(repmat(LA < -60, 1, 1, 12)) = NaN;
 verifyError(testCase, @() shLowLevel.gridScaling(model, lat, lon, Quiet = true), ...
     'shLowLevel:gridScaling:nanInput');
 end
+
+% ------------------------------------------------ the class-surface backlog
+function testCoefficientsBacklogRoutesAreTheirLanes(testCase)
+%TESTCOEFFICIENTSBACKLOGROUTESARETHEIRLANES g.poleTideConvert and
+%   g.slepianProject are their lanes, bitwise, with options and without.
+ts = wp7Series(12, 2, 101);
+g = ts.at(1);
+a = g.poleTideConvert();
+b = shLowLevel.poleTideConvert(g);
+verifyTrue(testCase, isequal(a.C, b.C) && isequal(a.S, b.S), ...
+    'g.poleTideConvert is not the lane with its defaults');
+a = g.poleTideConvert(From = "IERS2018", To = "IERS2010", Mode = "solid");
+b = shLowLevel.poleTideConvert(g, From = "IERS2018", To = "IERS2010", ...
+    Mode = "solid");
+verifyTrue(testCase, isequal(a.C, b.C) && isequal(a.S, b.S), ...
+    'g.poleTideConvert is not the lane with options');
+idx = shLowLevel.shIndex(12, Nmin = 0);
+G = shLowLevel.slepianBasis(idx, @(la, lo) double(la > 60));
+[a1, r1] = g.slepianProject(G, idx);
+[a2, r2] = shLowLevel.slepianProject(g.C, g.S, G, idx);
+verifyTrue(testCase, isequal(a1, a2) && isequal(r1, r2), ...
+    'g.slepianProject is not the lane');
+end
+
+function testSeriesBacklogRoutesAreTheirLanes(testCase)
+%TESTSERIESBACKLOGROUTESARETHEIRLANES ts.poleTideConvert is the lane's
+%   raw form at every epoch, with names, sigmas and history kept;
+%   ts.estimateDegree1, ts.combineCenters and ts.slepianProject are their
+%   lanes, bitwise.
+ts = wp7Series(12, 3, 102);
+out = ts.poleTideConvert(From = "IERS2010", To = "IERS2018");
+for k = 1:3
+    [C2, S2] = shLowLevel.poleTideConvert(ts.Cs(:, :, k), ts.Ss(:, :, k), ...
+        ts.epochs(k), From = "IERS2010", To = "IERS2018");
+    verifyTrue(testCase, isequal(out.Cs(:, :, k), C2) && ...
+        isequal(out.Ss(:, :, k), S2), sprintf('epoch %d is not the lane', k));
+end
+verifyEqual(testCase, out.sigmaCs, ts.sigmaCs);
+verifyEqual(testCase, numel(out.history), numel(ts.history) + 1);
+% estimateDegree1, on the grid and mask of
+% testEstimateDegree1RecoversAKnownGeocentre
+lat = -89:4:89;
+lon = 0:4:356;
+[LO, LA] = meshgrid(lon, lat);
+kn = [0; 0.021; -0.3054; -0.1960; zeros(17, 1)];
+ocean = ~(((LA > 10) & (LA < 70) & (LO > 250) & (LO < 350)) | ...
+          ((LA > -40) & (LA < 30) & (LO > 10) & (LO < 60)));
+t1 = wp7Series(12, 2, 103);
+[d1, i1] = t1.estimateDegree1(ocean, kn = kn, LatDeg = lat, LonDeg = lon, ...
+    Nmax = 12);
+[d2, i2] = shLowLevel.estimateDegree1(t1, ocean, kn = kn, LatDeg = lat, ...
+    LonDeg = lon, Nmax = 12);
+verifyTrue(testCase, isequaln(d1, d2) && isequaln(i1, i2), ...
+    'ts.estimateDegree1 is not the lane');
+% combineCenters: three centres of 14 epochs, as testCombineCentersRecovery
+tc = cell(1, 3);
+for c = 1:3
+    tc{c} = wp7Series(6, 14, 110 + c);
+end
+[m1, j1] = tc{1}.combineCenters(tc(2:3), MaxIter = 4);
+[m2, j2] = shLowLevel.combineCenters(tc, MaxIter = 4);
+verifyTrue(testCase, isequaln(m1.Cs, m2.Cs) && isequaln(m1.sigmaCs, ...
+    m2.sigmaCs) && isequaln(j1, j2), 'ts.combineCenters is not the lane');
+% slepianProject
+idx = shLowLevel.shIndex(12, Nmin = 0);
+G = shLowLevel.slepianBasis(idx, @(la, lo) double(la > 60));
+[a1, r1] = ts.slepianProject(G, idx);
+[a2, r2] = shLowLevel.slepianProject(ts.Cs, ts.Ss, G, idx);
+verifyTrue(testCase, isequal(a1, a2) && isequal(r1, r2), ...
+    'ts.slepianProject is not the lane');
+end

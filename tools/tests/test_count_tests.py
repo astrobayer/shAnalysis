@@ -109,7 +109,7 @@ class TestCounting(unittest.TestCase):
         self.assertEqual(c["runs"], c["methods"])
 
 
-EXPECTED_RUNS = 382          # v5.12.1: 381 + the A30 NaN refusals
+EXPECTED_RUNS = 384          # v5.13.0: 382 + two class-surface route tests
                              # (5 correctness, 4 contract, 2 robustness)
 
 

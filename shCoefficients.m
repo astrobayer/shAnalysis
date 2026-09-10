@@ -1507,6 +1507,66 @@ methods
         x = shLowLevel.vecFromCS(obj.C, obj.S, idx);
     end
 
+    function out = poleTideConvert(obj, opts)
+        %POLETIDECONVERT Move C21/S21 to another mean-pole convention.
+        %   OUT = g.poleTideConvert(From = "IERS2010", To = "IERS2018") is
+        %   shLowLevel.poleTideConvert(g, ...): it moves C21 and S21 from
+        %   the mean-pole model the processing centre removed the pole tide
+        %   with to another, at the field's own epoch. That function
+        %   documents the two models and the adjustment.
+        %
+        %   Outputs
+        %     out  (1,1) shCoefficients  the converted field, history
+        %          appended
+        %
+        %   Options
+        %     From (lane default)  the convention of this field
+        %     To (lane default)  the convention to move to
+        %     Mode (lane default)  the solid tide, the ocean tide, or both
+        %     SolidCoef (lane default)  the solid-tide coefficient
+        %     OceanCoef (lane default)  the ocean-tide coefficient
+        %
+        %   Example
+        %     g18 = g.poleTideConvert(From = "IERS2010", To = "IERS2018");
+        arguments
+            obj
+            opts.From
+            opts.To
+            opts.Mode
+            opts.SolidCoef
+            opts.OceanCoef
+        end
+        args = namedargs2cell(opts);
+        out = shLowLevel.poleTideConvert(obj, args{:});
+    end
+
+    function [a, rec] = slepianProject(obj, G, idx)
+        %SLEPIANPROJECT Project this field onto a Slepian basis, and back.
+        %   [A, REC] = g.slepianProject(G, IDX) is
+        %   shLowLevel.slepianProject(g.C, g.S, G, IDX), with the tapers G
+        %   and the index IDX of shLowLevel.slepianBasis. A holds the
+        %   Slepian coefficients, REC the field rebuilt from them.
+        %
+        %   Inputs
+        %     G    (P,K) double  Slepian tapers, from shLowLevel.slepianBasis
+        %     idx  (1,1) struct  the coefficient index they are ordered by
+        %
+        %   Outputs
+        %     a    (K,1) double  the Slepian coefficients
+        %     rec  (1,1) struct  as returned by shLowLevel.slepianProject,
+        %          which documents every field
+        %
+        %   Example
+        %     G = shLowLevel.slepianBasis(idx, @(la, lo) double(la > 60));
+        %     a = g.slepianProject(G, idx);
+        arguments
+            obj
+            G
+            idx
+        end
+        [a, rec] = shLowLevel.slepianProject(obj.C, obj.S, G, idx);
+    end
+
     function disp(obj)
         %DISP Compact display: size, epoch, GM/R, processing history.
         %   disp(G) prints one header line with the model name, one
