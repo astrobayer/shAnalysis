@@ -23,10 +23,10 @@ says whether it was *read* or *inferred*.
 
 | Fact | Value | Evidence |
 |---|---|---|
-| Version | **5.8.0**, 10-Sep-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
+| Version | **5.9.0**, 10-Sep-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
 | Branches | `main` only; `claude/getframe-recapture` and `claude/readshm` are gone (merged/deleted) | `GET /branches` |
 | Public surface | 3 classes / 82 methods, 126 `+shLowLevel` functions (+5 private), 3 root functions. 73 of the 126 are reachable from a class method; each of the other 53 is a named exception (35) or in a backlog that may only shrink (18) | `tools/dev/api_extract.py`; `tools/dev/class_surface_audit.py` |
-| Tests | 5 classes, **357 methods / 371 runs**: Correctness 176, Contract 104, Robustness 57, Science 7, Performance 13 methods (27 runs, `budgetCase` x14 + `nmaxP` x2). On A8 5 filter out without the optional real-data fixtures (the GravIS-grid test joined them in v5.8.0); on MATTHIASPC only 2 do, because `E:\DATAPOOL` supplies the SINEX files and the GravIS folder. The counter has matched the runner EXACTLY on the last ten green A8 runs and on every local Tier-A run. | `python3 tools/dev/count_tests.py` |
+| Tests | 5 classes, **359 methods / 373 runs**: Correctness 177, Contract 105, Robustness 57, Science 7, Performance 13 methods (27 runs, `budgetCase` x14 + `nmaxP` x2). On A8 5 filter out without the optional real-data fixtures (the GravIS-grid test joined them in v5.8.0); on MATTHIASPC only 2 do, because `E:\DATAPOOL` supplies the SINEX files and the GravIS folder. The counter has matched the runner EXACTLY on the last ten green A8 runs and on every local Tier-A run. | `python3 tools/dev/count_tests.py` |
 | Python oracles | 21 `tools/dev/validate_*.py` + `tools/audit/*` | listing |
 | Docs | **26** hand-written `html/*.html` (24 per-entity duplicates retired in v5.0.1, WP6 stage 3) + **215 generated `html/ref/*.html`** (one per entity + index, `make_refpages.py`), one shared `html/shAnalysis.css`, `helptoc.xml`, `info.xml`, guide PDF, generated `html/apiReference.html`. `docs/` holds the PDF and `apiExamples.json` only - no HTML page lives outside `html/` (gated). | listing |
 | CI | `gates` job on ubuntu (help_audit, doc_sync_audit, no_map_renderer, toolbox_dependency_audit, nv_casing_audit, fixture_tag_audit, gate self-tests `tools/tests/`, `count_tests`, `name_coverage`, `class_surface_audit`, `error_id_audit`, `option_values_audit`, `refpages_audit`, `make_demos --check`, `perf_baseline_audit`) + `runAllTests (self-hosted)` on A8/R2026a; fixtures from tag `fixtures-2026-08` | `.github/workflows/ci.yml` |
@@ -473,11 +473,11 @@ proposal stays below as the record.
   inversion) plus one published station series comparison.
 - **Size**: XL. **Version**: MINOR (new API; nothing existing changes).
 
-### WP5 — Geoscience add-ons (C3–C7)   `[~] rows 5a, 5d, 5e and the 5b follow-on (method of scale) approved 2026-09-10` (tick per row)
+### WP5 — Geoscience add-ons (C3–C7)   `[~] 5e DONE v5.8.0, the method of scale DONE v5.9.0; 5a and 5d approved 2026-09-10` (tick per row)
 | Row | Function | Oracle | Size |
 |---|---|---|---|
 | 5a `[x]` approved 2026-09-10; equations from Chen & Wilson (2003, GRL), supplied | `shSeries.excitation(kn=…, Convention=…) → table(t, chi1, chi2, dLOD)` from C21/S21/C20 with the IERS 2010 conventions and the Love-number/frame factors; input in the pole-tide convention `poleTideConvert` knows | Chen & Wilson formulas; a published GRACE excitation series | S–M |
-| 5b `[x]` **DONE v5.4.0** | `shLowLevel.leakageDataDriven(gridSeries, latDeg, lonDeg, Mask=, Filter=)` - Vishwakarma's method of deviation. **Unblocked by Matthias supplying the author's PhD thesis** (chapter 3, eqs. 3.19-3.29) on 2026-09-09; the row had been STOPPED because the equations were unreachable, and that block was real - two details decide whether the method works and neither is guessable: the deviation integral is weighted by the FILTERED catchment function, and the leakage extrapolation corrects a PHASE while the deviation integral deliberately gets none. Oracle `tools/dev/validate_leakage_datadriven.py`: decomposition closes to 4.3e-15, filter self-adjointness 5.0e-16, phase measure/shift are mutual inverses to 7.1e-15 deg, closed loop removes 63% of the damage (MATLAB 55.3% on the `testCorrectness` fixture, whose grid and basin geometry differ). Three deviations from this row's sketch, all recorded in the changelog: `Filter=` not `Radius=` (matches `leakageCorrect`), a grid stack not an `shSeries` (a class method is WP7), and NOT `leakageCorrect`'s `info` layout - the two return different things, a corrected field against a corrected series. | thesis eqs. + closed loop | M |
+| 5b `[x]` **DONE v5.4.0**; its follow-on, the method of scale (`Method = "scale"`, thesis eq. 3.28), **DONE v5.9.0** | `shLowLevel.leakageDataDriven(gridSeries, latDeg, lonDeg, Mask=, Filter=)` - Vishwakarma's method of deviation. **Unblocked by Matthias supplying the author's PhD thesis** (chapter 3, eqs. 3.19-3.29) on 2026-09-09; the row had been STOPPED because the equations were unreachable, and that block was real - two details decide whether the method works and neither is guessable: the deviation integral is weighted by the FILTERED catchment function, and the leakage extrapolation corrects a PHASE while the deviation integral deliberately gets none. Oracle `tools/dev/validate_leakage_datadriven.py`: decomposition closes to 4.3e-15, filter self-adjointness 5.0e-16, phase measure/shift are mutual inverses to 7.1e-15 deg, closed loop removes 63% of the damage (MATLAB 55.3% on the `testCorrectness` fixture, whose grid and basin geometry differ). Three deviations from this row's sketch, all recorded in the changelog: `Filter=` not `Radius=` (matches `leakageCorrect`), a grid stack not an `shSeries` (a class method is WP7), and NOT `leakageCorrect`'s `info` layout - the two return different things, a corrected field against a corrected series. | thesis eqs. + closed loop | M |
 | 5c `[x]` **DONE v5.2.0** (the row was never ticked when it shipped; corrected in v5.4.1) | `removeGIA(gia, Sigma=…)` accepting a σ field; σ propagated into `basinAverage` sigmas and `mcPropagate` | analytic vs MC on a synthetic ensemble | S |
 | 5d `[x]` approved 2026-09-10; the Swarm method is still to be settled | Swarm: `fetchICGEM` Swarm series read and `combineCenters`-style rescaling to GRACE noise for 2017-07..2018-05; `shSeries.select` gap policy | published Swarm-vs-GRACE degree-RMS ratio | M |
 | 5e `[x]` **DONE v5.8.0** (approved 2026-09-10): `shLowLevel.readGrid`, and `Fill` on `analysis`; the real file is the GravIS TWS grid instead of GLDAS | `shLowLevel.readGrid(ncfile, Var=…)` (netCDF → grid + metadata, inverse of `writeGrid`) so GLDAS/WGHM enter `shCoefficients.analysis` | `writeGrid` roundtrip; one GLDAS file | S |
@@ -599,6 +599,23 @@ of 125.
 ## 6. Records
 
 ### 6.1 Decisions (append-only; date, decision, evidence)
+- 2026-09-10 — **The method of scale shipped as 5.9.0, as an option, not
+  a function.** It shares every estimate with the method of deviation -
+  the filtered average, the leakage and its phase step - and differs in
+  one line, so it is `Method = "deviation" | "scale"` on
+  `leakageDataDriven`. The default is unchanged, and was proven bitwise
+  on four configurations captured before the edit.
+- 2026-09-10 — **The method of scale wins both closed loops, and that is
+  recorded as ranking nothing.** 75.0% against 55.3% of the damage on
+  the `testCorrectness` fixture, 78.6% against 62.9% in the oracle - but
+  both fixtures put a uniform layer inside the catchment, the one case
+  the scale factor is exact for. The thesis's own caveat (s grows as the
+  catchment shrinks, amplifying errors) is in the help, and the default
+  stays the method of deviation.
+- 2026-09-10 — **`s` is reported whichever method ran.** It costs
+  nothing, since the filtered catchment function is already computed,
+  and it is the number that says how far the approximation reaches: s
+  near 1 means the filter barely attenuates the catchment.
 - 2026-09-10 — **WP5 5e shipped as 5.8.0, and the reader only reads.**
   `readGrid` neither regrids nor fills: the two choices that change
   numbers - what a NaN means, which latitude type a grid is on - stay
@@ -1366,7 +1383,8 @@ of 125.
 | v5.6.0 (WP7: eight class delegates, `Surface` through `toGrid`/`map`, `class_surface_audit`) | ☑ 16 gates + mlint + make_demos + 14 self-test suites, 0 findings; reach 58 -> 69 of 124; the 11 WP7 tests passed on their first run | ☑ **Tier A LOCAL on MATTHIASPC — 357 runs, 355 passed, 0 failed, 2 filtered**; count exact per class (Contract 94, Correctness 173, Performance 27, Robustness 56, Science 7), and all 27 performance runs asserted. Then ☑ **CI self-hosted (A8) at `78cfea9` via PR #106, green — 357 runs, 353 passed, 0 failed, 4 filtered** (exactly the optional real-data fixtures); `count_tests` confirmed the prediction per class as well as in total, and `class_surface_audit` ran in the gates job with 0 findings | ☑ PR #106 | ☑ 2026-09-10 |
 | v5.7.0 (A25 `filterSpec` + eight lanes; `g.synthesisPoints`, `g.gradientTensor`, `g.vdkApply`; A27) | ☑ 16 gates + mlint + make_demos + 14 self-test suites, 0 findings; 19 valid-spec lane outputs bitwise identical before/after (plus 4 from oceanChain and greenlandChain, run on an extracted copy of the old tree and on the new; obpChain not run, for want of GAD data) | ☑ **Tier A LOCAL on MATTHIASPC — 364 runs, 362 passed, 0 failed, 2 filtered**; count exact per class (Contract 101, Correctness 173, Performance 27, Robustness 56, Science 7), and all 27 performance runs asserted. Then ☑ **CI self-hosted (A8) at `5eab68a` via PR #107, green — 364 runs, 360 passed, 0 failed, 4 filtered** (exactly the optional real-data fixtures); `count_tests` confirmed the prediction per class as well as in total, and `class_surface_audit` and `doc_sync_audit` ran in the gates job with 0 findings | ☑ PR #107 | ☑ 2026-09-10 |
 | v5.7.1 (A28 in both ocean chains, A26, A29 `.gitattributes`) | ☑ 16 gates + mlint + make_demos + 15 self-test suites, 0 findings; `doc_sync`'s new xref check fired on the corrupted guide before it was rebuilt | ☑ **Tier A LOCAL on MATTHIASPC — 365 runs, 363 passed, 0 failed, 2 filtered**; count exact per class (Contract 102, Correctness 173, Performance 27, Robustness 56, Science 7), and all 27 performance runs asserted. The two `noOcean` messages were reworded while it ran - `no_map_renderer` read "coastline" in them - message text only, which no test reads. Then ☑ **CI self-hosted (A8) at `38a9a4f` via PR #108, green — 365 runs, 361 passed, 0 failed, 4 filtered** (exactly the optional real-data fixtures); `count_tests` confirmed the prediction per class as well as in total, and `doc_sync_audit` - with its two new A29 checks - and `test_doc_sync_pdf` (11 tests) passed on the ubuntu gates job | ☑ PR #108 | ☑ 2026-09-10 |
-| v5.8.0 (WP5 5e: `readGrid`, `analysis(..., Fill =)`, one CF time decoder) | ☑ 16 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings; `readMascon` bitwise on the real CSR file and a synthetic one | ☑ **Tier A LOCAL on MATTHIASPC — 371 runs, 369 passed, 0 failed, 2 filtered**; count exact per class (Contract 104, Correctness 176, Performance 27, Robustness 57, Science 7), all 27 performance runs asserted, and the GravIS-grid test ran here on the real file. `readMascon`'s epoch assignment was split in two while it ran (`help_audit` reads `s.f = ...` assignments only); the mascon and `readGrid` tests then ran again on the final code - 14 run, 13 passed, 1 filtered (`SHX_MASCON_FILE`) - and `readMascon` was still bitwise on the real CSR file | ◐ pending | ◐ pending |
+| v5.8.0 (WP5 5e: `readGrid`, `analysis(..., Fill =)`, one CF time decoder) | ☑ 16 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings; `readMascon` bitwise on the real CSR file and a synthetic one | ☑ **Tier A LOCAL on MATTHIASPC — 371 runs, 369 passed, 0 failed, 2 filtered**; count exact per class (Contract 104, Correctness 176, Performance 27, Robustness 57, Science 7), all 27 performance runs asserted, and the GravIS-grid test ran here on the real file. `readMascon`'s epoch assignment was split in two while it ran (`help_audit` reads `s.f = ...` assignments only); the mascon and `readGrid` tests then ran again on the final code - 14 run, 13 passed, 1 filtered (`SHX_MASCON_FILE`) - and `readMascon` was still bitwise on the real CSR file. Then ☑ **CI self-hosted (A8) at `96a1630` via PR #110, green — 371 runs, 366 passed, 0 failed, 5 filtered** (the four optional fixtures plus the GravIS grid), per class exactly as predicted (Contract 104, Correctness 176, Performance 27, Robustness 57, Science 7) | ☑ PR #110 | ◐ pending |
+| v5.9.0 (WP5: the method of scale, `leakageDataDriven(..., Method = "scale")`) | ☑ 16 gates + mlint + make_demos + 15 self-test suites + the extended oracle (CLAIMs 4 and 5), 0 findings; the default path bitwise on 4 of 4 configurations captured before the edit | ☑ **Tier A LOCAL on MATTHIASPC — 373 runs, 371 passed, 0 failed, 2 filtered**; count exact per class (Contract 105, Correctness 177, Performance 27, Robustness 57, Science 7), all 27 performance runs asserted, and the two new tests passed on their first run | ◐ pending | ◐ pending |
 | v5.0.3 (WP2 step 1 baselines) | ☑ 14 gates + mlint + make_demos + 13 self-test suites, 0 findings; `NO_BASELINE` empty | ☑ **CI self-hosted (A8) at `b70c947`, green — 315 runs, 311 passed, 0 failed, 4 filtered**; the EIGHTH exact count prediction running, per class as well as in total. All ten budgets PASSED (they filtered at `f6d5529`), and the only filtered are the four real-data fixtures. Triggered by `workflow_dispatch`, not a PR — #99 merged mid-session and `ci.yml` runs only on push-to-main, pull_request and workflow_dispatch. | ☐ no PR (#99 merged; not asked) | ☐ |
 
 **Tier A debt: DISCHARGED for all nine releases.** The local MATLAB
@@ -1391,6 +1409,11 @@ confirmation that the counter is right about a real run and not only
 about the source.
 
 ### 6.3 What the next session could be wrong for not reading
+- **A synthetic fixture can favour one method by construction.** Both
+  closed loops for the data-driven correction put a uniform layer inside
+  the catchment - exactly the case the method of scale is exact for - so
+  its better number there says nothing about a real catchment. Before
+  reading a comparison off a fixture, name what the fixture makes exact.
 - **MATLAB's `regexp` DROPS the tokens of an optional group that did
   not take part.** `regexp(s, p, 'tokens', 'once')` returns fewer cells,
   not empty ones, so `tok{5}` fails when the fifth group was optional
@@ -1811,11 +1834,11 @@ internet, which unblocks all three stuck items at once:
 4. **Candidate, measure first: `shSynthesis` auto may pick FFT where
    direct is faster on large grids** (n180 / 0.5 deg: 31.4 vs 29.9 ms on
    MATTHIASPC). Sweep sizes on both machines before touching `auto`.
-5. **WP5 follow-ons**: the method of SCALE (thesis eq. 3.28) is the same
-   machinery plus a geometric factor, and would be a third leakage
-   method on `shSeries`.
+5. **WP5 follow-ons**: the method of scale is DONE (v5.9.0), and it
+   became an option on `leakageDataDriven`, not a third leakage method
+   on `shSeries`: it shares every estimate with the method of deviation.
 6. **B1 (packed Legendre)** remains the weaker WP2 step-2 candidate.
-7. **WP5**: 5e DONE in v5.8.0. Next the method of scale, then 5a, then 5d, whose Swarm method is still to be settled with Matthias. **WP4 is moved out** to a separate GNSS toolbox (2026-09-10); do not start it here.
+7. **WP5**: 5e DONE in v5.8.0, the method of scale in v5.9.0. Next 5a, then 5d, whose Swarm method is still to be settled with Matthias. **WP4 is moved out** to a separate GNSS toolbox (2026-09-10); do not start it here.
 
 **What a Tier-A session should know about running the suite here.** The
 MATLAB MCP tool times out on anything suite-sized. Run it detached and

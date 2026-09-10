@@ -45,6 +45,20 @@ function [fHat, info] = leakageDataDriven(gridSeries, latDeg, lonDeg, opts)
 %   below that the published performance decays. It is stated rather
 %   than enforced, because the threshold depends on the filter too.
 %
+%   The method of scale (Method = "scale", v5.9.0)
+%   The thesis's other correction removes the same data-driven leakage
+%   estimate and then scales the remainder up (eq. 3.28):
+%
+%       fHat = s (gbar_c - lhat),   s = int R dOmega / int R Rbar dOmega
+%
+%   s (eq. 2.27) depends on the catchment and the filter only - no data
+%   - and INFO.scale reports it. It rests on the uniform-layer
+%   approximation (eq. 2.26): the signal inside the catchment is taken
+%   as uniform, so s repairs the attenuation exactly for a uniform layer
+%   and only approximately otherwise. And s grows as the catchment
+%   shrinks, so errors in small catchments are amplified - the thesis's
+%   own caveat. The method of deviation, the default, needs neither.
+%
 %   Inputs
 %     gridSeries (nLat x nLon x T) double  ALREADY-FILTERED fields, one
 %                per epoch, in any unit that is linear in mass (EWH is
@@ -81,6 +95,11 @@ function [fHat, info] = leakageDataDriven(gridSeries, latDeg, lonDeg, opts)
 %                        wants
 %           nmax         (1,1) double  degree the chain worked at
 %           filter       (1,1) string  the filter that was re-applied
+%           scale        (1,1) double  s, the scale factor of the method of
+%                        scale, int R / int R Rbar (eq. 2.27); reported
+%                        whichever Method ran
+%           method       (1,1) string  "deviation" or "scale" - the
+%                        correction FHAT is
 %
 %   Options
 %     Mask      ([])      (nLat x nLon) double  the catchment function
@@ -96,6 +115,9 @@ function [fHat, info] = leakageDataDriven(gridSeries, latDeg, lonDeg, opts)
 %                         it silently mis-estimates both corrections
 %     Nmax      (NaN)     degree of the analysis/synthesis chain;
 %                         default floor((nLat-1)/2)
+%     Method    ("deviation")  "deviation" | "scale": the correction
+%                         FHAT is - the method of deviation (eq. 3.29) or
+%                         the method of scale (eq. 3.28), see above
 %     GM        (3.986004415e14)  used identically on both sides of the
 %                         chain, so it cancels
 %     R         (6378136.3)  as GM
@@ -111,11 +133,14 @@ function [fHat, info] = leakageDataDriven(gridSeries, latDeg, lonDeg, opts)
 %     Vishwakarma, B. D. (2017), Understanding and repairing the signal
 %       damage due to filtering of mass change estimates from the GRACE
 %       satellite mission, PhD thesis, Institute of Geodesy, University
-%       of Stuttgart - chapter 3, eqs. (3.19)-(3.29).
+%       of Stuttgart - chapter 2, eqs. (2.22)-(2.28) for the scale
+%       factor, and chapter 3, eqs. (3.19)-(3.29).
 %     Vishwakarma, Horwath, Devaraju, Groh & Sneeuw (2017), A data-driven
 %       approach for repairing the hydrological catchment signal damage
 %       due to filtering of GRACE products, Water Resour. Res. 53,
 %       9824-9844, doi:10.1002/2017WR021150.
+%     Vishwakarma, Devaraju & Sneeuw (2016), Water Resour. Res. 52,
+%       doi:10.1002/2016WR018960 - the method of scale.
 %     Phillips, Nerem, Fox-Kemper, Famiglietti & Rajagopalan (2012), The
 %       influence of ENSO on global terrestrial water storage using
 %       GRACE, Geophys. Res. Lett. 39, L16705, doi:10.1029/2012GL052495
@@ -159,6 +184,8 @@ arguments
     opts.Mask double = []
     opts.Filter = "gauss300"
     opts.Nmax (1,1) double = NaN
+    opts.Method (1,1) string {mustBeMember(opts.Method, ...
+        ["deviation", "scale"])} = "deviation"
     opts.GM (1,1) double = 3.986004415e14
     opts.R (1,1) double = 6378136.3
 end
@@ -247,7 +274,14 @@ lHat = shiftPhase(lbar, phaseDeg) * leakRatio;
 devRatio = amplitudeRatio(dFbar, dFbarbar);
 dFHat = dFbar * devRatio;
 
-fHat = gbarC - dFHat - lHat;
+% the method of deviation (eq. 3.29), or the method of scale (eq. 3.28)
+% with s, the data-independent scale factor of eq. (2.27)
+s = area / sum(mask .* Rbar .* cellW, 'all');
+if opts.Method == "scale"
+    fHat = s * (gbarC - lHat);
+else
+    fHat = gbarC - dFHat - lHat;
+end
 
 info = struct('filtered', gbarC, 'leakage', lHat, 'deviation', dFHat, ...
     'leakageOnce', lbar, 'leakageTwice', lbarbar, ...
@@ -255,7 +289,7 @@ info = struct('filtered', gbarC, 'leakage', lHat, 'deviation', dFHat, ...
     'phaseDeg', phaseDeg, 'leakageRatio', leakRatio, ...
     'deviationRatio', devRatio, ...
     'areaFraction', area / sum(cellW, 'all'), ...
-    'nmax', nmax, 'filter', fname);
+    'nmax', nmax, 'filter', fname, 'scale', s, 'method', opts.Method);
 end
 
 % ------------------------------------------------------------- helpers

@@ -163,6 +163,18 @@ phase from four months of data would be worse than no answer.</p>
 <code class="inline">testCorrectness</code> and 63&nbsp;% in the Python oracle. See
 <code class="inline">info.leakage</code> and <code class="inline">info.deviation</code> for the
 two terms it removed, and <code class="inline">info.phaseDeg</code> for the shift it applied.</p>
+<p>The <b>method of scale</b> is the thesis's other correction, and the same function computes
+it: <code class="inline">Method = "scale"</code> removes the same leakage estimate and then
+scales what remains, <code class="inline">fHat = s (gbar_c &minus; lhat)</code>, instead of
+subtracting a deviation integral. The factor
+<code class="inline">s = &int;R / &int;R&middot;Rbar</code> depends on the catchment and the
+filter only, and <code class="inline">info.scale</code> reports it whichever method ran. It
+rests on a <b>uniform-layer approximation</b>: it repairs the attenuation exactly only when the
+signal inside the catchment is uniform, and <code class="inline">s</code> grows as the
+catchment shrinks, so errors in small catchments are amplified. The closed loops favour it
+(75&nbsp;% in <code class="inline">testCorrectness</code>, 79&nbsp;% in the oracle), but both
+put a uniform layer inside the catchment &mdash; the case it is exact for &mdash; so that ranks
+nothing, and the method of deviation stays the default.</p>
 
 <h2 id="spec">One reader of the Filter vocabulary <span class="tag">v5.7.0</span></h2>
 <p>Every function here that takes <code class="inline">Filter</code> - and the chains that call them -

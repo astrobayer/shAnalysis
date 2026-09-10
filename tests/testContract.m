@@ -2757,3 +2757,47 @@ q = shCoefficients.analysis(G, lat, lon, 8);
 verifyTrue(testCase, isequal(p.C, q.C) && isequal(p.S, q.S), ...
     'Fill changed a grid that holds no NaN');
 end
+
+% ------------------------------------------------ WP5: the method of scale
+function testLeakageDataDrivenMethodContract(testCase)
+%TESTLEAKAGEDATADRIVENMETHODCONTRACT the method of deviation stays the
+%   default, bit for bit; the method used is reported; an unknown method is
+%   refused; and ts.leakageDataDriven forwards Method to the lane.
+lat = linspace(-89, 89, 33);
+lon = (0:33) * (360/34);
+[LO, LA] = meshgrid(lon, lat);
+mask = double(cosd(LA) .* cosd(LO - 40) >= cosd(20));
+T = 24;
+t = (0:T-1)' / 12;
+g = zeros(numel(lat), numel(lon), T);
+for k = 1:T
+    g(:, :, k) = (0.1 * sin(2*pi*t(k)) + 0.02 * t(k)) * mask + ...
+        0.03 * cos(2*pi*t(k) + 1) * (1 - mask) .* cosd(LA);
+end
+[a, ia] = shLowLevel.leakageDataDriven(g, lat, lon, Mask = mask);
+[b, ib] = shLowLevel.leakageDataDriven(g, lat, lon, Mask = mask, ...
+    Method = "deviation");
+verifyTrue(testCase, isequal(a, b) && isequaln(ia, ib), ...
+    'the default is not the method of deviation');
+verifyEqual(testCase, ia.method, "deviation");
+verifyError(testCase, @() shLowLevel.leakageDataDriven(g, lat, lon, ...
+    Mask = mask, Method = "median"), 'MATLAB:validators:mustBeMember');
+ts = wp7Series(8, 12, 89);
+kn = -0.3 * (1 - exp(-(0:8)' / 3));
+lat2 = linspace(-87, 87, 30);
+lon2 = (0:35) * 10;
+[LO2, LA2] = meshgrid(lon2, lat2);
+basin = double(cosd(LA2) .* cosd(LO2 - 40) >= cosd(25));
+[f1, i1] = ts.leakageDataDriven(lat2, lon2, Mask = basin, ...
+    Filter = "gauss300", kn = kn, Method = "scale");
+stack = zeros(numel(lat2), numel(lon2), 12);
+for k = 1:12
+    gk = ts.at(k);
+    stack(:, :, k) = gk.synthesis(lat2, lon2, Quantity = "ewh", kn = kn);
+end
+[f2, i2] = shLowLevel.leakageDataDriven(stack, lat2, lon2, Mask = basin, ...
+    Filter = "gauss300", Method = "scale", GM = ts.GM, R = ts.R);
+verifyTrue(testCase, isequal(f1, f2) && isequaln(i1, i2), ...
+    'ts.leakageDataDriven did not forward Method');
+verifyEqual(testCase, i1.method, "scale");
+end

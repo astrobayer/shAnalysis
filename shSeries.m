@@ -1980,8 +1980,9 @@ methods
         %   Filter = F, kn = KN) synthesizes every epoch on the grid
         %   (g.synthesis, geocentric, Quantity "ewh" unless told otherwise)
         %   and runs shLowLevel.leakageDataDriven on the stack with the
-        %   series' GM and R - Vishwakarma's method of deviation, which
-        %   repairs the catchment average from the filtered fields alone.
+        %   series' GM and R - Vishwakarma's method of deviation, or with
+        %   Method = "scale" the method of scale; both repair the
+        %   catchment average from the filtered fields alone.
         %   FHAT is the corrected catchment mean, one value per epoch.
         %   shLowLevel.leakageDataDriven documents the method, the
         %   catchment size it is designed for (about 65000 km^2 and up),
@@ -1989,9 +1990,9 @@ methods
         %
         %   Filter is REQUIRED here, although the function defaults it: a
         %   series does not know which filter its data saw, and the wrong
-        %   one mis-estimates both corrections without any error. Mask and
-        %   Nmax go to shLowLevel.leakageDataDriven only when given;
-        %   "(lane default)" below is that function's.
+        %   one mis-estimates both corrections without any error. Mask,
+        %   Nmax and Method go to shLowLevel.leakageDataDriven only when
+        %   given; "(lane default)" below is that function's.
         %
         %   Inputs
         %     latDeg  (1,:) double  geocentric latitudes [deg]
@@ -2012,6 +2013,7 @@ methods
         %     Mask (lane default)  the catchment function, 1 inside and
         %         0 outside; required in practice
         %     Nmax (lane default)  degree of the analysis/synthesis chain
+        %     Method (lane default)  the method of deviation, or of scale
         %
         %   Error identifiers
         %     shSeries:leakageDataDriven:noFilter
@@ -2029,6 +2031,7 @@ methods
             opts.kn double = []
             opts.Mask
             opts.Nmax
+            opts.Method
         end
         if ~isfield(opts, 'Filter')
             error('shSeries:leakageDataDriven:noFilter', ...
