@@ -817,12 +817,16 @@ methods
         %     hn ([])  load Love numbers h'_n (deformation_up only)
         %     Nmin (0)  degrees below nmin are zeroed
         %     Nmax (NaN)  truncation degree; NaN uses the object's nmax
-        %     Height (0)  evaluation height above R [m]
+        %     Height (0)  evaluation height [m] above the evaluation surface
+        %     Surface ("sphere")  "sphere" | "ellipsoid": evaluate on the
+        %         sphere r = R or on the ellipsoid r(phi), as g.synthesis
+        %     SemiMajorAxis (6378137)  ellipsoid semi-major axis [m], WGS84
         %     rho_ave (5517)  mean Earth density [kg/m^3]
         %     rho_water (1000)  water density [kg/m^3]
         %     LatType ("geodetic")  "geodetic" | "geocentric"; coastlines
         %         are geodetic, so a map wants geodetic
-        %     Flattening (1/298.257223563)  ellipsoid flattening (WGS84)
+        %     Flattening (1/298.257223563)  ellipsoid flattening (WGS84),
+        %         for LatType and for Surface = "ellipsoid"
         %     CRS ("equirectangular")  projection, forwarded to geo.map
         %     Basemap (struct())  forwarded to geo.map's Basemap element;
         %         a robust symmetric CLim and the Divergent flag are
@@ -847,6 +851,9 @@ methods
             opts.LatType (1,1) string ...
                 {mustBeMember(opts.LatType, ["geocentric","geodetic"])} = "geodetic"
             opts.Flattening (1,1) double = 1/298.257223563
+            opts.Surface (1,1) string ...
+                {mustBeMember(opts.Surface, ["sphere","ellipsoid"])} = "sphere"
+            opts.SemiMajorAxis (1,1) double = 6378137
             opts.CRS (1,1) string = "equirectangular"
             opts.Basemap (1,1) struct = struct()
             opts.GeoArgs cell = {}
@@ -856,7 +863,8 @@ methods
             kn = opts.kn, hn = opts.hn, Nmin = opts.Nmin, ...
             Nmax = opts.Nmax, Height = opts.Height, ...
             rho_ave = opts.rho_ave, rho_water = opts.rho_water, ...
-            LatType = opts.LatType, Flattening = opts.Flattening);
+            LatType = opts.LatType, Flattening = opts.Flattening, ...
+            Surface = opts.Surface, SemiMajorAxis = opts.SemiMajorAxis);
         bm = opts.Basemap;
         if ~isfield(bm, 'CLim')
             a = shLowLevel.pctile(abs(b.Z(:)), 98);
@@ -1103,11 +1111,14 @@ methods
         %     hn ([])  load Love numbers h'_n (deformation_up only)
         %     Nmin (0)  degrees below nmin are zeroed
         %     Nmax (NaN)  truncation degree; NaN uses the object's nmax
-        %     Height (0)  evaluation height above R [m]
+        %     Height (0)  evaluation height [m] above the evaluation surface
+        %     Surface ("sphere")  "sphere" | "ellipsoid", as g.synthesis
+        %     SemiMajorAxis (6378137)  ellipsoid semi-major axis [m], WGS84
         %     rho_ave (5517)  mean Earth density [kg/m^3]
         %     rho_water (1000)  water density [kg/m^3]
         %     LatType ("geodetic")  "geodetic" | "geocentric"
-        %     Flattening (1/298.257223563)  ellipsoid flattening (WGS84)
+        %     Flattening (1/298.257223563)  ellipsoid flattening (WGS84),
+        %         for LatType and for Surface = "ellipsoid"
         %     Method ("auto")  "auto" | "direct" | "fft"
         %     MaxMemGB (4)  synthesis memory budget [GB]
         %
@@ -1130,6 +1141,9 @@ methods
             opts.LatType (1,1) string ...
                 {mustBeMember(opts.LatType, ["geocentric","geodetic"])} = "geodetic"
             opts.Flattening (1,1) double = 1/298.257223563
+            opts.Surface (1,1) string ...
+                {mustBeMember(opts.Surface, ["sphere","ellipsoid"])} = "sphere"
+            opts.SemiMajorAxis (1,1) double = 6378137
             opts.Method (1,1) string ...
                 {mustBeMember(opts.Method, ["auto","direct","fft"])} = "auto"
             opts.MaxMemGB (1,1) double {mustBePositive} = 4
@@ -1141,13 +1155,122 @@ methods
             Nmin = opts.Nmin, Nmax = nmaxEff, Height = opts.Height, ...
             rho_ave = opts.rho_ave, rho_water = opts.rho_water, ...
             LatType = opts.LatType, Flattening = opts.Flattening, ...
-            Method = opts.Method, MaxMemGB = opts.MaxMemGB);
+            Method = opts.Method, MaxMemGB = opts.MaxMemGB, ...
+            Surface = opts.Surface, SemiMajorAxis = opts.SemiMajorAxis);
         [~, ~, units] = shLowLevel.kernelFactors(char(opts.Quantity), ...
             nmaxEff, obj.GM, obj.R, kn = opts.kn, hn = opts.hn, ...
             rho_ave = opts.rho_ave, rho_water = opts.rho_water);
         b = shLowLevel.gridHandover(Z, lat, lon, units, opts.LatType, ...
             opts.Quantity, obj.productType, obj.name, obj.epoch, ...
             obj.C(1, 1), obj.history, nmaxEff, opts.Nmin);
+    end
+
+    function avg = basinAverage(obj, B)
+        %BASINAVERAGE Basin averages of one field from basin kernels.
+        %   AVG = g.basinAverage(B) is the naive basin average
+        %   B'*x ./ diag(B'*B), one value per basin, with x the coefficient
+        %   vector of G. It is the one-epoch case of shSeries.basinAverage
+        %   and delegates to it, so the two cannot disagree. The exact
+        %   deconvolution (Deconvolve = true) needs the stored operator of
+        %   a filtered SERIES, so it stays on shSeries.
+        %
+        %   Inputs
+        %     B    (P x K) double  basin kernels in shLowLevel.shIndex
+        %          ordering for this nmax, exactly as shSeries.basinAverage
+        %          takes them (from a grid mask with
+        %          shLowLevel.synthesisMatrix: b = Y' * (w .* mask))
+        %
+        %   Outputs
+        %     avg  (K x 1) double  basin averages, one per kernel column
+        %
+        %   A B of the wrong size is refused by the series method this
+        %   delegates to, under that method's identifier, which
+        %   shSeries.basinAverage documents.
+        %
+        %   Example
+        %     avg = g.basinAverage(B);   % B: P x K, as for ts.basinAverage
+        arguments
+            obj
+            B double
+        end
+        ts = shSeries(obj);
+        avg = ts.basinAverage(B);
+    end
+
+    function [sig, latDeg, lonDeg] = errorMap(obj, latDeg, lonDeg, opts)
+        %ERRORMAP Formal-error map of a synthesized quantity.
+        %   SIG = g.errorMap(LAT, LON) is the pointwise 1-sigma of what
+        %   g.synthesis returns on the grid LAT x LON, propagated from G's
+        %   own formal sigmas (sigmaC, sigmaS) taken as a DIAGONAL
+        %   covariance. SIG = g.errorMap(LAT, LON, Covariance = M,
+        %   Index = IDX) propagates a full P x P covariance in IDX ordering
+        %   instead, e.g. from shLowLevel.readSINEX(..., Output =
+        %   "covariance"). Either way it is shLowLevel.errorMap with G's GM
+        %   and R filled in. Quantity, kn, hn and Height go to
+        %   shLowLevel.errorMap only when given, so their defaults live
+        %   there and nowhere else: "(lane default)" below means that
+        %   function's.
+        %
+        %   A diagonal covariance leaves out every correlation between
+        %   coefficients, and for GRACE those are strong - the north-south
+        %   stripes ARE correlated error. A map from formal sigmas alone
+        %   shows how the error grows with latitude but not its pattern,
+        %   and usually understates it. Pass the full covariance when you
+        %   have one.
+        %
+        %   Inputs
+        %     latDeg  (1,:) double  geocentric latitudes [deg]
+        %     lonDeg  (1,:) double  longitudes [deg]
+        %
+        %   Outputs
+        %     sig     (nlat x nlon) double  1-sigma of the field, in the unit
+        %             of Quantity
+        %     latDeg  (1,nlat) double  latitudes used [deg], as passed in
+        %     lonDeg  (1,nlon) double  longitudes used [deg], as passed in
+        %
+        %   Options
+        %     Covariance ([])  (P x P) double  covariance in Index ordering;
+        %         [] builds diag(sigma.^2) from sigmaC and sigmaS
+        %     Index ([])  shLowLevel.shIndex struct Covariance is ordered
+        %         by; [] uses shLowLevel.shIndex(nmax)
+        %     Quantity (lane default)  the quantity whose error is mapped
+        %     kn (lane default)  load Love numbers, for mass quantities
+        %     hn (lane default)  vertical-deformation Love numbers
+        %     Height (lane default)  evaluation height above R [m]
+        %
+        %   Error identifiers
+        %     shCoefficients:errorMap:noCovariance
+        %         Covariance is empty and G carries no formal sigmas -
+        %         there is no error to propagate
+        %
+        %   Example
+        %     sig = g.errorMap(-89:2:89, 0:2:358, Quantity = "ewh", kn = kn);
+        arguments
+            obj
+            latDeg (1,:) double
+            lonDeg (1,:) double
+            opts.Covariance double = []
+            opts.Index = []
+            opts.Quantity
+            opts.kn
+            opts.hn
+            opts.Height
+        end
+        idx = opts.Index;
+        if isempty(idx), idx = shLowLevel.shIndex(obj.nmax); end
+        M = opts.Covariance;
+        if isempty(M)
+            if isempty(obj.sigmaC)
+                error('shCoefficients:errorMap:noCovariance', ...
+                    ['No Covariance was given and G carries no formal ' ...
+                     'sigmas - there is no error to propagate.']);
+            end
+            M = diag(shLowLevel.vecFromCS(obj.sigmaC, obj.sigmaS, idx) .^ 2);
+        end
+        fwd = [namedargs2cell(rmfield(opts, ["Covariance", "Index"])), ...
+            {'GM', obj.GM, 'R', obj.R}];
+        [sig, latDeg, lonDeg] = shLowLevel.errorMap(M, idx, latDeg, ...
+            lonDeg, fwd{:});
     end
 
     function out = applyDDK(obj, W)

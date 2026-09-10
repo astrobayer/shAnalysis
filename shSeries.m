@@ -1531,11 +1531,14 @@ methods
         %     hn ([])  load Love numbers h'_n (deformation_up only)
         %     Nmin (0)  degrees below nmin are zeroed
         %     Nmax (NaN)  truncation degree; NaN uses the series nmax
-        %     Height (0)  evaluation height above R [m]
+        %     Height (0)  evaluation height [m] above the evaluation surface
+        %     Surface ("sphere")  "sphere" | "ellipsoid", as g.synthesis
+        %     SemiMajorAxis (6378137)  ellipsoid semi-major axis [m], WGS84
         %     rho_ave (5517)  mean Earth density [kg/m^3]
         %     rho_water (1000)  water density [kg/m^3]
         %     LatType ("geodetic")  "geodetic" | "geocentric"
-        %     Flattening (1/298.257223563)  ellipsoid flattening (WGS84)
+        %     Flattening (1/298.257223563)  ellipsoid flattening (WGS84),
+        %         for LatType and for Surface = "ellipsoid"
         %     MaxMemGB (4)  budget for the STACK itself; exceeding it is an
         %         error naming the size, not a silent swap-thrash
         %
@@ -1564,6 +1567,9 @@ methods
             opts.LatType (1,1) string ...
                 {mustBeMember(opts.LatType, ["geocentric","geodetic"])} = "geodetic"
             opts.Flattening (1,1) double = 1/298.257223563
+            opts.Surface (1,1) string ...
+                {mustBeMember(opts.Surface, ["sphere","ellipsoid"])} = "sphere"
+            opts.SemiMajorAxis (1,1) double = 6378137
             opts.MaxMemGB (1,1) double {mustBePositive} = 4
         end
         T = obj.nEpochs;
@@ -1585,7 +1591,8 @@ methods
                 Quantity = opts.Quantity, kn = opts.kn, hn = opts.hn, ...
                 Nmin = opts.Nmin, Nmax = nmaxEff, Height = opts.Height, ...
                 rho_ave = opts.rho_ave, rho_water = opts.rho_water, ...
-                LatType = opts.LatType, Flattening = opts.Flattening);
+                LatType = opts.LatType, Flattening = opts.Flattening, ...
+                Surface = opts.Surface, SemiMajorAxis = opts.SemiMajorAxis);
             Z(:, :, k) = Zk;
             c00(k) = obj.Cs(1, 1, k);
         end
@@ -1597,6 +1604,451 @@ methods
         b = shLowLevel.gridHandover(Z, lat, lon, units, opts.LatType, ...
             opts.Quantity, obj.productType, nm, obj.epochs, c00, ...
             obj.history, nmaxEff, opts.Nmin);
+    end
+
+    % ------------------------------------------- lanes behind the class (WP7)
+    % Each method below reaches one lane and adds no numerics of its own;
+    % testContract pins every one of them bitwise against the lane it
+    % calls. A lane's options are declared WITHOUT defaults and forwarded
+    % only when the caller gives them, so a default lives in one place.
+    function [out, rep] = kalman(obj, opts)
+        %KALMAN Kalman-smoothed series (Kurtenbach/Kvas), solution mode.
+        %   [TSK, REP] = ts.kalman(ModelSeries = TSM) runs
+        %   shLowLevel.kalmanChain with TS as the observations: the VAR
+        %   process model is estimated from TSM, every epoch of TS is one
+        %   observation weighted by its formal sigmas (or NoiseCov), and a
+        %   forward Kalman filter plus an RTS smoother return the smoothed
+        %   series. shLowLevel.kalmanChain documents the chain, its
+        %   references and its memory cost.
+        %
+        %   Every option goes to shLowLevel.kalmanChain only when you pass
+        %   it, so its default lives in that function's arguments block and
+        %   nowhere else: "(lane default)" below means exactly that. The
+        %   normal-equation mode, which reads a SINEX folder instead of a
+        %   series, has no series to be a method of and stays on
+        %   shLowLevel.kalmanChain.
+        %
+        %   Outputs
+        %     out  (1 x 1) shSeries  smoothed series on the epoch grid, with
+        %          formal 1-sigma stacks
+        %     rep  (1,1) struct  as returned by shLowLevel.kalmanChain,
+        %          which documents every field
+        %
+        %   Options
+        %     ModelSeries (required)  (1 x 1) shSeries  process realization
+        %         at this series' nmax, e.g. GAX/AOD1B or a hydrology model
+        %     Order (lane default)  VAR order p
+        %     Structure (lane default)  coupling structure of the VAR model
+        %     Shrink (lane default)  diagonal loading of the VAR estimate
+        %     CondFun (lane default)  covariance conditioning
+        %     Epochs (lane default)  target epoch grid [decimal years]
+        %     Tolerance (lane default)  epoch matching tolerance [yr]
+        %     NoiseCov (lane default)  observation noise covariance
+        %     Climatology (lane default)  reduce the series by its own
+        %         climatology around the filter, and restore it after
+        %     Smoother (lane default)  run the RTS pass
+        %     QC (lane default)  innovation-based quality control
+        %     QCAlpha (lane default)  false-alarm level of that test
+        %     StoreCov (lane default)  where the smoother's covariances live
+        %
+        %   Example
+        %     [tsk, rep] = ts.kalman(ModelSeries = tsm, Order = 1);
+        arguments
+            obj
+            opts.ModelSeries
+            opts.Order
+            opts.Structure
+            opts.Shrink
+            opts.CondFun
+            opts.Epochs
+            opts.Tolerance
+            opts.NoiseCov
+            opts.Climatology
+            opts.Smoother
+            opts.QC
+            opts.QCAlpha
+            opts.StoreCov
+        end
+        fwd = namedargs2cell(opts);
+        [out, rep] = shLowLevel.kalmanChain(obj, fwd{:});
+    end
+
+    function [modes, pcs, varExplained, info] = eof(obj, opts)
+        %EOF Empirical orthogonal functions of the series.
+        %   [MODES, PCS, VE, INFO] = ts.eof() decomposes the series into
+        %   spatial modes and unit-variance principal components by an SVD
+        %   of the time-centred coefficient stack - shLowLevel.eofAnalysis,
+        %   which documents the scaling: MODES{k} times PCS(:,k)
+        %   reconstructs mode k's contribution exactly. It is usually run
+        %   on a residual, after ts.climatology. The options go to
+        %   shLowLevel.eofAnalysis only when given; "(lane default)" is
+        %   that function's.
+        %
+        %   Outputs
+        %     modes         (1 x K) cell  shCoefficients, the spatial patterns
+        %     pcs           (T x K) double  principal components, unit variance
+        %     varExplained  (K x 1) double  fraction of the variance per mode
+        %     info          (1,1) struct  as returned by
+        %                   shLowLevel.eofAnalysis, which documents every
+        %                   field
+        %
+        %   Options
+        %     NModes (lane default)  number of modes returned
+        %     Center (lane default)  remove the temporal mean first
+        %
+        %   Example
+        %     [~, resid] = ts.climatology();
+        %     [modes, pcs, ve] = resid.eof(NModes = 3);
+        arguments
+            obj
+            opts.NModes
+            opts.Center
+        end
+        fwd = namedargs2cell(opts);
+        [modes, pcs, varExplained, info] = shLowLevel.eofAnalysis(obj, fwd{:});
+    end
+
+    function write(obj, folder, opts)
+        %WRITE Export every epoch to its own ICGEM .gfc file.
+        %   ts.write(FOLDER) writes epoch k with g.write, through ts.at(k),
+        %   so each file is what g.write writes for that epoch. The files
+        %   are named after the series' names: NAMES(k) + ".gfc", unless
+        %   FileNames says otherwise.
+        %
+        %   A .gfc file has no epoch field. shSeries.read takes the epoch
+        %   back from the file NAME, through shLowLevel.parseGraceFilename
+        %   (the GRACE form PPP-2_YYYYDDD-YYYYDDD_*, or a name ending in
+        %   _YYYY-MM or _YYYY-MM-DD). So write checks every name BEFORE it
+        %   writes anything, and warns once, naming the first epoch whose
+        %   file name would not bring it back. Pass FileNames in one of
+        %   those forms when the folder must read back as this series.
+        %
+        %   Inputs
+        %     folder  (1,1) string  existing folder to write into
+        %
+        %   Options
+        %     FileNames (string.empty(0,1))  (T x 1) string  one file name
+        %         per epoch, relative to FOLDER; empty uses NAMES + ".gfc"
+        %     Comment ("")  forwarded to g.write
+        %     Sidecar (false)  forwarded to g.write. Deliberately false
+        %         here, where g.write defaults to true: a folder of epochs
+        %         is meant to be read back as a series, and the default
+        %         read pattern "*.gfc*" would pick up every
+        %         "<file>.gfc.provenance.json" as well
+        %
+        %   Error identifiers
+        %     shSeries:write:noFolder
+        %         FOLDER does not exist - write does not create it
+        %     shSeries:write:badFileNames
+        %         there is not one non-empty, unique file name per epoch
+        %         (by default: the series carries no such names)
+        %     shSeries:write:epochNotInName
+        %         a WARNING, not an error: at least one file name will not
+        %         bring its epoch back when the folder is read
+        %
+        %   Example
+        %     ts.write(outFolder, FileNames = "GSM-2_" + spans + "_mine.gfc");
+        arguments
+            obj
+            folder (1,1) string
+            opts.FileNames (:,1) string = string.empty(0,1)
+            opts.Comment (1,1) string = ""
+            opts.Sidecar (1,1) logical = false
+        end
+        if ~isfolder(folder)
+            error('shSeries:write:noFolder', ...
+                'Folder "%s" does not exist; write does not create it.', ...
+                folder);
+        end
+        T = obj.nEpochs;
+        names = opts.FileNames;
+        if isempty(names)
+            names = obj.names + ".gfc";
+        end
+        if numel(names) ~= T || any(strlength(names) == 0) ...
+                || numel(unique(names)) ~= T
+            error('shSeries:write:badFileNames', ...
+                ['write needs one non-empty, unique file name per epoch ' ...
+                 '(%d epochs, %d names); pass FileNames=.'], T, numel(names));
+        end
+        % 1e-6 yr (32 s) is far below the coarsest epoch a name can carry
+        % (a day, 2.7e-3 yr) and far above the rounding of a decimal-year
+        % epoch (~1e-13 yr): it separates "the same epoch" from "another"
+        lost = false(T, 1);
+        for k = 1:T
+            meta = shLowLevel.parseGraceFilename(names(k));
+            lost(k) = isfinite(obj.epochs(k)) && ...
+                ~(abs(meta.epoch - obj.epochs(k)) <= 1e-6);
+        end
+        if any(lost)
+            k1 = find(lost, 1);
+            warning('shSeries:write:epochNotInName', ...
+                ['%d of %d file names will not bring their epoch back ' ...
+                 '(first: "%s" for epoch %.6f) - shSeries.read would ' ...
+                 'give them another epoch or NaN. Pass FileNames= in a ' ...
+                 'form shLowLevel.parseGraceFilename reads.'], ...
+                nnz(lost), T, names(k1), obj.epochs(k1));
+        end
+        for k = 1:T
+            g = obj.at(k);
+            g.write(fullfile(folder, names(k)), Comment = opts.Comment, ...
+                Sidecar = opts.Sidecar);
+        end
+    end
+
+    function [dq, info] = gradient(obj, latDeg, lonDeg, opts)
+        %GRADIENT North/east/up gradient of every epoch, stacked.
+        %   [DQ, INFO] = ts.gradient(LAT, LON, ...) is g.gradient of each
+        %   epoch g = ts.at(k), with DQ.north, DQ.east and DQ.up stacked
+        %   along the THIRD dimension, page k for epoch k, as ts.toGrid
+        %   stacks its fields: (nlat x nlon x T) on a grid and
+        %   (npts x 1 x T) for Mode = "points". DQ.up stays [] for the
+        %   surface quantities, which have no radial law. INFO is the first
+        %   epoch's; it depends only on the options, which every epoch
+        %   shares. The options go to g.gradient only when given, so
+        %   "(method default)" below is shCoefficients.gradient's.
+        %
+        %   Inputs
+        %     latDeg  (1,:) double  latitudes [deg]
+        %     lonDeg  (1,:) double  longitudes [deg]
+        %
+        %   Outputs
+        %     dq    (1,1) struct  as returned by shCoefficients.gradient,
+        %           which documents every field, each component stacked
+        %           along the third dimension
+        %     info  (1,1) struct  as returned by shCoefficients.gradient
+        %           for the first epoch, which documents every field
+        %
+        %   Options
+        %     Quantity (method default)  any kernelFactors quantity
+        %     kn (method default)  load Love numbers k'_n
+        %     hn (method default)  load Love numbers h'_n
+        %     Nmin (method default)  degrees below Nmin are zeroed
+        %     Nmax (method default)  truncation degree
+        %     Height (method default)  evaluation height [m]
+        %     Surface (method default)  "sphere" or "ellipsoid"
+        %     SemiMajorAxis (method default)  ellipsoid semi-major axis [m]
+        %     rho_ave (method default)  mean Earth density [kg/m^3]
+        %     rho_water (method default)  water density [kg/m^3]
+        %     Mode (method default)  a grid, or pairwise points
+        %     Units (method default)  per metre or per radian
+        %     MaxMemGB (method default)  Legendre memory budget [GB]
+        %     LatType (method default)  how the latitudes are read
+        %     Flattening (method default)  ellipsoid flattening
+        %
+        %   Example
+        %     [dq, info] = ts.gradient(-89:2:89, 0:2:358, Quantity = "ewh", kn = kn);
+        %     size(dq.north)        % 90 x 180 x T
+        arguments
+            obj
+            latDeg (1,:) double
+            lonDeg (1,:) double
+            opts.Quantity
+            opts.kn
+            opts.hn
+            opts.Nmin
+            opts.Nmax
+            opts.Height
+            opts.Surface
+            opts.SemiMajorAxis
+            opts.rho_ave
+            opts.rho_water
+            opts.Mode
+            opts.Units
+            opts.MaxMemGB
+            opts.LatType
+            opts.Flattening
+        end
+        fwd = namedargs2cell(opts);
+        T = obj.nEpochs;
+        g = obj.at(1);
+        [d, info] = g.gradient(latDeg, lonDeg, fwd{:});
+        dq = d;
+        comps = ["north", "east", "up"];
+        for c = comps
+            if ~isempty(d.(c))
+                dq.(c) = zeros(size(d.(c), 1), size(d.(c), 2), T);
+                dq.(c)(:, :, 1) = d.(c);
+            end
+        end
+        for k = 2:T
+            g = obj.at(k);
+            d = g.gradient(latDeg, lonDeg, fwd{:});
+            for c = comps
+                if ~isempty(d.(c))
+                    dq.(c)(:, :, k) = d.(c);
+                end
+            end
+        end
+    end
+
+    function [mCorr, info] = leakageCorrect(obj, latDeg, lonDeg, opts)
+        %LEAKAGECORRECT Forward-model leakage correction of every epoch.
+        %   [M, INFO] = ts.leakageCorrect(LAT, LON, Filter = F, kn = KN)
+        %   synthesizes each epoch on the grid (g.synthesis, geocentric,
+        %   Quantity "ewh" unless told otherwise) and runs
+        %   shLowLevel.leakageCorrect on it with the series' GM and R: the
+        %   iterative forward model that finds the field which, pushed
+        %   through the chain the data saw, reproduces the filtered field.
+        %   M is the corrected stack, page k for epoch k.
+        %   shLowLevel.leakageCorrect documents the method, its stopping
+        %   rule, and why the MASK MUST COVER EVERY REGION THAT CAN HOLD
+        %   MASS, not only the one you measure.
+        %
+        %   Filter is REQUIRED here, although the function defaults it: a
+        %   series does not know which filter its data saw, and the wrong
+        %   one makes the correction meaningless without any error. The
+        %   other lane options go to shLowLevel.leakageCorrect only when
+        %   given; "(lane default)" below is that function's.
+        %
+        %   Inputs
+        %     latDeg  (1,:) double  geocentric latitudes [deg]
+        %     lonDeg  (1,:) double  longitudes [deg]
+        %
+        %   Outputs
+        %     mCorr  (nLat x nLon x T) double  corrected fields, in the unit
+        %            of Quantity
+        %     info   (1 x T) struct  one per epoch, as returned by
+        %            shLowLevel.leakageCorrect, which documents every field
+        %
+        %   Options
+        %     Filter (required)  the filter the DATA saw: a string such as
+        %         "gauss300" or "DDK3", or a W struct
+        %     Quantity ("ewh")  the synthesized quantity; its unit is M's
+        %     kn ([])  load Love numbers for the mass quantities (never
+        %         hardcoded)
+        %     Mask (lane default)  pixels allowed to hold mass
+        %     Nmax (lane default)  degree of the intermediate analysis
+        %     Gain (lane default)  relaxation factor
+        %     NoiseLevel (lane default)  noise RMS of the field
+        %     ResidualRegion (lane default)  where the residual is measured
+        %     Tau (lane default)  discrepancy-principle safety factor
+        %     MaxIter (lane default)  iteration cap
+        %     Tol (lane default)  fallback step criterion
+        %     Quiet (lane default)  suppress the per-epoch summary
+        %
+        %   Error identifiers
+        %     shSeries:leakageCorrect:noFilter
+        %         Filter was not given
+        %
+        %   Example
+        %     [m, info] = ts.leakageCorrect(-89:89, 0:359, Filter = "gauss300", ...
+        %         kn = kn, Mask = unionMask, Quiet = true);
+        arguments
+            obj
+            latDeg (1,:) double
+            lonDeg (1,:) double
+            opts.Filter
+            opts.Quantity (1,1) string = "ewh"
+            opts.kn double = []
+            opts.Mask
+            opts.Nmax
+            opts.Gain
+            opts.NoiseLevel
+            opts.ResidualRegion
+            opts.Tau
+            opts.MaxIter
+            opts.Tol
+            opts.Quiet
+        end
+        if ~isfield(opts, 'Filter')
+            error('shSeries:leakageCorrect:noFilter', ...
+                ['Filter is required: pass the filter the data actually ' ...
+                 'saw ("none", "gauss<radiusKm>", "DDKn" or a W struct).']);
+        end
+        fwd = [namedargs2cell(rmfield(opts, ["Quantity", "kn"])), ...
+            {'GM', obj.GM, 'R', obj.R}];
+        T = obj.nEpochs;
+        infos = cell(1, T);
+        for k = 1:T
+            g = obj.at(k);
+            Z = g.synthesis(latDeg, lonDeg, Quantity = opts.Quantity, ...
+                kn = opts.kn);
+            [mk, infos{k}] = shLowLevel.leakageCorrect(Z, latDeg, lonDeg, ...
+                fwd{:});
+            if k == 1
+                mCorr = zeros(size(mk, 1), size(mk, 2), T);
+            end
+            mCorr(:, :, k) = mk;
+        end
+        info = [infos{:}];
+    end
+
+    function [fHat, info] = leakageDataDriven(obj, latDeg, lonDeg, opts)
+        %LEAKAGEDATADRIVEN Model-free leakage correction of a catchment mean.
+        %   [FHAT, INFO] = ts.leakageDataDriven(LAT, LON, Mask = R,
+        %   Filter = F, kn = KN) synthesizes every epoch on the grid
+        %   (g.synthesis, geocentric, Quantity "ewh" unless told otherwise)
+        %   and runs shLowLevel.leakageDataDriven on the stack with the
+        %   series' GM and R - Vishwakarma's method of deviation, which
+        %   repairs the catchment average from the filtered fields alone.
+        %   FHAT is the corrected catchment mean, one value per epoch.
+        %   shLowLevel.leakageDataDriven documents the method, the
+        %   catchment size it is designed for (about 65000 km^2 and up),
+        %   and why it needs at least 12 epochs and no NaN.
+        %
+        %   Filter is REQUIRED here, although the function defaults it: a
+        %   series does not know which filter its data saw, and the wrong
+        %   one mis-estimates both corrections without any error. Mask and
+        %   Nmax go to shLowLevel.leakageDataDriven only when given;
+        %   "(lane default)" below is that function's.
+        %
+        %   Inputs
+        %     latDeg  (1,:) double  geocentric latitudes [deg]
+        %     lonDeg  (1,:) double  longitudes [deg]
+        %
+        %   Outputs
+        %     fHat  (T x 1) double  corrected catchment average, in the
+        %           unit of Quantity
+        %     info  (1,1) struct  as returned by
+        %           shLowLevel.leakageDataDriven, which documents every field
+        %
+        %   Options
+        %     Filter (required)  the filter the DATA saw: a string such as
+        %         "gauss300" or "DDK3", or a W struct
+        %     Quantity ("ewh")  the synthesized quantity; its unit is FHAT's
+        %     kn ([])  load Love numbers for the mass quantities (never
+        %         hardcoded)
+        %     Mask (lane default)  the catchment function, 1 inside and
+        %         0 outside; required in practice
+        %     Nmax (lane default)  degree of the analysis/synthesis chain
+        %
+        %   Error identifiers
+        %     shSeries:leakageDataDriven:noFilter
+        %         Filter was not given
+        %
+        %   Example
+        %     [f, info] = ts.leakageDataDriven(lat, lon, Mask = basin, ...
+        %         Filter = "gauss300", kn = kn);
+        arguments
+            obj
+            latDeg (1,:) double
+            lonDeg (1,:) double
+            opts.Filter
+            opts.Quantity (1,1) string = "ewh"
+            opts.kn double = []
+            opts.Mask
+            opts.Nmax
+        end
+        if ~isfield(opts, 'Filter')
+            error('shSeries:leakageDataDriven:noFilter', ...
+                ['Filter is required: pass the filter the data actually ' ...
+                 'saw ("none", "gauss<radiusKm>", "DDKn" or a W struct).']);
+        end
+        T = obj.nEpochs;
+        for k = 1:T
+            g = obj.at(k);
+            Z = g.synthesis(latDeg, lonDeg, Quantity = opts.Quantity, ...
+                kn = opts.kn);
+            if k == 1
+                stack = zeros(size(Z, 1), size(Z, 2), T);
+            end
+            stack(:, :, k) = Z;
+        end
+        fwd = [namedargs2cell(rmfield(opts, ["Quantity", "kn"])), ...
+            {'GM', obj.GM, 'R', obj.R}];
+        [fHat, info] = shLowLevel.leakageDataDriven(stack, latDeg, lonDeg, ...
+            fwd{:});
     end
 
     function disp(obj)

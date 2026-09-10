@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shSeries.leakageCorrect &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shSeries.leakageCorrect</nav>
+<h1>shSeries.leakageCorrect</h1>
+<p class="h1line">Forward-model leakage correction of every epoch.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>[mCorr, info] = shSeries.leakageCorrect(obj, latDeg, lonDeg)</code><code>[mCorr, info] = shSeries.leakageCorrect(obj, latDeg, lonDeg, Filter=..., Quantity=&quot;ewh&quot;, kn=[], ...)</code></div>
+<h2>Description</h2>
+<p>[M, INFO] = ts.leakageCorrect(LAT, LON, Filter = F, kn = KN) synthesizes each epoch on the grid (g.synthesis, geocentric, Quantity &quot;ewh&quot; unless told otherwise) and runs <a href="shLowLevel_leakageCorrect.html"><code>shLowLevel.leakageCorrect</code></a> on it with the series&#x27; GM and R: the iterative forward model that finds the field which, pushed through the chain the data saw, reproduces the filtered field. M is the corrected stack, page k for epoch k. <a href="shLowLevel_leakageCorrect.html"><code>shLowLevel.leakageCorrect</code></a> documents the method, its stopping rule, and why the MASK MUST COVER EVERY REGION THAT CAN HOLD MASS, not only the one you measure.</p>
+<h2>Examples</h2>
+<details class="example"><summary>From the help block</summary><div><pre><code>    [m, info] = ts.leakageCorrect(-89:89, 0:359, Filter = &quot;gauss300&quot;, ...
+        kn = kn, Mask = unionMask, Quiet = true);</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td><code>required</code></td><td class="desc">the object the method is called on</td></tr><tr><td><code>latDeg</code></td><td>1 x :</td><td>double</td><td><code>required</code></td><td class="desc">double  geocentric latitudes [deg]</td></tr><tr><td><code>lonDeg</code></td><td>1 x :</td><td>double</td><td><code>required</code></td><td class="desc">double  longitudes [deg]</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>Filter</code></td><td>required</td><td>-</td><td><code>-</code></td><td class="desc">the filter the DATA saw: a string such as &quot;gauss300&quot; or &quot;DDK3&quot;, or a W struct</td></tr><tr><td><code>Quantity</code></td><td>1 x 1</td><td>string</td><td><code>&quot;ewh&quot;</code></td><td class="desc">the synthesized quantity; its unit is M&#x27;s</td></tr><tr><td><code>kn</code></td><td>n x m</td><td>double</td><td><code>[]</code></td><td class="desc">load Love numbers for the mass quantities (never hardcoded)</td></tr><tr><td><code>Mask</code></td><td>lane default</td><td>-</td><td><code>-</code></td><td class="desc">pixels allowed to hold mass</td></tr><tr><td><code>Nmax</code></td><td>lane default</td><td>-</td><td><code>-</code></td><td class="desc">degree of the intermediate analysis</td></tr><tr><td><code>Gain</code></td><td>lane default</td><td>-</td><td><code>-</code></td><td class="desc">relaxation factor</td></tr><tr><td><code>NoiseLevel</code></td><td>lane default</td><td>-</td><td><code>-</code></td><td class="desc">noise RMS of the field</td></tr><tr><td><code>ResidualRegion</code></td><td>lane default</td><td>-</td><td><code>-</code></td><td class="desc">where the residual is measured</td></tr><tr><td><code>Tau</code></td><td>lane default</td><td>-</td><td><code>-</code></td><td class="desc">discrepancy-principle safety factor</td></tr><tr><td><code>MaxIter</code></td><td>lane default</td><td>-</td><td><code>-</code></td><td class="desc">iteration cap</td></tr><tr><td><code>Tol</code></td><td>lane default</td><td>-</td><td><code>-</code></td><td class="desc">fallback step criterion</td></tr><tr><td><code>Quiet</code></td><td>lane default</td><td>-</td><td><code>-</code></td><td class="desc">suppress the per-epoch summary</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>mCorr</code></td><td class="desc">(nLat x nLon x T) double  corrected fields, in the unit of Quantity</td></tr><tr><td><code>info</code></td><td class="desc">(1 x T) struct  one per epoch, as returned by <a href="shLowLevel_leakageCorrect.html"><code>shLowLevel.leakageCorrect</code></a>, which documents every field</td></tr></table>
+<h2>Error Identifiers</h2>
+<table><tr><th>Identifier</th><th>Raised when</th></tr><tr><td><code>shSeries:leakageCorrect:noFilter</code></td><td class="desc">Filter was not given</td></tr></table>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<ul class="seealso"><li><a href="shLowLevel_leakageCorrect.html"><code>shLowLevel.leakageCorrect</code></a></li></ul>
+<p class="prov">shAnalysis v5.6.0 (10-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

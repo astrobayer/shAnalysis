@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shSeries.leakageDataDriven &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shSeries.leakageDataDriven</nav>
+<h1>shSeries.leakageDataDriven</h1>
+<p class="h1line">Model-free leakage correction of a catchment mean.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>[fHat, info] = shSeries.leakageDataDriven(obj, latDeg, lonDeg)</code><code>[fHat, info] = shSeries.leakageDataDriven(obj, latDeg, lonDeg, Filter=..., Quantity=&quot;ewh&quot;, kn=[], ...)</code></div>
+<h2>Description</h2>
+<p>[FHAT, INFO] = ts.leakageDataDriven(LAT, LON, Mask = R, Filter = F, kn = KN) synthesizes every epoch on the grid (g.synthesis, geocentric, Quantity &quot;ewh&quot; unless told otherwise) and runs <a href="shLowLevel_leakageDataDriven.html"><code>shLowLevel.leakageDataDriven</code></a> on the stack with the series&#x27; GM and R - Vishwakarma&#x27;s method of deviation, which repairs the catchment average from the filtered fields alone. FHAT is the corrected catchment mean, one value per epoch. <a href="shLowLevel_leakageDataDriven.html"><code>shLowLevel.leakageDataDriven</code></a> documents the method, the catchment size it is designed for (about 65000 km^2 and up), and why it needs at least 12 epochs and no NaN.</p>
+<h2>Examples</h2>
+<details class="example"><summary>From the help block</summary><div><pre><code>    [f, info] = ts.leakageDataDriven(lat, lon, Mask = basin, ...
+        Filter = &quot;gauss300&quot;, kn = kn);</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td><code>required</code></td><td class="desc">the object the method is called on</td></tr><tr><td><code>latDeg</code></td><td>1 x :</td><td>double</td><td><code>required</code></td><td class="desc">double  geocentric latitudes [deg]</td></tr><tr><td><code>lonDeg</code></td><td>1 x :</td><td>double</td><td><code>required</code></td><td class="desc">double  longitudes [deg]</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>Filter</code></td><td>required</td><td>-</td><td><code>-</code></td><td class="desc">the filter the DATA saw: a string such as &quot;gauss300&quot; or &quot;DDK3&quot;, or a W struct</td></tr><tr><td><code>Quantity</code></td><td>1 x 1</td><td>string</td><td><code>&quot;ewh&quot;</code></td><td class="desc">the synthesized quantity; its unit is FHAT&#x27;s</td></tr><tr><td><code>kn</code></td><td>n x m</td><td>double</td><td><code>[]</code></td><td class="desc">load Love numbers for the mass quantities (never hardcoded)</td></tr><tr><td><code>Mask</code></td><td>lane default</td><td>-</td><td><code>-</code></td><td class="desc">the catchment function, 1 inside and 0 outside; required in practice</td></tr><tr><td><code>Nmax</code></td><td>lane default</td><td>-</td><td><code>-</code></td><td class="desc">degree of the analysis/synthesis chain</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>fHat</code></td><td class="desc">(T x 1) double  corrected catchment average, in the unit of Quantity</td></tr><tr><td><code>info</code></td><td class="desc">(1,1) struct  as returned by <a href="shLowLevel_leakageDataDriven.html"><code>shLowLevel.leakageDataDriven</code></a>, which documents every field</td></tr></table>
+<h2>Error Identifiers</h2>
+<table><tr><th>Identifier</th><th>Raised when</th></tr><tr><td><code>shSeries:leakageDataDriven:noFilter</code></td><td class="desc">Filter was not given</td></tr></table>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<ul class="seealso"><li><a href="shLowLevel_leakageDataDriven.html"><code>shLowLevel.leakageDataDriven</code></a></li></ul>
+<p class="prov">shAnalysis v5.6.0 (10-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

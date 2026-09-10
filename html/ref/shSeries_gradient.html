@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shSeries.gradient &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shSeries.gradient</nav>
+<h1>shSeries.gradient</h1>
+<p class="h1line">North/east/up gradient of every epoch, stacked.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>[dq, info] = shSeries.gradient(obj, latDeg, lonDeg)</code><code>[dq, info] = shSeries.gradient(obj, latDeg, lonDeg, Quantity=..., kn=..., hn=..., ...)</code></div>
+<h2>Description</h2>
+<p>[DQ, INFO] = ts.gradient(LAT, LON, ...) is g.gradient of each epoch g = ts.at(k), with DQ.north, DQ.east and DQ.up stacked along the THIRD dimension, page k for epoch k, as ts.toGrid stacks its fields: (nlat x nlon x T) on a grid and (npts x 1 x T) for Mode = &quot;points&quot;. DQ.up stays [] for the surface quantities, which have no radial law. INFO is the first epoch&#x27;s; it depends only on the options, which every epoch shares. The options go to g.gradient only when given, so &quot;(method default)&quot; below is <a href="shCoefficients_gradient.html"><code>shCoefficients.gradient</code></a>&#x27;s.</p>
+<h2>Examples</h2>
+<details class="example"><summary>From the help block</summary><div><pre><code>    [dq, info] = ts.gradient(-89:2:89, 0:2:358, Quantity = &quot;ewh&quot;, kn = kn);
+    size(dq.north)        % 90 x 180 x T</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td><code>required</code></td><td class="desc">the object the method is called on</td></tr><tr><td><code>latDeg</code></td><td>1 x :</td><td>double</td><td><code>required</code></td><td class="desc">double  latitudes [deg]</td></tr><tr><td><code>lonDeg</code></td><td>1 x :</td><td>double</td><td><code>required</code></td><td class="desc">double  longitudes [deg]</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>Quantity</code></td><td>method default</td><td>-</td><td><code>-</code></td><td class="desc">any kernelFactors quantity</td></tr><tr><td><code>kn</code></td><td>method default</td><td>-</td><td><code>-</code></td><td class="desc">load Love numbers k&#x27;_n</td></tr><tr><td><code>hn</code></td><td>method default</td><td>-</td><td><code>-</code></td><td class="desc">load Love numbers h&#x27;_n</td></tr><tr><td><code>Nmin</code></td><td>method default</td><td>-</td><td><code>-</code></td><td class="desc">degrees below Nmin are zeroed</td></tr><tr><td><code>Nmax</code></td><td>method default</td><td>-</td><td><code>-</code></td><td class="desc">truncation degree</td></tr><tr><td><code>Height</code></td><td>method default</td><td>-</td><td><code>-</code></td><td class="desc">evaluation height [m]</td></tr><tr><td><code>Surface</code></td><td>method default</td><td>-</td><td><code>-</code></td><td class="desc">&quot;sphere&quot; or &quot;ellipsoid&quot;</td></tr><tr><td><code>SemiMajorAxis</code></td><td>method default</td><td>-</td><td><code>-</code></td><td class="desc">ellipsoid semi-major axis [m]</td></tr><tr><td><code>rho_ave</code></td><td>method default</td><td>-</td><td><code>-</code></td><td class="desc">mean Earth density [kg/m^3]</td></tr><tr><td><code>rho_water</code></td><td>method default</td><td>-</td><td><code>-</code></td><td class="desc">water density [kg/m^3]</td></tr><tr><td><code>Mode</code></td><td>method default</td><td>-</td><td><code>-</code></td><td class="desc">a grid, or pairwise points</td></tr><tr><td><code>Units</code></td><td>method default</td><td>-</td><td><code>-</code></td><td class="desc">per metre or per radian</td></tr><tr><td><code>MaxMemGB</code></td><td>method default</td><td>-</td><td><code>-</code></td><td class="desc">Legendre memory budget [GB]</td></tr><tr><td><code>LatType</code></td><td>method default</td><td>-</td><td><code>-</code></td><td class="desc">how the latitudes are read</td></tr><tr><td><code>Flattening</code></td><td>method default</td><td>-</td><td><code>-</code></td><td class="desc">ellipsoid flattening</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>dq</code></td><td class="desc">(1,1) struct  as returned by <a href="shCoefficients_gradient.html"><code>shCoefficients.gradient</code></a>, which documents every field, each component stacked along the third dimension</td></tr><tr><td><code>info</code></td><td class="desc">(1,1) struct  as returned by <a href="shCoefficients_gradient.html"><code>shCoefficients.gradient</code></a> for the first epoch, which documents every field</td></tr></table>
+<h2>Error Identifiers</h2>
+<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<ul class="seealso"><li><a href="shCoefficients_gradient.html"><code>shCoefficients.gradient</code></a></li></ul>
+<p class="prov">shAnalysis v5.6.0 (10-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>
