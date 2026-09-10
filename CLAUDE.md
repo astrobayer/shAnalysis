@@ -23,12 +23,12 @@ says whether it was *read* or *inferred*.
 
 | Fact | Value | Evidence |
 |---|---|---|
-| Version | **5.11.0**, 10-Sep-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
+| Version | **5.12.0**, 10-Sep-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
 | Branches | `main` only; `claude/getframe-recapture` and `claude/readshm` are gone (merged/deleted) | `GET /branches` |
-| Public surface | 3 classes / 83 methods, 127 `+shLowLevel` functions (+5 private), 3 root functions. 74 of the 127 are reachable from a class method; each of the other 53 is a named exception (35) or in a backlog that may only shrink (18) | `tools/dev/api_extract.py`; `tools/dev/class_surface_audit.py` |
-| Tests | 5 classes, **363 methods / 377 runs**: Correctness 179, Contract 106, Robustness 57, Science 8, Performance 13 methods (27 runs, `budgetCase` x14 + `nmaxP` x2). On A8 6 filter out without the optional real-data fixtures (the GravIS-grid test joined them in v5.8.0, the ESMGFZ check in v5.11.0); on MATTHIASPC only 2 do, because `E:\DATAPOOL` supplies the SINEX files, the GravIS folder and - with `SHX_EARTHROTATION_FOLDER` set for the run, no preference is stored - the ESMGFZ series. The counter has matched the runner EXACTLY on the last ten green A8 runs and on every local Tier-A run. | `python3 tools/dev/count_tests.py` |
-| Python oracles | 22 `tools/dev/validate_*.py` + `tools/audit/*` | listing |
-| Docs | **26** hand-written `html/*.html` (24 per-entity duplicates retired in v5.0.1, WP6 stage 3) + **217 generated `html/ref/*.html`** (one per entity + index, `make_refpages.py`), one shared `html/shAnalysis.css`, `helptoc.xml`, `info.xml`, guide PDF, generated `html/apiReference.html`. `docs/` holds the PDF and `apiExamples.json` only - no HTML page lives outside `html/` (gated). | listing |
+| Public surface | 3 classes / 84 methods, 128 `+shLowLevel` functions (+5 private), 3 root functions. 75 of the 128 are reachable from a class method; each of the other 53 is a named exception (35) or in a backlog that may only shrink (18) | `tools/dev/api_extract.py`; `tools/dev/class_surface_audit.py` |
+| Tests | 5 classes, **367 methods / 381 runs**: Correctness 181, Contract 107, Robustness 57, Science 9, Performance 13 methods (27 runs, `budgetCase` x14 + `nmaxP` x2). On A8 7 filter out without the optional real-data fixtures (the GravIS-grid test joined them in v5.8.0, the ESMGFZ check in v5.11.0, the HLSST check in v5.12.0); on MATTHIASPC only 2 do, because `E:\DATAPOOL` supplies the SINEX files, the GravIS folder and - with `SHX_EARTHROTATION_FOLDER` and `SHX_BRIDGE_FOLDER` set for the run, no preference is stored - the ESMGFZ and HLSST series. The counter has matched the runner EXACTLY on the last ten green A8 runs and on every local Tier-A run. | `python3 tools/dev/count_tests.py` |
+| Python oracles | 23 `tools/dev/validate_*.py` + `tools/audit/*` | listing |
+| Docs | **26** hand-written `html/*.html` (24 per-entity duplicates retired in v5.0.1, WP6 stage 3) + **219 generated `html/ref/*.html`** (one per entity + index, `make_refpages.py`), one shared `html/shAnalysis.css`, `helptoc.xml`, `info.xml`, guide PDF, generated `html/apiReference.html`. `docs/` holds the PDF and `apiExamples.json` only - no HTML page lives outside `html/` (gated). | listing |
 | CI | `gates` job on ubuntu (help_audit, doc_sync_audit, no_map_renderer, toolbox_dependency_audit, nv_casing_audit, fixture_tag_audit, gate self-tests `tools/tests/`, `count_tests`, `name_coverage`, `class_surface_audit`, `error_id_audit`, `option_values_audit`, `refpages_audit`, `make_demos --check`, `perf_baseline_audit`) + `runAllTests (self-hosted)` on A8/R2026a; fixtures from tag `fixtures-2026-08` | `.github/workflows/ci.yml` |
 | Namespace | `+shLowLevel` (renamed from `+shx` in v3.0.0). Any memory saying `shx.*` is stale. | README §History |
 
@@ -473,13 +473,13 @@ proposal stays below as the record.
   inversion) plus one published station series comparison.
 - **Size**: XL. **Version**: MINOR (new API; nothing existing changes).
 
-### WP5 — Geoscience add-ons (C3–C7)   `[~] 5e DONE v5.8.0, the method of scale v5.9.0, 5a v5.10.0 + v5.11.0; 5d approved and its method set 2026-09-10` (tick per row)
+### WP5 — Geoscience add-ons (C3–C7)   `[x] DONE - 5e v5.8.0, the method of scale v5.9.0, 5a v5.10.0 + v5.11.0, 5d v5.12.0` (tick per row)
 | Row | Function | Oracle | Size |
 |---|---|---|---|
 | 5a `[x]` **DONE v5.10.0 + v5.11.0** (approved 2026-09-10; Chen & Wilson 2003 eq. (1), supplied): `shLowLevel.rotationExcitation` and `ts.excitation`, with the IERS 2010 constants by default and dLOD in ms (ESMGFZ PDD eq. 2.8, read as 2 pi / Omega and confirmed against the observed length of day); checked against ESMGFZ HAM + SLAM by an opt-in test | `shSeries.excitation(kn=…, Convention=…) → table(t, chi1, chi2, dLOD)` from C21/S21/C20 with the IERS 2010 conventions and the Love-number/frame factors; input in the pole-tide convention `poleTideConvert` knows | Chen & Wilson formulas; a published GRACE excitation series | S–M |
 | 5b `[x]` **DONE v5.4.0**; its follow-on, the method of scale (`Method = "scale"`, thesis eq. 3.28), **DONE v5.9.0** | `shLowLevel.leakageDataDriven(gridSeries, latDeg, lonDeg, Mask=, Filter=)` - Vishwakarma's method of deviation. **Unblocked by Matthias supplying the author's PhD thesis** (chapter 3, eqs. 3.19-3.29) on 2026-09-09; the row had been STOPPED because the equations were unreachable, and that block was real - two details decide whether the method works and neither is guessable: the deviation integral is weighted by the FILTERED catchment function, and the leakage extrapolation corrects a PHASE while the deviation integral deliberately gets none. Oracle `tools/dev/validate_leakage_datadriven.py`: decomposition closes to 4.3e-15, filter self-adjointness 5.0e-16, phase measure/shift are mutual inverses to 7.1e-15 deg, closed loop removes 63% of the damage (MATLAB 55.3% on the `testCorrectness` fixture, whose grid and basin geometry differ). Three deviations from this row's sketch, all recorded in the changelog: `Filter=` not `Radius=` (matches `leakageCorrect`), a grid stack not an `shSeries` (a class method is WP7), and NOT `leakageCorrect`'s `info` layout - the two return different things, a corrected field against a corrected series. | thesis eqs. + closed loop | M |
 | 5c `[x]` **DONE v5.2.0** (the row was never ticked when it shipped; corrected in v5.4.1) | `removeGIA(gia, Sigma=…)` accepting a σ field; σ propagated into `basinAverage` sigmas and `mcPropagate` | analytic vs MC on a synthetic ensemble | S |
-| 5d `[x]` approved 2026-09-10; method set the same day: a 750 km Gaussian, the overlapping periods, Swarm epochs flagged, the QuantumFrontiers HLSST_SLR_COMB2023s series | Swarm: `fetchICGEM` Swarm series read and `combineCenters`-style rescaling to GRACE noise for 2017-07..2018-05; `shSeries.select` gap policy | published Swarm-vs-GRACE degree-RMS ratio | M |
+| 5d `[x]` **DONE v5.12.0** (approved, and its method set, 2026-09-10): `shLowLevel.bridgeGaps` and `ts.bridgeGaps` - the Kalman-filtered QuantumFrontiers HLSST_SLR_COMB2023s at 750 km, calibrated on the overlap by an offset, a per-degree scale and a per-degree sigma, every month GRACE lacks filled and flagged in the epoch names. Held out and bridged back, the fill's error is 0.38 of the GRACE signal | Swarm: `fetchICGEM` Swarm series read and `combineCenters`-style rescaling to GRACE noise for 2017-07..2018-05; `shSeries.select` gap policy | published Swarm-vs-GRACE degree-RMS ratio | M |
 | 5e `[x]` **DONE v5.8.0** (approved 2026-09-10): `shLowLevel.readGrid`, and `Fill` on `analysis`; the real file is the GravIS TWS grid instead of GLDAS | `shLowLevel.readGrid(ncfile, Var=…)` (netCDF → grid + metadata, inverse of `writeGrid`) so GLDAS/WGHM enter `shCoefficients.analysis` | `writeGrid` roundtrip; one GLDAS file | S |
 Version: MINOR per approved row.
 
@@ -599,6 +599,32 @@ of 125.
 ## 6. Records
 
 ### 6.1 Decisions (append-only; date, decision, evidence)
+- 2026-09-10 — **The axial factor keeps its default, 0.753** (Matthias:
+  "Keep 0.753 as default"). That is Chen & Wilson's eq. (1); ESMGFZ's
+  prefactors give 0.844, and a caller who takes that convention passes
+  `AxialFactor`. The question the 5.11.0 entry below left open is
+  closed.
+- 2026-09-10 — **5d's design decided by four answers** (Matthias: the
+  Kalman-filtered variant; an offset, a per-degree scale and a per-degree
+  noise from the overlap; every month GRACE lacks, 32 of them; the flag
+  in the epoch names). Measured before asking, so each option carried a
+  number: at 750 km the fill error over degrees 3-60 is 45 percent of the
+  GRACE signal for the Kalman variant and 92 for the unfiltered one.
+  Executed as 5.12.0; held out and bridged back, the error is 0.38 and
+  the predicted sigma matches it (1.03).
+- 2026-09-10 — **The flag lives in the epoch names, not a new property.**
+  Names already travel through every method that selects, truncates or
+  rebuilds a series; a new property would need carrying in each of them,
+  and one that missed it would drop the flag silently - as the
+  constructor already drops per-epoch history.
+- 2026-09-10 — **The output is smoothed throughout, not only in the
+  filled months.** A series whose resolution jumped at the flagged
+  epochs would carry the fill's smoothing into every trend and
+  amplitude fitted across them.
+- 2026-09-10 — **The HLSST series came through the house fetcher.**
+  `fetchICGEM`'s whole-series archive holds both variants (83 MB in one
+  request, where file by file would have been 240 rate-limited ones);
+  the unfiltered files sit beside the Kalman ones, unused.
 - 2026-09-10 — **5a's open points decided** (Matthias: "length of day is
   a time and consequently ms is correct. mas is an angle"; "for M,R,C,A
   use the IERS conventions 2010"; "go ahead and download the data. Store
@@ -1439,7 +1465,8 @@ of 125.
 | v5.8.0 (WP5 5e: `readGrid`, `analysis(..., Fill =)`, one CF time decoder) | ☑ 16 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings; `readMascon` bitwise on the real CSR file and a synthetic one | ☑ **Tier A LOCAL on MATTHIASPC — 371 runs, 369 passed, 0 failed, 2 filtered**; count exact per class (Contract 104, Correctness 176, Performance 27, Robustness 57, Science 7), all 27 performance runs asserted, and the GravIS-grid test ran here on the real file. `readMascon`'s epoch assignment was split in two while it ran (`help_audit` reads `s.f = ...` assignments only); the mascon and `readGrid` tests then ran again on the final code - 14 run, 13 passed, 1 filtered (`SHX_MASCON_FILE`) - and `readMascon` was still bitwise on the real CSR file. Then ☑ **CI self-hosted (A8) at `96a1630` via PR #110, green — 371 runs, 366 passed, 0 failed, 5 filtered** (the four optional fixtures plus the GravIS grid), per class exactly as predicted (Contract 104, Correctness 176, Performance 27, Robustness 57, Science 7) | ☑ PR #110 | ☑ 2026-09-10 |
 | v5.9.0 (WP5: the method of scale, `leakageDataDriven(..., Method = "scale")`) | ☑ 16 gates + mlint + make_demos + 15 self-test suites + the extended oracle (CLAIMs 4 and 5), 0 findings; the default path bitwise on 4 of 4 configurations captured before the edit | ☑ **Tier A LOCAL on MATTHIASPC — 373 runs, 371 passed, 0 failed, 2 filtered**; count exact per class (Contract 105, Correctness 177, Performance 27, Robustness 57, Science 7), all 27 performance runs asserted, and the two new tests passed on their first run. Then ☑ **CI self-hosted (A8) at `beaa434` via PR #111, green — 373 runs, 368 passed, 0 failed, 5 filtered** (the four optional fixtures plus the GravIS grid), per class exactly as predicted, and both new tests ran there | ☑ PR #111 | ☑ 2026-09-10 |
 | v5.10.0 (WP5 5a: `rotationExcitation`, `ts.excitation`) | ☑ 16 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings; reach 73 -> 74 of 127, 9 delegates pinned | ☑ **Tier A LOCAL on MATTHIASPC — 375 runs, 373 passed, 0 failed, 2 filtered**; count exact per class (Contract 106, Correctness 178, Performance 27, Robustness 57, Science 7), all 27 performance runs asserted, and the two new tests passed on their first run. Then ☑ **CI self-hosted (A8) at `81704d3` via PR #112, green — 375 runs, 370 passed, 0 failed, 5 filtered**, per class exactly as predicted, and both new tests ran there | ☑ PR #112 | ☑ 2026-09-10 |
-| v5.11.0 (WP5 5a: dLOD in ms, IERS 2010 constants, the ESMGFZ check) | ☑ 16 gates + mlint + make_demos + 15 self-test suites + the extended oracle (CLAIMs 4-6, the EOP check run with the data), 0 findings | ☑ **Tier A LOCAL on MATTHIASPC — 377 runs, 375 passed, 0 failed, 2 filtered**; count exact per class (Contract 106, Correctness 179, Performance 27, Robustness 57, Science 8), all 27 performance runs asserted, and the ESMGFZ check ran here against the real data (`SHX_EARTHROTATION_FOLDER` set for the run) | ◐ pending | ◐ pending |
+| v5.11.0 (WP5 5a: dLOD in ms, IERS 2010 constants, the ESMGFZ check) | ☑ 16 gates + mlint + make_demos + 15 self-test suites + the extended oracle (CLAIMs 4-6, the EOP check run with the data), 0 findings | ☑ **Tier A LOCAL on MATTHIASPC — 377 runs, 375 passed, 0 failed, 2 filtered**; count exact per class (Contract 106, Correctness 179, Performance 27, Robustness 57, Science 8), all 27 performance runs asserted, and the ESMGFZ check ran here against the real data (`SHX_EARTHROTATION_FOLDER` set for the run). Then ☑ **CI self-hosted (A8) at `413a54a` via PR #113, green — 377 runs, 371 passed, 0 failed, 6 filtered** (the ESMGFZ check joined the optional fixtures), per class exactly as predicted | ☑ PR #113 | ◐ pending |
+| v5.12.0 (WP5 5d: `bridgeGaps`, `ts.bridgeGaps`, the `_YYYY_MM` file names) | ☑ 16 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ☑ **Tier A LOCAL on MATTHIASPC — 381 runs, 379 passed, 0 failed, 2 filtered**; count exact per class (Contract 107, Correctness 181, Performance 27, Robustness 57, Science 9), all 27 performance runs asserted, and both real-data checks - ESMGFZ and HLSST - ran here (`SHX_EARTHROTATION_FOLDER` and `SHX_BRIDGE_FOLDER` set for the run) | ◐ pending | ◐ pending |
 | v5.0.3 (WP2 step 1 baselines) | ☑ 14 gates + mlint + make_demos + 13 self-test suites, 0 findings; `NO_BASELINE` empty | ☑ **CI self-hosted (A8) at `b70c947`, green — 315 runs, 311 passed, 0 failed, 4 filtered**; the EIGHTH exact count prediction running, per class as well as in total. All ten budgets PASSED (they filtered at `f6d5529`), and the only filtered are the four real-data fixtures. Triggered by `workflow_dispatch`, not a PR — #99 merged mid-session and `ci.yml` runs only on push-to-main, pull_request and workflow_dispatch. | ☐ no PR (#99 merged; not asked) | ☐ |
 
 **Tier A debt: DISCHARGED for all nine releases.** The local MATLAB
@@ -1464,6 +1491,15 @@ confirmation that the counter is right about a real run and not only
 about the source.
 
 ### 6.3 What the next session could be wrong for not reading
+- **Measure a series against the reference before designing around it.**
+  The unfiltered HLSST variant looked like the natural input for a
+  Gaussian the user chose; at 750 km it is noise-dominated above degree
+  10, and the Kalman variant halves the error. The probe took two
+  minutes and turned a guess into a question with numbers.
+- **A file-name parser decides whether a series has epochs at all.**
+  `shSeries.read` takes each epoch from the name, and the HLSST names
+  (`..._2017_08`) matched no pattern, so every epoch would have been NaN.
+  Check a new product's names against `parseGraceFilename` first.
 - **A published equation can be dimensionally wrong.** ESMGFZ's eq.
   (2.8) prints 2 pi Omega where only 2 pi / Omega is a time. Check the
   units of every equation taken from a document, and confirm a
@@ -1911,7 +1947,7 @@ internet, which unblocks all three stuck items at once:
    became an option on `leakageDataDriven`, not a third leakage method
    on `shSeries`: it shares every estimate with the method of deviation.
 6. **B1 (packed Legendre)** remains the weaker WP2 step-2 candidate.
-7. **WP5**: 5e DONE in v5.8.0, the method of scale in v5.9.0, 5a in v5.10.0 and v5.11.0. Next 5d, with the method Matthias set on 2026-09-10: a 750 km Gaussian, the overlapping periods, Swarm epochs flagged, and the QuantumFrontiers HLSST_SLR_COMB2023s series - not in the data pool, whose `HLSST+SLR/QF/RL01_60` is COMB2019s. **WP4 is moved out** to a separate GNSS toolbox (2026-09-10); do not start it here.
+7. **WP5 is DONE**: 5e in v5.8.0, the method of scale in v5.9.0, 5a in v5.10.0 and v5.11.0, 5d in v5.12.0. Nothing of WP5 is open: the axial factor keeps eq. (1)'s 0.753 by Matthias's decision, and ESMGFZ's 0.844 is an `AxialFactor` away. **WP4 is moved out** to a separate GNSS toolbox (2026-09-10); do not start it here.
 
 **What a Tier-A session should know about running the suite here.** The
 MATLAB MCP tool times out on anything suite-sized. Run it detached and

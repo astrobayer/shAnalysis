@@ -14,7 +14,7 @@
 <h2>Syntax</h2>
 <div class="syntax"><code>meta = shLowLevel.parseGraceFilename(filename)</code></div>
 <h2>Description</h2>
-<p>META = shLowLevel.parseGraceFilename(FILENAME) parses the standard GRACE / GRACE-FO Level-2 naming convention PPP-2_YYYYDDD-YYYYDDD_*.gfc[.gz] e.g. GSM-2_2024032-2024060_GRFO_UTCSR_BA01_0600.gfc, where PPP is one of GSM, GAA, GAB, GAC, GAD and YYYYDDD are year + day-of-year of the coverage span. Best-effort: fields are NaN/&quot;unknown&quot; when the pattern does not match (static models, renamed files); callers can always override via explicit options.</p>
+<p>META = shLowLevel.parseGraceFilename(FILENAME) parses the standard GRACE / GRACE-FO Level-2 naming convention PPP-2_YYYYDDD-YYYYDDD_*.gfc[.gz] e.g. GSM-2_2024032-2024060_GRFO_UTCSR_BA01_0600.gfc, where PPP is one of GSM, GAA, GAB, GAC, GAD and YYYYDDD are year + day-of-year of the coverage span. Best-effort: fields are NaN/&quot;unknown&quot; when the pattern does not match (static models, renamed files); callers can always override via explicit options. Monthly and daily names outside that convention are read as well: ITSG&#x27;s ..._YYYY-MM and ..._YYYY-MM-DD, and QuantumFrontiers&#x27; ..._YYYY_MM (the HLSST+SLR series at ICGEM, v5.12.0).</p>
 <h2>Examples</h2>
 <details class="example"><summary>Runnable (docs/apiExamples.json)</summary><div><pre><code>meta = shLowLevel.parseGraceFilename(&quot;GSM-2_2008095-2008120_...gz&quot;);</code></pre></div></details>
 <h2>Input Arguments</h2>
@@ -29,7 +29,7 @@
 <p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
 <h2>See Also</h2>
 <p class="none">No other entity is named in this help block.</p>
-<p class="prov">shAnalysis v5.11.0 (10-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+<p class="prov">shAnalysis v5.12.0 (10-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
 </div>
 </body>
 </html>

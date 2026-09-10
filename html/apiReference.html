@@ -3,7 +3,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="shAnalysis.css">
 </head><body><div class="content">
-<h1>shAnalysis API reference (v5.11.0)</h1>
+<h1>shAnalysis API reference (v5.12.0)</h1>
 <p>Generated from the source arguments blocks and help text - inputs,
 name-value options with defaults, and outputs for every public function
 and method. Regenerated with every release; the source of truth is the
@@ -14,6 +14,7 @@ code itself.</p>
 <a href="#shLowLevel.basinDeconvolve">basinDeconvolve</a>
 <a href="#shLowLevel.basinKernel">basinKernel</a>
 <a href="#shLowLevel.basinScaling">basinScaling</a>
+<a href="#shLowLevel.bridgeGaps">bridgeGaps</a>
 <a href="#shLowLevel.buildCondFun">buildCondFun</a>
 <a href="#shLowLevel.buildNoiseCov">buildNoiseCov</a>
 <a href="#shLowLevel.buildSignalCov">buildSignalCov</a>
@@ -193,6 +194,21 @@ code itself.</p>
 <tr><td><code>k</code></td><td>(1,1) double  regression scaling factor</td></tr>
 <tr><td><code>info</code></td><td>(1,1) struct  fields sigmaK    (1,1) double   1-sigma of the regression factor kMonthly  (T x 1) double  per-month factors; present only with PerMonth matched   (T x 1) logical  which epochs matched between the two series nMatched  (1,1) double   nnz(matched), the epochs the regression actually used aTrue     (T x 1) double  basin average of the model field aFilt     (T x 1) double  basin average after filtering</td></tr>
 </table>
+</div>
+<div class="entry" id="shLowLevel.bridgeGaps">
+<h3><code>shLowLevel.bridgeGaps(ref, bridge, opts)</code></h3>
+<p class="h1line">Fill the months a series lacks from a second, noisier series.</p>
+<p>OUT = shLowLevel.bridgeGaps(REF, BRIDGE) fills every month that the reference series REF lacks within its own span, and that BRIDGE has, calibrating BRIDGE against REF on the months both have. The intended pair is a GRACE / GRACE-FO series and a high-low SST + SLR series such as QuantumFrontiers HLSST_SLR_COMB2023s, whose months cover the gap between the two missions (2017-07 to 2018-05) and the scattered months GRACE lost to battery management.</p>
+<b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>ref</code></td><td>1 x 1</td><td>shSeries</td><td>required</td></tr><tr><td><code>bridge</code></td><td>1 x 1</td><td>shSeries</td><td>required</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>RadiusKm</code></td><td>1 x 1</td><td>double</td><td>750</td></tr><tr><td><code>Tolerance</code></td><td>1 x 1</td><td>double</td><td>0.05</td></tr><tr><td><code>MinOverlap</code></td><td>1 x 1</td><td>double</td><td>24</td></tr></table>
+<b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
+<tr><td><code>out</code></td><td>(1,1) shSeries  REF&#x27;s months and the filled ones, sorted by epoch, truncated and smoothed as above</td></tr>
+<tr><td><code>info</code></td><td>(1,1) struct  fields bridged    (T,1) logical  true for the filled months of OUT overlap    (1,1) double  months the calibration used scale      (nmax+1,1) double  s_n; 0 where BRIDGE&#x27;s anomaly has no variance at that degree sigma      (nmax+1,1) double  the fill&#x27;s sigma per degree offsetC    (nmax+1 x nmax+1) double  B0 - R0, cosine terms offsetS    (nmax+1 x nmax+1) double  B0 - R0, sine terms radiusKm   (1,1) double  the Gaussian radius used</td></tr>
+</table>
+<b>Example</b><pre>    gr = shSeries.read(&quot;GSM-2_*.gfc&quot;).applyTN14(tnFile);
+    hl = shSeries.read(fullfile(hlFolder, &quot;kalman&quot;, &quot;*.gfc&quot;));
+    [ts, info] = shLowLevel.bridgeGaps(gr, hl);
+    filled = ts.epochs(info.bridged);</pre>
 </div>
 <div class="entry" id="shLowLevel.buildCondFun">
 <h3><code>shLowLevel.buildCondFun(idx, opts)</code></h3>
@@ -1052,7 +1068,7 @@ code itself.</p>
 <div class="entry" id="shLowLevel.parseGraceFilename">
 <h3><code>shLowLevel.parseGraceFilename(filename)</code></h3>
 <p class="h1line">Product type and mid-epoch from a GRACE L2 filename.</p>
-<p>META = shLowLevel.parseGraceFilename(FILENAME) parses the standard GRACE / GRACE-FO Level-2 naming convention PPP-2_YYYYDDD-YYYYDDD_*.gfc[.gz] e.g. GSM-2_2024032-2024060_GRFO_UTCSR_BA01_0600.gfc, where PPP is one of GSM, GAA, GAB, GAC, GAD and YYYYDDD are year + day-of-year of the coverage span. Best-effort: fields are NaN/&quot;unknown&quot; when the pattern does not match (static models, renamed files); callers can always override via explicit options.</p>
+<p>META = shLowLevel.parseGraceFilename(FILENAME) parses the standard GRACE / GRACE-FO Level-2 naming convention PPP-2_YYYYDDD-YYYYDDD_*.gfc[.gz] e.g. GSM-2_2024032-2024060_GRFO_UTCSR_BA01_0600.gfc, where PPP is one of GSM, GAA, GAB, GAC, GAD and YYYYDDD are year + day-of-year of the coverage span. Best-effort: fields are NaN/&quot;unknown&quot; when the pattern does not match (static models, renamed files); callers can always override via explicit options. Monthly and daily names outside that convention are read as well: ITSG&#x27;s ..._YYYY-MM and ..._YYYY-MM-DD, and QuantumFrontiers&#x27; ..._YYYY_MM (the HLSST+SLR series at ICGEM, v5.12.0).</p>
 <b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>filename</code></td><td>n x m</td><td>-</td><td>required</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
 <tr><td><code>meta</code></td><td>(1,1) struct  fields productType (1,1) string  &quot;GSM&quot;|&quot;GAA&quot;|&quot;GAB&quot;|&quot;GAC&quot;|&quot;GAD&quot;, or &quot;unknown&quot; when no prefix matches epochStart, epochStop (1,1) double  coverage span [decimal years], NaN when no date pattern matches epoch       (1,1) double  span mid-point [decimal years], NaN with the span</td></tr>
@@ -2191,6 +2207,7 @@ code itself.</p>
 <a href="#shSeries.applyTN14">applyTN14</a>
 <a href="#shSeries.at">at</a>
 <a href="#shSeries.basinAverage">basinAverage</a>
+<a href="#shSeries.bridgeGaps">bridgeGaps</a>
 <a href="#shSeries.climatology">climatology</a>
 <a href="#shSeries.compare">compare</a>
 <a href="#shSeries.destripe">destripe</a>
@@ -2266,6 +2283,19 @@ code itself.</p>
 <tr><td><code>avg</code></td><td>(K x T) double   basin averages (deconvolved when Deconvolve=true)</td></tr>
 <tr><td><code>out</code></td><td>(1,1) struct   on the deconvolution path, as returned by shLowLevel.basinDeconvolve (sigma, c, attn, condA, avgNaive); empty otherwise</td></tr>
 </table>
+</div>
+<div class="entry" id="shSeries.bridgeGaps">
+<h3><code>shSeries.bridgeGaps(obj, bridge, opts)</code></h3>
+<p class="h1line">Fill the months this series lacks from a second series.</p>
+<p>[OUT, INFO] = ts.bridgeGaps(TSB) is shLowLevel.bridgeGaps(ts, TSB): it fills every month ts lacks within its span from the series TSB, calibrated on the months both have - an offset, a per-degree scale and a per-degree sigma - and names each filled month &quot;bridge:&quot; plus its name in TSB. Both series are truncated to the lower nmax and smoothed with a 750 km Gaussian unless told otherwise; shLowLevel.bridgeGaps documents the method, what it was measured to do on GRACE and HLSST, and why TN-14 comes first.</p>
+<b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td>required</td></tr><tr><td><code>bridge</code></td><td>1 x 1</td><td>-</td><td>required</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>RadiusKm</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>Tolerance</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>MinOverlap</code></td><td>lane default</td><td>-</td><td>-</td></tr></table>
+<b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
+<tr><td><code>out</code></td><td>(1,1) shSeries  this series&#x27; months and the filled ones</td></tr>
+<tr><td><code>info</code></td><td>(1,1) struct  as returned by shLowLevel.bridgeGaps, which documents every field</td></tr>
+</table>
+<b>Example</b><pre>    ts = ts.applyTN14(tnFile);
+    [tsF, info] = ts.bridgeGaps(hlsst);</pre>
 </div>
 <div class="entry" id="shSeries.climatology">
 <h3><code>shSeries.climatology(obj, opts)</code></h3>
@@ -2674,4 +2704,4 @@ code itself.</p>
 <tr><td><code>obj</code></td><td>(1 x 1) shClimatology   copy with the note appended to its history</td></tr>
 </table>
 </div>
-<p class="provenance">Developed by Matthias Weigelt with the help of Claude (Fable 5), 10-Sep-2026 (v5.11.0). Generated by tools - do not edit.</p></div></body></html>
+<p class="provenance">Developed by Matthias Weigelt with the help of Claude (Fable 5), 10-Sep-2026 (v5.12.0). Generated by tools - do not edit.</p></div></body></html>

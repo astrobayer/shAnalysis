@@ -4907,3 +4907,87 @@ verifyEqual(testCase, i2.lodScale, info.lodScale / 2, 'RelTol', 1e-15);
 % without C20 there is no axial term at all
 verifyEmpty(testCase, shLowLevel.rotationExcitation(0, 0, kn = kn).dLOD);
 end
+
+% ------------------------------------------------ WP5 5d: the gap series
+function testParseGraceFilenameQuantumFrontiersMonthly(testCase)
+%TESTPARSEGRACEFILENAMEQUANTUMFRONTIERSMONTHLY the HLSST+SLR series at ICGEM
+%   names its months ..._YYYY_MM. The parser gives them the month's span
+%   and mid-point, exactly as it does ITSG's ..._YYYY-MM, and no epoch for
+%   a thirteenth month.
+m = shLowLevel.parseGraceFilename( ...
+    'QuantumFrontiers_HLSST_SLR_COMB2023s_unfiltered_2017_08.gfc');
+verifyEqual(testCase, [m.epochStart, m.epoch, m.epochStop], ...
+    2017 + [7, 7.5, 8] / 12);
+itsg = shLowLevel.parseGraceFilename('ITSG-Grace2018_n60_2017-08.gfc');
+verifyEqual(testCase, m.epoch, itsg.epoch);
+bad = shLowLevel.parseGraceFilename('QuantumFrontiers_x_2017_13.gfc');
+verifyTrue(testCase, isnan(bad.epoch));
+end
+
+function testBridgeGapsCalibration(testCase)
+%TESTBRIDGEGAPSCALIBRATION the gap fill's offset, per-degree scale and
+%   sigma on the small case of tools/dev/validate_bridge.py CLAIM 0 - nmax
+%   2, six reference months, eight bridge months, no smoothing - pinned;
+%   the filled months flagged in their names and in info.bridged; the
+%   reference months untouched; and a bridge equal to the reference fills
+%   with its own values.
+[ref, br] = bridgeCase(false);
+[out, info] = shLowLevel.bridgeGaps(ref, br, RadiusKm = 0, MinOverlap = 6);
+% the oracle sums in another order: 1e-12 bounds that round-off
+verifyEqual(testCase, info.scale, [1.0866812354123745; ...
+    1.1944752466336102; 1.2610735219002618], 'RelTol', 1e-12);
+verifyEqual(testCase, info.sigma, [1.7114409225940354e-11; ...
+    1.8937617115670034e-11; 1.698346212018187e-11], 'RelTol', 1e-12);
+verifyEqual(testCase, out.Cs(3, 2, 4), -3.8803624627509443e-10, 'RelTol', 1e-12);
+verifyEqual(testCase, out.Ss(3, 3, 4), -1.5297761163400555e-10, 'RelTol', 1e-12);
+verifyEqual(testCase, info.bridged, logical([0 0 0 1 0 0 1 0]'));
+verifyEqual(testCase, info.overlap, 6);
+verifyTrue(testCase, all(startsWith(out.names(info.bridged), "bridge:")));
+verifyTrue(testCase, issorted(out.epochs));
+verifyTrue(testCase, isequal(out.Cs(:, :, ~info.bridged), ref.Cs) && ...
+    isequal(out.Ss(:, :, ~info.bridged), ref.Ss), ...
+    'the reference months must come through untouched');
+low = tril(ones(3));
+verifyEqual(testCase, out.sigmaCs(:, :, 4), low .* info.sigma);
+lowS = low;
+lowS(:, 1) = 0;
+verifyEqual(testCase, out.sigmaSs(:, :, 7), lowS .* info.sigma);
+% a bridge equal to the reference: the scale is one and the fill is the
+% bridge, to the round-off of adding and removing one mean (~1e-26 here)
+[ref2, br2] = bridgeCase(true);
+[out2, info2] = shLowLevel.bridgeGaps(ref2, br2, RadiusKm = 0, MinOverlap = 6);
+verifyEqual(testCase, info2.scale, ones(3, 1), 'AbsTol', 1e-12);
+verifyEqual(testCase, out2.Cs(:, :, info2.bridged), br2.Cs(:, :, [4 7]), 'AbsTol', 1e-24);
+verifyEqual(testCase, out2.Ss(:, :, info2.bridged), br2.Ss(:, :, [4 7]), 'AbsTol', 1e-24);
+end
+
+function [ref, br] = bridgeCase(equal)
+%BRIDGECASE validate_bridge.py's small case: nmax 2, a truth T(t), the
+%   reference T at months 1 2 3 5 6 8, the bridge 0.8 T plus an offset and
+%   a wobble at months 1 to 8 - or T itself when EQUAL.
+[m, n] = meshgrid(0:2, 0:2);
+mc = double(m <= n);
+ms = double(m <= n & m >= 1);
+Cs = zeros(3, 3, 8);
+Ss = Cs;
+bC = Cs;
+bS = Cs;
+for t = 1:8
+    c = (n + 1 + m) .* sin(t + n - m) * 1e-10 .* mc;
+    s = (n + 2 - m) .* cos(t - n + m) * 1e-10 .* ms;
+    Cs(:, :, t) = c;
+    Ss(:, :, t) = s;
+    if equal
+        bC(:, :, t) = c;
+        bS(:, :, t) = s;
+    else
+        bC(:, :, t) = 0.8 * c + (1e-11 * (n + m + 1) + 2e-11 * cos(3 * t + n .* m)) .* mc;
+        bS(:, :, t) = 0.8 * s + (-1e-11 * (n - m + 1) + 2e-11 * sin(2 * t + n + m)) .* ms;
+    end
+end
+ep = 2010 + ((1:8)' - 0.5) / 12;
+keep = [1 2 3 5 6 8];
+ref = shSeries(Cs(:, :, keep), Ss = Ss(:, :, keep), Epochs = ep(keep), ...
+    Names = "ref" + string(keep'));
+br = shSeries(bC, Ss = bS, Epochs = ep, Names = "hl" + string((1:8)'));
+end

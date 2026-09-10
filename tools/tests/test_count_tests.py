@@ -109,7 +109,7 @@ class TestCounting(unittest.TestCase):
         self.assertEqual(c["runs"], c["methods"])
 
 
-EXPECTED_RUNS = 377          # v5.11.0: 375 + IERS/length-of-day + the ESMGFZ check
+EXPECTED_RUNS = 381          # v5.12.0: 377 + the parser, two bridgeGaps tests, the HLSST check
                              # (5 correctness, 4 contract, 2 robustness)
 
 

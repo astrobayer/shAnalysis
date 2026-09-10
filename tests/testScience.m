@@ -338,3 +338,72 @@ for k = 1:numel(f)
     x = [x; v(:, 6:end)]; %#ok<AGROW>
 end
 end
+
+% ------------------------------------------------ WP5 5d: the gap series
+function testBridgeGapsAgainstGRACE(testCase)
+%TESTBRIDGEGAPSAGAINSTGRACE the gap fill on real data. GRACE months are
+%   held out of a GSM series (TN-14 applied first, the documented order),
+%   bridged back from an HLSST series and compared with the GRACE values
+%   they replace, at 750 km over degrees 3-60. Measured on COST-G RL02.1
+%   and the Kalman-filtered QuantumFrontiers HLSST_SLR_COMB2023s, every
+%   sixth of the 209 months inside the HLSST span held out: the fill's
+%   error is 0.381 of the GRACE signal, and the actual error 1.032 times
+%   the predicted sigma. The bounds, 0.5 and [0.8, 1.25], assert a fill
+%   well inside the signal and a sigma that neither hides nor inflates the
+%   error, with room for another GSM series. Opt-in: set SHX_SERIES_FOLDER
+%   and SHX_BRIDGE_FOLDER (the monthly files of an HLSST series), or the
+%   SeriesFolder and BridgeFolder preferences.
+sf = getenv('SHX_SERIES_FOLDER');
+if isempty(sf), sf = getpref('shAnalysis', 'SeriesFolder', ''); end
+bf = getenv('SHX_BRIDGE_FOLDER');
+if isempty(bf), bf = getpref('shAnalysis', 'BridgeFolder', ''); end
+assumeTrue(testCase, isfolder(sf) && isfolder(bf), ['set SHX_SERIES_FOLDER ' ...
+    '(a GSM series of monthly .gfc files) and SHX_BRIDGE_FOLDER (the ' ...
+    'monthly files of an HLSST series)']);
+gr = shSeries.read(fullfile(sf, '*.gfc'));
+gr = gr.applyTN14(fullfile(shxTestDataDir(), 'TN-14_C30_C20_SLR_GSFC.txt'));
+hl = shSeries.read(fullfile(bf, '*.gfc'));
+% the full run: every filled month is one GRACE lacks, and it is flagged
+[ts, info] = shLowLevel.bridgeGaps(gr, hl);
+verifyGreaterThan(testCase, nnz(info.bridged), 0);
+verifyTrue(testCase, all(startsWith(ts.names(info.bridged), "bridge:")));
+d = min(abs(ts.epochs(info.bridged) - gr.epochs.'), [], 2);
+verifyTrue(testCase, all(d >= 0.05), 'a filled month duplicates a GRACE month');
+% held out and bridged back
+inHL = gr.epochs > hl.epochs(1) & gr.epochs < hl.epochs(end);
+idx = find(inHL);
+out = idx(3:6:end);
+keep = true(1, gr.nEpochs);
+keep(out) = false;
+[ts2, info2] = shLowLevel.bridgeGaps(gr.select(keep), hl);
+nmax = ts2.nmax;
+ref = gr;
+if ref.nmax > nmax, ref = ref.truncate(nmax); end
+ref = ref.gaussian(750);
+nn = (0:nmax)';
+E = zeros(nmax + 1, 1);
+cnt = 0;
+for j = 1:numel(out)
+    [dd, k] = min(abs(ts2.epochs - ref.epochs(out(j))));
+    if dd < 0.05 && info2.bridged(k)
+        E = E + sum((ts2.Cs(:, :, k) - ref.Cs(:, :, out(j))).^2 + ...
+            (ts2.Ss(:, :, k) - ref.Ss(:, :, out(j))).^2, 2);
+        cnt = cnt + 1;
+    end
+end
+verifyEqual(testCase, cnt, numel(out), 'every held-out month must come back');
+A = ref.Cs - mean(ref.Cs, 3);
+B = ref.Ss - mean(ref.Ss, 3);
+w = 2 * nn + 1;
+errV = E ./ (w * cnt);
+sigV = squeeze(sum(sum(A.^2 + B.^2, 2), 3)) ./ (w * ref.nEpochs);
+k = 4:nmax + 1;
+ratio = sqrt(sum(w(k) .* errV(k)) / sum(w(k) .* sigV(k)));
+honesty = sqrt(sum(w(k) .* errV(k)) / sum(w(k) .* info2.sigma(k).^2));
+verifyLessThan(testCase, ratio, 0.5, sprintf( ...
+    'the fill error is %.3f of the GRACE signal', ratio));
+verifyGreaterThan(testCase, honesty, 0.8, sprintf( ...
+    'actual over predicted sigma is %.3f', honesty));
+verifyLessThan(testCase, honesty, 1.25, sprintf( ...
+    'actual over predicted sigma is %.3f', honesty));
+end

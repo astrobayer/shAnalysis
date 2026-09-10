@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shSeries.bridgeGaps &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shSeries.bridgeGaps</nav>
+<h1>shSeries.bridgeGaps</h1>
+<p class="h1line">Fill the months this series lacks from a second series.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>[out, info] = shSeries.bridgeGaps(obj, bridge)</code><code>[out, info] = shSeries.bridgeGaps(obj, bridge, RadiusKm=..., Tolerance=..., MinOverlap=...)</code></div>
+<h2>Description</h2>
+<p>[OUT, INFO] = ts.bridgeGaps(TSB) is <a href="shLowLevel_bridgeGaps.html"><code>shLowLevel.bridgeGaps</code></a>(ts, TSB): it fills every month ts lacks within its span from the series TSB, calibrated on the months both have - an offset, a per-degree scale and a per-degree sigma - and names each filled month &quot;bridge:&quot; plus its name in TSB. Both series are truncated to the lower nmax and smoothed with a 750 km Gaussian unless told otherwise; <a href="shLowLevel_bridgeGaps.html"><code>shLowLevel.bridgeGaps</code></a> documents the method, what it was measured to do on GRACE and HLSST, and why TN-14 comes first.</p>
+<h2>Examples</h2>
+<details class="example"><summary>From the help block</summary><div><pre><code>    ts = ts.applyTN14(tnFile);
+    [tsF, info] = ts.bridgeGaps(hlsst);</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td><code>required</code></td><td class="desc">the object the method is called on</td></tr><tr><td><code>bridge</code></td><td>1 x 1</td><td>-</td><td><code>required</code></td><td class="desc"><a href="shSeries.html"><code>shSeries</code></a>  the series that fills the gaps</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>RadiusKm</code></td><td>lane default</td><td>-</td><td><code>-</code></td><td class="desc">Gaussian radius [km]; 0 for none</td></tr><tr><td><code>Tolerance</code></td><td>lane default</td><td>-</td><td><code>-</code></td><td class="desc">month matching [yr]</td></tr><tr><td><code>MinOverlap</code></td><td>lane default</td><td>-</td><td><code>-</code></td><td class="desc">the fewest matched months accepted</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>out</code></td><td class="desc">(1,1) <a href="shSeries.html"><code>shSeries</code></a>  this series&#x27; months and the filled ones</td></tr><tr><td><code>info</code></td><td class="desc">(1,1) struct  as returned by <a href="shLowLevel_bridgeGaps.html"><code>shLowLevel.bridgeGaps</code></a>, which documents every field</td></tr></table>
+<h2>Error Identifiers</h2>
+<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<ul class="seealso"><li><a href="shLowLevel_bridgeGaps.html"><code>shLowLevel.bridgeGaps</code></a></li></ul>
+<p class="prov">shAnalysis v5.12.0 (10-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

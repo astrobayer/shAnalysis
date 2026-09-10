@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shLowLevel.bridgeGaps &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shLowLevel.bridgeGaps</nav>
+<h1>shLowLevel.bridgeGaps</h1>
+<p class="h1line">Fill the months a series lacks from a second, noisier series.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>[out, info] = shLowLevel.bridgeGaps(ref, bridge)</code><code>[out, info] = shLowLevel.bridgeGaps(ref, bridge, RadiusKm=750, Tolerance=0.05, MinOverlap=24)</code></div>
+<h2>Description</h2>
+<p>OUT = shLowLevel.bridgeGaps(REF, BRIDGE) fills every month that the reference series REF lacks within its own span, and that BRIDGE has, calibrating BRIDGE against REF on the months both have. The intended pair is a GRACE / GRACE-FO series and a high-low SST + SLR series such as QuantumFrontiers HLSST_SLR_COMB2023s, whose months cover the gap between the two missions (2017-07 to 2018-05) and the scattered months GRACE lost to battery management.</p>
+<h2>Examples</h2>
+<details class="example"><summary>From the help block</summary><div><pre><code>    gr = shSeries.read(&quot;GSM-2_*.gfc&quot;).applyTN14(tnFile);
+    hl = shSeries.read(fullfile(hlFolder, &quot;kalman&quot;, &quot;*.gfc&quot;));
+    [ts, info] = shLowLevel.bridgeGaps(gr, hl);
+    filled = ts.epochs(info.bridged);</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>ref</code></td><td>1 x 1</td><td>shSeries</td><td><code>required</code></td><td class="desc"><a href="shSeries.html"><code>shSeries</code></a>  the reference series, e.g. GRACE GSM</td></tr><tr><td><code>bridge</code></td><td>1 x 1</td><td>shSeries</td><td><code>required</code></td><td class="desc"><a href="shSeries.html"><code>shSeries</code></a>  the series that fills its gaps, with the same GM and R</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>RadiusKm</code></td><td>1 x 1</td><td>double</td><td><code>750</code></td><td class="desc">Gaussian smoothing radius [km]; 0 smooths nothing, for series filtered already</td></tr><tr><td><code>Tolerance</code></td><td>1 x 1</td><td>double</td><td><code>0.05</code></td><td class="desc">two months match when their epochs differ by less [yr]</td></tr><tr><td><code>MinOverlap</code></td><td>1 x 1</td><td>double</td><td><code>24</code></td><td class="desc">the fewest matched months the calibration accepts</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>out</code></td><td class="desc">(1,1) <a href="shSeries.html"><code>shSeries</code></a>  REF&#x27;s months and the filled ones, sorted by epoch, truncated and smoothed as above</td></tr><tr><td><code>info</code></td><td class="desc">(1,1) struct  fields bridged    (T,1) logical  true for the filled months of OUT overlap    (1,1) double  months the calibration used scale      (nmax+1,1) double  s_n; 0 where BRIDGE&#x27;s anomaly has no variance at that degree sigma      (nmax+1,1) double  the fill&#x27;s sigma per degree offsetC    (nmax+1 x nmax+1) double  B0 - R0, cosine terms offsetS    (nmax+1 x nmax+1) double  B0 - R0, sine terms radiusKm   (1,1) double  the Gaussian radius used</td></tr></table>
+<h2>Error Identifiers</h2>
+<table><tr><th>Identifier</th><th>Raised when</th></tr><tr><td><code>shLowLevel:bridgeGaps:constantsMismatch</code></td><td class="desc">GM or R differ between the two series</td></tr><tr><td><code>shLowLevel:bridgeGaps:nanInput</code></td><td class="desc">a series holds NaN or Inf</td></tr><tr><td><code>shLowLevel:bridgeGaps:noOverlap</code></td><td class="desc">fewer than MinOverlap months match</td></tr></table>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<ul class="seealso"><li><a href="shSeries_bridgeGaps.html"><code>shSeries.bridgeGaps</code></a></li><li><a href="shSeries_gaussian.html"><code>shSeries.gaussian</code></a></li><li><a href="shSeries_applyTN14.html"><code>shSeries.applyTN14</code></a></li></ul>
+<p class="prov">shAnalysis v5.12.0 (10-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>
