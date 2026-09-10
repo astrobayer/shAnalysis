@@ -95,9 +95,11 @@ methods
         %   OUT = clim.removeGIA(GIA): GIA is an shCoefficients holding
         %   RATE coefficients [1/yr] (user-supplied model file via
         %   shCoefficients.read). Only trendC/trendS change; trend sigmas
-        %   are kept - the model is treated as exact (documented
-        %   limitation; GIA model spread often dominates regional trend
-        %   error budgets - compare several models).
+        %   are kept - the model is treated as exact here. To carry a GIA
+        %   model's own sigma, correct the series before the fit with
+        %   ts.removeGIA(GIA, Sigma = SIG) (v5.2.0), or add its rate sigma
+        %   to the trend sigma. GIA model spread often dominates regional
+        %   trend error budgets - compare several models.
         %   Inputs
         %     gia  GIA rate field (shCoefficients, struct or file) removed
         %          from the trend component

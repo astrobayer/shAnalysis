@@ -7,7 +7,7 @@
 <h1>shLowLevel.seaLevelFingerprint</h1>
 <p>Elastic sea-level fingerprint: the sea-level equation, iterated.</p>
 <h2>Syntax</h2>
-<pre>Idx= shLowLevel.shIndex(96, Nmin=0);
+<pre>idx = shLowLevel.shIndex(96, Nmin=0);
 loadF = @(la,lo) -sigmaIce(la,lo);        % kg/m^2, negative = loss
 [S, grid, info] = shLowLevel.seaLevelFingerprint(loadF, oceanMask, idx, ...
     kn=kn, hn=hn);

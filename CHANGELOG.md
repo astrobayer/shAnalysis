@@ -1,5 +1,67 @@
 # Changelog
 
+## [5.13.1] - 2026-09-11 - Documentation audit: help, html and guide in sync
+
+A PATCH: documentation, one demo fix, and a wider documentation gate. No
+documented call or error identifier changes.
+
+### Fixed
+- README quick start: `clim.amplitudeMap` was called with five positional
+  arguments; the contract takes three, with `Quantity=` and `kn=` as options.
+- Guide: ten snippets assigned `Idx=` and then used `idx`; the G9 recipe
+  called `shLowLevel.plotSHMap`, removed in v3.32.0; six paragraphs printed a
+  literal `%%`; one printed a mangled download path.
+- `shSynthesis.html` and `legendreALF.html` called both functions without
+  `shLowLevel.`, which v3.0.0 made necessary; `seaLevelFingerprint.html` and
+  `slepianBasis.html` had the `Idx=` defect too.
+- `demo_shAnalysis`: D05/D06 looked for a fetched ITSG series only in the
+  pre-v3.16 folders, so no fetch made since v3.16 was found. The v3.16 folder,
+  `<dataFolder>/series/itsg/monthly`, is searched first; on the acceptance
+  machine D05 now finds the 257 fetched months.
+- Stale statements corrected: the "5-20x" FFT figure, never measured, on the
+  shSynthesis and shCoefficients pages; GIA "treated as exact" in the guide
+  (v5.2.0 propagates its sigma), and a pointer to that route in
+  `shClimatology.removeGIA`'s help; the v3.16 download layout in five pages,
+  in the `fetchICGEM`, `dataFolder`, `setup_shAnalysis` and `fromFolder` help
+  and in the guide; test fixtures "shipped in tests/test_data" (a plain clone
+  has none; NOTICE now says where they are); "four" test suites (five); "six"
+  CI gates; `standardChain`'s "DDKn (fetched on demand)" (it reads the data
+  folder and never fetches); the guide's error-identifier convention (three
+  parts since v5.0.0), its edition, its test count, and the date in its page
+  stamp, which is now read from Contents.m.
+- Five help blocks named their see-also targets in the old upper-case form
+  (`SHSERIES/TOGRID`); they name the qualified entities now.
+- Six html pages opened `<body><div class="content">` twice and one closed
+  `</head>` twice - invisible in a browser, which forgives both; each page
+  opens one head and one body now.
+
+### Added (documentation)
+- The seven opt-in real-data tests are documented, each with what it needs and
+  where it looks: the setup page, README and the guide said two.
+- The class pages name every public method: 17 were missing from
+  shCoefficients, 10 from shSeries, 1 from shClimatology.
+- Guide chapters 28-32 - the ellipsoid, the data-driven leakage correction,
+  model grids, Earth-rotation excitation, bridging the mission gap - and
+  guide G14, the lanes behind the classes. References gain the sources those
+  chapters cite; the function index of the API reference sorts 123 of 128
+  functions into categories (51 had fallen into "Utilities"); a heading no
+  longer ends a page without its text.
+- README "What is new" covers v4.0.0 to v5.13.0, and its data-source table the
+  fetchers added since.
+
+### Gates
+- `doc_sync_audit.py` PROSE: the contract check now reaches html `<code>`
+  spans, the guide's Courier spans, README code fences and the Contents.m
+  quick start; no code block may call a package function without its
+  namespace; every public method must be named on its class page; every error
+  identifier a narrative page names must be one something raises; and each
+  hand-written page must open one head and one body. Each rule is
+  fault-injected with the defect found here
+  (`tools/tests/test_doc_sync_prose.py`, 18 tests).
+
+### Tests
+- 384 runs, unchanged.
+
 ## [5.13.0] - 2026-09-10 - WP7 backlog: four more lanes behind the classes
 
 A MINOR: six class methods, each a thin delegate.

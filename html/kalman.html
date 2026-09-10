@@ -13,6 +13,9 @@ normal equations, gappy series) is stabilized by what the gravity field did the 
 <p>Theory, the measured VAR order/structure table and the live attenuation/contribution figures are developed in <b>chapter 27 of the workflow &amp; theory guide</b> (<code class="inline">docs/shAnalysis_workflow_guide.pdf</code>).</p>
 
 <pre>[ts, rep] = shLowLevel.kalmanChain(obsIn, ModelSeries=tsm, Name=Value)</pre>
+<p>On a series the method form runs the same chain in solution mode:
+<code class="inline">[tsK, rep] = ts.kalman(ModelSeries = tsm, Order = 1)</code> <span class="tag">v5.6.0</span>;
+its options reach kalmanChain only when you give them.</p>
 
 <h2>The idea in four equations</h2>
 <p>The state <code class="inline">x_t</code> is the shIndex-ordered coefficient vector of the

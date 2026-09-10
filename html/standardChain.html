@@ -44,7 +44,7 @@ disp(rep.steps')</pre>
 <p>Left at their defaults, the correction files come from the persistent data folder that
 <a href="setup.html">setup_shAnalysis</a> populates. <code class="inline">Filter</code> accepts
 <code class="inline">"none"</code>, <code class="inline">"gaussN"</code> (N = radius in km),
-<code class="inline">"DDKn"</code> (fetched on demand), or a W struct from
+<code class="inline">"DDKn"</code> (read from the data folder &mdash; fetch it once with <code class="inline">shLowLevel.fetchDDK</code>), or a W struct from
 <a href="ref/shLowLevel_readDDK.html">readDDK</a> / <a href="ref/shLowLevel_designFilter.html">designFilter</a>.</p>
 
 <h2>The provenance report</h2>

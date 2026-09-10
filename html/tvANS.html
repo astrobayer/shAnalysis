@@ -3,7 +3,6 @@
 <link rel="stylesheet" href="shAnalysis.css">
 </head>
 <body><div class="content">
-<body><div class="content">
 <span class="tag">Filtering</span>
 <h1>tvANS &mdash; time-variable anisotropic Wiener filter</h1>
 <p>The optimal alternative to destripe+Gaussian: a per-month anisotropic non-symmetric Wiener filter
@@ -14,7 +13,7 @@ W<sub>t</sub> = S (S + s<sub>t</sub> N)<sup>-1</sup> applied to the residuals ab
 <h2>Components</h2>
 <table>
 <tr><th>Piece</th><th>Default</th><th>Notes</th></tr>
-<tr><td>N &mdash; noise covariance shape</td><td>empirical, per-order/per-parity blocks with shrinkage</td><td>captures the correlated same-parity striping structure; supply a full covariance via <code class="inline">NoiseCov</code> when available (SINEX/ITSG reader: roadmap)</td></tr>
+<tr><td>N &mdash; noise covariance shape</td><td>empirical, per-order/per-parity blocks with shrinkage</td><td>captures the correlated same-parity striping structure; supply a full covariance via <code class="inline">NoiseCov</code> when available (e.g. from <a href="readSINEX.html">readSINEX</a>)</td></tr>
 <tr><td>s<sub>t</sub> &mdash; monthly scale</td><td>Helmert VCE over high degrees</td><td><code class="inline">Robust=true</code> uses a chi&sup2;(1)-median estimator</td></tr>
 <tr><td>S &mdash; signal covariance</td><td>iterative, data-driven</td><td><code class="inline">SignalMode="isotropic"</code> (degree-wise) or <code class="inline">"inhomogeneous"</code> (spatially varying via S = G S<sub>iso</sub> G')</td></tr>
 <tr><td>Constraints</td><td>none</td><td>hard linear constraints (e.g. ocean-mass conservation): columns of <code class="inline">Constraints</code></td></tr>
@@ -40,7 +39,7 @@ covariance; the constrained-direction identity Ac'&middot;Cov&middot;Ac = s&midd
 Honest correction: the earlier unconstrained formula UNDERESTIMATED along constrained
 directions (validation ratios down to ~0.72), not "upper bound" as documented before.</td></tr>
 <tr><td>Basin sigma</td><td><code class="inline">out.sigma</code> (K&times;T) from
-<code class="inline">basinAverage(..., Deconvolve=true)</code>: cov(c) = s<sub>t</sub>&middot;A&#8315;&sup1;(Gv'&middot;g&sup2;&middot;Gv)A&#8315;&ᵀ
+<code class="inline">basinAverage(..., Deconvolve=true)</code>: cov(c) = s<sub>t</sub>&middot;A&#8315;&sup1;(Gv'&middot;g&sup2;&middot;Gv)A&#8315;&#7488;
 evaluated via the stored eigenfactors (W&thinsp;N&thinsp;W' = V&middot;diag(g&sup2;)&middot;V'), Monte-Carlo validated
 (0.7% at 4&middot;10&#8308; samples). Since v2.5 the basin sigma additionally carries the OLS
 parameter uncertainty of the restored deterministic part (design leverage &times; per-coefficient

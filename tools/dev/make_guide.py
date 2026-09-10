@@ -1,4 +1,7 @@
-"""make_guide.py - build shAnalysis_workflow_guide.pdf (Edition 5, v3.1.1).
+"""make_guide.py - build docs/shAnalysis_workflow_guide.pdf (Edition 6).
+
+The toolbox version and date on every page are read from Contents.m line 2
+at build time, so a release bump needs no edit here.
 
 Rebuilt after the original builder was lost; content reconstructed from the
 shipped Edition-2 PDF, updated for v2.4.2, with all display equations
@@ -45,10 +48,11 @@ os.makedirs(EQDIR, exist_ok=True)
 
 import re as _re
 _cm = open(os.path.join(_ROOT, "Contents.m")).read()
-VERSION = "v" + _re.search(r"% Version (\S+)", _cm).group(1)
+_mv = _re.search(r"% Version (\S+) \([^)]*\) (\S+)", _cm)
+VERSION = "v" + _mv.group(1)
 STAMP = ("shAnalysis %s - Workflow & Theory Guide - Developed by "
-         "Matthias Weigelt with the help of Claude, 2026-08-18"
-         % VERSION)
+         "Matthias Weigelt with the help of Claude, %s"
+         % (VERSION, _mv.group(2)))
 
 PAGE_W, PAGE_H = A4
 MARGIN = 1.9 * cm
@@ -61,13 +65,13 @@ S["body"] = ParagraphStyle("body", fontName="Helvetica", fontSize=9.3,
 S["bullet"] = ParagraphStyle("bullet", parent=S["body"], leftIndent=14,
                              bulletIndent=4, spaceAfter=2)
 S["h1"] = ParagraphStyle("h1", fontName="Helvetica-Bold", fontSize=15,
-                         leading=18, spaceBefore=10, spaceAfter=6,
+                         leading=18, spaceBefore=10, spaceAfter=6, keepWithNext=1,
                          textColor=colors.HexColor("#1a3a5c"))
 S["h2"] = ParagraphStyle("h2", fontName="Helvetica-Bold", fontSize=11.5,
-                         leading=14, spaceBefore=9, spaceAfter=3,
+                         leading=14, spaceBefore=9, spaceAfter=3, keepWithNext=1,
                          textColor=colors.HexColor("#1a3a5c"))
 S["h3"] = ParagraphStyle("h3", fontName="Helvetica-Bold", fontSize=9.8,
-                         leading=12, spaceBefore=7, spaceAfter=2)
+                         leading=12, spaceBefore=7, spaceAfter=2, keepWithNext=1)
 S["title"] = ParagraphStyle("title", fontName="Helvetica-Bold", fontSize=21,
                             leading=26, spaceAfter=4,
                             textColor=colors.HexColor("#1a3a5c"))
@@ -216,11 +220,10 @@ story += [Spacer(1, 30),
                "recipes", "subtitle")]
 story += tbl(["", ""], [
     ["Toolbox version", "shAnalysis " + VERSION],
-    ["Edition", "5 (adds: ICGEM time-series download, the standard chain "
-                "and custom filter design as single entry points, and what "
-                "real provider files actually look like &mdash; FORTRAN "
-                "D-exponents, the ICGEM 2.0 column order, ragged record "
-                "groups)"],
+    ["Edition", "6 (adds: evaluation on the ellipsoid, GIA uncertainty, "
+                "data-driven leakage correction, model grids, Earth-rotation "
+                "excitation, bridging the mission gap, and the numerical "
+                "lanes as class methods)"],
     ["Scope", "ICGEM I/O, spectral diagnostics, synthesis &amp; analysis, "
               "destriping, Gaussian / DDK / tvANS filtering, VCE, basin "
               "averages &amp; deconvolution, climatology &amp; AR(1) "
@@ -229,13 +232,16 @@ story += tbl(["", ""], [
               "gradient tensor, multi-center combination, sea-level "
               "fingerprints, Love-number I/O incl. frame conversion, "
               "ICGEM series download, pole-tide conventions, pointwise "
-              "synthesis at satellite altitude"],
+              "synthesis at satellite altitude, the ellipsoidal surface, "
+              "leakage correction, Kalman/VAR smoothing, Earth-rotation "
+              "excitation, gap bridging, CF grids"],
     ["Dependencies", "base MATLAB only (no toolboxes); Java optionally for "
                      "gz streaming"],
     ["Validation", "every numerical method independently validated in "
                    "Python (numpy/scipy) before MATLAB implementation; "
-                   "169 unit tests"],
-    ["License", "MIT (see LICENSE; bundled DDK3 Wbd file MIT from its "
+                   "runAllTests (five suites) is the acceptance gate on "
+                   "every pull request"],
+    ["License", "MIT (see LICENSE; the DDK3 Wbd test fixture MIT from its "
                 "upstream repository; ITSG/GFZ fixtures remain their "
                 "providers' property)"],
     ["Provenance", "Developed by Matthias Weigelt with the help of "
@@ -273,7 +279,8 @@ story += code("""
 cd shAnalysis
 setup_shAnalysis(Permanent = true, Download = "core")
 % levels: "none" (path only) | "core" (TN-13/TN-14) | "filters" (+DDK)
-%         | "starter" (+ a few ITSG months);  DryRun = true shows the plan
+%         | "starter" (+ a few ITSG months) | "all" (+ the complete ITSG
+%         monthly archive, resumable);  DryRun = true shows the plan
 shLowLevel.makeTutorials(Cases = "core");   % Live Scripts to open and run
 """)
 story += [para("Downloads land under a persistent data folder "
@@ -285,44 +292,60 @@ story += [para("Downloads land under a persistent data folder "
                "place.")]
 
 story += [para("Opt-in test data", "h2")]
-story += [para("Two checks need data far too large to ship as fixtures, "
-               "so they read an environment variable and filter "
-               "themselves out when it is unset. This is not tidiness: "
-               "the fixture suite cannot see the class of failure that "
-               "only appears on real data of real length &mdash; three "
-               "such bugs were found the first time the toolbox was run "
-               "against a full 24-year series, and the mascon reader's "
-               "dimension order was only settled by a real product "
-               "file.")]
-story += tbl(["Variable", "What it enables", "Where to get the data"], [
-    ["<font face='Courier'>SHX_SERIES_FOLDER</font>",
-     "the trend regression in <font face='Courier'>testScience</font>: a "
-     "folder of monthly .gfc files, more than 24 epochs, GSM level",
-     "<font face='Courier'>shLowLevel.fetchITSG</font> or "
-     "<font face='Courier'>fetchICGEM(Type=\"temporal\")</font>"],
-    ["<font face='Courier'>SHX_MASCON_FILE</font>",
-     "the <font face='Courier'>readMascon</font> check against a REAL "
-     "product &mdash; the synthetic fixture writes (lon, lat, time), the "
-     "JPL file writes (time, lat, lon), and a size check passes either "
-     "way",
-     "CSR (no login), GSFC, or JPL PO.DAAC (free Earthdata login)"],
-], [4.4*cm, 5.6*cm, 3.6*cm])
+story += [para("Seven tests need data far too large to ship as fixtures, "
+               "so each reads its location from an environment variable "
+               "or a MATLAB preference and filters itself out when there "
+               "is none. This is not tidiness: the fixture suite cannot "
+               "see the class of failure that only appears on real data "
+               "of real length &mdash; three such bugs were found the "
+               "first time the toolbox was run against a full 24-year "
+               "series, and the mascon reader's dimension order was only "
+               "settled by a real product file.")]
+story += tbl(["Test", "What it needs", "Where it looks"], [
+    ["testPublishedTrendOnARealSeries (testScience)",
+     "a folder of monthly GSM .gfc files, more than 24 epochs",
+     "SHX_SERIES_FOLDER, the environment only"],
+    ["testMasconReaderOnARealFile (testRobustness)",
+     "a real mascon product: CSR (no login), GSFC, or JPL PO.DAAC",
+     "SHX_MASCON_FILE"],
+    ["testReadGridOnTheGravISGrid (testRobustness)",
+     "the GravIS Level-3 TWS grid in the GravIS folder",
+     "SHX_GRAVIS_FOLDER or preference GravisFolder"],
+    ["testGravisChainsRealData (testContract)",
+     "the GravIS folder, a monthly series and the DDK binaries",
+     "SHX_GRAVIS_FOLDER, SHX_SERIES_FOLDER and SHX_DDK_FOLDER, or the "
+     "preferences GravisFolder, SeriesFolder and DDKFolder"],
+    ["testExcitationAgainstESMGFZ (testScience)",
+     "the ESMGFZ angular momentum functions (ESMGFZ/HAM, ESMGFZ/SLAM) "
+     "and a monthly series",
+     "SHX_EARTHROTATION_FOLDER or preference EarthRotationFolder, plus "
+     "the series"],
+    ["testBridgeGapsAgainstGRACE (testScience)",
+     "an HLSST series such as HLSST_SLR_COMB2023s, and a monthly series",
+     "SHX_BRIDGE_FOLDER or preference BridgeFolder, plus the series"],
+    ["testUserSuppliedSINEXFiles (testRobustness)",
+     "SINEX files of your own (*.snx, *.snx.gz, up to ~30 MB)",
+     "the test-data folder: SHX_TESTDATA_FOLDER or preference "
+     "TestDataFolder"],
+], [5.8 * cm, 4.9 * cm, TEXT_W - 10.7 * cm])
 story += code("""
-% set them for this session, or pass them to setup:
+% five locations through setup: setenv for this session AND setpref
 setup_shAnalysis(SeriesFolder = "D:/grace/itsg", ...
-                 MasconFile = "D:/grace/GRCTellus_JPL.nc");
-% for good, put the same two lines in your startup.m:
-setenv("SHX_SERIES_FOLDER", "D:/grace/itsg");
-setenv("SHX_MASCON_FILE", "D:/grace/GRCTellus_JPL.nc");
+                 MasconFile = "D:/grace/GRCTellus_JPL.nc", ...
+                 GravisFolder = "D:/grace/gravis", DDKFolder = "D:/grace/DDK");
+% the other two as preferences
+setpref("shAnalysis", "EarthRotationFolder", "D:/grace/earthRotation");
+setpref("shAnalysis", "BridgeFolder", "D:/grace/hlsst");
 """)
-story += [para("<font face='Courier'>SHX_SERIES_FOLDER</font> is "
-               "deliberately NOT wired to the persistent data folder. A "
-               "routine acceptance run must never reach for a network or "
-               "archive drive, so pointing at that data is a decision the "
-               "user makes explicitly. Neither variable is required: "
-               "without them the suite runs complete and the two tests "
-               "report themselves as filtered rather than passing "
-               "silently."),
+story += [para("<font face='Courier'>SHX_SERIES_FOLDER</font> is the one "
+               "location read from the environment only, and only by the "
+               "trend regression: a routine acceptance run must never "
+               "reach for a network or archive drive, so that test runs "
+               "only in a session that asked for it (setup exports the "
+               "variable for the session; a setenv line in startup.m "
+               "keeps it). None of the seven is required: without their "
+               "data the suite runs complete and each reports as "
+               "filtered rather than passing silently."),
           PageBreak()]
 
 # ========================================================= Part I theory
@@ -438,6 +461,19 @@ story += [para("For uniform full-circle longitude grids this last sum is "
                "Chunked equals monolithic exactly (Python-validated, max "
                "deviation 0.0); the class-level Legendre cache is bypassed "
                "automatically when the stack would not fit.")]
+
+story += [para("<b>Scattered points (v5.1.0).</b> <font face='Courier'>"
+               "shLowLevel.synthesisPoints</font> evaluates at arbitrary "
+               "(latitude, longitude, radius), with the upward "
+               "continuation a spherical grid cannot express. "
+               "Method = \"clenshaw\" sums each order by Clenshaw's "
+               "recursion on lumped coefficients and never forms the "
+               "Legendre array; \"direct\" batches the Legendre functions "
+               "and is bitwise the earlier path. In MATLAB clenshaw won at "
+               "every point count measured (1 to 2000 points, nmax 60 to "
+               "360), so \"auto\" picks it everywhere (v5.3.0): 2000 points "
+               "at nmax 60 take 0.022 s on the CI machine against 2.28 s "
+               "for the per-point code it replaced.")]
 
 story += [para("4. Quantity kernels", "h2"),
           para("A single degree factor f<sub>n</sub> maps Stokes "
@@ -569,7 +605,7 @@ story += [para("8. DDK anisotropic decorrelation (v2.2)", "h2"),
                "</font>."),
           para("<b>Note.</b> The real DDK3 file (Wbd_2-120.a_1d12p_4, "
                "MIT-licensed, from github.com/strawpants/GRACE-filter) "
-               "ships in tests/test_data; the unit tests pin the parser "
+               "is one of the test fixtures (shLowLevel.testDataDir finds it); the unit tests pin the parser "
                "to the repository-documented pack values. Degrees below "
                "the filter's Lmin (2) pass through unfiltered, as in the "
                "reference implementation.")]
@@ -692,6 +728,13 @@ story += [para("Eigenvectors (Slepian tapers) are orthonormal; "
                "prior needed. Validated on the 30&deg; polar cap: "
                "&lambda; bounds to 4e-16, orthonormality 3e-15.")]
 
+story += [para("<font face='Courier'>shLowLevel.slepianProject</font> "
+               "projects a coefficient stack onto the tapers and rebuilds "
+               "the part of the field they carry; <font face='Courier'>"
+               "g.slepianProject</font> and <font face='Courier'>"
+               "ts.slepianProject</font> (v5.13.0) do the same for one "
+               "field or every epoch of a series.")]
+
 story += [para("13. Climatology, alias periods, AR(1) significance "
                "(v2.2)", "h2"),
           para("<font face='Courier'>ts.climatology()</font> fits bias, "
@@ -730,10 +773,21 @@ story += [para("14. GIA correction (v2.2)", "h2"),
                "directly &mdash; both routes agree identically (tested to "
                "1e-13). GIA models (ICE-6G_D, Caron et al., A/W13, ...) "
                "are user-supplied gfc rate files, never embedded. The "
-               "model is treated as exact: its uncertainty, often the "
-               "dominant regional trend error (Laurentia, Fennoscandia, "
-               "Antarctica), is not propagated &mdash; difference several "
-               "models as a spread estimate.")]
+               "model's own uncertainty, often the dominant regional "
+               "trend error (Laurentia, Fennoscandia, Antarctica), "
+               "propagates too since v5.2.0: <font face='Courier'>"
+               "ts.removeGIA(gia, Sigma = s)</font> adds the rate sigma "
+               "times |t &minus; T<sub>0</sub>| in quadrature to every "
+               "epoch's sigmas &mdash; correct MARGINAL sigmas &mdash; "
+               "and returns the rate sigma itself in <font face='Courier'>"
+               "info.rateSigmaC/S</font>. That second output is the one "
+               "a trend needs: one rate error applies to every epoch, so "
+               "the GIA term is perfectly correlated in time, and a trend "
+               "fitted from per-epoch sigmas that assume independence "
+               "understates it by about &radic;T (measured 3.49&times; "
+               "against &radic;T = 3.46). Without a sigma field, "
+               "differencing several models remains the spread "
+               "estimate.")]
 
 story += [para("15. Geocentric vs. geodetic latitude (v2.2)", "h2"),
           para("All SH mathematics here runs in geocentric latitude; "
@@ -758,6 +812,19 @@ story += [para("16. The degree-1 / C20 completion chain", "h2"),
                "<font face='Courier'>ts.addDegree1</font> and the "
                "C20/C30 replacement close the chain with epoch matching "
                "and provenance notes in the history.")]
+
+story += [para("A TN-13 table is one source of degree 1; the data "
+               "themselves are the other. <font face='Courier'>"
+               "shLowLevel.estimateDegree1</font> (v3.6.0) implements "
+               "Swenson, Chambers &amp; Wahr (2008): the degree-1 terms "
+               "are whatever, added to the field, make its ocean part "
+               "agree with an ocean model &mdash; a small least-squares "
+               "problem per epoch over the ocean domain. Its output has "
+               "the TN-13 layout, so <font face='Courier'>ts.addDegree1"
+               "</font> takes either, and <font face='Courier'>"
+               "ts.estimateDegree1</font> (v5.13.0) is the method form. "
+               "Omitting the ocean model attributes real ocean signal to "
+               "the geocentre, and a warning says so.")]
 
 story += [para("17. Normal field and (GM, R) conventions (v2.4)", "h2"),
           para("Geoid maps need the DISTURBING field: subtract the "
@@ -875,7 +942,7 @@ story += [para("21. Time-variable decorrelation: the VDK/VADER filter "
                "falling Kaula law while GRACE errors rise with degree; "
                "(b) the resulting gain damps degrees where noise wins. "
                "VDK recomputes the gain every month from the measured N."),
-          *code("""Idx= shLowLevel.shIndex(96, Nmin= 2);
+          *code("""idx = shLowLevel.shIndex(96, Nmin= 2);
 f = shLowLevel.fetchITSGSINEX("2018-06", Nmax = 96);   % ~460 MB, deliberate
 snx = shLowLevel.readSINEX(f(1), Index = idx);     % N + x in idx order
 [ab, ~] = shLowLevel.signalVarianceKaula(ts.Cs, ts.Ss, ts.epochs);
@@ -1108,7 +1175,7 @@ story += [para("Honest scope note: an 11&deg;-cap basin average of the "
     "chain; the daily output feeds hydroExtremeIndex directly "
     "(chapter 26)."]),
           para("The one-call form", "h3")]
-story += code("""Idx= shLowLevel.shIndex(40);
+story += code("""idx = shLowLevel.shIndex(40);
 ts   = shSeries.fromFolder(folder, Truncate = 40);
 [tsK, rep] = shLowLevel.kalmanChain(ts, ModelSeries = ts, ...
     Structure = "orderblock", Shrink = 1e-2, QC = "reject");
@@ -1118,15 +1185,235 @@ story += [para("For SINEX normal equations replace the first argument by "
                "center); kalmanChain reads, epoch-groups, VCE-combines "
                "and filters in information form, and returns the "
                "smoothed shSeries with propagated sigmas plus the full "
-               "report (model, contribution, QC record).")]
+               "report (model, contribution, QC record). For a series in "
+               "solution mode, <font face='Courier'>ts.kalman(ModelSeries "
+               "= tsm)</font> (v5.6.0) is the method form of the same "
+               "call.")]
 
-story += [para("28. References", "h2"),
+# ------------------------------------------------ v5 chapters (v5.13.1)
+story += [para("28. Evaluating on the ellipsoid (v5.5.0)", "h2"),
+          para("Every synthesis in Sections 3&ndash;5 evaluates on the "
+               "sphere r = R. The Earth's surface is much closer to the "
+               "WGS84 ellipsoid, whose geocentric radius at geocentric "
+               "latitude &phi; is")]
+story += eq(r"r(\varphi)=a\,\sqrt{\frac{1-e^{2}}{1-e^{2}\cos^{2}\varphi}},"
+            r"\qquad e^{2}=f\,(2-f)")
+story += [para("(<font face='Courier'>shLowLevel.ellipsoidRadius</font>, "
+               "the one place the toolbox computes it). "
+               "<font face='Courier'>Surface = \"ellipsoid\"</font> in "
+               "shSynthesis and shSynthesisGradient, and in the class "
+               "methods synthesis, gradient, toGrid and map, moves every "
+               "point to r(&phi;) + Height and applies the radial law "
+               "(R/r)<super>p</super> of Section 4 there. The difference "
+               "is largest at the poles, where the ellipsoid lies 21.4 km "
+               "inside the sphere: (R/b)<super>n+2</super> is 1.23 at "
+               "n = 60, 1.39 at n = 96 and 1.84 at n = 180. Only "
+               "quantities with a radial law accept the option &mdash; "
+               "potential, gravity anomaly and disturbance, "
+               "T<sub>rr</sub>. The geoid is refused on purpose: on the "
+               "ellipsoid it also needs the latitude-dependent normal "
+               "gravity &gamma;(&phi;), and moving the radius alone would "
+               "be half a correction. The semi-major axis is WGS84's "
+               "a = 6378137 m, not the coefficients' R: R belongs to the "
+               "series, a to the surface. The sphere path is bitwise "
+               "unchanged, and f = 0 with a = R reproduces it bitwise. "
+               "Station lists go through synthesisPoints, which takes a "
+               "radius per point; latitudes must be geocentric &mdash; a "
+               "geodetic 45&deg; taken as geocentric misplaces the radius "
+               "by 71.8 m.")]
+story += code("""
+dg  = g.synthesis(-90:0.5:90, 0:0.5:359.5, ...
+          Quantity = "gravity_disturbance", Surface = "ellipsoid");
+r   = shLowLevel.ellipsoidRadius(latSta) + hSta;   % a radius per station
+dgS = g.synthesisPoints(latSta, lonSta, r, Quantity = "disturbance");
+""")
+
+story += [para("29. Leakage correction without a model (v5.4.0, v5.9.0)",
+               "h2"),
+          para("Guide G12 corrects leakage by forward modelling, which "
+               "needs a mask, or by scaling factors, which need a "
+               "hydrological model. The method of deviation (Vishwakarma "
+               "et al. 2017) needs neither. Split the true field g into "
+               "its part inside the catchment (catchment function R) and "
+               "the rest. For any filter that leaves a constant alone "
+               "&mdash; the Gaussian does &mdash; the filtered catchment "
+               "average splits with no approximation:")]
+story += eq(r"\bar{g}_c=f_c+\Delta F_c+l_c\quad\Rightarrow\quad"
+            r"\hat{f}_c=\bar{g}_c-\Delta\hat{F}_c-\hat{l}_c")
+story += [para("&mdash; the wanted mean f<sub>c</sub>, the deviation "
+               "integral &Delta;F<sub>c</sub> (what the filter does to the "
+               "catchment's own signal because it is not a uniform layer, "
+               "weighted by the FILTERED catchment function) and the "
+               "leakage l<sub>c</sub> smeared in from outside. Both "
+               "corrections need the unfiltered g; the method estimates "
+               "them from the once- and twice-filtered fields and "
+               "extrapolates one filtering step back. The leakage "
+               "extrapolation corrects a PHASE as well as an amplitude "
+               "(Hilbert regression, Phillips et al. 2012) &mdash; "
+               "out-of-phase leakage is exactly what a scale factor cannot "
+               "repair &mdash; while the deviation integral deliberately "
+               "gets none: the thesis measured those phase differences and "
+               "found no consistent relation. Both steps are regressions "
+               "over time, so the function refuses fewer than 12 epochs "
+               "and refuses NaN, and the method is designed for catchments "
+               "of about 65000 km&sup2; and up."),
+          para("<b>The method of scale</b> (Method = \"scale\", v5.9.0) "
+               "removes the same leakage estimate and scales the rest:")]
+story += eq(r"\hat{f}_c=s\,(\bar{g}_c-\hat{l}_c),\qquad "
+            r"s=\frac{\int R\,d\Omega}{\int R\,\bar{R}\,d\Omega}")
+story += [para("s depends on the catchment and the filter alone, and "
+               "INFO.scale reports it whichever method ran. It is exact "
+               "only for a uniform layer inside the catchment, and it "
+               "grows as the catchment shrinks, amplifying errors. The "
+               "closed loops favour it (75% of the filtering damage "
+               "removed against 55% on the testCorrectness fixture), but "
+               "both fixtures put a uniform layer inside the catchment "
+               "&mdash; the one case it is exact for &mdash; so that ranks "
+               "nothing, and the method of deviation stays the default.")]
+story += code("""
+% ewh: nLat x nLon x T fields that already saw a 300 km Gaussian
+[fHat, info] = shLowLevel.leakageDataDriven(ewh, lat, lon, ...
+    Mask = basin, Filter = "gauss300");
+[info.phaseDeg, info.leakageRatio, info.scale]
+fS = shLowLevel.leakageDataDriven(ewh, lat, lon, Mask = basin, ...
+    Filter = "gauss300", Method = "scale");        % the method of scale
+fT = ts.leakageDataDriven(lat, lon, Filter = "gauss300", kn = kn, ...
+    Mask = basin);                                 % from a series (v5.6.0)
+""")
+
+story += [para("30. Model grids into coefficients (v5.8.0)", "h2"),
+          para("Hydrological models and the GravIS Level-3 products come "
+               "as CF netCDF grids. <font face='Courier'>"
+               "shLowLevel.readGrid</font>, the inverse of writeGrid, "
+               "reads one: dimensions are found by name and returned as "
+               "(lat, lon, time), longitudes come back in 0..360 "
+               "ascending, fill values as NaN, and the time axis is "
+               "decoded by the toolbox's one CF time decoder, the one "
+               "readMascon uses. It changes no numbers: it neither regrids "
+               "nor fills, and it does not assume the latitude type "
+               "&mdash; INFO.latType reports what writeGrid recorded, and "
+               "an empty string for a grid from elsewhere, whose "
+               "latitudes are geographic, that is geodetic. A land-only "
+               "grid comes back with NaN over the ocean, and "
+               "<font face='Courier'>shCoefficients.analysis</font> "
+               "refuses NaN until Fill = value says what the gaps mean "
+               "(0 for no mass there): a NaN would otherwise reach every "
+               "coefficient. Since v5.12.1 <font face='Courier'>"
+               "shLowLevel.shAnalysisGrid</font> refuses NaN as well.")]
+story += code("""
+[tws, lat, lon, info] = shLowLevel.readGrid(gravisFile, Var = "tws");
+info.units, info.latType                  % check both before going on
+gT = shCoefficients.analysis(tws(:, :, 1), lat, lon, 96, ...
+    Quantity = "ewh", kn = kn, Fill = 0, LatType = "geodetic");
+""")
+
+story += [para("31. Earth-rotation excitation (v5.10.0, v5.11.0)", "h2"),
+          para("Mass that moves on and in the Earth changes its inertia "
+               "tensor and so its rotation, and the degree-2 Stokes "
+               "coefficients are that tensor's time-variable part: C21 and "
+               "S21 excite polar motion, C20 the length of day. Chen "
+               "&amp; Wilson (2003, eq. 1, after Eubanks 1993), solved "
+               "for the excitation:")]
+story += eq(r"\chi_1=-\frac{1.098\,R^{2}M}{(1+k'_2)\,\sqrt{3/5}\,(C-A)}"
+            r"\,\Delta C_{21},\qquad \chi_2\ \mathrm{likewise\ with}\ "
+            r"\Delta S_{21}")
+story += eq(r"\chi_3=-\frac{0.753\,R^{2}M\,2\sqrt{5}}{(1+k'_2)\,3C}\,"
+            r"\Delta C_{20},\qquad \Delta\mathrm{LOD}=\frac{2\pi}{\Omega}"
+            r"\,\chi_3")
+story += [para("&Delta;LOD is the ESMGFZ convention (Dobslaw &amp; Dill "
+               "2019, eq. 2.8, read as a time). <font face='Courier'>"
+               "ts.excitation(kn = kn, TN14 = tn)</font> returns "
+               "&chi;<sub>1</sub> and &chi;<sub>2</sub> in mas and, with a "
+               "TN-14 table, &chi;<sub>3</sub> and &Delta;LOD in ms from "
+               "the SLR C20 &mdash; GRACE's own C20 is the coefficient it "
+               "determines worst. The Earth's constants default to the "
+               "IERS Conventions (2010), Table 1.1: M = GM/G, C &minus; A = "
+               "J<sub>2</sub>Ma<sub>E</sub>&sup2;, C = (C &minus; A)/H, "
+               "R = a<sub>E</sub>, which agree with the ESMGFZ values of C "
+               "and A to 0.03%; Earth = struct(...) takes your own. Three "
+               "things the excitation is not. A GSM series has the "
+               "atmosphere and the ocean removed, so it is the excitation "
+               "of the rest &mdash; restore GAC first for the whole mass "
+               "term. The motion term (winds, currents) is never in a "
+               "gravity field. And &chi;<sub>2</sub> points to 90&deg;E "
+               "in the coefficients' frame, while the IERS pole y "
+               "coordinate points to 90&deg;W. C21/S21 also depend on the "
+               "mean-pole convention of the pole-tide removal: convert "
+               "with poleTideConvert before comparing series processed "
+               "differently."),
+          para("The factors 1.098 and 0.753 are options (PolarFactor, "
+               "AxialFactor). ESMGFZ's prefactors give 1.101 for the "
+               "polar terms, 0.3% apart, but 0.844 for the axial one, 12% "
+               "more &mdash; close to the whole Earth's axial moment over "
+               "the mantle's, which some authors put into the axial "
+               "term. The opt-in testExcitationAgainstESMGFZ compares "
+               "GRACE's excitation with the ESMGFZ hydrological and "
+               "sea-level angular momentum functions.")]
+story += code("""
+tn = shLowLevel.readTN14(tn14File);
+[tbl, info] = ts.excitation(kn = kn, TN14 = tn);   % t, chi1, chi2, chi3, dLOD
+plot(tbl.t, tbl.dLOD); ylabel("dLOD [ms]")
+info.earth                                         % the constants used
+""")
+
+story += [para("32. Bridging the mission gap (v5.12.0)", "h2"),
+          para("Between the last GRACE month and the first GRACE-FO month "
+               "lie eleven months without a K-band solution (2017-07 to "
+               "2018-05), and GRACE lost scattered months to battery "
+               "management before that. High-low satellite-to-satellite "
+               "tracking of low orbiters such as Swarm, combined with SLR, "
+               "covers them at lower resolution (Weigelt et al. 2024). "
+               "<font face='Courier'>shLowLevel.bridgeGaps</font> and "
+               "<font face='Courier'>ts.bridgeGaps</font> fill every month "
+               "the reference series lacks within its span from such a "
+               "series, calibrated on the months both have. Both are "
+               "truncated to the lower nmax and smoothed with a Gaussian "
+               "of RadiusKm (750 by default) &mdash; the whole output, so "
+               "its resolution does not jump. Per coefficient, the means "
+               "over the overlap give an offset, which also absorbs a "
+               "difference in tide system or reference field; per degree, "
+               "a scale regresses the reference's anomalies on the "
+               "bridge's:")]
+story += eq(r"\tilde{c}_{nm}(t)=R_{0,nm}+s_n\left(B_{nm}(t)-B_{0,nm}\right),"
+            r"\qquad s_n=\frac{\sum\Delta B\,\Delta R}{\sum\Delta B^{2}}")
+story += [para("The sigma of a filled month is the RMS over the overlap of "
+               "the calibration residual &mdash; the fill's error as the "
+               "reference itself sees it &mdash; because the formal sigmas "
+               "of the HLSST series are too small at low degrees, by a "
+               "factor 3 to 6 for the Kalman-filtered variant. Measured "
+               "on COST-G RL02.1 against the Kalman-filtered "
+               "QuantumFrontiers HLSST_SLR_COMB2023s at 750 km (208 "
+               "overlap months), the fill's error over degrees 3&ndash;60 "
+               "is 41% of the GRACE signal with the scale and 45% without; "
+               "the unfiltered HLSST variant gives 62% and 92%. A filled "
+               "month is named bridge: followed by its name in the bridge "
+               "series, and INFO.bridged marks it, so the flag travels "
+               "with the epochs through select, truncate and every other "
+               "method. Apply TN-14 to the reference first: TN-14 has no "
+               "C20 between the missions, and a filled month keeps the "
+               "bridge series' own C20, which an HLSST + SLR combination "
+               "determines from SLR as well.")]
+story += code("""
+tsG = shSeries.read("GSM-2_*.gfc").applyTN14(tnFile);   % TN-14 first
+tsH = shSeries.read(fullfile(hlFolder, "*.gfc"));        % HLSST + SLR
+[ts, info] = tsG.bridgeGaps(tsH, RadiusKm = 750);
+ts.names(info.bridged)                                   % "bridge:..." months
+[info.overlap, nnz(info.bridged)]
+""")
+
+story += [para("33. References", "h2"),
           *bullets([
     "Chambers, D.P., Willis, J.K. (2010): A global evaluation of ocean "
     "bottom pressure from GRACE, OMCT, and steric-corrected altimetry. "
     "J. Atmos. Oceanic Technol. 27, 1395&ndash;1402.",
+    "Chen, J.L., Wilson, C.R. (2003): Low degree gravitational changes "
+    "from earth rotation and geophysical models. Geophys. Res. Lett. "
+    "30(24), 2257. (Equation (1) of chapter 31.)",
     "Cheng, M., Tapley, B.D., Ries, J.C. (2013): Deceleration in the "
     "Earth's oblateness. J. Geophys. Res. Solid Earth 118, 740&ndash;747.",
+    "Dobslaw, H., Dill, R. (2019): Product Description Document: "
+    "Effective Angular Momentum Functions from Earth System Modelling at "
+    "GFZ, rev. 1.1. (The length of day of chapter 31.)",
     "Gerchberg, R.W. (1974): Super-resolution through error energy "
     "reduction. Optica Acta 21, 709&ndash;720. (With Papoulis 1975, the "
     "support-projection principle behind Section 24.)",
@@ -1159,6 +1446,12 @@ story += [para("28. References", "h2"),
     "Papoulis, A. (1975): A new algorithm in spectral analysis and "
     "band-limited extrapolation. IEEE Trans. Circuits Syst. 22, "
     "735&ndash;742.",
+    "Petit, G., Luzum, B. (eds.) (2010): IERS Conventions (2010). IERS "
+    "Technical Note 36. (The Earth's constants of chapter 31.)",
+    "Phillips, T., Nerem, R.S., Fox-Kemper, B., Famiglietti, J.S., "
+    "Rajagopalan, B. (2012): The influence of ENSO on global terrestrial "
+    "water storage using GRACE. Geophys. Res. Lett. 39, L16705. (The "
+    "Hilbert phase estimator of chapter 29.)",
     "Reager, J.T., Famiglietti, J.S. (2009): Global terrestrial water "
     "storage capacity and flood potential using GRACE. Geophys. Res. "
     "Lett. 36, L23402.",
@@ -1179,9 +1472,20 @@ story += [para("28. References", "h2"),
     "Swenson, S., Chambers, D., Wahr, J. (2008): Estimating geocenter "
     "variations from a combination of GRACE and ocean model output. "
     "J. Geophys. Res. 113, B08410.",
+    "Vishwakarma, B.D. (2017): Understanding and repairing the signal "
+    "damage due to filtering of mass change estimates from the GRACE "
+    "satellite mission. PhD thesis, University of Stuttgart. (Chapter "
+    "29.)",
+    "Vishwakarma, B.D., Horwath, M., Devaraju, B., Groh, A., Sneeuw, N. "
+    "(2017): A data-driven approach for repairing the hydrological "
+    "catchment signal damage due to filtering of GRACE products. Water "
+    "Resour. Res. 53, 9824&ndash;9844.",
     "Wahr, J., Molenaar, M., Bryan, F. (1998): Time variability of the "
     "Earth's gravity field. J. Geophys. Res. 103, 30205&ndash;30229. "
     "(The EWH kernel of Section 4.)",
+    "Weigelt, M. et al. (2024): Bridging the gap between GRACE and GRACE "
+    "Follow-On by combining high-low satellite-to-satellite tracking data "
+    "and satellite laser ranging. J. Geodesy 98, 84. (Chapter 32.)",
     "Zhao, M., Geruo, A., Velicogna, I., Kimball, J.S. (2017): A global "
     "gridded dataset of GRACE drought severity index. "
     "J. Hydrometeorol. 18, 2117&ndash;2129."]),
@@ -1208,7 +1512,8 @@ story += bullets([
     "filtering &mdash; filters see the stripes, not the low-degree "
     "completions.",
     "<b>3.</b> Bridge the GRACE&harr;GRACE-FO gap explicitly: dropNaN / "
-    "select; never fit a climatology across NaNs.",
+    "select, or fill it from an HLSST series with bridgeGaps (after "
+    "TN-14, chapter 32); never fit a climatology across NaNs.",
     "<b>4.</b> Filter: tvANS (or DDK for benchmarking; Gaussian as "
     "baseline).",
     "<b>5.</b> Remove GIA (trend work only).",
@@ -1230,6 +1535,8 @@ story += tbl(["situation", "recommendation"], [
      "several neighboring kernels"],
     ["regional studies",
      "Slepian basis instead of filtering a global field (Part III, G4)"],
+    ["a single catchment and no model you trust",
+     "filter as usual, then leakageDataDriven (chapter 29)"],
 ], [6.3 * cm, TEXT_W - 6.3 * cm])
 
 story += [para("Uncertainty accounting &mdash; what is honest and what "
@@ -1245,7 +1552,9 @@ story += bullets([
     "Climatology sigmas &rarr; OLS/weighted/robust; AR(1) correction "
     "first-order with Kendall-corrected r<sub>1</sub> (v2.5; residual "
     "~3% optimism from regression absorption).",
-    "GIA &rarr; model treated exact; use model spread.",
+    "GIA &rarr; the model's rate sigma propagates with removeGIA(Sigma=) "
+    "(v5.2.0); for a trend add info.rateSigmaC/S, which is fully "
+    "correlated in time; without a sigma field use the model spread.",
     "Multi-center combination &rarr; posterior sigmas are a LOWER bound "
     "(common mode invisible; see info.interCenterCorr).",
     "DDK-filtered fields &rarr; no analytic sigmas; use mcPropagate.",
@@ -1261,8 +1570,10 @@ story += bullets([
     "Ring-grid analysis&harr;synthesis roundtrips are exact to ~1e-14: "
     "use them as a self-test on your grids (Part III, G1 step 5).",
     "Real provider files beat synthetic fixtures: the test suite "
-    "auto-discovers any *.gfc / *.snx(.gz) you drop into tests/test_data "
-    "and sanity-checks them (large SINEX are streamed, v2.2).",
+    "auto-discovers any *.snx(.gz) you drop into the test-data folder "
+    "(shLowLevel.testDataDir) and sanity-checks it (files above ~30 MB "
+    "are skipped with a message), and seven opt-in tests run on real "
+    "data you point them at (see Opt-in test data).",
     "runAllTests is the gate: run it after every toolbox update; "
     "perf_log.csv accumulates machine-local timing history."])
 
@@ -1282,6 +1593,12 @@ story += tbl(["error", "guard"], [
      "EIGEN-style period read; documented in README"],
     ["sine sectorals S<sub>nn</sub> blanked in difference triangles",
      "fixed v2.4.2; rendered-CData regression test"],
+    ["NaN in a grid reaching every coefficient of an analysis",
+     "analysis refuses NaN until Fill= says what the gaps mean (v5.8.0); "
+     "shAnalysisGrid refuses it too (v5.12.1)"],
+    ["a malformed filter spec (\"gaussX\", a negative radius)",
+     "one parser, shLowLevel.filterSpec, refuses it before any data is "
+     "read (v5.7.0)"],
 ], [7.6 * cm, TEXT_W - 7.6 * cm])
 story += [PageBreak()]
 
@@ -1323,7 +1640,7 @@ story += [para("Interpretation: values are equivalent water height "
 
 story += [para("G2. Basin time series with uncertainties", "h2")]
 story += code("""
-Idx= shLowLevel.shIndex(ts.nmax, Nmin=2);
+idx = shLowLevel.shIndex(ts.nmax, Nmin=2);
 % kernel from a polygon [lat lon], buffered + tapered (v2.2)
 amazon = readmatrix("amazon_polygon.txt");
 [b, info] = shLowLevel.basinKernel(idx, amazon, BufferKm=150, TaperKm=350);
@@ -1367,7 +1684,7 @@ story += [para("Compare against a second GIA model (Caron) and show the "
 
 story += [para("G4. Regional analysis with Slepian functions", "h2")]
 story += code("""
-Idx= shLowLevel.shIndex(60, Nmin=0);
+idx = shLowLevel.shIndex(60, Nmin=0);
 region = @(la,lo) double(la>-90 & la<-60);      % Antarctica-ish belt
 [G, lam, infoS] = shLowLevel.slepianBasis(idx, region);
 fprintf("Shannon %.1f -> keeping %d tapers\\n", infoS.shannon, numel(lam));
@@ -1385,7 +1702,7 @@ story += [para("Estimating a (dimension &asymp; Shannon number) instead "
 
 story += [para("G5. Working with released covariances (SINEX)", "h2")]
 story += code("""
-Idx= shLowLevel.shIndex(96, Nmin=2);
+idx = shLowLevel.shIndex(96, Nmin=2);
 % full read (monthly solutions to ~30 MB): covariance in idx order
 snx = shLowLevel.readSINEX("ITSG-..._n96_2008-04.snx.gz", ...
                     Output="covariance", Index=idx);
@@ -1454,13 +1771,13 @@ story += [para("Degree 1 is excluded by default; include it only when "
 story += [para("G7b. Data management (v2.4.1, temporal catalogue "
                "v2.4.2)", "h2")]
 story += code("""
-shLowLevel.dataFolder("D:/geodata/shLowLevel");      % once; persists (getpref)
+shLowLevel.dataFolder("D:/geodata/shAnalysis");      % once; persists (getpref)
 shLowLevel.fetchDDK(1:8);                     % all released DDK filters
 W5 = shLowLevel.readDDK("DDK5");              % by name, from the data folder
 T = shLowLevel.listICGEM();                   % 180+ static models as a table
-f = shLowLevel.fetchICGEM("EGM2008");         % -> dataFolder/icgem/EGM2008.gfc
+f = shLowLevel.fetchICGEM("EGM2008");         % -> dataFolder/static/EGM2008.gfc
 g = shCoefficients.read(f);
-shLowLevel.fetchITSG(2010:2016);              % -> dataFolder/itsg_series
+shLowLevel.fetchITSG(2010:2016);              % -> dataFolder/series/itsg/monthly
 shLowLevel.fetchITSG("2008-04", Product="daily"); % Kalman daily n40 (v2.4.1)
 
 % FULL temporal catalogue: all ~70+ series, all centers
@@ -1477,7 +1794,7 @@ story += [para("The ICGEM static catalogue is parsed from icgem.gfz.de "
                "temporal row is not just browsable but fetchable: "
                "<font face='Courier'>fetchICGEM(idx, Type=\"temporal\")</font> "
                "downloads the whole series into "
-               "<font face='Courier'>&lt;dataFolder&gt;/icgem/series/"
+               "<font face='Courier'>&lt;dataFolder&gt;/series/"
                "&lt;group&gt;_&lt;center&gt;_&lt;series&gt;/</font>, which "
                "<font face='Courier'>shSeries.fromFolder</font> and "
                "<font face='Courier'>shLowLevel.standardChain</font> consume "
@@ -1533,14 +1850,14 @@ story += [para("Watch the weight series for regime changes "
 
 story += [para("G9. Sea-level fingerprint (v2.4)", "h2")]
 story += code("""
-Idx= shLowLevel.shIndex(96, Nmin=0);
+idx = shLowLevel.shIndex(96, Nmin=0);
 LN = readmatrix("loadLoveNumbers.txt"); kn = LN(:,2); hn = LN(:,3);
 greenland = @(la,lo) -280 * inGreenland(la, lo);   % kg/m^2/yr, say
 oceanF = @(la,lo) oceanMaskFun(la, lo);            % 1 over ocean
 [S, grid, info] = shLowLevel.seaLevelFingerprint(greenland, oceanF, idx, ...
     kn=kn, hn=hn);
-shLowLevel.plotSHMap(info.S2D / info.eustatic, grid.latDeg, grid.lonDeg, ...
-    Units="S / eustatic", Title="Greenland fingerprint");
+imagesc(grid.lonDeg, grid.latDeg, info.S2D / info.eustatic);   % S / eustatic
+axis xy; colorbar; title("Greenland fingerprint")
 """)
 story += [para("Plot S normalized by the eustatic mean: near-field "
                "values drop below zero, far-field plateaus around "
@@ -1642,7 +1959,10 @@ story += [para("Two behaviours worth knowing before you read the output. "
                "returns NaN where the model carries no signal instead of "
                "a ratio of two numerical zeros &mdash; a model that does "
                "not reach your basin shows up as missing coverage rather "
-               "than as noise multiplying your data.")]
+               "than as noise multiplying your data. A third correction, "
+               "the data-driven method of deviation (chapter 29), needs "
+               "neither a mask nor a model &mdash; only the filter, the "
+               "catchment and at least 12 epochs.")]
 
 story += [para("G13. What real provider files look like", "h2")]
 story += [para("Format specifications describe what files ought to "
@@ -1684,6 +2004,36 @@ story += [para("The practical rule: when a new provider or a new release "
                "about 5 s, a 73.6 MB GRGS mean field with 674k variable "
                "terms in about 7 s &mdash; but fast and correct are "
                "different properties.")]
+story += [para("G14. The lanes behind the classes (v5.6.0&ndash;v5.13.0)",
+               "h2")]
+story += [para("Since v5.6.0 the numerical lanes that used to need C, S, "
+               "GM and R unpacked by hand are methods of the classes. Each "
+               "is a thin delegate: it fills in the object's coefficients, "
+               "GM and R and forwards only the options you give, so every "
+               "default lives in one place, and a test pins each method "
+               "bitwise to the function it calls, with options and "
+               "without. The two leakage methods REQUIRE Filter, although "
+               "the functions default it: a series cannot know which "
+               "filter its data saw, and the wrong one gives a plausible "
+               "wrong answer. ts.write warns when a file name would not "
+               "bring its epoch back, because a .gfc file carries no "
+               "epoch of its own.")]
+story += code("""
+[tsK, rep]       = ts.kalman(ModelSeries = tsm, Order = 1);    % kalmanChain
+[modes, pcs, ve] = ts.eof(NModes = 4);                         % eofAnalysis
+[m, infoL]   = ts.leakageCorrect(lat, lon, Filter = "gauss300", kn = kn, ...
+                   Mask = mask, NoiseLevel = sigTrend);
+[dq, infoG]  = ts.gradient(lat, lon, Quantity = "ewh", kn = kn);
+ts.write(outFolder);                                           % one .gfc per epoch
+tsP          = ts.poleTideConvert(From = "IERS2010", To = "IERS2018");
+[d1, infoD]  = ts.estimateDegree1(isOcean, kn = kn, OceanModel = obp);
+[tsC, infoC] = ts.combineCenters({tsB, tsD});
+[a, rec]     = ts.slepianProject(G, idx);
+avg = g.basinAverage(B);
+sig = g.errorMap(lat, lon);
+val = g.synthesisPoints(latP, lonP, rP);
+[T, infoT]   = g.gradientTensor(lat, lon, Height = 255e3);
+""")
 story += [PageBreak()]
 
 # ======================================================== demo gallery
@@ -1738,7 +2088,7 @@ ts = ts.removeAlias();                  % (5) the S2 161-day alias
 
 story += [para("V3. The basin average", "h2")]
 story += code("""
-Idx= shLowLevel.shIndex(ts.nmax, Nmin= 0);
+idx = shLowLevel.shIndex(ts.nmax, Nmin= 0);
 [b, info] = shLowLevel.basinKernel(idx, gisPolygon);   % NaN-separated rings
 area = info.areaFraction * 4*pi*6371^2;                % NOT b(1)
 kf   = shLowLevel.kernelFactors("ewh", ts.nmax, GM, R, kn = kn);
@@ -2038,12 +2388,14 @@ story += [para("The two ice chains share one engine (<font "
                "the capped, jittered backoff otherwise &mdash; the "
                "policy the GravIS portal's 503 bursts demanded during "
                "the V7/V8 data collection. Spelling convention "
-               "throughout: Capitalized names for arguments-block "
-               "options (<font face='Courier'>OceanMask=</font>), "
-               "lowercase for the legacy inputParser names and all "
-               "quantity strings; both mechanisms tolerate any casing "
-               "(regression-tested), and <font face='Courier'>quantity"
-               "='none'</font> is the dimensionless passthrough for "
+               "throughout: every option is an arguments-block "
+               "Name=value option in the house casing "
+               "(<font face='Courier'>OceanMask=</font>, "
+               "<font face='Courier'>Quantity=</font>) &mdash; no "
+               "inputParser option is left since v4.0.0 &mdash; MATLAB "
+               "matches the names case-insensitively, and quantity strings "
+               "are lowercase. <font face='Courier'>Quantity = "
+               "\"none\"</font> is the dimensionless passthrough for "
                "synthesizing raw coefficient fields.")]
 story += [para("V10. Ocean and Slepian: closing the chain family", "h2")]
 story += [para("The ocean is the missing member: <font face='Courier'>"
@@ -2164,10 +2516,10 @@ story += [para("<b>VDK decorrelation - the reason the SINEX fetcher "
                "estimated per calendar month from a pre-filtered "
                "series (signalVarianceKaula, with the exact "
                "log-chi-square bias correction - without it a biases "
-               "6%% low). Algebraically this is the SAME family as the "
+               "6% low). Algebraically this is the SAME family as the "
                "tvANS Wiener filter (S = M<sup>-1</sup>, "
                "Python-verified to 1e-15); the difference is the "
-               "input, and it is worth 15%% median cumulative geoid "
+               "input, and it is worth 15% median cumulative geoid "
                "error - an order of magnitude in short-repeat-cycle "
                "months (paper Table 2). tvANS remains the tool for "
                "series without released covariances. The full series "
@@ -2176,7 +2528,7 @@ story += [para("<b>VDK decorrelation - the reason the SINEX fetcher "
                "downloads skip present files, months skip existing "
                "output, the signal model is cached, and the paper's "
                "closed-form identity runs as a built-in self-test.")]
-story += code("""Idx= shLowLevel.shIndex(96, Nmin= 2);
+story += code("""idx = shLowLevel.shIndex(96, Nmin= 2);
 snx = shLowLevel.readSINEX(f, Index = idx);        % N + x, idx order
 [ab, ~] = shLowLevel.signalVarianceKaula(ts.Cs, ts.Ss, ts.epochs);
 xf = shLowLevel.vdkApply(snx.x, snx.M, idx.n, ab(mo, :), Alpha = 1);""")
@@ -2197,7 +2549,7 @@ story += [para("<b>Flood and drought indices per cell or basin.</b> "
                "rather than assumed: detrending. The pre-validation "
                "planted an exceptional-drought month under a 0.5 "
                "cm/yr trend - undetrended it weakens from -2.41 to "
-               "-1.44, OUT of its class, while 45%% of the late "
+               "-1.44, OUT of its class, while 45% of the late "
                "decade turns spuriously wet; Detrend = linear is "
                "therefore the DSI/WSDI default, while StorageDeficit "
                "keeps the physical Reager convention (none). A robust "
@@ -2245,7 +2597,8 @@ story += [para("<b>Offline by design.</b> No chain ever fetches: "
                "fetch targets; at the bottom the shipped freezes. The "
                "on-disk layout since v3.16 is uniform: temporal "
                "products under series/ (series/itsg/monthly|daily|"
-               "sinex|background, series/series/icgem/&lt;name&gt;lt;icgem-nameseries/icgem/&lt;name&gt;gt;, "
+               "sinex|background, series/&lt;group&gt;_&lt;center&gt;_&lt;series&gt; "
+               "for an ICGEM series, "
                "series/GAX/&lt;product&gt;), static models under "
                "static/, auxiliaries under DDK/ and TN/; the fetchers "
                "warn once when they find data in a pre-v3.16 location "
@@ -2264,7 +2617,7 @@ story += [para("<b>Coastal leakage, controlled twice.</b> The crude "
                "face='Courier'>shLowLevel.erodeMask</font>) erodes "
                "the mask by a great-circle distance from every coast (the Python "
                "point-source experiment for gauss445: 300 km removes "
-               "54%% of the leak, 500 km 82%%, at under 1%% "
+               "54% of the leak, 500 km 82%, at under 1% "
                "ocean-area loss - 300 km is the Chambers-style "
                "standard), and <font face='Courier'>"
                "RemoveLandLeakage</font> separates the outside-mask "
@@ -2275,8 +2628,8 @@ story += [para("<b>Coastal leakage, controlled twice.</b> The crude "
                "here: a naive ONE-step subtraction makes the leak "
                "WORSE, because the reconstruction of the outside "
                "field rings INTO the mask; the two-sided iteration "
-               "cuts an adjacent-source leak of 47%% of the ocean "
-               "mean by 94%% (1D reference, frozen in CI on the "
+               "cuts an adjacent-source leak of 47% of the ocean "
+               "mean by 94% (1D reference, frozen in CI on the "
                "band-limited spherical experiment). "
                "Since v3.16.1 the 300 km buffer IS the default - the "
                "machine re-baseline moved the barystatic trend "
@@ -2293,7 +2646,7 @@ story += code("""f = shLowLevel.fetchGAX("E:/DATAPOOL/GravityField/GAX");
     GADFolder = "E:/DATAPOOL/GravityField/GAX/GAD", ...
     GAAFolder = "E:/DATAPOOL/GravityField/GAX/GAA");
 [rep.nGadRestored, rep.nGaaApplied]        % coverage, reported""")
-story += code("""Idx= shLowLevel.shIndex(30, Nmin= 0);
+story += code("""idx = shLowLevel.shIndex(30, Nmin= 0);
 [G, lam, info] = shLowLevel.slepianBasis(idx, @(la, lo) double(la > 60));
 K = round(info.shannon);                   % ~N useful modes
 a = shLowLevel.slepianProject(ts.Cs, ts.Ss, G(:, 1:K), idx);
@@ -2307,8 +2660,9 @@ story += [para("Demo gallery", "h1"),
                "demo_shAnalysis(\"all\")</font> runs everything, "
                "<font face='Courier'>demo_shAnalysis([\"D04\",\"D15\"])"
                "</font> runs a selection, and Visible=false keeps figures "
-               "hidden for smoke tests. Real files in tests/test_data "
-               "(ITSG month, DDK3 Wbd) are used when present; every case "
+               "hidden for smoke tests. Real files in the test-data folder "
+               "(shLowLevel.testDataDir: ITSG months, the DDK3 Wbd) are "
+               "used when present; every case "
                "falls back to synthetic data. Love numbers in the demos "
                "are SYNTHETIC &mdash; real work requires a real loading "
                "model.")]
@@ -2316,7 +2670,7 @@ story += tbl(["ID", "Case", "Exercises"], [
     ["D01", "Read &amp; spectral diagnostics",
      "shReadGFC, shDegreeRMS, triangle, spectrum"],
     ["D02", "Synthesis quantities &amp; maps",
-     "shSynthesis, kernelFactors, plotSHMap, Height"],
+     "shSynthesis, kernelFactors, toGrid, Height"],
     ["D03", "Normal field &rarr; geoid",
      "normalFieldCS, subtractNormalField, toReference"],
     ["D04", "Filter comparison",
@@ -2339,7 +2693,7 @@ story += [para("<b>Note.</b> Provenance of the figures below: rendered "
                "with the toolbox's Python validation port &mdash; the "
                "same algorithms that gate every MATLAB implementation, "
                "numerically equivalent by construction. D01/D02 use the "
-               "REAL ITSG files shipped in tests/test_data (and D04 the "
+               "REAL ITSG files among the test fixtures (and D04 the "
                "real DDK3 Wbd binary); the remaining figures use "
                "synthetic data with known ground truth, because recovery "
                "demonstrations (VCE factors, EOF modes, F-test "
@@ -2508,10 +2862,10 @@ story += [PageBreak(), para("Part IV &mdash; API reference", "h1"),
                "name-value options are passed as Name=Value. Conventions "
                "throughout: coefficient triangles are addressed C(n+1, m+1); "
                "vectors follow shLowLevel.shIndex ordering (Nmin= 2 unless "
-               "stated); latitudes are geocentric degrees; radii in km; "
-               "epochs in decimal years. Every entry closes with a "
-               "real-data example from the canonical GRACE chain; all "
-               "examples are lint- and API-gated at build time.")]
+               "stated); latitudes are geocentric degrees; filter radii in "
+               "km, other lengths in m; epochs in decimal years. An entry "
+               "whose help carries an example closes with it; every "
+               "example is lint- and API-gated at build time.")]
 
 for _cls in _API["classes"]:
     story += [para(_cls["name"] + " class", "h2"),
@@ -2533,35 +2887,49 @@ for _cls in _API["classes"]:
 _CATS = [
  ("Readers, writers &amp; data management",
   ["shReadGFC", "shEvalGFCT", "readTN13", "readTN14", "readSINEX",
-   "readDDK", "readMascon", "readLoveNumbers", "listICGEM", "fetchITSG",
-   "fetchICGEM", "fetchDDK", "fetchTN", "dataFolder", "ddkNames",
-   "parseGraceFilename", "icgemDate2Year", "writeGFC", "writeGrid", "readGrid",
-   "writeAnimation"]),
+   "readDDK", "readMascon", "readSHM", "readGrid", "readLoveNumbers",
+   "listICGEM", "listITSG", "fetchITSG", "fetchICGEM", "fetchDDK", "fetchTN",
+   "fetchGAX", "fetchITSGSINEX", "fetchITSGBackground", "fetchLoveNumbers",
+   "dataFolder", "gravisDataFolder", "testDataDir", "ddkNames",
+   "parseGraceFilename", "icgemDate2Year", "writeGFC", "writeGrid",
+   "writeAnimation", "writeFrames", "gridHandover", "requireGeoMap"]),
  ("Legendre, spectral tools &amp; indexing",
   ["legendreALF", "legendreALFDeriv", "legendreCached", "ylm", "shIndex",
    "vecFromCS", "csFromVec", "shDegreeRMS", "shOrderRMS",
    "shSpectralCrossover", "gaussLegendre"]),
  ("Synthesis &amp; analysis",
-  ["shSynthesis", "synthesisMatrix", "shSynthesisDeformation",
-   "shSynthesisGradientTensor", "shAnalysisGrid", "kernelFactors",
-   "normalFieldCS", "rescaleGMR", "geodetic2geocentric",
-   "geocentric2geodetic", "evalMask"]),
+  ["shSynthesis", "synthesisMatrix", "synthesisPoints", "shSynthesisGradient",
+   "shSynthesisDeformation", "shSynthesisGradientTensor", "shAnalysisGrid",
+   "kernelFactors", "ellipsoidRadius", "normalFieldCS", "rescaleGMR",
+   "geodetic2geocentric", "geocentric2geodetic", "evalMask"]),
  ("Filtering &amp; operators",
-  ["shGaussianWeights", "shGaussianFilter", "shFanFilter", "shDestripe",
-   "applyDDK", "tvANSFilter", "buildNoiseCov", "buildSignalCov",
+  ["filterSpec", "shGaussianWeights", "shGaussianFilter", "shFanFilter",
+   "shDestripe", "applyDDK", "designFilter", "vdkApply",
+   "signalVarianceKaula", "tvANSFilter", "buildNoiseCov", "buildSignalCov",
    "vceRescale", "opApply", "resolutionMap"]),
- ("Basins, uncertainty &amp; analysis tools",
-  ["basinKernel", "basinDeconvolve", "basinScaling",
-   "fitDeterministicModel", "mcPropagate", "errorMap", "combineCenters",
-   "eofAnalysis", "slepianBasis", "seaLevelFingerprint", "removeGIA",
-   "pctile"]),
+ ("Leakage correction",
+  ["leakageCorrect", "leakageDataDriven", "gridScaling", "basinScaling",
+   "sensitivityKernel", "oceanRMS", "erodeMask"]),
+ ("Basins, regions &amp; uncertainty",
+  ["basinKernel", "basinDeconvolve", "slepianBasis", "slepianProject",
+   "fitDeterministicModel", "mcPropagate", "errorMap", "eofAnalysis",
+   "eofSeparate", "seaLevelFingerprint", "hydroExtremeIndex", "pctile"]),
+ ("Low degrees, rotation &amp; the mission gap",
+  ["estimateDegree1", "poleTideConvert", "rotationExcitation",
+   "bridgeGaps", "combineCenters"]),
+ ("Temporal smoothing (Kalman/VAR)",
+  ["kalmanChain", "estimateVAR", "kalmanFilter", "rtsSmoother",
+   "buildCondFun", "neqCombine", "chi2Quantile"]),
+ ("Validated chains",
+  ["standardChain", "gravisL2B", "gravisRegionChain", "greenlandChain",
+   "antarcticaChain", "twsChain", "oceanChain", "obpChain"]),
  ("Comparison &amp; validation metrics (v2.6.0)",
   ["compareSolutions", "compareSeries", "diffSpectrum", "spatialStats",
    "nashSutcliffe", "effectiveCorr", "threeCorneredHat",
    "taylorDiagram"]),
  ("Plotting",
-  ["plotSHMap", "plotSHSpectrum", "plotSHCoeffTriangle",
-   "plotBasinSeries", "plotCovariance"]),
+  ["plotSHSpectrum", "plotSHCoeffTriangle", "plotBasinSeries",
+   "plotCovariance"]),
 ]
 _bynm = {e["name"]: e for e in _API["shLowLevel"]}
 _used = set()
@@ -2585,11 +2953,20 @@ for _e in _API["root"]:
 
 story += [para("Appendix", "h1"),
           para("A. Error-identifier conventions", "h2"),
-          para("Namespaces: <font face='Courier'>shLowLevel:&lt;function&gt;:"
-               "&lt;what&gt;</font> for package functions, "
-               "<font face='Courier'>shCoefficients:/shSeries:/"
-               "shClimatology:</font> for class methods. Every guard has "
-               "a unit test; every message names the offending quantity. "
+          para("Every identifier has three parts, owner:function:reason: "
+               "<font face='Courier'>shLowLevel:&lt;function&gt;:"
+               "&lt;reason&gt;</font> for package functions; "
+               "<font face='Courier'>&lt;class&gt;:&lt;method&gt;:"
+               "&lt;reason&gt;</font> for class methods, where the middle "
+               "segment is the public method that raises it (the "
+               "constructor included) or one of three shared checks "
+               "named by concept (operands, stack, range); and "
+               "<font face='Courier'>shAnalysis:&lt;function&gt;:"
+               "&lt;reason&gt;</font> for the root functions. Each is "
+               "documented in the help of the function or method that "
+               "raises it, which tools/error_id_audit.py enforces. Every "
+               "guard has a unit test; every message names the offending "
+               "quantity. "
                "Instrumentation asserts (nonFiniteVCE, nonFiniteEig, "
                "nonFiniteOperator, allZeroVariance) remain in the code "
                "as a permanent safety net after the v2.1 debugging "
@@ -2601,14 +2978,17 @@ story += bullets([
     "(v2.5; 256 paired months each, cross-provider C10 correlation "
     "0.995); SINEX against ITSG monthly files and synthetic fixtures "
     "&mdash; COST-G/other SINEX dialects may need parser tweaks (drop "
-    "files into tests/test_data, the discovery tests pick them up).",
+    "SINEX files into the test-data folder, shLowLevel.testDataDir; "
+    "the discovery test picks them up).",
     "DDK: all eight released Wbd binaries parsed and gain-ordering "
     "validated (v2.5); a discovery test re-checks whatever subset is "
     "present locally. Other BIN dialects untested.",
-    "readMascon validated against a synthetic JPL-style fixture; real "
-    "product files were not openly reachable at build time (auth/503) "
+    "readMascon is tested against a synthetic JPL-style fixture and has "
+    "read a real CSR mascon product (v5.8.0); the opt-in "
+    "SHX_MASCON_FILE test checks any real file you point it at "
     "&mdash; verify against yours (units, GIA convention, CRI flag).",
-    "GIA models treated as exact; AR(1) correction is first-order "
+    "GIA uncertainty propagates only when a sigma field is given "
+    "(removeGIA Sigma=, v5.2.0); AR(1) correction is first-order "
     "(Kendall-corrected r<sub>1</sub> since v2.5, ~3% residual optimism).",
     "Multi-center combination: common-mode errors invisible &rarr; "
     "posterior sigmas a lower bound.",
@@ -2617,13 +2997,20 @@ story += bullets([
     "Streaming gz SINEX needs the JVM (fallback: gunzip to temp).",
     "ICGEM catalogue parsers are fixture-tested against real page "
     "captures (2026-08-07); a future site redesign would need refreshed "
-    "fixtures (shLowLevel:listICGEM:parseFailed errors loudly)."])
+    "fixtures (shLowLevel:listICGEM:parseFailed errors loudly).",
+    "Earth-rotation excitation: the factors 1.098 and 0.753 are Chen "
+    "&amp; Wilson's; ESMGFZ's prefactors give a 12% larger axial term "
+    "(AxialFactor= takes that convention).",
+    "Gap bridging: a filled month carries the resolution and the error "
+    "of the bridge series (41% of the GRACE signal over degrees "
+    "3&ndash;60 for the Kalman-filtered HLSST_SLR_COMB2023s at 750 km), "
+    "and the whole bridged series is smoothed to match."])
 story += [para("C. License &amp; provenance", "h2"),
           para("The toolbox is released under the MIT license (LICENSE "
                "in the package root; copyright Matthias Weigelt). The "
-               "bundled DDK3 Wbd file carries its own MIT license from "
-               "its upstream repository; ITSG/GFZ files in "
-               "tests/test_data remain the property of their providers "
+               "DDK3 Wbd test fixture carries its own MIT license from "
+               "its upstream repository; the ITSG/GFZ files among the test "
+               "fixtures (the testdata branch) remain the property of their providers "
                "and are included as test fixtures only."),
           para("All code, tests, documentation and this guide: developed "
                "by Matthias Weigelt with the help of Claude (Fable 5), "

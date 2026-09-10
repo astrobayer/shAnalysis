@@ -1,6 +1,12 @@
 Third-party data redistributed with shAnalysis (test fixtures)
 ================================================================
 
+These files are not part of a plain clone: they live on the orphan
+branch 'testdata' of this repository, pinned by a 'fixtures-YYYY-MM'
+tag that CI checks out into tests/test_data. Locally,
+shLowLevel.testDataDir resolves a copy (SHX_TESTDATA_FOLDER or the
+TestDataFolder preference).
+
 tests/test_data/Wbd_2-120.a_1d12p_4 (DDK3 decorrelation filter)
   Redistributed under its own MIT license from
   github.com/strawpants/GRACE-filter (R. Rietbroek).

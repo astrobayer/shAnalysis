@@ -3,7 +3,7 @@ function [file, info] = fetchICGEM(model, opts)
 %
 %   FILE = shLowLevel.fetchICGEM("EGM2008") resolves the model name against
 %   shLowLevel.listICGEM (case-insensitive exact match, else unique prefix)
-%   and downloads the .gfc into <dataFolder>/icgem. Existing files are
+%   and downloads the .gfc into <dataFolder>/static. Existing files are
 %   skipped. Load with shCoefficients.read(FILE).
 %
 %   FILE = shLowLevel.fetchICGEM(row) with a row of the listICGEM table skips
@@ -41,7 +41,7 @@ function [file, info] = fetchICGEM(model, opts)
 %     Update (false)  refresh existing files (safe swap: verified before replacing)
 %   TIME SERIES (temporal catalogue): a catalogue row carrying the
 %   'zip' column fetches a whole monthly series into
-%   <dataFolder>/icgem/series/<group>_<center>_<series>/ - ready for
+%   <dataFolder>/series/<group>_<center>_<series>/ - ready for
 %   shSeries.fromFolder or shLowLevel.standardChain:
 %       T  = shLowLevel.listICGEM(Type = "temporal");
 %       fs = shLowLevel.fetchICGEM(T(12, :));

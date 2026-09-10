@@ -20,11 +20,19 @@
 <tr><td>lam</td><td>(NKeep,1) double</td><td>concentrations, descending</td></tr>
 <tr><td>info</td><td>struct</td><td>shannon, areaFraction, lamAll</td></tr></table>
 <h2>Examples</h2>
-<pre>Idx= shLowLevel.shIndex(60, Nmin=0);
+<pre>idx = shLowLevel.shIndex(60, Nmin=0);
 [G, lam] = shLowLevel.slepianBasis(idx, @(la,lo) double(la&gt;60));
 a  = G' * shLowLevel.vecFromCS(g.C, g.S, idx);   % Slepian-domain coefficients
 xR = G * a;                               % regional reconstruction</pre>
 <div class="note">Validated: &lambda;&isin;[0,1] to 4e-16, G'G&minus;I &asymp; 3e-15, trace identity exact (addition theorem). Step-by-step regional workflow: guide, &ldquo;Regional analysis with Slepian functions&rdquo;.</div>
+<h2>Projecting data onto the basis</h2>
+<p><code class="inline">shLowLevel.slepianProject</code> projects a coefficient stack onto the tapers and rebuilds the part of
+the field they carry; <code class="inline">g.slepianProject</code> and <code class="inline">ts.slepianProject</code>
+<span class="tag">v5.13.0</span> do the same for one field or every epoch of a series.</p>
+<pre>[G, lam, info] = shLowLevel.slepianBasis(idx, @(la,lo) double(la>60));
+K = round(info.shannon);                        % the usefully concentrated tapers
+[a, rec] = ts.slepianProject(G(:, 1:K), idx);   % a: K x T regional modes
+plot(ts.epochs, a')</pre>
 <h2>See Also</h2><p class="seealso"><a href="ref/shLowLevel_basinKernel.html">basinKernel</a> <a href="ref/shLowLevel_shAnalysisGrid.html">shAnalysisGrid</a></p>
 <p style="color:#999;font-size:11px;margin-top:40px;">shAnalysis v2.2 &mdash; Claude (Fable 5), 2026-08-07</p>
 </div><p class="provenance">Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>

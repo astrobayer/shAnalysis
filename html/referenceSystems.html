@@ -33,6 +33,11 @@ dC21 = g18.C(3, 2) - g.C(3, 2)        % ~1e-10, trend-like in t
 <code class="inline">SolidCoef</code>/<code class="inline">OceanCoef</code> rather than hardcoded. The
 conversion is exactly antisymmetric &mdash; A&rarr;A is zero and A&rarr;B is the negative of
 B&rarr;A, both pinned by tests.</p>
+<p>On an object, <code class="inline">g.poleTideConvert(From = "IERS2010", To = "IERS2018")</code> and
+<code class="inline">ts.poleTideConvert(From = "IERS2010", To = "IERS2018")</code> <span class="tag">v5.13.0</span>
+do the same for a field or for every epoch of a series, which keeps its names, sigmas and history. C21/S21 also
+carry the polar-motion excitation (<code class="inline">ts.excitation</code>): convert before comparing excitation
+series processed under different conventions.</p>
 <div class="note">Check which convention your solutions use <b>before</b> combining releases or
 centers. The correction is small in absolute terms and almost entirely a trend, which is precisely
 what makes it dangerous for the quantity most people are after.</div>

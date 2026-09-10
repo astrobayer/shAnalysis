@@ -34,7 +34,8 @@ function reg = demo_shAnalysis(cases, opts)
 %   GRACE-FO 2025-12, DDK3 Wbd) - D02/
 %   D04 show the real 17.7-yr mass-change difference with real stripes.
 %   D05/D06 use a real monthly series once shLowLevel.fetchITSG(years) has
-%   populated <testDataDir>/itsg_series (>= 24 months). D12/D13/D14
+%   populated its folder, <dataFolder>/series/itsg/monthly (>= 24 months;
+%   the pre-v3.16 itsg_series folders are looked in too). D12/D13/D14
 %   stay synthetic BY DESIGN: they demonstrate recovery of KNOWN truth
 %   (modes, breaks, noise factors), which real data cannot provide.
 %   Every case falls back to synthetic data and stays self-contained.
@@ -200,11 +201,12 @@ end
 end
 
 function ts = tryRealSeries(Lcut)
-% real monthly series if shLowLevel.fetchITSG has populated itsg_series/
+% real monthly series if shLowLevel.fetchITSG has populated its folder:
+% the v3.16 layout first, then the two pre-v3.16 locations
 ts = [];
-cands = [string(fullfile(shLowLevel.dataFolder(), 'itsg_series')), ...
-    string(fullfile(shLowLevel.testDataDir(), ...
-    'itsg_series'))];                              % new + legacy location
+cands = [string(fullfile(shLowLevel.dataFolder(), 'series', 'itsg', 'monthly')), ...
+    string(fullfile(shLowLevel.dataFolder(), 'itsg_series')), ...
+    string(fullfile(shLowLevel.testDataDir(), 'itsg_series'))];
 for d = cands
     if isfolder(d) && numel(dir(fullfile(d, '*.gfc*'))) >= 24
         try

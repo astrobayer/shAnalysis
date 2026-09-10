@@ -7,7 +7,7 @@
 <h1>Leakage correction &mdash; putting back what the filter removed</h1>
 <p>Every GRACE filter removes real signal and smears the rest across basin boundaries. A 6&deg; disc
 under a 500 km Gaussian keeps about half its peak, and what it loses reappears outside its own
-boundary as leakage. Two corrections are available, and they differ in <em>what you have to
+boundary as leakage. Three corrections are available, and they differ in <em>what you have to
 believe</em>.</p>
 
 <table>
@@ -150,7 +150,9 @@ rearrangement, not a fit. The difficulty is that both corrections need the unfil
 They are estimated instead from the once- and twice-filtered fields and extrapolated one
 filtering step back:</p>
 <pre>[fHat, info] = shLowLevel.leakageDataDriven(ewh, lat, lon, ...
-    Mask = basin, Filter = "gauss300");</pre>
+    Mask = basin, Filter = "gauss300");
+[fHat, info] = ts.leakageDataDriven(lat, lon, Filter = "gauss300", ...
+    kn = kn, Mask = basin);          % the same from a series (v5.6.0)</pre>
 <p>The leakage extrapolation corrects a <b>phase</b> difference as well as an amplitude &mdash;
 out-of-phase leakage is exactly the case a scale factor cannot fix. The deviation integral
 deliberately gets no phase correction: Vishwakarma measured those phase differences and found no
@@ -206,10 +208,11 @@ combined.</div>
 <h2>Validated against GravIS</h2>
 <p>The full worked comparison against the published GravIS Greenland basin averages &mdash; every
 processing step, the code, and what each step is worth &mdash; is chapter <b>"Validation against
-GravIS"</b> of the workflow guide. Summary: matching the four GravIS Level-2B corrections and using
-a union mask reaches <b>&minus;240.0 Gt/yr</b> against a published <b>&minus;231.1</b>, i.e. 4%,
-with the remaining gap attributable to the joint seven-basin inversion GravIS uses, coarse neighbour
-outlines and an iteration that has not fully converged.</p>
+GravIS"</b> of the workflow guide. Summary: matching the four GravIS Level-2B corrections, declaring the
+filter the forward model sees (<code class="inline">"gauss445"</code>) and stopping on the discrepancy principle with
+the propagated trend noise gives <b>&minus;224.6 Gt/yr</b> against a published <b>&minus;231.1</b>, i.e. 2.8%; the
+union mask alone, stopped at a fixed iteration count, had reached &minus;240.0 (4%). What remains is attributable
+to the joint seven-basin inversion GravIS uses and to coarse neighbour outlines.</p>
 
 <h2>See Also</h2>
 <p class="seealso"><a href="ref/shLowLevel_basinKernel.html">basinDeconvolve</a>

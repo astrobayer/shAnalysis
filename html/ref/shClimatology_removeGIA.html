@@ -14,7 +14,7 @@
 <h2>Syntax</h2>
 <div class="syntax"><code>out = shClimatology.removeGIA(obj, gia)</code></div>
 <h2>Description</h2>
-<p>OUT = clim.removeGIA(GIA): GIA is an <a href="shCoefficients.html"><code>shCoefficients</code></a> holding RATE coefficients [1/yr] (user-supplied model file via <a href="shCoefficients_read.html"><code>shCoefficients.read</code></a>). Only trendC/trendS change; trend sigmas are kept - the model is treated as exact (documented limitation; GIA model spread often dominates regional trend error budgets - compare several models).</p>
+<p>OUT = clim.removeGIA(GIA): GIA is an <a href="shCoefficients.html"><code>shCoefficients</code></a> holding RATE coefficients [1/yr] (user-supplied model file via <a href="shCoefficients_read.html"><code>shCoefficients.read</code></a>). Only trendC/trendS change; trend sigmas are kept - the model is treated as exact here. To carry a GIA model&#x27;s own sigma, correct the series before the fit with ts.removeGIA(GIA, Sigma = SIG) (v5.2.0), or add its rate sigma to the trend sigma. GIA model spread often dominates regional trend error budgets - compare several models.</p>
 <h2>Examples</h2>
 <details class="example"><summary>Runnable (docs/apiExamples.json)</summary><div><pre><code>clim = clim.removeGIA(giaModel);</code></pre></div></details>
 <h2>Input Arguments</h2>
@@ -29,7 +29,7 @@
 <p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
 <h2>See Also</h2>
 <ul class="seealso"><li><a href="shCoefficients.html"><code>shCoefficients</code></a></li><li><a href="shCoefficients_read.html"><code>shCoefficients.read</code></a></li></ul>
-<p class="prov">shAnalysis v5.13.0 (10-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+<p class="prov">shAnalysis v5.13.1 (11-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
 </div>
 </body>
 </html>

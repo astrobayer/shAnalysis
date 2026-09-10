@@ -152,8 +152,9 @@ function [dq, info] = shSynthesisGradient(C, S, GM, R, latDeg, lonDeg, opts)
 %   d(gravity_disturbance)/dr = -gravity_gradient_rr at 4e-16, and
 %   single-coefficient closed forms at 2e-16.
 %
-%   See also SHSYNTHESIS, SHSYNTHESISDEFORMATION, SHSYNTHESISGRADIENTTENSOR,
-%   KERNELFACTORS, LEGENDREALFDERIV.
+%   See also shLowLevel.shSynthesis, shLowLevel.shSynthesisDeformation,
+%   shLowLevel.shSynthesisGradientTensor, shLowLevel.kernelFactors,
+%   shLowLevel.legendreALFDeriv.
 %
 %   Error identifiers
 %     shLowLevel:shSynthesisGradient:badInput

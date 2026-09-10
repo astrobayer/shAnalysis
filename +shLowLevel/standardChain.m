@@ -31,7 +31,8 @@ function [ts, rep] = standardChain(folder, opts)
 %     GIAEpoch (NaN)       reference epoch of the GIA trend (NaN: mean
 %                          epoch of the series)
 %     Filter ("gauss300")  "none" | "gaussN" (N = radius [km]) | "DDKn"
-%                          (n = 1..8, fetched on demand) | a W struct
+%                          (n = 1..8, read from the data folder;
+%                          fetch it once with shLowLevel.fetchDDK) | a W struct
 %                          from shLowLevel.readDDK / designFilter
 %     Tolerance (0.05)     maximum |epoch difference| [yr] accepted when
 %                          matching a TN-13/TN-14 record to a solution

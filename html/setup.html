@@ -31,7 +31,7 @@ s = setup_shAnalysis(DryRun = true, Download = "starter")   % plan only</pre>
 </table>
 <p>Downloads land in <code class="inline">shLowLevel.dataFolder()</code> subfolders
 (<code class="inline">TN/</code>, <code class="inline">DDK/</code>,
-<code class="inline">itsg_series/</code>). Point
+<code class="inline">series/itsg/monthly/</code>). Point
 <code class="inline">shLowLevel.dataFolder(PATH)</code> at a shared location first to
 reuse downloads across machines.</p>
 
@@ -61,12 +61,16 @@ Contract-tested.</p>
 <table>
 <tr><th>option</th><th>default</th><th>description</th></tr>
 <tr><td>Permanent</td><td>false</td><td>persist the path via savepath</td></tr>
-<tr><td>Download</td><td>"none"</td><td>"none" | "core" | "filters" | "starter"</td></tr>
+<tr><td>Download</td><td>"none"</td><td>"none" | "core" | "filters" | "starter" | "all"</td></tr>
 <tr><td>DDK</td><td>3</td><td>subset of 1..8 for the filters level</td></tr>
 <tr><td>Providers</td><td>["GFZ","CSR","JPL"]</td><td>TN-13 providers</td></tr>
 <tr><td>Months</td><td>["2008-04","2025-12"]</td><td>starter months (yyyy-mm)</td></tr>
 <tr><td>Nmax</td><td>96</td><td>ITSG starter degree (60 or 96)</td></tr>
-<tr><td>Docs</td><td>false</td><td>builddocsearchdb(html/) for help-browser search</td></tr>
+<tr><td>Update</td><td>false</td><td>refresh existing files through the fetchers' safe, parse-verified swap (TN-13/TN-14 grow monthly)</td></tr>
+<tr><td>DataFolder</td><td>""</td><td>persistent data folder, applied before any fetcher runs</td></tr>
+<tr><td>Proxy</td><td>""</td><td>per-call proxy URL, e.g. "http://proxy:8080" (empty: MATLAB Web Preferences)</td></tr>
+<tr><td>SeriesFolder, MasconFile, GravisFolder, DDKFolder, TestDataFolder</td><td>""</td><td>data locations for the opt-in tests and the chains: each is exported as its <code class="inline">SHX_*</code> environment variable for the session and stored as a preference (see below)</td></tr>
+<tr><td>Docs</td><td>false</td><td>builddocsearchdb(html/) for help-browser search, the reference pages included</td></tr>
 <tr><td>DryRun</td><td>false</td><td>plan only, zero side effects</td></tr>
 <tr><td>Quiet</td><td>false</td><td>suppress progress output</td></tr>
 </table>
@@ -77,50 +81,42 @@ Contract-tested.</p>
 "added-permanently" | "planned"), <code class="inline">dataFolder</code>,
 <code class="inline">plan</code>, <code class="inline">fetched</code>,
 <code class="inline">skipped</code>, <code class="inline">failed</code>,
-<code class="inline">ok</code>.</p>
+<code class="inline">testData</code>, <code class="inline">ok</code>.</p>
+
+<h2>Opt-in test data <span class="tag">v3.8.2</span></h2>
+<p>Seven tests need data far too large to ship as fixtures. Each reads its location from an
+environment variable or a MATLAB preference and filters itself out when there is none:</p>
+<pre>% five locations through setup: setenv for this session AND setpref
+setup_shAnalysis(SeriesFolder = "D:/grace/itsg", ...
+                 MasconFile = "D:/grace/GRCTellus_JPL.nc", ...
+                 GravisFolder = "D:/grace/gravis", DDKFolder = "D:/grace/DDK");
+% the other two as preferences
+setpref("shAnalysis", "EarthRotationFolder", "D:/grace/earthRotation");
+setpref("shAnalysis", "BridgeFolder", "D:/grace/hlsst");</pre>
+<table>
+<tr><th>Test</th><th>Needs</th><th>Looks in</th></tr>
+<tr><td><code class="inline">testPublishedTrendOnARealSeries</code> (testScience)</td><td>a folder of monthly GSM <code class="inline">.gfc</code> files, &gt; 24 epochs &mdash; <a href="fetchITSG.html">fetchITSG</a> or <a href="icgemSeries.html">fetchICGEM</a></td><td><code class="inline">SHX_SERIES_FOLDER</code>, the environment only</td></tr>
+<tr><td><code class="inline">testMasconReaderOnARealFile</code> (testRobustness)</td><td>a real <a href="ref/shLowLevel_readMascon.html">mascon</a> product: CSR (no login), GSFC, or JPL PO.DAAC (free Earthdata login)</td><td><code class="inline">SHX_MASCON_FILE</code></td></tr>
+<tr><td><code class="inline">testReadGridOnTheGravISGrid</code> (testRobustness) <span class="tag">v5.8.0</span></td><td>the GravIS Level-3 grid <code class="inline">GRAVIS-3_GFZOP_0600_TWS_GRID_GFZ_0006.nc</code> (gravis.gfz.de) in the GravIS folder, read by <a href="ref/shLowLevel_readGrid.html">readGrid</a></td><td><code class="inline">SHX_GRAVIS_FOLDER</code> or the <code class="inline">GravisFolder</code> preference</td></tr>
+<tr><td><code class="inline">testGravisChainsRealData</code> (testContract)</td><td>the GravIS folder, a monthly series and the DDK binaries: the validated chains on real data</td><td><code class="inline">SHX_GRAVIS_FOLDER</code>, <code class="inline">SHX_SERIES_FOLDER</code> and <code class="inline">SHX_DDK_FOLDER</code>, or the <code class="inline">GravisFolder</code>, <code class="inline">SeriesFolder</code> and <code class="inline">DDKFolder</code> preferences</td></tr>
+<tr><td><code class="inline">testExcitationAgainstESMGFZ</code> (testScience) <span class="tag">v5.11.0</span></td><td>GRACE&rsquo;s excitation (<a href="ref/shSeries_excitation.html">ts.excitation</a>) against the ESMGFZ effective angular momentum functions in <code class="inline">ESMGFZ/HAM</code> and <code class="inline">ESMGFZ/SLAM</code> (esmdata.gfz.de, no login), and a monthly series</td><td><code class="inline">SHX_EARTHROTATION_FOLDER</code> or the <code class="inline">EarthRotationFolder</code> preference, plus the series (<code class="inline">SHX_SERIES_FOLDER</code> or <code class="inline">SeriesFolder</code>)</td></tr>
+<tr><td><code class="inline">testBridgeGapsAgainstGRACE</code> (testScience) <span class="tag">v5.12.0</span></td><td>GRACE months held out and bridged back (<a href="ref/shSeries_bridgeGaps.html">ts.bridgeGaps</a>) from the monthly files of an HLSST series, e.g. the Kalman-filtered QuantumFrontiers HLSST_SLR_COMB2023s (icgem.gfz.de, no login), and a monthly series</td><td><code class="inline">SHX_BRIDGE_FOLDER</code> or the <code class="inline">BridgeFolder</code> preference, plus the series</td></tr>
+<tr><td><code class="inline">testUserSuppliedSINEXFiles</code> (testRobustness)</td><td>SINEX files of your own (<code class="inline">*.snx</code>, <code class="inline">*.snx.gz</code>, up to ~30 MB) beside the fixtures</td><td>the test-data folder: <code class="inline">SHX_TESTDATA_FOLDER</code> or the <code class="inline">TestDataFolder</code> preference</td></tr>
+</table>
+<div class="note"><b>This is not tidiness.</b> The fixture suite cannot see the class of failure that
+only appears on real data of real length: three bugs surfaced the first time the toolbox ran against
+a full 24-year series, and the mascon reader's dimension order was only settled by a real product
+file. None of the seven is required &mdash; without their data the suite runs complete and each
+reports as filtered rather than passing silently.</div>
+<p><code class="inline">SHX_SERIES_FOLDER</code> is the one location read from the environment only, and only by
+the trend regression: a routine acceptance run must never reach for a network or archive drive, so
+that test runs only in a session that asked for it. <code class="inline">setenv</code> lasts for the session; put
+the line in your <code class="inline">startup.m</code> to keep it.</p>
 
 <h2 class="seealso">See Also</h2>
 <p class="seealso"><a href="dataManagement.html">data management</a>
 <a href="fetchITSG.html">fetchITSG</a>
 <a href="ref/shLowLevel_readDDK.html">readDDK / fetchDDK</a>
 <a href="readTN13.html">readTN13</a></p>
-<p class="provenance">Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
-</div><h2>Opt-in test data <span class="tag">v3.8.2</span></h2>
-<p>Two checks need data far too large to ship as fixtures, so they read an environment variable and
-filter themselves out when it is unset. Pass the paths to
-<code class="inline">setup_shAnalysis</code> and it exports them for the session:</p>
-<pre>setup_shAnalysis(SeriesFolder = "D:/grace/itsg", ...
-                 MasconFile = "D:/grace/GRCTellus_JPL.nc");</pre>
-<table>
-<tr><th>Variable</th><th>Enables</th><th>Data</th></tr>
-<tr><td><code class="inline">SHX_SERIES_FOLDER</code></td>
-<td>the trend regression in <code class="inline">testScience</code></td>
-<td>a folder of monthly <code class="inline">.gfc</code> files, &gt; 24 epochs, GSM level &mdash;
-<a href="fetchITSG.html">fetchITSG</a> or <a href="icgemSeries.html">fetchICGEM</a></td></tr>
-<tr><td><code class="inline">SHX_MASCON_FILE</code></td>
-<td>the <a href="ref/shLowLevel_readMascon.html">readMascon</a> check against a real product</td>
-<td>CSR (no login), GSFC, or JPL PO.DAAC (free Earthdata login)</td></tr>
-<tr><td><code class="inline">SHX_GRAVIS_FOLDER</code> <span class="tag">v5.8.0</span></td>
-<td>the <a href="ref/shLowLevel_readGrid.html">readGrid</a> check against a real CF grid; the <code class="inline">GravisFolder</code> preference works as well</td>
-<td>the GravIS folder holding the Level-3 grid <code class="inline">GRAVIS-3_GFZOP_0600_TWS_GRID_GFZ_0006.nc</code> (gravis.gfz.de)</td></tr>
-<tr><td><code class="inline">SHX_EARTHROTATION_FOLDER</code> <span class="tag">v5.11.0</span></td>
-<td>the Earth-rotation check in <code class="inline">testScience</code>: GRACE&rsquo;s excitation (<a href="ref/shSeries_excitation.html">ts.excitation</a>) against the ESMGFZ model series. It needs <code class="inline">SHX_SERIES_FOLDER</code> as well; the <code class="inline">EarthRotationFolder</code> and <code class="inline">SeriesFolder</code> preferences work too</td>
-<td>a folder holding the ESMGFZ effective angular momentum functions in <code class="inline">ESMGFZ/HAM</code> and <code class="inline">ESMGFZ/SLAM</code> (esmdata.gfz.de, no login)</td></tr>
-<tr><td><code class="inline">SHX_BRIDGE_FOLDER</code> <span class="tag">v5.12.0</span></td>
-<td>the gap-filling check in <code class="inline">testScience</code>: GRACE months held out and bridged back from an HLSST series (<a href="ref/shSeries_bridgeGaps.html">ts.bridgeGaps</a>). It needs <code class="inline">SHX_SERIES_FOLDER</code> as well; the <code class="inline">BridgeFolder</code> and <code class="inline">SeriesFolder</code> preferences work too</td>
-<td>the monthly files of an HLSST series, e.g. the Kalman-filtered QuantumFrontiers HLSST_SLR_COMB2023s (icgem.gfz.de, no login)</td></tr>
-</table>
-<div class="note"><b>This is not tidiness.</b> The fixture suite cannot see the class of failure that
-only appears on real data of real length: three bugs surfaced the first time the toolbox ran against
-a full 24-year series, and the mascon reader's dimension order was only settled by a real product
-file. Neither variable is required &mdash; without them the suite runs complete and both tests
-report as filtered rather than passing silently.</div>
-<p><code class="inline">setenv</code> lasts for the session only; put the same lines in your
-<code class="inline">startup.m</code> to keep them.
-<code class="inline">SHX_SERIES_FOLDER</code> is deliberately <em>not</em> wired to the persistent
-data folder: a routine acceptance run must never reach for a network or archive drive, so pointing
-at that data stays an explicit decision.</p>
-
-
-
+</div><p class="provenance">Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
 </body></html>

@@ -1,5 +1,5 @@
 % shAnalysis - Spherical harmonic analysis toolbox
-% Version 5.13.0 (R2026a-compatible) 10-Sep-2026
+% Version 5.13.1 (R2026a-compatible) 11-Sep-2026
 %
 % The line above is what ver('shAnalysis') reports as the product name:
 % keep it a SHORT name, not a sentence and not a version string (pinned
@@ -11,11 +11,15 @@
 % time-variable anisotropic Wiener filter.
 %
 % Classes (single point of access)
-%   shCoefficients  - One coefficient set: I/O, arithmetic, TN-14, destripe,
-%                     Gaussian smoothing, spectra, synthesis, gfct evaluation.
+%   shCoefficients  - One coefficient set: I/O, arithmetic, TN-14 and degree 1,
+%                     filters (Gaussian, fan, destripe, DDK, VDK), spectra,
+%                     synthesis on the sphere or the ellipsoid, gradients,
+%                     deformation, error maps, gfct evaluation.
 %   shSeries        - Time series of coefficient sets: mean field, climatology,
-%                     GAX restore, per-epoch classic chain, tvANS filter,
-%                     basin averages with exact deconvolution.
+%                     GAX restore, low-degree/GIA/pole-tide corrections,
+%                     classic and tvANS chains, basin averages with exact
+%                     deconvolution, Kalman smoothing, EOFs, leakage
+%                     correction, Earth-rotation excitation, gap bridging.
 %   shClimatology   - Bias/trend/annual/semi-annual (+extra periods) model:
 %                     evaluate at epochs, extract components with 1-sigma
 %                     significance, amplitude/phase maps.

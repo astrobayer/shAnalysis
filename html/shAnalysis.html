@@ -5,7 +5,7 @@
 <body><div class="content">
 <span class="tag">Toolbox</span>
 <h1>shAnalysis &mdash; overview</h1>
-<p class="ver">Version 5.13.0 &mdash; the toolbox version is defined in
+<p class="ver">Version 5.13.1 &mdash; the toolbox version is defined in
 <code class="inline">Contents.m</code> and reported by
 <code class="inline">shLowLevel.version</code> and MATLAB's
 <code class="inline">ver</code>.</p>
@@ -24,9 +24,9 @@ of <code class="inline">shReadGFC(...)</code>, or use the classes. Run
 <h2>The three classes</h2>
 <table>
 <tr><th>Class</th><th>Scope</th></tr>
-<tr><td><a href="shCoefficients.html">shCoefficients</a></td><td>one coefficient set: read/write, arithmetic, TN-14, destriping, Gaussian smoothing, spectra, synthesis, gfct evaluation</td></tr>
-<tr><td><a href="shSeries.html">shSeries</a></td><td>time series: mean field, climatology, GAX restore, classic chain per epoch, <a href="tvANS.html">tvANS filter</a>, basin averages with exact deconvolution</td></tr>
-<tr><td><a href="shClimatology.html">shClimatology</a></td><td>bias/trend/annual/semi-annual model: components, evaluation, amplitude/phase maps</td></tr>
+<tr><td><a href="shCoefficients.html">shCoefficients</a></td><td>one coefficient set: read/write, arithmetic, TN-14 and degree 1, the filters (Gaussian, fan, destripe, DDK, VDK), spectra and comparison, synthesis on the sphere or the ellipsoid, gradients, deformation, error maps, basin averages, gfct evaluation</td></tr>
+<tr><td><a href="shSeries.html">shSeries</a></td><td>time series: mean field, climatology and trend breaks, GAX restore, low-degree, GIA, alias and pole-tide corrections, classic chain per epoch, <a href="tvANS.html">tvANS filter</a>, basin averages with exact deconvolution, Kalman smoothing, EOFs, leakage correction, Earth-rotation excitation, gap bridging</td></tr>
+<tr><td><a href="shClimatology.html">shClimatology</a></td><td>bias/trend/annual/semi-annual (+ extra periods) model: components with significance, evaluation, amplitude/phase maps, GIA removal</td></tr>
 </table>
 
 <h2>Typical session</h2>
@@ -50,34 +50,48 @@ avg = tsF.basinAverage(B, Deconvolve=true, Op=op);</pre>
 package namespace, e.g. <code class="inline">shLowLevel.shSynthesis(...)</code>; the pages document
 the low-level contract, the <a href="apiReference.html">API reference</a> the exact signatures.</p>
 
-<h2>New in v2.1</h2>
+<h2>Capabilities at a glance</h2>
 <table>
 <tr><th>Area</th><th>What</th></tr>
 <tr><td>SH analysis</td><td><a href="ref/shLowLevel_shAnalysisGrid.html">shCoefficients.analysis / shLowLevel.shAnalysisGrid</a>:
 grid or scattered points &rarr; Stokes coefficients. Exact fast per-order solver for ring grids,
-chunked least squares with Kaula regularization for scattered data, quantity kernels inverted.</td></tr>
-<tr><td>Degree 1</td><td><a href="readTN13.html">readTN13</a> + <code class="inline">addDegree1</code>:
-TN-13 geocenter coefficients complete the GSM + TN-14 + TN-13 chain.</td></tr>
-<tr><td>Filter scale &amp; uncertainty</td><td><a href="tvANS.html">tvANS</a>: block-diagonal fast path
-(identical results, Lmax ~ 120 tractable), posterior 1-sigma per coefficient/month
-(<code class="inline">tsF.sigmaCs/Ss</code>), propagated basin-average sigmas
-(<code class="inline">out.sigma</code>).</td></tr>
-<tr><td>Climatology</td><td>Extra periods (S2/K2/K1 tidal aliases), per-epoch weights,
-per-coefficient significance on every component (<code class="inline">trend().sigmaC</code>).</td></tr>
-<tr><td>Synthesis speed</td><td>FFT along longitude (<code class="inline">Method="auto"|"fft"</code>) +
-latitude parity trick; scaled Legendre recursion stable to degree 2190.</td></tr>
-<tr><td>Gap handling</td><td><code class="inline">ts.dropNaN()</code>, <code class="inline">ts.select(...)</code>
-for the GRACE&harr;GRACE-FO gap; irregular sampling handled natively downstream.</td></tr>
-<tr><td>I/O</td><td>ICGEM format 2.0 (piecewise gfct), <a href="readSINEX.html">readSINEX</a>
-(covariances/NEQs), yyyymmdd epoch conversion; two real ITSG monthly solutions
-(GRACE 2008-04, GRACE-FO 2025-12) ship in tests/test_data.</td></tr>
+chunked least squares with Kaula regularization for scattered data, quantity kernels inverted.
+A grid holding NaN is refused until <code class="inline">Fill=</code> says what the gaps mean <span class="tag">v5.8.0</span>;
+CF netCDF grids come in through <a href="ref/shLowLevel_readGrid.html">readGrid</a>.</td></tr>
+<tr><td>Low degrees</td><td><a href="readTN13.html">readTN13</a> + <code class="inline">addDegree1</code> and TN-14 complete the
+GSM + TN-14 + TN-13 chain; <code class="inline">ts.estimateDegree1</code> estimates degree 1 from the data
+(Swenson et al. 2008); <a href="referenceSystems.html">pole-tide conventions and GM/R rescaling</a>.</td></tr>
+<tr><td>Filters</td><td>Gaussian, fan, destripe, DDK1&ndash;8, VDK from monthly SINEX, and the
+<a href="tvANS.html">tvANS</a> Wiener filter with posterior sigmas and exact basin deconvolution;
+one filter vocabulary everywhere (<code class="inline">shLowLevel.filterSpec</code>) <span class="tag">v5.7.0</span>.</td></tr>
+<tr><td>Leakage</td><td><a href="leakage.html">forward modelling, scaling factors, and the data-driven methods of
+deviation and scale</a>.</td></tr>
+<tr><td>Time</td><td>Climatology with tidal alias periods and AR(1)-honest sigmas, trend breaks, the
+<a href="kalman.html">Kalman/VAR</a> smoother, <a href="eofAnalysis.html">EOFs</a>; the GRACE&harr;GRACE-FO gap dropped
+(<code class="inline">ts.dropNaN()</code>, <code class="inline">ts.select(...)</code>) or filled from an HLSST series
+(<code class="inline">ts.bridgeGaps</code>) <span class="tag">v5.12.0</span>.</td></tr>
+<tr><td>Synthesis</td><td>FFT along longitude + latitude parity; scaled Legendre recursion stable to degree 2190;
+Clenshaw summation at scattered points; evaluation on the <a href="shSynthesis.html">sphere or the WGS84 ellipsoid</a>
+<span class="tag">v5.5.0</span>; gradients, the <a href="gradientTensor.html">gradient tensor</a>, load deformation.</td></tr>
+<tr><td>Earth rotation</td><td><code class="inline">ts.excitation</code>: &chi;<sub>1</sub>, &chi;<sub>2</sub> from C21/S21 and,
+with TN-14, &chi;<sub>3</sub> and &Delta;LOD <span class="tag">v5.10.0</span>.</td></tr>
+<tr><td>Uncertainty</td><td>Formal errors through every chain, full <a href="readSINEX.html">SINEX</a> covariances,
+Monte Carlo (<code class="inline">mcPropagate</code>), error maps, the GIA model's own sigma
+(<code class="inline">removeGIA(gia, Sigma=...)</code>) <span class="tag">v5.2.0</span>, and the
+<a href="comparison.html">comparison suite</a>.</td></tr>
+<tr><td>Validated chains</td><td><a href="standardChain.html">standardChain</a> and the Greenland, Antarctica, TWS, ocean
+and OBP chains that reproduce GravIS.</td></tr>
+<tr><td>I/O</td><td>ICGEM 1.0/2.0 (piecewise gfct), SINEX, TN-13/TN-14, DDK, SHM, mascons and CF grids;
+<a href="dataManagement.html">one data folder</a> and the fetch family (<a href="fetchITSG.html">ITSG</a>,
+<a href="icgemSeries.html">ICGEM series</a>). Maps are drawn by geoMap (<a href="mapBridge.html">handover</a>).</td></tr>
 </table>
 
 <h2>Validation</h2>
-<p><code class="inline">runAllTests</code> executes four suites: numerical correctness (golden and
+<p><code class="inline">runAllTests</code> executes five suites: numerical correctness (golden and
 analytic values), API contract (error identifiers, immutability, dimensions), robustness (NaN
-stacks, degenerate basins, corrupted files, poles) and performance benchmarks (with a
-Legendre-cache speedup assertion). The v1 legacy suite went with <code class="inline">compat/</code>
+stacks, degenerate basins, corrupted files, poles), science (regression against values published
+outside the toolbox) and performance (speed budgets measured per machine). Seven opt-in tests run
+on real data you point them at (<a href="setup.html">setup_shAnalysis</a>). The v1 legacy suite went with <code class="inline">compat/</code>
 in v3.0.0. Every numerical method was cross-validated in Python (numpy/scipy) before the MATLAB
 implementation, and every field failure since has been converted into a fixture plus a contract
 test. The suite is CI-safe: all fetchers run offline against fixtures.</p>

@@ -51,7 +51,7 @@ function b = gridHandover(Z, lat, lon, units, latType, quantity, ...
 %             "GSM", "ITSG-Grace2018", 2008.29, 0, string.empty(0,1), 60, 0);
 %     b.FieldKind        % "anomaly"
 %
-%   See also SHCOEFFICIENTS/TOGRID, SHSERIES/TOGRID, KERNELFACTORS.
+%   See also shCoefficients.toGrid, shSeries.toGrid, shLowLevel.kernelFactors.
 %
 %   Error identifiers
 %     shLowLevel:gridHandover:fullFieldAsMass

@@ -49,7 +49,7 @@ shared `shLowLevel.gravisL2B` correction core. All downloads retry
 politely on 429/5xx honouring the server's Retry-After header
 (`shLowLevel.httpFetch`). Data locations persist across sessions via
 `setup_shAnalysis(SeriesFolder=..., GravisFolder=..., DDKFolder=...)`
-(setpref-backed); `quantity="none"` synthesizes raw coefficient
+(setpref-backed); `Quantity = "none"` synthesizes raw coefficient
 fields. `shLowLevel.oceanChain` closes the chain family with the
 barystatic ocean series (measured GIA lever +0.89 mm/yr), and
 `slepianProject` turns the Slepian basis into well-posed regional
@@ -132,7 +132,7 @@ ts  = ts.restore(gad);                  % GSM+GAD, epoch-matched
 dts = ts - ts.mean;                     % anomalies about the mean field
 
 [clim, resid] = dts.climatology(Robust=true);   % shClimatology + residuals
-A = clim.amplitudeMap("annual", -89:89, 0:359, "ewh", kn);
+A = clim.amplitudeMap("annual", -89:89, 0:359, Quantity="ewh", kn=kn);
 
 tsA = dts.destripe(MinOrder=6).gaussian(300);   % classic chain
 [tsF, op] = dts.filter("tvANS", SignalMode="inhomogeneous");
@@ -141,23 +141,33 @@ avg = tsF.basinAverage(B, Deconvolve=true, Op=op);   % unbiased basin series
 
 ## Opt-in test data
 
-Two checks need data too large to ship. Point `setup_shAnalysis` at yours:
+Seven tests need data too large to ship. Each reads its location from an
+environment variable or a MATLAB preference and reports as *filtered*,
+never as passed, when there is none:
 
 ```matlab
+% five locations through setup: setenv for this session AND setpref
 setup_shAnalysis(SeriesFolder = "D:/grace/itsg", ...
-                 MasconFile = "D:/grace/GRCTellus_JPL.nc");
+                 MasconFile = "D:/grace/GRCTellus_JPL.nc", ...
+                 GravisFolder = "D:/grace/gravis", DDKFolder = "D:/grace/DDK");
+% the other two as preferences
+setpref("shAnalysis", "EarthRotationFolder", "D:/grace/earthRotation");
+setpref("shAnalysis", "BridgeFolder", "D:/grace/hlsst");
 ```
 
-| Variable | Enables | Data |
+| Test | Needs | Looks in |
 |---|---|---|
-| `SHX_SERIES_FOLDER` | the trend regression in `testScience` | monthly `.gfc` files, > 24 epochs, GSM level |
-| `SHX_MASCON_FILE` | `readMascon` against a real product | CSR (no login), GSFC, or JPL PO.DAAC |
+| `testPublishedTrendOnARealSeries` | monthly GSM `.gfc` files, > 24 epochs | `SHX_SERIES_FOLDER`, the environment only |
+| `testMasconReaderOnARealFile` | a real mascon product: CSR (no login), GSFC, or JPL PO.DAAC | `SHX_MASCON_FILE` |
+| `testReadGridOnTheGravISGrid` | the GravIS Level-3 TWS grid | `SHX_GRAVIS_FOLDER` or preference `GravisFolder` |
+| `testGravisChainsRealData` | the GravIS folder, a monthly series and the DDK binaries | `SHX_GRAVIS_FOLDER`, `SHX_SERIES_FOLDER`, `SHX_DDK_FOLDER` or the matching preferences |
+| `testExcitationAgainstESMGFZ` | the ESMGFZ angular momentum functions (`ESMGFZ/HAM`, `ESMGFZ/SLAM`) and a series | `SHX_EARTHROTATION_FOLDER` or preference `EarthRotationFolder`, plus the series |
+| `testBridgeGapsAgainstGRACE` | an HLSST series such as HLSST_SLR_COMB2023s, and a series | `SHX_BRIDGE_FOLDER` or preference `BridgeFolder`, plus the series |
+| `testUserSuppliedSINEXFiles` | SINEX files of your own, up to ~30 MB | the test-data folder (`SHX_TESTDATA_FOLDER` or preference `TestDataFolder`) |
 
-Neither is required. Without them both tests report as filtered rather
-than passing silently. They exist because the fixture suite cannot see
-the class of failure that only appears on real data of real length -
-three bugs surfaced the first time the toolbox ran against a full
-24-year series.
+They exist because the fixture suite cannot see the class of failure that
+only appears on real data of real length - three bugs surfaced the first
+time the toolbox ran against a full 24-year series.
 
 ## Running the tests
 
@@ -171,15 +181,64 @@ file for review; pasted console text gets truncated.
 Five suites run: numerical correctness, API contract, robustness,
 **science** (regression against values published outside this toolbox -
 defining constants, load Love numbers, the closed-form EWH kernel,
-geocentre amplitudes) and performance. Set `SHX_SERIES_FOLDER` to a
-folder of monthly `.gfc` files to enable the opt-in trend regression;
-the fixture suite cannot see the class of failure that only appears on
-a real series of real length.
+geocentre amplitudes) and performance (speed budgets measured per
+machine). The seven opt-in real-data tests above run whenever their
+data is set up.
 
 ## What is new
 
 The **[CHANGELOG](CHANGELOG.md)** carries the full history with the
 reasoning behind each change. The headlines since v3.0.0:
+
+**Filling the mission gap (v5.12.0).** `ts.bridgeGaps(tsH)` fills the
+months a GRACE series lacks - the eleven between the missions and those
+lost to battery management - from a high-low SST + SLR series such as
+QuantumFrontiers HLSST_SLR_COMB2023s, calibrated per degree on the months
+both have (offset, scale and an empirical sigma). Each filled month is
+named `bridge:...`. Against COST-G at 750 km the fill's error is 41% of
+the GRACE signal over degrees 3-60.
+
+**Earth-rotation excitation (v5.10.0, v5.11.0).** `ts.excitation(kn = kn,
+TN14 = tn)` gives the polar-motion excitation chi1, chi2 [mas] of C21/S21
+(Chen & Wilson 2003) and, with the SLR C20 of TN-14, chi3 and the change
+in the length of day [ms], with the IERS 2010 constants by default.
+
+**Every lane behind the classes (v5.6.0 - v5.13.0).** Kalman smoothing,
+EOFs, both leakage corrections, gradients, export, error maps, basin
+averages, pointwise synthesis, the gradient tensor, VDK, pole-tide
+conversion, degree-1 estimation, multi-centre combination and Slepian
+projection are methods of `shSeries` and `shCoefficients`, each a thin
+delegate pinned bitwise to its function.
+
+**Data-driven leakage correction (v5.4.0, v5.9.0).**
+`shLowLevel.leakageDataDriven` repairs a filtered catchment mean with no
+hydrological model: Vishwakarma's method of deviation, and with
+`Method = "scale"` the method of scale.
+
+**Model grids in, NaN refused (v5.8.0, v5.12.1).** `shLowLevel.readGrid`
+reads CF netCDF grids - GravIS Level-3, hydrological models - and
+`shCoefficients.analysis` refuses NaN until `Fill = value` says what the
+gaps mean.
+
+**The ellipsoid (v5.5.0).** `Surface = "ellipsoid"` evaluates syntheses
+and gradients on the WGS84 ellipsoid instead of the sphere r = R; at the
+poles its surface lies 21.4 km lower.
+
+**GIA with its uncertainty (v5.2.0).** `ts.removeGIA(gia, Sigma = s)`
+propagates the model's rate sigma, and returns separately the term a
+trend needs: the GIA error is fully correlated in time.
+
+**Pointwise synthesis, about 100x faster (v5.1.0, v5.3.0).**
+`shLowLevel.synthesisPoints` sums by Clenshaw's recursion: 2000 points at
+nmax 60 in 0.022 s on the CI machine, against 2.28 s before.
+
+**One filter vocabulary (v5.7.0).** `"none"`, `"gauss<km>"`, `"DDK1"` to
+`"DDK8"` or a W struct, read by `shLowLevel.filterSpec` wherever a
+`Filter` is taken; a malformed spec is refused before any data is read.
+
+**Name=value everywhere (v4.0.0, v5.0.0).** Every function declares an
+`arguments` block with house-cased options, and every error identifier
+has three parts, `owner:function:reason`.
 
 **Leakage correction (v3.2.0+).** `shLowLevel.leakageCorrect` recovers the
 mass field whose filtered image matches the observation;
@@ -221,8 +280,8 @@ returns a provenance report. Correction tables always trail the
 solutions, so uncovered epochs are dropped and recorded rather than
 raising an error.
 
-**Documentation is gated (v3.1.2+).** Six CI gates run before the test
-suite; `tools/doc_sync_audit.py` checks the in-file help, `html/` and
+**Documentation is gated (v3.1.2+).** The CI gates job runs before the
+test suite (its list is in `.github/workflows/ci.yml`); `tools/doc_sync_audit.py` checks the in-file help, `html/` and
 the workflow guide against the source and against each other - every
 documented call is contract-checked, including option value *types*.
 
@@ -235,7 +294,11 @@ documented call is contract-checked, including option value *types*.
 | TN-13 (degree 1), TN-14 (C20/C30) | GFZ ISDC | `shLowLevel.fetchTN` |
 | DDK filter matrices | upstream repository | `shLowLevel.fetchDDK` |
 | Load Love numbers (GROOPS set) | ftp.tugraz.at | `shLowLevel.fetchLoveNumbers` |
-| GravIS Level-2B and Level-3 | gravis.gfz.de, ISDC | `shLowLevel.readSHM` (manual download) |
+| GravIS Level-2B and Level-3 | gravis.gfz.de, ISDC | `shLowLevel.readSHM`, `shLowLevel.readGrid` (manual download) |
+| AOD1B monthly means (GAA/GAB/GAC/GAD) | ICGEM / GFZ | `shLowLevel.fetchGAX` |
+| ITSG monthly SINEX normals and background models | ftp.tugraz.at | `shLowLevel.fetchITSGSINEX`, `fetchITSGBackground` |
+| HLSST + SLR series for the mission gap | icgem.gfz.de | `shLowLevel.listICGEM(Type="temporal")`, `fetchICGEM` |
+| ESMGFZ angular momentum functions | esmdata.gfz.de | manual download (the excitation check) |
 
 **On COST-G covariances.** COST-G publishes its combined *solutions*
 through ICGEM, and combines on the normal-equation level internally, but
