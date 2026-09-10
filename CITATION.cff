@@ -5,7 +5,7 @@ title: "shAnalysis: spherical harmonic analysis for GRACE/GRACE-FO in MATLAB"
 authors:
   - family-names: "Weigelt"
     given-names: "Matthias"
-version: "5.9.0"
+version: "5.10.0"
 date-released: 2026-09-10
 doi: "10.5281/zenodo.21871298"
 repository-code: "https://github.com/astrobayer/shAnalysis"
