@@ -171,8 +171,9 @@ function [mCorr, info] = leakageCorrect(grid, latDeg, lonDeg, opts)
 %     shLowLevel:leakageCorrect:emptyResidualRegion
 %         ResidualRegion selects no pixel
 %     shLowLevel:leakageCorrect:nanInput
-%         a non-finite pixel lies inside Mask or ResidualRegion; NaN
-%         outside both is tolerated
+%         a non-finite pixel lies inside Mask or ResidualRegion, or
+%         anywhere when no Mask is given (the whole grid is then
+%         analysed); with a Mask, NaN outside both regions is tolerated
 %     shLowLevel:leakageCorrect:unregularised
 %         warning - NoiseLevel=0, so the iteration is unregularised and
 %         the answer depends on where it happens to stop
@@ -245,14 +246,22 @@ else
 end
 % non-finite data where the model or the stopping rule looks is fatal:
 % the iteration diverges and reports 'diverged', which points the user
-% at the wrong cause. NaN OUTSIDE both regions is tolerated (masked
-% oceans/land gaps are common in real grids). (audit F-20)
-sel = resSel;
-if ~isempty(mask), sel = sel | mask; end
+% at the wrong cause (audit F-20). With a Mask the model is zero outside
+% it, so NaN OUTSIDE both regions is tolerated (masked oceans and land
+% gaps are common in real grids). Without one the whole grid is the
+% model the chain analyses, and a NaN anywhere reaches every
+% coefficient - that case reported 'diverged' until v5.12.1 (A30).
+if useMask
+    sel = resSel | mask;
+else
+    sel = true(size(grid));
+end
 badPix = ~isfinite(grid) & sel;
 assert(~any(badPix(:)), 'shLowLevel:leakageCorrect:nanInput', ...
-    ['%d non-finite pixel(s) inside Mask/ResidualRegion - the inversion ' ...
-     'cannot run on them. NaN outside both regions is allowed.'], nnz(badPix));
+    ['%d non-finite pixel(s) where the inversion reads them - inside ' ...
+     'Mask or ResidualRegion, or anywhere without a Mask, since then the ' ...
+     'whole grid is analysed. NaN outside both regions is allowed with a ' ...
+     'Mask.'], nnz(badPix));
 
 scale = max(abs(grid(:)));
 if scale == 0                            % nothing to correct

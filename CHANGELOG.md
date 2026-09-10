@@ -1,5 +1,35 @@
 # Changelog
 
+## [5.12.1] - 2026-09-10 - A30: no NaN reaches an analysis
+
+A PATCH: three refusals where NaN used to pass silently, or with the
+wrong cause.
+
+### Fixed
+- **`shLowLevel.shAnalysisGrid` refuses a grid holding NaN or Inf**
+  (`nanInGrid`). Measured before the fix, a ring grid with a NaN polar cap
+  came back with 153 of 289 C and 136 of 289 S coefficients NaN, and no
+  error. `shCoefficients.analysis` has refused NaN since 5.8.0; the lane
+  now does too, for every caller.
+- **`leakageCorrect` without a Mask refuses NaN anywhere** (`nanInput`).
+  Without a Mask the whole grid is the model the chain analyses, so a NaN
+  outside the ResidualRegion spread through it and the call failed with
+  `diverged` - the misleading cause audit F-20 was written against. With a
+  Mask nothing changes: NaN outside both regions is still tolerated.
+- **`gridScaling` refuses a model holding NaN** (`nanInput`). A model with
+  NaN over the ocean returned no finite factor at all (0 of 1122 pixels),
+  silently, and `readGrid` makes such land-only models easy to load. Fill
+  the gaps first: 0 over an ocean is a choice to make explicitly.
+
+### Unchanged
+- Every call that worked before, bitwise: `leakageCorrect` with a Mask and
+  NaN outside both regions, and NaN-free `leakageCorrect`, `gridScaling`
+  and `shAnalysisGrid`, captured before the edit and compared after.
+
+### Tests
+- 381 -> 382 runs: `testNaNNeverReachesAnAnalysis` in testContract pins
+  the three refusals, the lane's in both of its layouts.
+
 ## [5.12.0] - 2026-09-10 - WP5 5d: bridging the GRACE gaps
 
 A MINOR: new API - `shLowLevel.bridgeGaps` and `shSeries.bridgeGaps`.

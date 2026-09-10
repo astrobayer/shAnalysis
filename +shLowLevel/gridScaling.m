@@ -79,6 +79,8 @@ function [k, info] = gridScaling(model, latDeg, lonDeg, opts)
 %     shLowLevel:gridScaling:badFilter
 %         Filter is refused by shLowLevel.filterSpec: it is not a W
 %         struct, "none", "gauss<radiusKm>" or "DDK1" to "DDK8"
+%     shLowLevel:gridScaling:nanInput
+%         the model holds NaN or Inf - fill its gaps first
 %     shLowLevel:gridScaling:badNmax
 %         the grid supports nmax < 2; give at least 3 latitudes
 %     shLowLevel:gridScaling:badSize
@@ -117,6 +119,16 @@ if ~isfinite(nmax)
 end
 assert(nmax >= 2, 'shLowLevel:gridScaling:badNmax', ...
     'The grid supports nmax = %d; give at least 3 latitudes.', nmax);
+% every epoch goes through the analysis, where one NaN reaches every
+% coefficient and every k comes back NaN - silently, until v5.12.1 (A30)
+nBad = nnz(~isfinite(model));
+if nBad > 0
+    error('shLowLevel:gridScaling:nanInput', ...
+        ['The model holds %d non-finite value(s). Every epoch goes ' ...
+         'through the analysis, where one NaN reaches every coefficient: ' ...
+         'fill the gaps first. A land-only model has no ocean, and 0 ' ...
+         'there is a choice to make explicitly.'], nBad);
+end
 [wFilt, fname] = resolveFilter(opts.Filter, nmax);
 
 num = zeros(nLat, nLon);
