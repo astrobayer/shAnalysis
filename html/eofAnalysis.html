@@ -9,6 +9,7 @@
 <h2>Syntax</h2>
 <pre>[~, resid] = ts.climatology();
 [modes, pcs, ve] = shLowLevel.eofAnalysis(resid, NModes=4);
+[modes, pcs, ve] = resid.eof(NModes=4);          % the same, as a method (v5.6.0)
 modes{1}.map(Quantity="ewh", kn=kn)   % spatial pattern of mode 1
 plot(resid.epochs, pcs(:,1))          % its temporal amplitude</pre>
 <h2>Description</h2>

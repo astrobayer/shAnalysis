@@ -25,7 +25,7 @@ function loc = requireGeoMap()
 %   Example
 %     loc = shLowLevel.requireGeoMap();   % errors if geoMap is absent
 %
-%   See also SHCOEFFICIENTS/MAP, SHCOEFFICIENTS/TOGRID, WRITEANIMATION.
+%   See also shCoefficients.map, shCoefficients.toGrid, shLowLevel.writeAnimation.
 %
 %   Error identifiers
 %     shLowLevel:requireGeoMap:geoMapRequired

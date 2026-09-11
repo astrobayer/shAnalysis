@@ -20,6 +20,14 @@ Checks, in order of how badly they bite:
             count in range, option names declared, and option VALUES of
             the declared type (a string literal into a logical option, or
             a value outside a mustBeMember set, is a snippet that throws).
+  PROSE     the call forms SNIPPET does not read get the same contract
+            check - html <code> spans, the guide's Courier spans, README
+            code fences, the Contents.m quick start; no code block calls
+            a package function without its namespace; every public
+            method is named on its class page; and every error
+            identifier a narrative page names is one something raises;
+            and each hand-written page opens one head and one body
+            (v5.13.1).
   APIREF    every public entity and every one of its name-value options
             appears in html/apiReference.html - i.e. it was regenerated.
   TOC       html/helptoc.xml reaches every page and points at no ghosts.
@@ -503,6 +511,150 @@ def guide_snippets():
         yield blk
 
 
+# ------------------------------------------------------ prose (v5.13.1)
+# SNIPPET reads <pre> blocks and guide code() blocks. A call written
+# anywhere else went unchecked - an html <code> span, a Courier span in
+# the guide's prose, a README code fence, the quick start in Contents.m -
+# and the README's own quick start called clim.amplitudeMap with five
+# positional arguments where the contract takes three. Two html pages
+# called package functions without their namespace for ten releases
+# after v3.0.0 moved them, and the class pages lacked 28 public methods.
+# A documentation audit found all of it with every gate green; these are
+# the rules from that audit which fire on defects and not on history.
+README = os.path.join(ROOT, "README.md")
+CONTENTS = os.path.join(ROOT, "Contents.m")
+BARE_OK = {"version"}          # a package function that shares a MATLAB name
+IDLIT = re.compile(r"[\"']((?:shLowLevel|shCoefficients|shSeries|shClimatology"
+                   r"|shAnalysis):[\w:]+)[\"'](\s*\+)?")
+IDREF = re.compile(r"\b(?:shLowLevel|shCoefficients|shSeries|shClimatology"
+                   r"|shAnalysis):[A-Za-z0-9_]+(?::[A-Za-z0-9_]+)*")
+
+
+def readme_snippets():
+    if os.path.isfile(README):
+        md = open(README, encoding="utf-8").read()
+        for blk in re.findall(r"```matlab\n(.*?)```", md, re.S):
+            yield "README.md", blk
+
+
+def prose_snippets():
+    """(where, source) for every call form SNIPPET does not read."""
+    for f in sorted(os.listdir(HTML)):
+        if f.endswith(".html") and f != "apiReference.html":
+            s = open(os.path.join(HTML, f), encoding="utf-8",
+                     errors="replace").read()
+            for blk in re.findall(r"<code[^>]*>(.*?)</code>", s, re.S):
+                yield ("html/%s <code>" % f,
+                       _html.unescape(re.sub(r"<[^>]+>", "", blk)))
+    if os.path.isfile(GUIDE_SRC):
+        g = open(GUIDE_SRC, encoding="utf-8").read()
+        for blk in re.findall(r"<font face='Courier'>(.*?)</font>", g, re.S):
+            blk = re.sub(r'"\s*\n\s*"', "", blk).replace('\\"', '"')
+            yield "guide <font>", _html.unescape(blk)
+    for where, blk in readme_snippets():
+        yield where, blk
+    if os.path.isfile(CONTENTS):
+        cm = open(CONTENTS, encoding="utf-8").read()
+        yield "Contents.m", "\n".join(ln.lstrip("%") for ln in cm.split("\n"))
+
+
+def bare_calls(src, names):
+    """Package functions called WITHOUT shLowLevel. in a code block."""
+    c = clean_matlab(src)
+    c = re.sub(r'"[^"\n]*"', '""', c)            # a name inside a string
+    return sorted({m.group(1)
+                   for m in re.finditer(r"(?<![\w.])(\w+)\s*\(", c)
+                   if m.group(1) in names})
+
+
+def class_page_missing(page_text, methods):
+    """Public methods a class page never names (as a whole word)."""
+    return [m for m in methods
+            if not re.search(r"\b%s\b" % re.escape(m), page_text)]
+
+
+def raised_identifiers():
+    """Identifier literals the toolbox raises, and the prefixes it builds
+    identifiers from ("shAnalysis:setup:no" + name)."""
+    whole, prefix = set(), set()
+    for d in (PKG, os.path.join(PKG, "private"), ROOT):
+        if not os.path.isdir(d):
+            continue
+        for f in os.listdir(d):
+            if not f.endswith(".m"):
+                continue
+            src = open(os.path.join(d, f), encoding="utf-8",
+                       errors="replace").read()
+            code = "\n".join(ln for ln in src.split("\n")
+                             if not ln.strip().startswith("%"))
+            for m in IDLIT.finditer(code):
+                (prefix if m.group(2) else whole).add(m.group(1))
+    return whole, prefix
+
+
+def unraised(text, whole, prefix):
+    """Identifiers a text names that nothing raises."""
+    return sorted({i for i in IDREF.findall(text)
+                   if i not in whole and not any(i.startswith(p)
+                                                 for p in prefix)})
+
+
+def page_structure(src):
+    """A hand-written page opens one head and one body. Six pages carried
+    their <body><div class="content"> line twice and one closed </head>
+    twice - invisible in a browser, which forgives both."""
+    return ["%s appears %d times" % (tag, src.count(tag))
+            for tag in ("<head>", "</head>", "<body", "</body>")
+            if src.count(tag) != 1]
+
+
+def prose_audit(ent, sig, meth, pages):
+    probs = []
+    for f in pages:
+        if f != "apiReference.html":
+            src = open(os.path.join(HTML, f), encoding="utf-8",
+                       errors="replace").read()
+            for p in page_structure(src):
+                probs.append("html/%s: %s - a page opens one head and "
+                             "one body" % (f, p))
+    for where, blk in prose_snippets():
+        audit_snippet(where, blk, sig, meth, probs)
+    roots = {k for k in ent if "." not in k}
+    bare = ({k.split(".", 1)[1] for k in ent if k.startswith("shLowLevel.")}
+            - roots - BARE_OK)
+    blocks = [("html/" + f, b) for f in pages if f != "apiReference.html"
+              for b in html_snippets(os.path.join(HTML, f))]
+    blocks += [("guide", b) for b in guide_snippets()]
+    blocks += list(readme_snippets())
+    for where, blk in blocks:
+        for n in bare_calls(blk, bare):
+            probs.append("%s: %s(...) is called without shLowLevel. - it "
+                         "lives in the package since v3.0.0, and no root "
+                         "function has that name" % (where, n))
+    for cls in CLASSES:
+        c = cls[:-2]
+        page = os.path.join(HTML, c + ".html")
+        if not os.path.isfile(page):
+            continue
+        meths = sorted({k.split(".", 1)[1] for k in ent
+                        if k.startswith(c + ".")} - {c})
+        for m in class_page_missing(html_text(page), meths):
+            probs.append("html/%s.html: the public method %s is not named "
+                         "on its class page" % (c, m))
+    whole, prefix = raised_identifiers()
+    texts = [("html/" + f, html_text(os.path.join(HTML, f)))
+             for f in pages if f != "apiReference.html"]
+    for path in (GUIDE_SRC, README, CONTENTS):
+        if os.path.isfile(path):
+            texts.append((os.path.relpath(path, ROOT).replace(os.sep, "/"),
+                          _html.unescape(open(path, encoding="utf-8").read())))
+    for where, text in texts:
+        for i in unraised(text, whole, prefix):
+            probs.append("%s: names the error identifier %s, which nothing "
+                         "raises" % (where, i))
+    return probs
+
+
 # ------------------------------------------------------------- the audit
 def main():
     ent = entities()
@@ -522,6 +674,9 @@ def main():
             audit_snippet("html/" + f, blk, sig, meth, probs)
     for blk in guide_snippets():
         audit_snippet("guide", blk, sig, meth, probs)
+
+    # --- PROSE (v5.13.1): the call forms and names SNIPPET does not read
+    probs.extend(prose_audit(ent, sig, meth, pages))
 
     # --- APIREF: the generated reference must know every option
     apath = os.path.join(HTML, "apiReference.html")

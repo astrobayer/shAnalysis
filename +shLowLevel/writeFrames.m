@@ -35,7 +35,7 @@ function writeFrames(frames, filename, opts)
 %     F = uint8(zeros(120, 240, 3, 5));
 %     shLowLevel.writeFrames(F, fullfile(tempdir, 'demo.avi'), FrameRate = 2);
 %
-%   See also SHLOWLEVEL/WRITEANIMATION, SHSERIES/TOGRID.
+%   See also shLowLevel.writeAnimation, shSeries.toGrid.
 %
 %   Error identifiers
 %     shLowLevel:writeFrames:badExtension

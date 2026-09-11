@@ -12,7 +12,7 @@ function [up, north, east] = shSynthesisDeformation(C, S, R, latDeg, lonDeg, opt
 %     east  = R * sum  ln/(1+kn) * dC * (1/cos phi) * dYbar/dlambda
 %
 %   Vertical needs only a degree factor (also available as
-%   quantity="deformation_up" in shSynthesis); the horizontal components
+%   Quantity="deformation_up" in shSynthesis); the horizontal components
 %   need the exact spherical-harmonic gradient - dPbar/dphi comes from
 %   shLowLevel.legendreALFDeriv (frozen validated identity), the longitude
 %   derivative swaps and m-scales the trigonometric parts. Python-

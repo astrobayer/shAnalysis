@@ -3,7 +3,6 @@
 <link rel="stylesheet" href="shAnalysis.css">
 </head>
 <body><div class="content">
-<body><div class="content">
 <span class="tag">Function</span><span class="tag">v2.1</span>
 <h1>readSINEX</h1>
 <p>Read gravity-field <b>SINEX</b> files (ITSG, COST-G, ...): parameter estimates, covariance
@@ -43,8 +42,8 @@ ITSG-Grace2018 n96 monthly SINEX (TU Graz): the actual layout is
 &mdash; CODE = degree, SOLN = order, PT = '--'. Degree/order are therefore taken as the first
 integer token after CN/SN and the next integer &le; degree, which also covers plain
 "CN n m ... value std" layouts. A truncated real fixture (first 12 parameters + the consistent
-12&times;12 NEQ principal submatrix, values verbatim) ships in
-<code class="inline">tests/test_data/ITSG-Grace2018_n96_2008-04_head12.snx</code> and is covered by
+12&times;12 NEQ principal submatrix, values verbatim) is the test fixture
+<code class="inline">ITSG-Grace2018_n96_2008-04_head12.snx</code> and is covered by
 the robustness suite incl. Cholesky inversion against independently computed sigmas. Matrix
 indices beyond the parameter list error with <code class="inline">shLowLevel:readSINEX:badMatrixIndex</code>.
 The reader loads the whole file into memory &mdash; fine for monthly solutions to Lmax ~ 120, not

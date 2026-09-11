@@ -27,7 +27,7 @@ function summary = setup_shAnalysis(opts)
 %                companions of the two shipped n60 fixture months
 %                (2008-04 GRACE, 2025-12 GRACE-FO).
 %   Downloads land in shLowLevel.dataFolder() subfolders (TN/, DDK/,
-%   itsg_series/); existing files are skipped, so re-running is cheap
+%   series/itsg/monthly/); existing files are skipped, so re-running is cheap
 %   and idempotent. Failures are collected per file and reported - an
 %   offline machine still gets a working path setup plus the shipped
 %   fixtures.

@@ -3,7 +3,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="shAnalysis.css">
 </head><body><div class="content">
-<h1>shAnalysis API reference (v5.13.0)</h1>
+<h1>shAnalysis API reference (v5.13.1)</h1>
 <p>Generated from the source arguments blocks and help text - inputs,
 name-value options with defaults, and outputs for every public function
 and method. Regenerated with every release; the source of truth is the
@@ -522,7 +522,7 @@ code itself.</p>
 <div class="entry" id="shLowLevel.fetchICGEM">
 <h3><code>shLowLevel.fetchICGEM(model, opts)</code></h3>
 <p class="h1line">Download a static gravity field model from ICGEM.</p>
-<p>FILE = shLowLevel.fetchICGEM(&quot;EGM2008&quot;) resolves the model name against shLowLevel.listICGEM (case-insensitive exact match, else unique prefix) and downloads the .gfc into &lt;dataFolder&gt;/icgem. Existing files are skipped. Load with shCoefficients.read(FILE).</p>
+<p>FILE = shLowLevel.fetchICGEM(&quot;EGM2008&quot;) resolves the model name against shLowLevel.listICGEM (case-insensitive exact match, else unique prefix) and downloads the .gfc into &lt;dataFolder&gt;/static. Existing files are skipped. Load with shCoefficients.read(FILE).</p>
 <b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>model</code></td><td>n x m</td><td>-</td><td>required</td></tr></table>
 <b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Dest</code></td><td>1 x 1</td><td>string</td><td>&quot;&quot;</td></tr><tr><td><code>Timeout</code></td><td>1 x 1</td><td>double</td><td>300</td></tr><tr><td><code>List</code></td><td>n x m</td><td>table</td><td>table()</td></tr><tr><td><code>Proxy</code></td><td>1 x 1</td><td>string</td><td>&quot;&quot;</td></tr><tr><td><code>Update</code></td><td>1 x 1</td><td>logical</td><td>false</td></tr><tr><td><code>Quiet</code></td><td>1 x 1</td><td>logical</td><td>false</td></tr><tr><td><code>Pause</code></td><td>1 x 1</td><td>double</td><td>3</td></tr><tr><td><code>Retries</code></td><td>1 x 1</td><td>double</td><td>3</td></tr><tr><td><code>Type</code></td><td>1 x 1</td><td>string</td><td>&quot;static&quot;</td></tr><tr><td><code>Files</code></td><td>1 x 1</td><td>string</td><td>&quot;*.gfc*&quot;</td></tr><tr><td><code>Mode</code></td><td>1 x 1</td><td>string</td><td>&quot;auto&quot;</td></tr><tr><td><code>FileList</code></td><td>n x m</td><td>table</td><td>table()</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
@@ -716,7 +716,7 @@ code itself.</p>
             &quot;GSM&quot;, &quot;ITSG-Grace2018&quot;, 2008.29, 0, string.empty(0,1), 60, 0);
     b.FieldKind        % &quot;anomaly&quot;
 
-  See also SHCOEFFICIENTS/TOGRID, SHSERIES/TOGRID, KERNELFACTORS.</pre>
+  See also shCoefficients.toGrid, shSeries.toGrid, shLowLevel.kernelFactors.</pre>
 </div>
 <div class="entry" id="shLowLevel.gridScaling">
 <h3><code>shLowLevel.gridScaling(model, latDeg, lonDeg, opts)</code></h3>
@@ -1242,7 +1242,7 @@ code itself.</p>
 </table>
 <b>Example</b><pre>    loc = shLowLevel.requireGeoMap();   % errors if geoMap is absent
 
-  See also SHCOEFFICIENTS/MAP, SHCOEFFICIENTS/TOGRID, WRITEANIMATION.</pre>
+  See also shCoefficients.map, shCoefficients.toGrid, shLowLevel.writeAnimation.</pre>
 </div>
 <div class="entry" id="shLowLevel.rescaleGMR">
 <h3><code>shLowLevel.rescaleGMR(C, S, GM1, R1, GM2, R2, sigmaC, sigmaS)</code></h3>
@@ -1504,8 +1504,9 @@ code itself.</p>
   d(gravity_disturbance)/dr = -gravity_gradient_rr at 4e-16, and
   single-coefficient closed forms at 2e-16.
 
-  See also SHSYNTHESIS, SHSYNTHESISDEFORMATION, SHSYNTHESISGRADIENTTENSOR,
-  KERNELFACTORS, LEGENDREALFDERIV.</pre>
+  See also shLowLevel.shSynthesis, shLowLevel.shSynthesisDeformation,
+  shLowLevel.shSynthesisGradientTensor, shLowLevel.kernelFactors,
+  shLowLevel.legendreALFDeriv.</pre>
 </div>
 <div class="entry" id="shLowLevel.shSynthesisGradientTensor">
 <h3><code>shLowLevel.shSynthesisGradientTensor(C, S, GM, R, latDeg, lonDeg, opts)</code></h3>
@@ -1721,7 +1722,7 @@ code itself.</p>
 <b>Example</b><pre>    shLowLevel.writeAnimation(ts, fullfile(tempdir, &#x27;ewh.avi&#x27;), ...
         Quantity = &quot;ewh&quot;, kn = kn, FrameRate = 6);
 
-  See also SHSERIES/TOGRID, SHLOWLEVEL/WRITEFRAMES, REQUIREGEOMAP.</pre>
+  See also shSeries.toGrid, shLowLevel.writeFrames, shLowLevel.requireGeoMap.</pre>
 </div>
 <div class="entry" id="shLowLevel.writeFrames">
 <h3><code>shLowLevel.writeFrames(frames, filename, opts)</code></h3>
@@ -1732,7 +1733,7 @@ code itself.</p>
 <b>Example</b><pre>    F = uint8(zeros(120, 240, 3, 5));
     shLowLevel.writeFrames(F, fullfile(tempdir, &#x27;demo.avi&#x27;), FrameRate = 2);
 
-  See also SHLOWLEVEL/WRITEANIMATION, SHSERIES/TOGRID.</pre>
+  See also shLowLevel.writeAnimation, shSeries.toGrid.</pre>
 </div>
 <div class="entry" id="shLowLevel.writeGFC">
 <h3><code>shLowLevel.writeGFC(filename, C, S, GM, R, opts)</code></h3>
@@ -2446,7 +2447,7 @@ code itself.</p>
 <div class="entry" id="shSeries.fromFolder">
 <h3><code>shSeries.fromFolder(folder, opts)</code></h3>
 <p class="h1line">Read every matching gfc file in a folder as a series.</p>
-<p>TS = shSeries.fromFolder(&quot;itsg_series&quot;) TS = shSeries.fromFolder(dest, Pattern=&quot;*n96*.gfc*&quot;, Truncate (NaN)=60) Convenience wrapper around shSeries.read (sorted by epoch); pairs with shLowLevel.fetchITSG, which downloads ITSG monthly solutions into tests/test_data/itsg_series on demand.</p>
+<p>TS = shSeries.fromFolder(FOLDER) TS = shSeries.fromFolder(dest, Pattern=&quot;*n96*.gfc*&quot;, Truncate (NaN)=60) Convenience wrapper around shSeries.read (sorted by epoch); pairs with shLowLevel.fetchITSG, which downloads ITSG monthly solutions into &lt;dataFolder&gt;/series/itsg/monthly on demand.</p>
 <b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>folder</code></td><td>1 x 1</td><td>string</td><td>required</td></tr></table>
 <b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Pattern</code></td><td>1 x 1</td><td>string</td><td>&quot;*.gfc*&quot;</td></tr><tr><td><code>Truncate</code></td><td>1 x 1</td><td>double</td><td>NaN</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
@@ -2745,7 +2746,7 @@ code itself.</p>
 <div class="entry" id="shClimatology.removeGIA">
 <h3><code>shClimatology.removeGIA(obj, gia)</code></h3>
 <p class="h1line">Subtract a GIA rate model from the fitted trend.</p>
-<p>OUT = clim.removeGIA(GIA): GIA is an shCoefficients holding RATE coefficients [1/yr] (user-supplied model file via shCoefficients.read). Only trendC/trendS change; trend sigmas are kept - the model is treated as exact (documented limitation; GIA model spread often dominates regional trend error budgets - compare several models).</p>
+<p>OUT = clim.removeGIA(GIA): GIA is an shCoefficients holding RATE coefficients [1/yr] (user-supplied model file via shCoefficients.read). Only trendC/trendS change; trend sigmas are kept - the model is treated as exact here. To carry a GIA model&#x27;s own sigma, correct the series before the fit with ts.removeGIA(GIA, Sigma = SIG) (v5.2.0), or add its rate sigma to the trend sigma. GIA model spread often dominates regional trend error budgets - compare several models.</p>
 <b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td>required</td></tr><tr><td><code>gia</code></td><td>1 x 1</td><td>shCoefficients</td><td>required</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
 <tr><td><code>out</code></td><td>(1,1) shClimatology  copy with the GIA trend removed from the trend component; history appended</td></tr>
@@ -2781,4 +2782,4 @@ code itself.</p>
 <tr><td><code>obj</code></td><td>(1 x 1) shClimatology   copy with the note appended to its history</td></tr>
 </table>
 </div>
-<p class="provenance">Developed by Matthias Weigelt with the help of Claude (Fable 5), 10-Sep-2026 (v5.13.0). Generated by tools - do not edit.</p></div></body></html>
+<p class="provenance">Developed by Matthias Weigelt with the help of Claude (Fable 5), 11-Sep-2026 (v5.13.1). Generated by tools - do not edit.</p></div></body></html>

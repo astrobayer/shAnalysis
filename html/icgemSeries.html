@@ -16,7 +16,7 @@ is fetchable in one call, and the result folder feeds
 fs = shLowLevel.fetchICGEM(17, Type = "temporal");
 ts = shSeries.fromFolder(fileparts(fs(1)));</pre>
 <p>Files land in
-<code class="inline">&lt;dataFolder&gt;/icgem/series/&lt;group&gt;_&lt;center&gt;_&lt;series&gt;/</code>.
+<code class="inline">&lt;dataFolder&gt;/series/&lt;group&gt;_&lt;center&gt;_&lt;series&gt;/</code>.
 Selection works by index, by name or with <code class="inline">"all"</code>, and
 <code class="inline">Type=</code> mirrors <a href="dataManagement.html">listICGEM</a>, so the same
 numeric selection means the same thing on either catalogue.</p>

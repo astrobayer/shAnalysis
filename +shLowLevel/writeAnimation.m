@@ -56,7 +56,7 @@ function writeAnimation(ts, filename, opts)
 %     shLowLevel.writeAnimation(ts, fullfile(tempdir, 'ewh.avi'), ...
 %         Quantity = "ewh", kn = kn, FrameRate = 6);
 %
-%   See also SHSERIES/TOGRID, SHLOWLEVEL/WRITEFRAMES, REQUIREGEOMAP.
+%   See also shSeries.toGrid, shLowLevel.writeFrames, shLowLevel.requireGeoMap.
 %
 %   Error identifiers
 %     shLowLevel:writeAnimation:captureMismatch

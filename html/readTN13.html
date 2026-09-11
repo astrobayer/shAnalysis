@@ -3,7 +3,6 @@
 <link rel="stylesheet" href="shAnalysis.css">
 </head>
 <body><div class="content">
-<body><div class="content">
 <span class="tag">Function</span><span class="tag">v2.1</span>
 <h1>readTN13</h1>
 <p>Read a GRACE/GRACE-FO <b>TN-13 geocenter (degree-1)</b> file and complete the standard
@@ -35,8 +34,8 @@ monthly record with the interval mid-point as epoch (decimal years via
 <div class="note"><b>Verified against real data.</b> The parser is validated against a real
 GFZ TN-13 (RL06.3, 2002-04&nbsp;&ndash;&nbsp;2026-04): 256 months, 512 perfectly paired GRCOF2
 lines in exactly the layout above (9 columns; a 10th solution-flags column mentioned in the
-header does not occur in the data and would be ignored). The file ships as a fixture in
-<code class="inline">tests/test_data/TN-13_GEOC_GFZ_RL06_3.txt</code>; the robustness suite checks
+header does not occur in the data and would be ignored). The file is one of the test fixtures,
+<code class="inline">TN-13_GEOC_GFZ_RL06_3.txt</code> (see <a href="dataManagement.html">testDataDir</a>); the robustness suite checks
 hard expected values (first/last month, epoch conversion to 1e-12), the full degree-1 chain on
 the real ITSG 2008-04 solution, the gzip branch, and that the GRACE&harr;GRACE-FO gap
 (2017.39&ndash;2018.41) is visible in the sampling &mdash; the motivation for
@@ -56,6 +55,7 @@ the <b>ocean</b> part of the field agree with an ocean model. A small least-squa
 epoch, over the ocean domain, area-weighted.</p>
 <pre>LN = shLowLevel.readLoveNumbers("loadLoveNumbers.txt");
 d1 = shLowLevel.estimateDegree1(ts, isOcean, kn = LN.kn, OceanModel = obp);
+d1 = ts.estimateDegree1(isOcean, kn = LN.kn, OceanModel = obp);   % the same, as a method (v5.13.0)
 ts = ts.addDegree1(d1);            % identical interface to a TN-13 table</pre>
 <p>The advantage over a published table is consistency: the estimate is derived from the very
 solutions you are processing, so it does not depend on somebody having published a degree-1 series

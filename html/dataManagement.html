@@ -7,15 +7,15 @@
 <h1>Data folder, DDK family, ICGEM access (v2.4.1)</h1>
 <p>One persistent storage location, all released DDK filters, and the ICGEM model catalogue.</p>
 <h2>shLowLevel.testDataDir</h2>
-<p>Resolves the shipped sample/fixture folder (v3.26.2): the
+<p>Resolves the sample/fixture folder (v3.26.2): the
 <code class="inline">SHX_TESTDATA_FOLDER</code> environment variable first, then the
 <code class="inline">TestDataFolder</code> preference
-(<code class="inline">setup_shAnalysis(TestDataFolder=...)</code>, persistent), then the in-repo
-<code class="inline">tests/test_data</code>. One resolver serves three consumers: toolbox code
-(<code class="inline">readDDK("DDK3")</code> finds the shipped Wbd sample), the demos, and the
-test suites (whose <code class="inline">tests/shxTestDataDir</code> is a thin delegate). Point it
-at a data drive to keep fixtures out of every checkout; CI obtains them from the orphan branch
-<code class="inline">testdata</code> instead.</p>
+(<code class="inline">setup_shAnalysis(TestDataFolder=...)</code>, persistent), then
+<code class="inline">&lt;toolbox&gt;/tests/test_data</code>, where CI checks the fixtures out. One resolver serves three consumers: toolbox code
+(<code class="inline">readDDK("DDK3")</code> finds the DDK3 Wbd sample there), the demos, and the
+test suites (whose <code class="inline">tests/shxTestDataDir</code> is a thin delegate). The fixtures are not part of a
+plain clone: they live on the orphan branch <code class="inline">testdata</code>, and CI checks out its pinned
+<code class="inline">fixtures-YYYY-MM</code> tag. Point the resolver at a copy on a data drive.</p>
 <pre>setup_shAnalysis(TestDataFolder = "E:\DATAPOOL\GravityField\test_data")
 W = shLowLevel.readDDK("DDK3");     % resolves through testDataDir</pre>
 
@@ -23,23 +23,23 @@ W = shLowLevel.readDDK("DDK3");     % resolves through testDataDir</pre>
 <pre>shLowLevel.dataFolder("D:/geodata/shAnalysis")   % set once, persists across sessions
 shLowLevel.dataFolder()                    % query (default: &lt;toolbox&gt;/data)
 shLowLevel.dataFolder("reset")</pre>
-<p>All fetchers store beneath it: itsg_series/, DDK/, icgem/. Point it at a shared network folder to reuse downloads across machines.</p>
+<p>All fetchers store beneath it, in the layout of v3.16: <code class="inline">series/</code> for time series (<code class="inline">series/itsg/monthly</code>, <code class="inline">daily</code>, <code class="inline">sinex</code> and <code class="inline">background</code>; one folder per ICGEM series; <code class="inline">series/GAX/&lt;product&gt;</code>), <code class="inline">static/</code> for ICGEM static models, <code class="inline">DDK/</code>, <code class="inline">TN/</code> and <code class="inline">loveNumbers/</code>. The fetchers warn once when they find data in a pre-v3.16 location. Point it at a shared network folder to reuse downloads across machines.</p>
 <h2>shLowLevel.fetchDDK / shLowLevel.readDDK("DDK&lt;n&gt;")</h2>
 <pre>shLowLevel.fetchDDK(1:8);                  % ~10 MB each, skips existing
 W5 = shLowLevel.readDDK("DDK5");           % name resolution against dataFolder
 gF = g.applyDDK(W5);</pre>
-<p>All eight released filters (Kusche 2007; Kusche et&nbsp;al. 2009), strong &rarr; weak: DDK1 (a=1e14) &hellip; DDK8 (5e9); regularization a&middot;l&#8308;. DDK3 ships inside the toolbox and never needs fetching; an unfetched name errors with the fetch hint (<code class="inline">shLowLevel:readDDK:notFetched</code>). Filenames come from one mapping (<code class="inline">shLowLevel.ddkNames</code>), verified against the repository.</p>
+<p>All eight released filters (Kusche 2007; Kusche et&nbsp;al. 2009), strong &rarr; weak: DDK1 (a=1e14) &hellip; DDK8 (5e9); regularization a&middot;l&#8308;. DDK3 is also among the test fixtures, where readDDK finds it without a fetch; an unfetched name errors with the fetch hint (<code class="inline">shLowLevel:readDDK:notFetched</code>). Filenames come from one mapping (<code class="inline">shLowLevel.ddkNames</code>), verified against the repository.</p>
 <h2>shLowLevel.listICGEM / shLowLevel.fetchICGEM</h2>
 <pre>T = shLowLevel.listICGEM();                        % 180+ static models: name,
 sortrows(T, 'year', 'descend')              % year, degree, data, url
-f = shLowLevel.fetchICGEM("EGM2008");              % -> dataFolder/icgem/*.gfc
+f = shLowLevel.fetchICGEM("EGM2008");              % -> dataFolder/static/*.gfc
 g = shCoefficients.read(f);</pre>
 <p>The static catalogue is parsed from icgem.gfz.de/tom_longtime (parser fixture-tested offline against a saved page). Name resolution: exact match, else unique prefix; ambiguity errors with candidates. <code class="inline">Type="temporal"</code> (reworked v2.4.2) returns the <b>full temporal catalogue</b> parsed from the series-page links of /sl/temporal &mdash; every series of every center (~70+ across the groups 01_GRACE, 02_COST-G, 03_other, 04_SLR) with columns group, center, series, path, url (series page) and zip (whole-series ZIP, hundreds of MB). Passing a catalogue <code class="inline">path</code> into <code class="inline">Series=</code> lists the <b>individual files</b> of that series (name, url) &mdash; single monthly .gfc files download directly via websave; the earlier "JavaScript-only" caveat is obsolete. Example:</p>
 <pre>T = shLowLevel.listICGEM(Type="temporal");             % 70+ series, all centers
 F = shLowLevel.listICGEM(Type="temporal", ...
         Series="03_other/ITSG/ITSG-Grace2018/monthly");
 websave("m1.gfc", F.url(1));                    % one monthly file</pre>
-<p>For ITSG monthly files <a href="fetchITSG.html">shLowLevel.fetchITSG</a> remains the convenient route, whose default target is dataFolder/itsg_series.</p>
+<p>For ITSG monthly files <a href="fetchITSG.html">shLowLevel.fetchITSG</a> remains the convenient route, whose default target is dataFolder/series/itsg/monthly.</p>
 <h2>Safe swaps: why downloads land atomically <span class="tag">v3.1.4</span></h2>
 <p>Every <code class="inline">shLowLevel.fetch*</code> function downloads to
 <code class="inline">&lt;target&gt;.part</code>, <b>parses the fresh file to verify it</b>, and only

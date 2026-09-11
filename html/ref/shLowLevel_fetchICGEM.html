@@ -14,7 +14,7 @@
 <h2>Syntax</h2>
 <div class="syntax"><code>[file, info] = shLowLevel.fetchICGEM(model)</code><code>[file, info] = shLowLevel.fetchICGEM(model, Dest=&quot;&quot;, Timeout=300, List=table(), ...)</code></div>
 <h2>Description</h2>
-<p>FILE = shLowLevel.fetchICGEM(&quot;EGM2008&quot;) resolves the model name against <a href="shLowLevel_listICGEM.html"><code>shLowLevel.listICGEM</code></a> (case-insensitive exact match, else unique prefix) and downloads the .gfc into &lt;dataFolder&gt;/icgem. Existing files are skipped. Load with <a href="shCoefficients_read.html"><code>shCoefficients.read</code></a>(FILE).</p>
+<p>FILE = shLowLevel.fetchICGEM(&quot;EGM2008&quot;) resolves the model name against <a href="shLowLevel_listICGEM.html"><code>shLowLevel.listICGEM</code></a> (case-insensitive exact match, else unique prefix) and downloads the .gfc into &lt;dataFolder&gt;/static. Existing files are skipped. Load with <a href="shCoefficients_read.html"><code>shCoefficients.read</code></a>(FILE).</p>
 <h2>Examples</h2>
 <details class="example"><summary>Runnable (docs/apiExamples.json)</summary><div><pre><code>f = shLowLevel.fetchICGEM(&quot;GOCO06s&quot;);        % static model by name</code></pre></div></details>
 <h2>Input Arguments</h2>
@@ -29,7 +29,7 @@
 <p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
 <h2>See Also</h2>
 <ul class="seealso"><li><a href="shLowLevel_listICGEM.html"><code>shLowLevel.listICGEM</code></a></li><li><a href="shCoefficients_read.html"><code>shCoefficients.read</code></a></li></ul>
-<p class="prov">shAnalysis v5.13.0 (10-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+<p class="prov">shAnalysis v5.13.1 (11-Sep-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
 </div>
 </body>
 </html>

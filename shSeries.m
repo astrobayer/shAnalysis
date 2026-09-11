@@ -2390,11 +2390,11 @@ methods (Static)
 
     function obj = fromFolder(folder, opts)
         %FROMFOLDER Read every matching gfc file in a folder as a series.
-        %   TS = shSeries.fromFolder("itsg_series")
+        %   TS = shSeries.fromFolder(FOLDER)
         %   TS = shSeries.fromFolder(dest, Pattern="*n96*.gfc*", Truncate (NaN)=60)
         %   Convenience wrapper around shSeries.read (sorted by epoch);
         %   pairs with shLowLevel.fetchITSG, which downloads ITSG monthly
-        %   solutions into tests/test_data/itsg_series on demand.
+        %   solutions into <dataFolder>/series/itsg/monthly on demand.
         %   Outputs
         %     obj        (1 x 1) shSeries   all gfc(.gz) files of a folder, epoch-sorted
         %
