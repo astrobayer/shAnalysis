@@ -1,0 +1,70 @@
+# Tag and release on merge - shAnalysis' adoption of the shared action.
+#
+# WHAT IT DOES HERE
+#   mode: file. Contents.m is the single source of truth for the version -
+#   testVersionMetadataIsConsistent checks CITATION.cff, the CHANGELOG top
+#   section, the generated API reference and ver() against it - so nothing
+#   in this workflow decides a number. The bump happens INSIDE the pull
+#   request that earns it, where that test verifies the agreement, and the
+#   action only asks whether a tag for the stated version exists yet.
+#
+#   A merge that does not touch Contents.m releases nothing and says so.
+#   Today Contents.m reads 5.13.1 and v5.13.1 is tagged, so the first merge
+#   after this lands will do exactly that - the quiet way to prove the
+#   wiring before it has anything to create.
+#
+# NO version-pattern IS NEEDED
+#   The Version line carries a release qualifier after the number:
+#     % Version 5.13.1 (R2026a-compatible) 11-Sep-2026
+#   The action's default pattern reads the MAJOR.MINOR.PATCH and stops
+#   there, so the qualifier is simply not part of the version.
+#
+# WHY NOT A version: LABEL, AS ci-actions USES
+#   A label stating the version beside a file stating the version is two
+#   authorities for one fact, and the file wins here because the contract
+#   test already checks four surfaces against it. ci-actions has no version
+#   file, which is why its labels decide there and not here.
+#
+# WHY THE TAG IS ANNOTATED
+#   Creating a release for a tag that does not exist makes GitHub create
+#   the tag, lightweight. The action runs `git tag -a` first and then
+#   `gh release create --verify-tag`, so that cannot happen here.
+#
+# THE ACTION IS PINNED TO AN IMMUTABLE TAG, not @v1 and not @main, by the
+#   same rule the fixture tag in this repository follows: a moving tag
+#   would let a commit in ci-actions change this repository's release
+#   behaviour with nothing in this repository's diff to explain it.
+#
+# Created: 2026-09-20
+# Author:  Developed by Matthias Weigelt with the help of Anthropic
+#          Claude Opus 5, 2026-09-20
+
+name: release
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: release
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+
+      - uses: astrobayer/ci-actions/matlab-release@v1.3.1
+        with:
+          mode: file
+          version-file: Contents.m
