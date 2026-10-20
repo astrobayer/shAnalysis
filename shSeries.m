@@ -2286,6 +2286,56 @@ methods
         [a, rec] = shLowLevel.regionalProject(obj.Cs, obj.Ss, B);
     end
 
+    function [model, info] = regionalProcessModel(obj, B, opts)
+        %REGIONALPROCESSMODEL Kurtenbach's process model of this series in a basis.
+        %   [MODEL, INFO] = ts.regionalProcessModel(B) is
+        %   shLowLevel.regionalProcessModel(ts, B): the climatology of this
+        %   model series is removed, every epoch projected onto the basis B
+        %   of ts.regionalBasis, and the VAR process model of Kurtenbach
+        %   (2012) estimated from the basis coefficients. That function
+        %   documents the method and its two adjustments (QScale, the alpha
+        %   of his eq. 4.8, and GroundNoise).
+        %
+        %   Inputs
+        %     B  (1,1) struct  a basis from regionalBasis
+        %
+        %   Outputs
+        %     model  (1,1) struct  as returned by
+        %            shLowLevel.regionalProcessModel, which documents every
+        %            field
+        %     info   (1,1) struct  as returned by
+        %            shLowLevel.regionalProcessModel, which documents every
+        %            field
+        %
+        %   Options
+        %     Order (lane default)  VAR order
+        %     Shrink (lane default)  diagonal loading
+        %     Structure (lane default)  "full" | "diagonal"
+        %     CondFun (lane default)  covariance conditioning
+        %     Climatology (lane default)  remove the climatology first
+        %     QScale (lane default)  Kurtenbach's alpha
+        %     GroundNoise (lane default)  isotropic ground noise [m EWH]
+        %     kn (lane default)  load Love numbers, for GroundNoise
+        %
+        %   Example
+        %     B = tsModel.regionalBasis("Elbe");
+        %     [model, info] = tsModel.regionalProcessModel(B, QScale = 10);
+        arguments
+            obj
+            B (1,1) struct
+            opts.Order
+            opts.Shrink
+            opts.Structure
+            opts.CondFun
+            opts.Climatology
+            opts.QScale
+            opts.GroundNoise
+            opts.kn
+        end
+        args = namedargs2cell(opts);
+        [model, info] = shLowLevel.regionalProcessModel(obj, B, args{:});
+    end
+
     function [out, info] = bridgeGaps(obj, bridge, opts)
         %BRIDGEGAPS Fill the months this series lacks from a second series.
         %   [OUT, INFO] = ts.bridgeGaps(TSB) is shLowLevel.bridgeGaps(ts,

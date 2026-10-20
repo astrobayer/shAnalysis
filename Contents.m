@@ -1,5 +1,5 @@
 % shAnalysis - Spherical harmonic analysis toolbox
-% Version 5.14.0 (R2026a-compatible) 20-Oct-2026
+% Version 5.15.0 (R2026a-compatible) 20-Oct-2026
 %
 % The line above is what ver('shAnalysis') reports as the product name:
 % keep it a SHORT name, not a sentence and not a version string (pinned
@@ -21,7 +21,8 @@
 %                     classic and tvANS chains, basin averages with exact
 %                     deconvolution, Kalman smoothing, EOFs, leakage
 %                     correction, Earth-rotation excitation, gap bridging,
-%                     regional bases (RBF, Slepian) for a selectable basin.
+%                     regional bases (RBF, Slepian) for a selectable basin
+%                     and Kurtenbach's process model in them.
 %   shClimatology   - Bias/trend/annual/semi-annual (+extra periods) model:
 %                     evaluate at epochs, extract components with 1-sigma
 %                     significance, amplitude/phase maps.

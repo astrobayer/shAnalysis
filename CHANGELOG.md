@@ -1,5 +1,38 @@
 # Changelog
 
+## [5.15.0] - 2026-10-20 - WP8 8b: Kurtenbach's process model in a regional basis
+
+A MINOR: one new function, one class method and one estimateVAR option,
+the second row of WP8. No documented call or error identifier changes;
+`estimateVAR` without the new option is bitwise unchanged.
+
+### Added
+- `shLowLevel.regionalProcessModel(ts, B)` and `ts.regionalProcessModel(B)`:
+  the stochastic process model of Kurtenbach (2012, DGK C-683, Sec. 3.2)
+  in the coefficients of a regional basis. The model series' climatology
+  is removed, every epoch projected onto the basis, and the VAR model
+  estimated by `estimateVAR`. On the SH basis it is, bit for bit, the
+  model `kalmanChain` builds. Kurtenbach's two adjustments are options:
+  - `QScale`, the alpha of his eq. 4.8, scales Q alone (Phi and Sigma0
+    are bitwise unchanged);
+  - `GroundNoise`, an isotropic white EWH variance added to Sigma(0), read
+    as sigma^2 / (P f_n^2) per Stokes coefficient. That gives pointwise
+    variance sigma^2 everywhere and needs `kn`.
+  `info.representation` reports the share of the model's regional signal
+  energy the basis can carry.
+- `shLowLevel.estimateVAR(..., Sigma0Add = G)`: a covariance added to
+  Sigma(0) only, after Shrink and before CondFun. Shrink is the special
+  case s trace(Sigma0)/P I, which a test pins bitwise.
+- `tools/dev/validate_regional_process.py`:
+  - climatology removal and projection commute (6e-16);
+  - the ground noise's pointwise variance is exact (1.3e-14);
+  - a VAR(1) simulated in an RBF basis is recovered through the whole
+    pipeline within the sampling error, measured over 60 seeds;
+  - a Sigma(0) addition changes B, and Q stays positive definite.
+
+  The basis routines it shares with `validate_regional_basis.py` moved to
+  `tools/dev/regional_oracle_lib.py`, so the two oracles check one basis.
+
 ## [5.14.0] - 2026-10-20 - WP8 8a: a regional basis for a selectable basin
 
 A MINOR: three new functions and four class methods, the first row of

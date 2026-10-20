@@ -32,6 +32,14 @@ function model = estimateVAR(X, opts)
 %     Shrink (0)    (1 x 1) diagonal loading factor: Sigma(0) +
 %                   Shrink * trace(Sigma(0))/P * I. Stabilizes the
 %                   Yule-Walker solve when T is not >> P.
+%     Sigma0Add ([])  (P x P) or (P x 1) double  a covariance added to
+%                   Sigma(0) only, after Shrink and before CondFun: a
+%                   temporally uncorrelated part of the process - the
+%                   isotropic ground noise of Kurtenbach (2012, Sec. 4.3.5
+%                   and 5.2), which changes the dynamics B as well as Q
+%                   because Sigma(0) changes. A vector is a diagonal.
+%                   Shrink is the special case s*trace(Sigma(0))/P * I
+%                   (bitwise: testEstimateVARSigma0AddGeneralisesShrink).
 %     Structure ("full")  coupling structure of the estimate:
 %            "full"       dense Yule-Walker solve (Kurtenbach/Kvas) -
 %                         needs T >> P; the right choice for daily
@@ -94,6 +102,8 @@ function model = estimateVAR(X, opts)
 %   Error identifiers
 %     shLowLevel:estimateVAR:badBlocks
 %         Blocks do not partition 1:P exactly
+%     shLowLevel:estimateVAR:badSigma0Add
+%         Sigma0Add is neither P x P nor a P-vector
 %     shLowLevel:estimateVAR:needBlocks
 %         Structure="orderblock" without Blocks
 %     shLowLevel:estimateVAR:shortSeries
@@ -115,6 +125,7 @@ arguments
     opts.CondFun = []
     opts.Structure (1,1) string {mustBeMember(opts.Structure, ["full","diagonal","orderblock"])} = "full"
     opts.Blocks cell = {}
+    opts.Sigma0Add double = []
 end
 
 [P, T] = size(X);
@@ -137,6 +148,18 @@ for h = 1:p
 end
 if opts.Shrink > 0
     Sig{1} = Sig{1} + opts.Shrink * trace(Sig{1}) / P * eye(P);
+end
+if ~isempty(opts.Sigma0Add)
+    G = opts.Sigma0Add;
+    if isvector(G) && numel(G) == P
+        G = diag(G(:));
+    end
+    if ~isequal(size(G), [P P])
+        error('shLowLevel:estimateVAR:badSigma0Add', ...
+            'Sigma0Add must be %d x %d or %d x 1; it is %s.', P, P, P, ...
+            mat2str(size(opts.Sigma0Add)));
+    end
+    Sig{1} = Sig{1} + G;
 end
 if ~isempty(opts.CondFun)
     for h = 1:p + 1

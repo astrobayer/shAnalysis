@@ -3087,3 +3087,31 @@ fclose(fid);
 verifyError(testCase, @() shLowLevel.readBasin("Spot", File = f), ...
     'shLowLevel:readBasin:badGeometry');
 end
+
+% ------------------------------------------- WP8 8b: the process model
+function testRegionalProcessModelRouteAndIDs(testCase)
+%TESTREGIONALPROCESSMODELROUTEANDIDS ts.regionalProcessModel is the lane,
+%   bitwise, with options and without; and every identifier of the lane
+%   and of estimateVAR's new option is driven by the guard it names.
+ts = wp7Series(8, 40, 130);
+B = ts.regionalBasis([], Type = "sh");
+[m1, i1] = ts.regionalProcessModel(B, Shrink = 1e-3);
+[m2, i2] = shLowLevel.regionalProcessModel(ts, B, Shrink = 1e-3);
+verifyTrue(testCase, isequaln(m1, m2) && isequaln(i1, i2), ...
+    'ts.regionalProcessModel is not the lane');
+[m1, i1] = ts.regionalProcessModel(B, Shrink = 1e-3, QScale = 5, ...
+    Structure = "diagonal");
+[m2, i2] = shLowLevel.regionalProcessModel(ts, B, Shrink = 1e-3, ...
+    QScale = 5, Structure = "diagonal");
+verifyTrue(testCase, isequaln(m1, m2) && isequaln(i1, i2), ...
+    'ts.regionalProcessModel with options is not the lane');
+verifyError(testCase, @() shLowLevel.regionalProcessModel(ts, struct('T', 1)), ...
+    'shLowLevel:regionalProcessModel:badBasis');
+B12 = shLowLevel.regionalBasis(shLowLevel.shIndex(12), [], Type = "sh");
+verifyError(testCase, @() shLowLevel.regionalProcessModel(ts, B12), ...
+    'shLowLevel:regionalProcessModel:nmaxMismatch');
+verifyError(testCase, @() shLowLevel.regionalProcessModel(ts, B, ...
+    GroundNoise = 0.02), 'shLowLevel:regionalProcessModel:missingLoveNumbers');
+verifyError(testCase, @() shLowLevel.estimateVAR(randn(3, 50), ...
+    Sigma0Add = eye(2)), 'shLowLevel:estimateVAR:badSigma0Add');
+end
