@@ -109,7 +109,7 @@ class TestCounting(unittest.TestCase):
         self.assertEqual(c["runs"], c["methods"])
 
 
-EXPECTED_RUNS = 399          # v5.15.0: 394 + five WP8 8b tests (process model, Sigma0Add)
+EXPECTED_RUNS = 406          # v5.16.0: 399 + seven WP8 8c tests (regionalNEQ)
                              # (5 correctness, 4 contract, 2 robustness)
 
 

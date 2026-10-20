@@ -3,7 +3,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="shAnalysis.css">
 </head><body><div class="content">
-<h1>shAnalysis API reference (v5.15.0)</h1>
+<h1>shAnalysis API reference (v5.16.0)</h1>
 <p>Generated from the source arguments blocks and help text - inputs,
 name-value options with defaults, and outputs for every public function
 and method. Regenerated with every release; the source of truth is the
@@ -95,6 +95,7 @@ code itself.</p>
 <a href="#shLowLevel.readTN13">readTN13</a>
 <a href="#shLowLevel.readTN14">readTN14</a>
 <a href="#shLowLevel.regionalBasis">regionalBasis</a>
+<a href="#shLowLevel.regionalNEQ">regionalNEQ</a>
 <a href="#shLowLevel.regionalProcessModel">regionalProcessModel</a>
 <a href="#shLowLevel.regionalProject">regionalProject</a>
 <a href="#shLowLevel.requireGeoMap">requireGeoMap</a>
@@ -1266,6 +1267,22 @@ code itself.</p>
     S = shLowLevel.regionalBasis(idx, &quot;Elbe&quot;, Type = &quot;slepian&quot;, ...
                                  Threshold = 0.5);</pre>
 </div>
+<div class="entry" id="shLowLevel.regionalNEQ">
+<h3><code>shLowLevel.regionalNEQ(B, kind, opts)</code></h3>
+<p class="h1line">Gravity information of any level as a normal equation in a basis.</p>
+<p>[REC, INFO] = shLowLevel.regionalNEQ(B, KIND, ...) turns one epoch of gravity information into a normal equation in the coefficients a of the regional basis B of shLowLevel.regionalBasis - the observation adapter of the regional Kalman filter (Kurtenbach 2012, C-683, Sec. 3.3; NEQ-form update P+ = (P-^-1 + N)^-1). Every kind reduces to one design A in the basis and one covariance C of the data y: N = A&#x27; C^-1 A,   b = A&#x27; C^-1 y,   ltpl = y&#x27; C^-1 y, formed through C&#x27;s Cholesky factor (or 1/sqrt of a diagonal), never through an inverse. REC is a contribution in the format of shLowLevel.neqCombine (N, b, ltpl, nobs, name), so several kinds of one epoch combine there - with variance components - and the result updates shLowLevel.kalmanFilter in its normal-equation mode.</p>
+<b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>B</code></td><td>1 x 1</td><td>struct</td><td>required</td></tr><tr><td><code>kind</code></td><td>1 x 1</td><td>string</td><td>required</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Solution</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>Cov</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>NEQ</code></td><td>n x m</td><td>struct</td><td>struct([])</td></tr><tr><td><code>Values</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>LatDeg</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>LonDeg</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>Height</code></td><td>0</td><td>double</td><td>0</td></tr><tr><td><code>Quantity</code></td><td>1 x 1</td><td>string</td><td>&quot;ewh&quot;</td></tr><tr><td><code>Direction</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>Combine</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>kn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>GM</code></td><td>1 x 1</td><td>double</td><td>3.986004415e14</td></tr><tr><td><code>R</code></td><td>1 x 1</td><td>double</td><td>6378136.3</td></tr><tr><td><code>Name</code></td><td>1 x 1</td><td>string</td><td>&quot;&quot;</td></tr></table>
+<b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
+<tr><td><code>rec</code></td><td>(1,1) struct  a neqCombine contribution, fields N     (K,K) double  normal matrix in the basis b     (K,1) double  right-hand side ltpl  (1,1) double  y&#x27; C^-1 y; NaN for an NEQ without it nobs  (1,1) double  number of observations; NaN for an NEQ without it name  (1,1) string  the label</td></tr>
+<tr><td><code>info</code></td><td>(1,1) struct  fields kind  (1,1) string  the KIND argument A     (n,K) double  the design in the basis for &quot;points&quot; (after Combine); [] for &quot;solution&quot;, whose design is B.T itself, and for &quot;neq&quot;</td></tr>
+</table>
+<b>Example</b><pre>    B = shLowLevel.regionalBasis(shLowLevel.shIndex(60), &quot;Elbe&quot;);
+    r1 = shLowLevel.regionalNEQ(B, &quot;solution&quot;, Solution = l, Cov = sig.^2);
+    r2 = shLowLevel.regionalNEQ(B, &quot;points&quot;, Values = ewh, ...
+        LatDeg = lat, LonDeg = lon, Cov = 0.02^2, kn = kn);
+    [a, out] = shLowLevel.neqCombine([r1, r2]);     % VCE of the two</pre>
+</div>
 <div class="entry" id="shLowLevel.regionalProcessModel">
 <h3><code>shLowLevel.regionalProcessModel(ts, B, opts)</code></h3>
 <p class="h1line">Kurtenbach&#x27;s process model in a regional basis.</p>
@@ -1885,6 +1902,7 @@ code itself.</p>
 <a href="#shCoefficients.poleTideConvert">poleTideConvert</a>
 <a href="#shCoefficients.read">read</a>
 <a href="#shCoefficients.regionalBasis">regionalBasis</a>
+<a href="#shCoefficients.regionalNEQ">regionalNEQ</a>
 <a href="#shCoefficients.regionalProject">regionalProject</a>
 <a href="#shCoefficients.setCoefficient">setCoefficient</a>
 <a href="#shCoefficients.shCoefficients">shCoefficients</a>
@@ -2147,6 +2165,19 @@ code itself.</p>
 </table>
 <b>Example</b><pre>    B = g.regionalBasis(&quot;Elbe&quot;, Type = &quot;slepian&quot;);
     a = g.regionalProject(B);</pre>
+</div>
+<div class="entry" id="shCoefficients.regionalNEQ">
+<h3><code>shCoefficients.regionalNEQ(obj, B, opts)</code></h3>
+<p class="h1line">This field as an observation in a regional basis.</p>
+<p>[REC, INFO] = g.regionalNEQ(B) is shLowLevel.regionalNEQ(B, &quot;solution&quot;, ...) with this field&#x27;s coefficients in B.idx order as the data and their formal sigmas, squared, as the diagonal covariance: one GRACE solution as a normal equation in the basis B of g.regionalBasis, ready for shLowLevel.neqCombine and the regional Kalman filter. Cov replaces the formal sigmas, e.g. with the full covariance of a SINEX file.</p>
+<b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td>required</td></tr><tr><td><code>B</code></td><td>1 x 1</td><td>struct</td><td>required</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Cov</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>Name</code></td><td>lane default</td><td>-</td><td>-</td></tr></table>
+<b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
+<tr><td><code>rec</code></td><td>(1,1) struct  as returned by shLowLevel.regionalNEQ, which documents every field</td></tr>
+<tr><td><code>info</code></td><td>(1,1) struct  as returned by shLowLevel.regionalNEQ, which documents every field</td></tr>
+</table>
+<b>Example</b><pre>    B = g.regionalBasis(&quot;Elbe&quot;);
+    rec = g.regionalNEQ(B);</pre>
 </div>
 <div class="entry" id="shCoefficients.regionalProject">
 <h3><code>shCoefficients.regionalProject(obj, B)</code></h3>
@@ -2907,4 +2938,4 @@ code itself.</p>
 <tr><td><code>obj</code></td><td>(1 x 1) shClimatology   copy with the note appended to its history</td></tr>
 </table>
 </div>
-<p class="provenance">Developed by Matthias Weigelt with the help of Claude (Fable 5), 20-Oct-2026 (v5.15.0). Generated by tools - do not edit.</p></div></body></html>
+<p class="provenance">Developed by Matthias Weigelt with the help of Claude (Fable 5), 20-Oct-2026 (v5.16.0). Generated by tools - do not edit.</p></div></body></html>

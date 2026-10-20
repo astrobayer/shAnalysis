@@ -1493,7 +1493,41 @@ B = tsModel.regionalBasis("Elbe", Type = "slepian", Threshold = 0.5);
 [info.representation, model.specRadius, info.minEigQ]
 """)
 
-story += [para("35. References", "h2"),
+story += [para("35. Observations as normal equations in the basis (v5.16.0)", "h2"),
+          para("The third step: every level of gravity information becomes a "
+               "normal equation in the basis coefficients, so that one regional "
+               "state can be updated by all of them. "
+               "<font face='Courier'>shLowLevel.regionalNEQ</font> reduces each "
+               "kind to a design A in the basis and the covariance C of its data, "
+               "and forms")]
+story += eq(r"N=A^{\mathsf{T}}C^{-1}A,\qquad b=A^{\mathsf{T}}C^{-1}y,"
+            r"\qquad l^{\mathsf{T}}Pl=y^{\mathsf{T}}C^{-1}y")
+story += [para("through the Cholesky factor of C (Woehnke et al. 2025, eq. A6). "
+               "An SH solution with its covariance has A = T; an SH normal "
+               "equation - a SINEX NEQ, or a GNSS loading equation built by "
+               "another toolbox - enters as T'NT and T'b; point functionals "
+               "in any quantity of kernelFactors have the design row "
+               "f<sub>n</sub> (R/r)<super>p<sub>n</sub></super> Y<sub>nm</sub>, "
+               "and with a direction the row is the gradient along it - the "
+               "gravity vector for the potential - from the north, east and "
+               "up derivatives. A combination matrix forms differences, the "
+               "shape of a line-of-sight gravity difference. The result is a "
+               "neqCombine contribution with l'Pl and the observation count, "
+               "so several kinds of one epoch combine with variance "
+               "components before they update the filter. Measured in "
+               "tools/dev/validate_regional_observations.py: the point design "
+               "against the Legendre series of an RBF to 4e-15, the "
+               "directional design against its analytic ECEF gradient to "
+               "4e-10 (the oracle's own finite-difference floor), and the "
+               "Cholesky route against the explicit one to 5e-16.")]
+story += code("""
+r1 = g.regionalNEQ(B);                                   % a GRACE month
+r2 = shLowLevel.regionalNEQ(B, "points", Values = dg, LatDeg = lat, ...
+    LonDeg = lon, Height = 450e3, Quantity = "gravity_disturbance", Cov = 1e-16);
+[a, out] = shLowLevel.neqCombine([r1, r2]);              % VCE of the two
+""")
+
+story += [para("36. References", "h2"),
           *bullets([
     "Chambers, D.P., Willis, J.K. (2010): A global evaluation of ocean "
     "bottom pressure from GRACE, OMCT, and steric-corrected altimetry. "

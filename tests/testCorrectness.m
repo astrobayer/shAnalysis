@@ -5321,3 +5321,155 @@ m4 = shLowLevel.estimateVAR(X, Sigma0Add = diag(d));
 verifyTrue(testCase, isequal(m3, m4));
 verifyFalse(testCase, isequal(m3.Phi, shLowLevel.estimateVAR(X).Phi));
 end
+
+% ------------------------------------------- WP8 8c: the observations
+function testRegionalNEQOnTheSHBasisIsTheSHNEQ(testCase)
+%TESTREGIONALNEQONTHESHBASISISTHESHNEQ On the SH basis (T = I) an SH
+%   normal equation passes through unchanged, bit for bit, with its ltpl
+%   and nobs; a readSINEX-shaped NEQ (M, x, stats) gives the same equation
+%   up to forming b = M x; and a solution with a diagonal covariance is
+%   N = diag(1/c), b = l./c to a few eps (one sqrt and one square apart).
+idx = shLowLevel.shIndex(8);
+B = shLowLevel.regionalBasis(idx, [], Type = "sh");
+rng(21);
+Mh = randn(idx.P + 10, idx.P);
+Nsh = Mh' * Mh + eye(idx.P);
+Nsh = (Nsh + Nsh') / 2;
+bsh = randn(idx.P, 1);
+rec = shLowLevel.regionalNEQ(B, "neq", NEQ = struct('N', Nsh, 'b', bsh, ...
+    'ltpl', 3, 'nobs', 100));
+verifyTrue(testCase, isequal(rec.N, Nsh) && isequal(rec.b, bsh));
+verifyEqual(testCase, [rec.ltpl, rec.nobs], [3, 100]);
+verifyEqual(testCase, rec.name, "neq");
+snx = struct('M', Nsh, 'x', Nsh \ bsh, 'stats', struct('wsos', 3, 'nobs', 100));
+r2 = shLowLevel.regionalNEQ(B, "neq", NEQ = snx);
+verifyTrue(testCase, isequal(r2.N, Nsh));
+verifyEqual(testCase, r2.b, bsh, 'RelTol', 1e-9);
+verifyEqual(testCase, [r2.ltpl, r2.nobs], [3, 100]);
+l = randn(idx.P, 1);
+c = rand(idx.P, 1) + 0.5;
+r3 = shLowLevel.regionalNEQ(B, "solution", Solution = l, Cov = c);
+verifyEqual(testCase, r3.N, diag(1 ./ c), 'RelTol', 4 * eps);
+verifyEqual(testCase, r3.b, l ./ c, 'RelTol', 4 * eps);
+verifyEqual(testCase, r3.nobs, idx.P);
+end
+
+function testRegionalNEQRecoversAStateInTheSpan(testCase)
+%TESTREGIONALNEQRECOVERSASTATEINTHESPAN Noise-free data of a state in the
+%   span of an RBF basis come back from N a = b, for an SH solution and
+%   for gravity disturbances at 450 km. The bound is the solve's rounding,
+%   100 eps cond(N) (validate_regional_observations.py CLAIM 1: 1.1e-12 at
+%   cond 4e4).
+idx = shLowLevel.shIndex(20);
+B = shLowLevel.regionalBasis(idx, @(la, lo) double(la > 50));
+rng(22);
+a0 = randn(B.K, 1);
+rec = shLowLevel.regionalNEQ(B, "solution", Solution = full(B.T * a0), ...
+    Cov = 1e-20);
+a = rec.N \ rec.b;
+verifyLessThan(testCase, max(abs(a - a0)) / max(abs(a0)), 100 * eps * cond(rec.N));
+lat = 35 + 55 * rand(600, 1);
+lon = 360 * rand(600, 1);
+[~, info] = shLowLevel.regionalNEQ(B, "points", Values = zeros(600, 1), ...
+    LatDeg = lat, LonDeg = lon, Height = 450e3, Quantity = "gravity_disturbance", ...
+    Cov = 1e-16);
+y = info.A * a0;
+rec = shLowLevel.regionalNEQ(B, "points", Values = y, LatDeg = lat, ...
+    LonDeg = lon, Height = 450e3, Quantity = "gravity_disturbance", Cov = 1e-16);
+a = rec.N \ rec.b;
+verifyLessThan(testCase, max(abs(a - a0)) / max(abs(a0)), 100 * eps * cond(rec.N));
+verifyEqual(testCase, rec.nobs, 600);
+end
+
+function testRegionalNEQPointDesignIsSynthesisPoints(testCase)
+%TESTREGIONALNEQPOINTDESIGNISSYNTHESISPOINTS The point design applied to
+%   a state equals synthesisPoints of the SH coefficients T a, for the
+%   potential and the gravity disturbance at 0-500 km - two summations of
+%   one series; synthesisPoints documents its two paths agreeing to 5e-14,
+%   and the bound 1e-12 (relative to the largest value) leaves 20x.
+idx = shLowLevel.shIndex(20);
+B = shLowLevel.regionalBasis(idx, @(la, lo) double(la > 50));
+rng(23);
+a0 = randn(B.K, 1);
+[C, S] = shLowLevel.csFromVec(full(B.T * a0), idx);
+GM = 3.986004415e14; R = 6378136.3;
+lat = 40 + 49 * rand(50, 1);
+lon = 360 * rand(50, 1);
+h = 500e3 * rand(50, 1);
+pairs = ["potential", "potential"; "gravity_disturbance", "disturbance"];
+for k = 1:2
+    [~, info] = shLowLevel.regionalNEQ(B, "points", Values = zeros(50, 1), ...
+        LatDeg = lat, LonDeg = lon, Height = h, Quantity = pairs(k, 1), Cov = 1);
+    ref = shLowLevel.synthesisPoints(C, S, GM, R, lat, lon, R + h, ...
+        Quantity = pairs(k, 2));
+    verifyLessThan(testCase, max(abs(info.A * a0 - ref)) / max(abs(ref)), 1e-12, ...
+        pairs(k, 1));
+end
+end
+
+function testRegionalNEQDirectionalDesignIsTheGradient(testCase)
+%TESTREGIONALNEQDIRECTIONALDESIGNISTHEGRADIENT With Direction the design
+%   is the gradient of the quantity along it: the local north, east and up
+%   unit vectors (in ECEF) reproduce shSynthesisGradient's three components
+%   at 450 km, for the potential (the gravity vector). Same series, same
+%   legendreALFDeriv, another summation: 1e-12 relative to the largest
+%   component. validate_regional_observations.py CLAIM 3 checks the same
+%   design against the analytic ECEF gradient of an RBF (4e-10, the
+%   oracle's finite-difference floor).
+idx = shLowLevel.shIndex(20);
+B = shLowLevel.regionalBasis(idx, @(la, lo) double(la > 50));
+rng(24);
+a0 = randn(B.K, 1);
+[C, S] = shLowLevel.csFromVec(full(B.T * a0), idx);
+GM = 3.986004415e14; R = 6378136.3;
+lat = 40 + 49 * rand(30, 1);
+lon = 360 * rand(30, 1);
+dq = shLowLevel.shSynthesisGradient(C, S, GM, R, lat', lon', Quantity = "potential", ...
+    Mode = "points", Height = 450e3, Nmin = 2);
+sp = sind(lat); cp = cosd(lat); sl = sind(lon); cl = cosd(lon);
+dirs = {[-sp .* cl, -sp .* sl, cp], [-sl, cl, zeros(30, 1)], [cp .* cl, cp .* sl, sp]};
+refs = {dq.north, dq.east, dq.up};
+for k = 1:3
+    [~, info] = shLowLevel.regionalNEQ(B, "points", Values = zeros(30, 1), ...
+        LatDeg = lat, LonDeg = lon, Height = 450e3, Quantity = "potential", ...
+        Direction = dirs{k}, Cov = 1);
+    verifyLessThan(testCase, max(abs(info.A * a0 - refs{k}(:))) / ...
+        max(abs(refs{k}(:))), 1e-12, sprintf('component %d', k));
+end
+end
+
+function testRegionalNEQCorrelatedCovarianceAndCombinations(testCase)
+%TESTREGIONALNEQCORRELATEDCOVARIANCEANDCOMBINATIONS A full covariance
+%   enters through its Cholesky factor and equals the explicit A'(C\A),
+%   A'(C\y) to the rounding cond(C) amplifies (100 eps cond(C); oracle
+%   CLAIM 4: 5e-16). ltpl is what variance-component estimation needs:
+%   ltpl - 2x'b + x'Nx = v'C^-1 v at any x (CLAIM 5). And Combine forms
+%   the rows of its combinations - [1 -1] pairs, the LGD shape - exactly.
+idx = shLowLevel.shIndex(16);
+B = shLowLevel.regionalBasis(idx, @(la, lo) double(la > 50));
+rng(25);
+M = 40;
+lat = 40 + 49 * rand(M, 1);
+lon = 360 * rand(M, 1);
+Lc = randn(M) / sqrt(M);
+Cv = (Lc * Lc' + 0.5 * eye(M)) * 1e-16;
+y = randn(M, 1) * 1e-8;
+args = {"LatDeg", lat, "LonDeg", lon, "Height", 450e3, "Quantity", ...
+    "gravity_disturbance"};
+[rec, info] = shLowLevel.regionalNEQ(B, "points", args{:}, Values = y, Cov = Cv);
+A = info.A;
+N2 = A' * (Cv \ A);
+b2 = A' * (Cv \ y);
+bound = 100 * eps * cond(Cv);
+verifyLessThan(testCase, max(abs(rec.N - N2), [], 'all') / max(abs(N2), [], 'all'), bound);
+verifyLessThan(testCase, max(abs(rec.b - b2)) / max(abs(b2)), bound);
+x = randn(B.K, 1) * 1e-3;
+v = y - A * x;
+q = v' * (Cv \ v);
+verifyLessThan(testCase, abs(rec.ltpl - 2 * x' * rec.b + x' * rec.N * x - q) / q, bound);
+Cmb = kron(eye(M / 2), [1 -1]);
+[r2, i2] = shLowLevel.regionalNEQ(B, "points", args{:}, Values = Cmb * y, ...
+    Cov = 2e-16, Combine = Cmb);
+verifyTrue(testCase, isequal(i2.A, Cmb * A));
+verifyEqual(testCase, r2.nobs, M / 2);
+end
