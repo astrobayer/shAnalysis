@@ -1654,6 +1654,61 @@ methods
         [a, rec] = shLowLevel.regionalProject(obj.C, obj.S, B);
     end
 
+    function [rec, info] = regionalNEQ(obj, B, opts)
+        %REGIONALNEQ This field as an observation in a regional basis.
+        %   [REC, INFO] = g.regionalNEQ(B) is shLowLevel.regionalNEQ(B,
+        %   "solution", ...) with this field's coefficients in B.idx order
+        %   as the data and their formal sigmas, squared, as the diagonal
+        %   covariance: one GRACE solution as a normal equation in the
+        %   basis B of g.regionalBasis, ready for shLowLevel.neqCombine
+        %   and the regional Kalman filter. Cov replaces the formal
+        %   sigmas, e.g. with the full covariance of a SINEX file.
+        %
+        %   Inputs
+        %     B  (1,1) struct  a basis from regionalBasis
+        %
+        %   Outputs
+        %     rec   (1,1) struct  as returned by shLowLevel.regionalNEQ,
+        %           which documents every field
+        %     info  (1,1) struct  as returned by shLowLevel.regionalNEQ,
+        %           which documents every field
+        %
+        %   Options
+        %     Cov ([])   (P,P) or (P,1) double  covariance of the
+        %                coefficients in B.idx order; [] takes the formal
+        %                sigmas
+        %     Name (lane default)  label of the contribution
+        %
+        %   Example
+        %     B = g.regionalBasis("Elbe");
+        %     rec = g.regionalNEQ(B);
+        %
+        %   Error identifiers
+        %     shCoefficients:regionalNEQ:noSigmas
+        %         no Cov was given and the field carries no formal sigmas
+        arguments
+            obj
+            B (1,1) struct
+            opts.Cov double = []
+            opts.Name
+        end
+        idx = B.idx;
+        l = shLowLevel.vecFromCS(obj.C, obj.S, idx);
+        cov = opts.Cov;
+        if isempty(cov)
+            if isempty(obj.sigmaC) || isempty(obj.sigmaS)
+                error('shCoefficients:regionalNEQ:noSigmas', ...
+                    ['This field carries no formal sigmas: give Cov, the ' ...
+                     'covariance of its coefficients in B.idx order.']);
+            end
+            cov = shLowLevel.vecFromCS(obj.sigmaC, obj.sigmaS, idx) .^ 2;
+        end
+        opts = rmfield(opts, 'Cov');
+        args = namedargs2cell(opts);
+        [rec, info] = shLowLevel.regionalNEQ(B, "solution", "Solution", l, ...
+            "Cov", cov, args{:});
+    end
+
     function disp(obj)
         %DISP Compact display: size, epoch, GM/R, processing history.
         %   disp(G) prints one header line with the model name, one

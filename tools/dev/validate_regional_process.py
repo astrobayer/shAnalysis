@@ -44,8 +44,7 @@ import sys
 import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from regional_oracle_lib import (sh_index, ylm, quad_grid, icosahedral,  # noqa: E402
-                                 buffered_mask, nearest_3ring, projector)
+from regional_oracle_lib import sh_index, ylm, rbf_basis  # noqa: E402
 
 FAIL = []
 
@@ -72,28 +71,6 @@ def var1(A):
     S1 = A[:, 1:] @ A[:, :-1].T / (T - 1)
     B = np.linalg.solve(S0.T, S1.T).T
     return B, S0 - B @ S1.T, S0, S1
-
-
-def rbf_basis(L, region_lat, buffer_km):
-    """Default-level icosahedral RBF basis (Kaula kernel) over a polar cap."""
-    idx = sh_index(L)
-    n = idx[0]
-    lat_g, lon_g, LAT, LON, W = quad_grid(L, 2)
-    mask = buffered_mask(np.rad2deg(LAT) > region_lat, LAT, LON,
-                         buffer_km * 1e3 / 6378136.3)
-    j = int(np.ceil((L + 1) / np.sqrt(10))) - 1
-    while 10 * (j + 1) ** 2 + 2 < (L + 1) ** 2:
-        j += 1
-    _, pts = icosahedral(j + 1)
-    plat = np.arcsin(pts[:, 2])
-    plon = np.mod(np.arctan2(pts[:, 1], pts[:, 0]), 2 * np.pi)
-    sel = mask[nearest_3ring(plat, plon, lat_g, lon_g)]
-    phi = 1.0 / np.maximum(np.arange(L + 1), 1) ** 2
-    T = phi[n][:, None] * ylm(plat[sel], plon[sel], idx).T
-    Y = ylm(LAT, LON, idx)
-    K = Y.T @ ((W * mask)[:, None] * Y)
-    Proj, rank = projector(T, (K + K.T) / 2)
-    return idx, T, Proj, rank, Y, W, mask
 
 
 rng = np.random.default_rng(20261020)

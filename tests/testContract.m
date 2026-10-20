@@ -3115,3 +3115,97 @@ verifyError(testCase, @() shLowLevel.regionalProcessModel(ts, B, ...
 verifyError(testCase, @() shLowLevel.estimateVAR(randn(3, 50), ...
     Sigma0Add = eye(2)), 'shLowLevel:estimateVAR:badSigma0Add');
 end
+
+% ------------------------------------------- WP8 8c: the observations
+function testRegionalNEQRouteAndIDs(testCase)
+%TESTREGIONALNEQROUTEANDIDS g.regionalNEQ is the lane's "solution" kind
+%   with the field's coefficients and squared formal sigmas, bitwise, and
+%   with an explicit Cov; every identifier is driven by the guard it names.
+ts = wp7Series(8, 1, 140);
+g = ts.at(1);
+idx = shLowLevel.shIndex(8);
+B = g.regionalBasis(@(la, lo) double(la > 60));
+l = shLowLevel.vecFromCS(g.C, g.S, idx);
+c = shLowLevel.vecFromCS(g.sigmaC, g.sigmaS, idx) .^ 2;
+[r1, i1] = g.regionalNEQ(B);
+[r2, i2] = shLowLevel.regionalNEQ(B, "solution", Solution = l, Cov = c);
+verifyTrue(testCase, isequaln(r1, r2) && isequaln(i1, i2), 'g.regionalNEQ is not the lane');
+r1 = g.regionalNEQ(B, Cov = 2 * c, Name = "grace");
+r2 = shLowLevel.regionalNEQ(B, "solution", Solution = l, Cov = 2 * c, Name = "grace");
+verifyTrue(testCase, isequaln(r1, r2), 'g.regionalNEQ with options is not the lane');
+g0 = shCoefficients(g.C, g.S, GM = g.GM, R = g.R);
+verifyError(testCase, @() g0.regionalNEQ(B), 'shCoefficients:regionalNEQ:noSigmas');
+P = idx.P;
+pts = {"LatDeg", [70; 75], "LonDeg", [10; 20]};
+verifyError(testCase, @() shLowLevel.regionalNEQ(struct('a', 1), "neq"), ...
+    'shLowLevel:regionalNEQ:badBasis');
+verifyError(testCase, @() shLowLevel.regionalNEQ(B, "solution", Solution = l), ...
+    'shLowLevel:regionalNEQ:missingInput');
+verifyError(testCase, @() shLowLevel.regionalNEQ(B, "neq"), ...
+    'shLowLevel:regionalNEQ:missingInput');
+verifyError(testCase, @() shLowLevel.regionalNEQ(B, "neq", NEQ = struct('q', 1)), ...
+    'shLowLevel:regionalNEQ:missingInput');
+verifyError(testCase, @() shLowLevel.regionalNEQ(B, "solution", ...
+    Solution = ones(P - 1, 1), Cov = 1), 'shLowLevel:regionalNEQ:sizeMismatch');
+verifyError(testCase, @() shLowLevel.regionalNEQ(B, "neq", ...
+    NEQ = struct('N', eye(3), 'b', ones(3, 1))), 'shLowLevel:regionalNEQ:sizeMismatch');
+verifyError(testCase, @() shLowLevel.regionalNEQ(B, "solution", Solution = l, ...
+    Cov = eye(3)), 'shLowLevel:regionalNEQ:sizeMismatch');
+verifyError(testCase, @() shLowLevel.regionalNEQ(B, "points", Values = [1; 2], ...
+    LatDeg = [70; 75], LonDeg = 10, Cov = 1, Quantity = "potential"), ...
+    'shLowLevel:regionalNEQ:sizeMismatch');
+verifyError(testCase, @() shLowLevel.regionalNEQ(B, "points", pts{:}, Values = [1; 2; 3], ...
+    Cov = 1, Quantity = "potential"), 'shLowLevel:regionalNEQ:sizeMismatch');
+verifyError(testCase, @() shLowLevel.regionalNEQ(B, "points", pts{:}, Values = 1, ...
+    Cov = 1, Quantity = "potential", Combine = [1 -1 0]), ...
+    'shLowLevel:regionalNEQ:sizeMismatch');
+verifyError(testCase, @() shLowLevel.regionalNEQ(B, "points", pts{:}, Values = [1; 2], ...
+    Cov = 1, Quantity = "potential", Direction = [1 0 0]), ...
+    'shLowLevel:regionalNEQ:sizeMismatch');
+verifyError(testCase, @() shLowLevel.regionalNEQ(B, "solution", Solution = l, ...
+    Cov = -c), 'shLowLevel:regionalNEQ:notPositiveDefinite');
+verifyError(testCase, @() shLowLevel.regionalNEQ(B, "points", pts{:}, Values = [1; 2], ...
+    Cov = [1 2; 2 1], Quantity = "potential"), ...
+    'shLowLevel:regionalNEQ:notPositiveDefinite');
+kn = -0.3 * (0:8)' ./ ((0:8)' + 3);
+verifyError(testCase, @() shLowLevel.regionalNEQ(B, "points", pts{:}, Values = [1; 2], ...
+    Cov = 1, kn = kn, Height = 1000), 'shLowLevel:regionalNEQ:noRadialLaw');
+verifyError(testCase, @() shLowLevel.regionalNEQ(B, "points", pts{:}, Values = [1; 2], ...
+    Cov = 1, kn = kn, Direction = [0 0 1; 0 0 1]), ...
+    'shLowLevel:regionalNEQ:noRadialLaw');
+verifyError(testCase, @() shLowLevel.regionalNEQ(B, "points", Values = [1; 2], ...
+    LatDeg = [90; 75], LonDeg = [10; 20], Cov = 1, Quantity = "potential", ...
+    Direction = [0 0 1; 0 0 1]), 'shLowLevel:regionalNEQ:poleDirection');
+end
+
+function testRegionalNEQFeedsNeqCombineAndTheFilter(testCase)
+%TESTREGIONALNEQFEEDSNEQCOMBINEANDTHEFILTER Contributions of two kinds
+%   combine in neqCombine with variance components (ltpl and nobs are
+%   there), and a contribution's N and b update kalmanFilter in its
+%   normal-equation mode - the two consumers row 8d will chain.
+idx = shLowLevel.shIndex(10);
+B = shLowLevel.regionalBasis(idx, @(la, lo) double(la > 55));
+rng(26);
+a0 = randn(B.K, 1) * 1e-10;
+lat = 40 + 49 * rand(300, 1);
+lon = 360 * rand(300, 1);
+[~, info] = shLowLevel.regionalNEQ(B, "points", Values = zeros(300, 1), ...
+    LatDeg = lat, LonDeg = lon, Quantity = "potential", Cov = 1);
+yp = info.A * a0 + 1e-4 * randn(300, 1);
+r1 = shLowLevel.regionalNEQ(B, "points", Values = yp, LatDeg = lat, ...
+    LonDeg = lon, Quantity = "potential", Cov = 1e-8, Name = "points");
+l = full(B.T * a0) + 1e-11 * randn(idx.P, 1);
+r2 = shLowLevel.regionalNEQ(B, "solution", Solution = l, Cov = 1e-22);
+[x, out] = shLowLevel.neqCombine([r1, r2]);
+verifySize(testCase, x, [B.K, 1]);
+verifyTrue(testCase, all(isfinite(out.sigma2)) && all(out.sigma2 > 0));
+verifyEqual(testCase, out.names, ["points"; "solution"]);
+X = randn(B.K, 200) * 1e-10;
+model = shLowLevel.estimateVAR(X, Shrink = 1e-2);
+obs = repmat(struct('l', [], 'R', [], 'N', [], 'b', []), 1, 3);
+obs(2).N = r2.N;
+obs(2).b = r2.b;
+filt = shLowLevel.kalmanFilter(model, obs, StoreCov = "diag");
+verifyEqual(testCase, filt.gap, [true false true]);
+verifyTrue(testCase, all(isfinite(filt.xf(:))));
+end

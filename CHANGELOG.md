@@ -1,5 +1,41 @@
 # Changelog
 
+## [5.16.0] - 2026-10-20 - WP8 8c: every observation level as a normal equation in the basis
+
+A MINOR release: one new function, one class method, and the third row of
+WP8. No documented call or error identifier changes.
+
+### Added
+- `shLowLevel.regionalNEQ(B, kind, ...)` turns one epoch of gravity
+  information into a normal equation in the coefficients of a regional
+  basis: N = A' C^-1 A, b = A' C^-1 y, ltpl = y' C^-1 y. These are formed
+  through the Cholesky factor of C, or 1/sqrt of a diagonal, never an
+  inverse. A non-positive-definite covariance is refused.
+  The result is a `neqCombine` contribution (N, b, ltpl, nobs, name), so
+  several kinds from one epoch combine with variance components, and its
+  N and b update `kalmanFilter` in normal-equation mode. The kinds are:
+  - `"solution"`: SH coefficients and their covariance; A = T.
+  - `"neq"`: an SH normal equation, struct N/b or a readSINEX NEQ result,
+    carried into the basis as T'NT, T'b. ltpl and nobs pass through.
+    GNSS and other groups built outside shAnalysis enter this way.
+  - `"points"`: point functionals in any `kernelFactors` quantity at any
+    height. `Direction` gives the gradient along a direction (the gravity
+    vector for the potential). `Combine` forms linear combinations,
+    including differences of two points, the LGD shape.
+- `g.regionalNEQ(B)` is the field as an observation in the basis, using
+  its formal sigmas, or `Cov=`.
+- `tools/dev/validate_regional_observations.py`:
+  - T'NT, T'b solve to the generating state (1.1e-12).
+  - The point design equals the RBF's Legendre series at 0-500 km
+    (4.2e-15).
+  - The directional design equals the analytic ECEF gradient (4.0e-10,
+    the oracle's finite-difference floor).
+  - The Cholesky route equals the explicit route (5e-16).
+  - ltpl - 2x'b + x'Nx = v'C^-1 v.
+  - Combined rows equal row differences.
+
+  The shared RBF builder moved into `regional_oracle_lib.py`.
+
 ## [5.15.0] - 2026-10-20 - WP8 8b: Kurtenbach's process model in a regional basis
 
 A MINOR: one new function, one class method and one estimateVAR option,
