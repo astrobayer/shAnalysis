@@ -4991,3 +4991,199 @@ ref = shSeries(Cs(:, :, keep), Ss = Ss(:, :, keep), Epochs = ep(keep), ...
     Names = "ref" + string(keep'));
 br = shSeries(bC, Ss = bS, Epochs = ep, Names = "hl" + string((1:8)'));
 end
+
+% ------------------------------------------- WP8 8a: the regional basis
+function testSynthesisMatrixGridOnlyIsTheSameGrid(testCase)
+%TESTSYNTHESISMATRIXGRIDONLYISTHESAMEGRID GridOnly = true returns the
+%   weights and the grid of the full call bit for bit and no matrix, so
+%   evalMask, which now asks for the grid only, sees the grid it saw.
+idx = shLowLevel.shIndex(20);
+[Y1, w1, g1] = shLowLevel.synthesisMatrix(idx, NLat = 42, NLon = 84);
+[Y2, w2, g2] = shLowLevel.synthesisMatrix(idx, NLat = 42, NLon = 84, ...
+    GridOnly = true);
+verifyEmpty(testCase, Y2);
+verifyNotEmpty(testCase, Y1);
+verifyTrue(testCase, isequal(w1, w2) && isequal(g1, g2), ...
+    'GridOnly changed the weights or the grid');
+end
+
+function testRegionalBasisNodeGrids(testCase)
+%TESTREGIONALBASISNODEGRIDS With a region covering the sphere every node
+%   is selected, so the basis carries the global grid: the icosahedral
+%   grid has exactly 10 (j+1)^2 + 2 nodes (Woehnke et al. 2025, eq. 8),
+%   the default level is the smallest with at least (nmax+1)^2 nodes
+%   (j = 9 at nmax 30, as validate_regional_basis.py CLAIM 0c's rule
+%   gives), and the Reuter grid has one node on each pole and about
+%   4 gamma^2 / pi nodes (CLAIM 0b: 2013 at gamma 40, 1.2% below).
+idx = shLowLevel.shIndex(12);
+everywhere = @(la, lo) ones(size(la));
+for j = 0:3
+    B = shLowLevel.regionalBasis(idx, everywhere, Level = j, BufferKm = 0);
+    verifyEqual(testCase, B.nGlobal, 10 * (j + 1)^2 + 2);
+    verifyEqual(testCase, B.K, B.nGlobal);
+    u = [cosd(B.nodes(:, 1)) .* cosd(B.nodes(:, 2)), ...
+         cosd(B.nodes(:, 1)) .* sind(B.nodes(:, 2)), sind(B.nodes(:, 1))];
+    d = acos(max(min(u * u', 1), -1)) + 4 * eye(B.K);
+    verifyGreaterThan(testCase, min(d(:)), 0.5 * 1.1 / (j + 1), ...
+        'two icosahedral nodes nearly coincide - deduplication failed');
+end
+B = shLowLevel.regionalBasis(shLowLevel.shIndex(30), everywhere, BufferKm = 0);
+verifyEqual(testCase, B.level, 9);
+verifyEqual(testCase, B.nGlobal, 1002);
+R = shLowLevel.regionalBasis(idx, everywhere, Grid = "reuter", Level = 40, ...
+    BufferKm = 0);
+verifyEqual(testCase, R.nGlobal, 2013);
+verifyEqual(testCase, sum(abs(R.nodes(:, 1)) == 90), 2);
+verifyEqual(testCase, R.K, R.nGlobal);
+end
+
+function testRegionalBasisRBFIsTheLegendreSeries(testCase)
+%TESTREGIONALBASISRBFISTHELEGENDRESERIES A column of T synthesises to
+%   sum_n phi_n (2n+1) P_n(cos psi), the addition theorem, here checked
+%   against MATLAB's own legendre() rather than the ALF recursion that
+%   built T. Nodes include both poles (Reuter grid); the 50 points are
+%   validate_regional_basis.py CLAIM 1's, which measured 1.24e-14
+%   relative; the bound is 3x that.
+idx = shLowLevel.shIndex(30);
+lat = linspace(-89.9, 89.9, 50)';
+lon = mod(137.508 * (0:49)', 360);
+Yp = shLowLevel.ylm(deg2rad(lat), deg2rad(lon), idx);
+worst = 0;
+for kern = ["kaula", "shannon"]
+    B = shLowLevel.regionalBasis(idx, @(la, lo) ones(size(la)), ...
+        Grid = "reuter", Level = 12, BufferKm = 0, Kernel = kern);
+    cols = [find(B.nodes(:, 1) == 90, 1), find(B.nodes(:, 1) == -90, 1), ...
+            round(B.K / 3), round(2 * B.K / 3)];
+    f = Yp * B.T(:, cols);
+    for c = 1:numel(cols)
+        x0 = B.nodes(cols(c), :);
+        cpsi = sind(lat) * sind(x0(1)) + cosd(lat) .* cosd(x0(1)) .* ...
+            cosd(lon - x0(2));
+        cpsi = min(max(cpsi, -1), 1);
+        ref = zeros(size(lat));
+        for n = 2:30
+            Pn = legendre(n, cpsi');
+            ref = ref + B.kernel(n + 1) * (2 * n + 1) * Pn(1, :)';
+        end
+        worst = max(worst, max(abs(f(:, c) - ref)) / max(abs(ref)));
+    end
+end
+verifyLessThan(testCase, worst, 3 * 1.24e-14);
+end
+
+function testRegionalProjectNormalEquations(testCase)
+%TESTREGIONALPROJECTNORMALEQUATIONS The rbf projector is the region-
+%   weighted least-squares fit: T'K (x - T Proj x) = 0 and a field in the
+%   span of T is reproduced over the region. Configuration of
+%   validate_regional_basis.py CLAIM 3 (nmax 30, a 40 deg polar cap plus
+%   600 km, default icosahedral level): 143 of 1002 nodes, full rank.
+%   Over two random draws the oracle measured up to 2.0e-11 for the
+%   normal equations and 9.4e-12 for the span; the bounds are 3x those.
+idx = shLowLevel.shIndex(30);
+B = shLowLevel.regionalBasis(idx, @(la, lo) double(la > 50));
+verifyEqual(testCase, B.K, 143);
+verifyEqual(testCase, B.nGlobal, 1002);
+verifyEqual(testCase, B.rank, 143);
+nL = 2 * 31; nO = 2 * 62;
+[Y, w] = shLowLevel.synthesisMatrix(idx, NLat = nL, NLon = nO);
+Kq = Y' * ((w .* B.region.mask) .* Y);
+rng(8);
+x = randn(idx.P, 1) ./ max(idx.n, 1).^2;
+ne = max(abs(B.T' * Kq * (x - B.T * (B.Proj * x)))) / max(abs(B.T' * Kq * x));
+verifyLessThan(testCase, ne, 3 * 2.0e-11);
+a0 = randn(B.K, 1);
+d = Y * (B.T * (B.Proj * (B.T * a0)) - B.T * a0);
+f0 = Y * (B.T * a0);
+reg = sqrt(sum(w .* B.region.mask .* d.^2) / sum(w .* B.region.mask .* f0.^2));
+verifyLessThan(testCase, reg, 3 * 9.4e-12);
+end
+
+function testRegionalProjectSlepianIsSlepianProject(testCase)
+%TESTREGIONALPROJECTSLEPIANISSLEPIANPROJECT For a Slepian basis the
+%   region-weighted projector IS G' (the tapers are K's eigenvectors), so
+%   regionalProject equals slepianProject with G = B.T; and the general
+%   formula (G'KG)^-1 G'K, formed here from K, agrees with G' to the
+%   eigen-solver's rounding amplified by 1/lambda_min of the kept tapers
+%   (bound 100 eps / lambda_min; the oracle measured 2.2e-15 at nmax 30).
+idx = shLowLevel.shIndex(12, Nmin = 0);
+cap = @(la, lo) double(la > 60);
+B = shLowLevel.regionalBasis(idx, cap, Type = "slepian", BufferKm = 0, ...
+    Threshold = 0.5);
+verifyGreaterThanOrEqual(testCase, min(B.lambda), 0.5);
+g = randomFieldNmax(12);
+a1 = shLowLevel.regionalProject(g.C, g.S, B);
+a2 = shLowLevel.slepianProject(g.C, g.S, B.T, idx);
+% the same dot products, G' formed explicitly or by the BLAS transpose:
+% at most a rounding per term apart
+x = shLowLevel.vecFromCS(g.C, g.S, idx);
+verifyLessThanOrEqual(testCase, max(abs(a1 - a2)), ...
+    idx.P * eps * max(abs(B.T)' * abs(x)));
+[Y, w] = shLowLevel.synthesisMatrix(idx, NLat = 26, NLon = 52);
+Kq = Y' * ((w .* B.region.mask) .* Y);
+Pg = (B.T' * Kq * B.T) \ (B.T' * Kq);
+verifyLessThan(testCase, max(abs(Pg - B.T'), [], 'all'), ...
+    100 * eps / min(B.lambda));
+N = shLowLevel.regionalBasis(idx, cap, Type = "slepian", BufferKm = 0, NKeep = 3);
+verifyEqual(testCase, N.K, 3);
+end
+
+function g = randomFieldNmax(nmax)
+rng(11);
+C = tril(randn(nmax + 1)) ./ ((0:nmax)' + 1).^2;
+S = tril(randn(nmax + 1)) ./ ((0:nmax)' + 1).^2;
+S(:, 1) = 0;
+g = shCoefficients(C, S, GM = 3.986004415e14, R = 6.3781363e6);
+end
+
+function testReadBasinFindsAndWraps(testCase)
+%TESTREADBASINFINDSANDWRAPS A basin is found by a unique part of its
+%   name, its quadrature area is the oracle's (validate_regional_basis.py
+%   CLAIM 5a: the same discrete rule gives 2.6414655704e-04 at nmax 60,
+%   OverSample 2, 3.6% below the exact polygon area 2.739222e-04), and
+%   a basin crossing lon 0 is inside on both sides of it (CLAIM 5b).
+[reg, info] = shLowLevel.readBasin("Elbe");
+verifyEqual(testCase, info.name, "Elbe River");
+verifyEqual(testCase, numel(info.names), 100);
+idx = shLowLevel.shIndex(60);
+m = shLowLevel.evalMask(idx, reg);
+[~, w] = shLowLevel.synthesisMatrix(idx, NLat = 122, NLon = 244, GridOnly = true);
+verifyEqual(testCase, w' * m, 2.6414655704e-04, 'RelTol', 1e-9);
+verifyEqual(testCase, reg(51, 12), 1);                 % Saale catchment
+verifyEqual(testCase, reg(51, 12 + 360), 1);           % any longitude range
+verifyEqual(testCase, reg(40, 12), 0);
+[loire, li] = shLowLevel.readBasin("loire");           % case-insensitive
+verifyEqual(testCase, li.name, "Loire");
+verifyEqual(testCase, loire([47.3 47.3 47.3], [359 1 180]), [1 1 0]);
+verifyFalse(testCase, any(li.polar));
+end
+
+function testReadBasinPolarRingsHolesAndParts(testCase)
+%TESTREADBASINPOLARRINGSHOLESANDPARTS GeoJSON shapes the shipped rivbas
+%   file does not have: a ring winding around the south pole (closed
+%   through it, CLAIM 5c), a polygon with a hole, and a MultiPolygon.
+f = [tempname '.json'];
+cleanup = onCleanup(@() delete(f)); %#ok<NASGU>
+pole = sprintf('[%d,-70],', -180:10:170);
+pole = ['[' pole '[180,-70]]'];
+sq = @(x0, y0, d) sprintf('[[%g,%g],[%g,%g],[%g,%g],[%g,%g],[%g,%g]]', ...
+    x0, y0, x0 + d, y0, x0 + d, y0 + d, x0, y0 + d, x0, y0);
+txt = ['{"type":"FeatureCollection","features":[' ...
+    '{"type":"Feature","properties":{"name":"Holed"},"geometry":' ...
+    '{"type":"Polygon","coordinates":[' sq(10, 40, 10) ',' sq(14, 44, 2) ']}},' ...
+    '{"type":"Feature","properties":{"name":"Parts"},"geometry":' ...
+    '{"type":"MultiPolygon","coordinates":[[' pole '],[' sq(-30, 10, 5) ']]}}]}'];
+fid = fopen(f, 'w'); fprintf(fid, '%s', txt); fclose(fid);
+[h, ih] = shLowLevel.readBasin("Holed", File = f);
+verifyEqual(testCase, ih.hole, [false true]);
+verifyEqual(testCase, h([42 45 45], [12 15 25]), [1 0 0]);
+[p, ip] = shLowLevel.readBasin("Parts", File = f);
+verifyEqual(testCase, ip.polar, [true false]);
+verifyEqual(testCase, ip.polygon, [1 2]);
+verifyEqual(testCase, p([-89 -75 -60 12], [123 359 10 332]), [1 1 0 1]);
+idx = shLowLevel.shIndex(60);
+south = @(la, lo) double(la < 0) .* p(la, lo);
+[~, w] = shLowLevel.synthesisMatrix(idx, NLat = 122, NLon = 244, GridOnly = true);
+% CLAIM 5d: the cap from the ring, 2.846402e-02 on this grid
+verifyEqual(testCase, w' * shLowLevel.evalMask(idx, south), 2.846402e-02, ...
+    'RelTol', 1e-6);
+end

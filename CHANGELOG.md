@@ -1,5 +1,70 @@
 # Changelog
 
+## [5.14.0] - 2026-10-20 - WP8 8a: a regional basis for a selectable basin
+
+A MINOR: three new functions and four class methods, the first row of
+WP8, the regional Kalman filter on local basis functions (CLAUDE.md 5).
+No documented call or error identifier changes.
+
+### Added
+- `shLowLevel.readBasin(name)`: a basin of a GravIS GeoJSON file as a
+  region handle, by name or a unique part of one ("Elbe" finds "Elbe
+  River"). The handle is wrap-safe: rings are unwrapped along their
+  longitudes, a ring winding around a pole is closed through it, and a
+  query is tried at lon and lon +- 360, so the three rivbas basins that
+  cross lon 0 (Loire, Niger, Volta) and the Antarctic basins are inside
+  where they should be. Holes and MultiPolygons are read.
+- `shLowLevel.regionalBasis(idx, region, Type=...)`: K local basis
+  functions as a linear map `T` (P x K) to SH coefficients, and the
+  region-weighted least-squares projector `Proj` (K x P) back.
+  - `"rbf"`: radial basis functions after Eicker (2008) and Woehnke et
+    al. (2025), `T(:,k) = phi_n .* Ybar(x_k)'`, on an icosahedral grid
+    of 10 (j+1)^2 + 2 nodes (their eq. 8) or a Reuter grid; shape
+    coefficients from the signal's degree amplitudes (their eq. 7),
+    Kaula's 1/n^2 (default) or Shannon. The default level makes the
+    global grid as large as the SH basis: j = 30 at nmax 96.
+  - `"slepian"`: the tapers of `slepianBasis`, by Shannon number, count or
+    concentration threshold (Steffen et al. 2026 use 0.5).
+  - `"sh"`: the identity - the global filter, and so the oracle of the
+    regional one.
+  The region is grown by `BufferKm` (600, Woehnke's computation area)
+  before nodes are selected, tapers concentrated and the projector
+  weighted. Only grid points inside the buffered region are formed, so
+  the cost follows the region, not the sphere.
+- `shLowLevel.regionalProject(Cs, Ss, B)`: coefficient sets in the basis
+  and back; for a Slepian basis it equals `slepianProject`.
+- `ts.regionalBasis`, `g.regionalBasis` (the basis at the object's own
+  degree, so the index cannot disagree) and `ts.regionalProject`,
+  `g.regionalProject` - thin delegates, pinned bitwise.
+- `shLowLevel.synthesisMatrix(..., GridOnly = true)`: the weights and the
+  grid without the matrix.
+- `tools/dev/validate_regional_basis.py`: node counts, the RBF against
+  the Legendre series (1.2e-14), the projector's normal equations
+  (2e-11) and span reproduction (9e-12), projector = G' for Slepian
+  (2.2e-15), the Elbe's area against its exact spherical polygon, the
+  Loire and a polar ring.
+
+### Changed
+- `shLowLevel.evalMask` asks `synthesisMatrix` for the grid only. It used
+  to build the whole synthesis matrix to read the grid off it - 0.9 GB at
+  nmax 60 and OverSample 2, 5.6 GB at nmax 96 - and discard it. The mask
+  and grid are bitwise unchanged (pinned by
+  `testSynthesisMatrixGridOnlyIsTheSameGrid`).
+- `slepianBasis` and `evalMask` are now reached from a class (through
+  `regionalBasis`): the class-surface backlog is 13, the exceptions 34,
+  and 84 of 131 public functions are reachable.
+
+### Measured
+- The Elbe polygon of basins_rivbas.json has 140 031 km^2 on a sphere of
+  6378.1363 km; the mask quadrature at nmax 60, OverSample 2 is 3.6%
+  below it, at nmax 96, OverSample 4 1.2% above. Straight (lon, lat)
+  edges and great-circle edges differ by less than 1e-4 of the area for
+  every rivbas basin (worst 4.3e-5, Issyk-kul).
+
+### Open
+- A33: four chains parse GravIS GeoJSON themselves; moving them onto
+  `readBasin` is left for a release with captured references.
+
 ## [5.13.1] - 2026-09-11 - Documentation audit: help, html and guide in sync
 
 A PATCH: documentation, one demo fix, and a wider documentation gate. No

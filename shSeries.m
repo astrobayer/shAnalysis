@@ -2199,6 +2199,93 @@ methods
         [a, rec] = shLowLevel.slepianProject(obj.Cs, obj.Ss, G, idx);
     end
 
+    function B = regionalBasis(obj, region, opts)
+        %REGIONALBASIS A local basis for a region, at this series's degree.
+        %   B = ts.regionalBasis(REGION) is
+        %   shLowLevel.regionalBasis(shLowLevel.shIndex(ts.nmax), REGION):
+        %   radial basis functions, Slepian tapers or the SH basis for a
+        %   basin or region, built for the degree this series carries, so
+        %   that ts.regionalProject(B) cannot meet an index of another
+        %   size. That function documents the bases and the projector.
+        %
+        %   Inputs
+        %     region  basin name, handle, polygon or mask, as
+        %             shLowLevel.regionalBasis takes it ([] for Type "sh")
+        %
+        %   Outputs
+        %     B  (1,1) struct  the basis, as returned by
+        %        shLowLevel.regionalBasis, which documents every field
+        %
+        %   Options
+        %     Nmin (shIndex default)  first degree of the index
+        %     Type (lane default)  "rbf" | "slepian" | "sh"
+        %     BufferKm (lane default)  growth of the region [km]
+        %     Grid (lane default)  "icosahedral" | "reuter"
+        %     Level (lane default)  rbf grid level
+        %     Kernel (lane default)  "kaula" | "shannon" | "amplitude"
+        %     DegreeAmplitude (lane default)  sigma_n for Kernel "amplitude"
+        %     Threshold (lane default)  slepian concentration cut
+        %     NKeep (lane default)  slepian taper count
+        %     EigTol (lane default)  rbf projector eigenvalue cut
+        %     R (lane default)  sphere radius [m]
+        %     OverSample (lane default)  mask quadrature refinement
+        %     BasinFile (lane default)  GeoJSON for a basin name
+        %
+        %   Example
+        %     B = ts.regionalBasis("Elbe", Type = "slepian");
+        %     a = ts.regionalProject(B);
+        arguments
+            obj
+            region = []
+            opts.Nmin
+            opts.Type
+            opts.BufferKm
+            opts.Grid
+            opts.Level
+            opts.Kernel
+            opts.DegreeAmplitude
+            opts.Threshold
+            opts.NKeep
+            opts.EigTol
+            opts.R
+            opts.OverSample
+            opts.BasinFile
+        end
+        if isfield(opts, 'Nmin')
+            idx = shLowLevel.shIndex(obj.nmax, Nmin = opts.Nmin);
+            opts = rmfield(opts, 'Nmin');
+        else
+            idx = shLowLevel.shIndex(obj.nmax);
+        end
+        args = namedargs2cell(opts);
+        B = shLowLevel.regionalBasis(idx, region, args{:});
+    end
+
+    function [a, rec] = regionalProject(obj, B)
+        %REGIONALPROJECT Every epoch in a regional basis, and back.
+        %   [A, REC] = ts.regionalProject(B) is
+        %   shLowLevel.regionalProject(ts.Cs, ts.Ss, B): A holds the
+        %   coefficients in the basis B of ts.regionalBasis per epoch,
+        %   REC the series rebuilt from them.
+        %
+        %   Inputs
+        %     B  (1,1) struct  a basis from regionalBasis
+        %
+        %   Outputs
+        %     a    (K,T) double  basis coefficients
+        %     rec  (1,1) struct  as returned by shLowLevel.regionalProject,
+        %          which documents every field
+        %
+        %   Example
+        %     B = ts.regionalBasis("Elbe");
+        %     [a, rec] = ts.regionalProject(B);
+        arguments
+            obj
+            B (1,1) struct
+        end
+        [a, rec] = shLowLevel.regionalProject(obj.Cs, obj.Ss, B);
+    end
+
     function [out, info] = bridgeGaps(obj, bridge, opts)
         %BRIDGEGAPS Fill the months this series lacks from a second series.
         %   [OUT, INFO] = ts.bridgeGaps(TSB) is shLowLevel.bridgeGaps(ts,

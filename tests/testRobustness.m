@@ -1586,3 +1586,25 @@ g = shCoefficients.analysis(tws(:, :, 1) / 100, lat, lon, 30, ...
     LatType = "geodetic", Fill = 0);
 verifyTrue(testCase, all(isfinite([g.C(:); g.S(:)])));
 end
+
+% ------------------------------------------- WP8 8a: the regional basis
+function testRegionalBasisAtThePolesAndAcrossLonZero(testCase)
+%TESTREGIONALBASISATTHEPOLESANDACROSSLONZERO A polar cap on the Reuter
+%   grid keeps the pole node and a finite projector; a basin crossing
+%   lon 0 (Loire) gets nodes on both sides of it, which a [lat lon]
+%   polygon in [0, 360) would have split.
+idx = shLowLevel.shIndex(24);
+B = shLowLevel.regionalBasis(idx, @(la, lo) double(la > 75), ...
+    Grid = "reuter", BufferKm = 300);
+verifyTrue(testCase, any(B.nodes(:, 1) == 90));
+verifyTrue(testCase, all(isfinite(B.Proj(:))));
+% nmax 60, default level j = 19: the oracle's node rule selects 4 nodes,
+% at -2.7, 0.0, 2.7 and 5.0 deg (at nmax 24 none - the basin is smaller
+% than the node spacing there)
+L = shLowLevel.regionalBasis(shLowLevel.shIndex(60), "Loire", BufferKm = 300);
+lonW = mod(L.nodes(:, 2) + 180, 360) - 180;
+verifyEqual(testCase, L.K, 4);
+verifyTrue(testCase, any(lonW < -1) && any(lonW > 1), ...
+    'the Loire basis lies on one side of lon 0 only');
+verifyEqual(testCase, L.region.name, "Loire");
+end

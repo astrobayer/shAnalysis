@@ -55,7 +55,7 @@ end
 % their own synthesisMatrix call (basinKernel/slepianBasis do).
 [~, ~, grid] = shLowLevel.synthesisMatrix(idx, ...
     NLat = opts.OverSample * (idx.Lmax + 1), ...
-    NLon = opts.OverSample * (2 * idx.Lmax + 2));
+    NLon = opts.OverSample * (2 * idx.Lmax + 2), GridOnly = true);
 latRow = repelem(grid.latDeg(:), numel(grid.lonDeg));
 lonRow = repmat(grid.lonDeg(:), numel(grid.latDeg), 1);
 N = numel(latRow);

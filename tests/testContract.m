@@ -3013,3 +3013,75 @@ G = shLowLevel.slepianBasis(idx, @(la, lo) double(la > 60));
 verifyTrue(testCase, isequal(a1, a2) && isequal(r1, r2), ...
     'ts.slepianProject is not the lane');
 end
+
+% ------------------------------------------- WP8 8a: the regional basis
+function testRegionalRoutesAreTheirLanes(testCase)
+%TESTREGIONALROUTESARETHEIRLANES ts/g.regionalBasis are
+%   shLowLevel.regionalBasis on the object's own index, and
+%   ts/g.regionalProject are shLowLevel.regionalProject, bitwise, with
+%   options and without - so neither grew a default of its own.
+ts = wp7Series(12, 3, 120);
+g = ts.at(1);
+cap = @(la, lo) double(la > 60);
+idx = shLowLevel.shIndex(12);
+B1 = ts.regionalBasis(cap);
+B2 = shLowLevel.regionalBasis(idx, cap);
+verifyTrue(testCase, isequal(B1, B2), 'ts.regionalBasis is not the lane');
+verifyTrue(testCase, isequal(g.regionalBasis(cap), B2), ...
+    'g.regionalBasis is not the lane');
+idx0 = shLowLevel.shIndex(12, Nmin = 0);
+S1 = ts.regionalBasis(cap, Nmin = 0, Type = "slepian", NKeep = 4, BufferKm = 0);
+S2 = shLowLevel.regionalBasis(idx0, cap, Type = "slepian", NKeep = 4, BufferKm = 0);
+verifyTrue(testCase, isequal(S1, S2), 'ts.regionalBasis with options is not the lane');
+[a1, r1] = ts.regionalProject(B1);
+[a2, r2] = shLowLevel.regionalProject(ts.Cs, ts.Ss, B2);
+verifyTrue(testCase, isequal(a1, a2) && isequal(r1, r2), ...
+    'ts.regionalProject is not the lane');
+verifySize(testCase, a1, [B1.K, 3]);
+[c1, q1] = g.regionalProject(S1);
+[c2, q2] = shLowLevel.regionalProject(g.C, g.S, S2);
+verifyTrue(testCase, isequal(c1, c2) && isequal(q1, q2), ...
+    'g.regionalProject is not the lane');
+end
+
+function testRegionalBasisIDs(testCase)
+%TESTREGIONALBASISIDS Every documented identifier of readBasin,
+%   regionalBasis and regionalProject, each driven by the guard it names.
+idx = shLowLevel.shIndex(12);
+cap = @(la, lo) double(la > 60);
+verifyError(testCase, @() shLowLevel.regionalBasis(idx, []), ...
+    'shLowLevel:regionalBasis:missingRegion');
+verifyError(testCase, @() shLowLevel.regionalBasis(idx, ...
+    @(la, lo) double(la > 89.99), BufferKm = 0), ...
+    'shLowLevel:regionalBasis:emptyRegion');
+verifyError(testCase, @() shLowLevel.regionalBasis(idx, cap, ...
+    Kernel = "amplitude"), 'shLowLevel:regionalBasis:badAmplitude');
+verifyError(testCase, @() shLowLevel.regionalBasis(idx, cap, ...
+    DegreeAmplitude = ones(13, 1)), 'shLowLevel:regionalBasis:badAmplitude');
+verifyError(testCase, @() shLowLevel.regionalBasis(idx, cap, ...
+    Type = "slepian", Threshold = 1.5), 'shLowLevel:regionalBasis:badThreshold');
+verifyError(testCase, @() shLowLevel.regionalBasis(idx, cap, ...
+    Type = "slepian", Threshold = 0.5, NKeep = 2), ...
+    'shLowLevel:regionalBasis:badThreshold');
+B = shLowLevel.regionalBasis(idx, cap, Type = "sh");
+verifyEqual(testCase, B.K, idx.P);
+verifyError(testCase, @() shLowLevel.regionalProject(zeros(5), zeros(5), B), ...
+    'shLowLevel:regionalProject:sizeMismatch');
+verifyError(testCase, @() shLowLevel.regionalProject(zeros(13), zeros(13), ...
+    struct('T', 1)), 'shLowLevel:regionalProject:badBasis');
+verifyError(testCase, @() shLowLevel.readBasin("No Such River"), ...
+    'shLowLevel:readBasin:unknownBasin');
+verifyError(testCase, @() shLowLevel.readBasin("River"), ...
+    'shLowLevel:readBasin:ambiguousBasin');
+verifyError(testCase, @() shLowLevel.readBasin("Elbe", File = "nope.json"), ...
+    'shLowLevel:readBasin:missingFile');
+f = [tempname '.json'];
+cleanup = onCleanup(@() delete(f)); %#ok<NASGU>
+fid = fopen(f, 'w');
+fprintf(fid, ['{"type":"FeatureCollection","features":[{"type":"Feature",' ...
+    '"properties":{"name":"Spot"},"geometry":{"type":"Point",' ...
+    '"coordinates":[10,50]}}]}']);
+fclose(fid);
+verifyError(testCase, @() shLowLevel.readBasin("Spot", File = f), ...
+    'shLowLevel:readBasin:badGeometry');
+end
