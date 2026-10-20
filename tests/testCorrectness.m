@@ -5473,3 +5473,253 @@ Cmb = kron(eye(M / 2), [1 -1]);
 verifyTrue(testCase, isequal(i2.A, Cmb * A));
 verifyEqual(testCase, r2.nobs, M / 2);
 end
+
+% ------------------------------------------- WP8 8d: the chain
+function [tsm, tsObs, ep, idx] = kalmanSHFixture(seed)
+%KALMANSHFIXTURE The configuration of validate_regional_kalman.py CLAIM 1:
+%   nmax 6 (P = 45), a VAR(1) with a 1/(n+1)^2 signal of about 1e-9 behind
+%   a 240-epoch model series, and 30 monthly observations with sigmas of
+%   1-2e-11 of which every fourth is missing.
+rng(seed);
+idx = shLowLevel.shIndex(6);
+P = idx.P;
+dec = 1 ./ (idx.n + 1) .^ 2;
+Ph = 0.7 * eye(P) + 0.02 * randn(P);
+Ph = Ph * (0.8 / max(abs(eig(Ph))));
+Lq = randn(P) / sqrt(P);
+cQ = chol((Lq * Lq' + 0.2 * eye(P)) .* (dec * dec') * 1e-18, 'lower');
+X = zeros(P, 270);
+for k = 2:270
+    X(:, k) = Ph * X(:, k - 1) + cQ * randn(P, 1);
+end
+sig = 1e-11 * (1 + rand(P, 1));
+tsm = vecSeries(X(:, 1:240), 1990 + ((1:240)' - 0.5) / 12, idx, []);
+ep = 2003 + ((1:30)' - 0.5) / 12;
+keep = mod(0:29, 4) ~= 3;
+Lobs = X(:, 241:270) + sig .* randn(P, 30);
+tsObs = vecSeries(Lobs(:, keep), ep(keep), idx, sig);
+end
+
+function ts = vecSeries(X, ep, idx, sig)
+%VECSERIES An shSeries from coefficient vectors in IDX order, with a
+%   constant formal sigma vector SIG when it is not empty.
+n1 = idx.Lmax + 1;
+nT = size(X, 2);
+[Cs, Ss, sC, sS] = deal(zeros(n1, n1, nT));
+for t = 1:nT
+    [Cs(:, :, t), Ss(:, :, t)] = shLowLevel.csFromVec(X(:, t), idx);
+    if ~isempty(sig)
+        [sC(:, :, t), sS(:, :, t)] = shLowLevel.csFromVec(sig, idx);
+    end
+end
+if isempty(sig)
+    ts = shSeries(Cs, Ss = Ss, Epochs = ep);
+else
+    ts = shSeries(Cs, Ss = Ss, Epochs = ep, SigmaCs = sC, SigmaSs = sS);
+end
+end
+
+function [x, s] = seriesVectors(ts, idx)
+%SERIESVECTORS Coefficient and sigma vectors of every epoch, IDX order.
+x = zeros(idx.P, ts.nEpochs);
+s = x;
+for t = 1:ts.nEpochs
+    g = ts.at(t);
+    x(:, t) = shLowLevel.vecFromCS(g.C, g.S, idx);
+    s(:, t) = shLowLevel.vecFromCS(g.sigmaC, g.sigmaS, idx);
+end
+end
+
+function testRegionalKalmanOnTheSHBasisIsKalmanChain(testCase)
+%TESTREGIONALKALMANONTHESHBASISISKALMANCHAIN On the SH basis the regional
+%   chain is kalmanChain in solution mode: the same process model bit for
+%   bit, the same gaps, and the same smoothed series - the chain updates
+%   in the filter's information form, kalmanChain in its gain form, which
+%   agree to 5.58e-15 relative in the states and 8.88e-16 in the sigmas
+%   over 40 seeds of this configuration (validate_regional_kalman.py
+%   CLAIM 1); the bounds are 3x those. With the climatology removed and
+%   restored, the restore through Proj = I is kalmanChain's own.
+[tsm, tsObs, ep, idx] = kalmanSHFixture(61);
+B = shLowLevel.regionalBasis(idx, [], Type = "sh");
+for clim = [false true]
+    [tsR, outR] = shLowLevel.regionalKalman(tsObs, B, ModelSeries = tsm, ...
+        Epochs = ep, Climatology = clim);
+    [tsC, repC] = shLowLevel.kalmanChain(tsObs, ModelSeries = tsm, ...
+        Epochs = ep, Climatology = clim);
+    verifyTrue(testCase, isequaln(outR.model, repC.model), ...
+        'the process model is not kalmanChain''s');
+    verifyEqual(testCase, outR.gap, repC.gap);
+    [xR, sR] = seriesVectors(tsR, idx);
+    [xC, sC] = seriesVectors(tsC, idx);
+    verifyLessThan(testCase, max(abs(xR - xC), [], 'all') / max(abs(xC), [], 'all'), ...
+        3 * 5.58e-15);
+    verifyLessThan(testCase, max(abs(sR ./ sC - 1), [], 'all'), 3 * 8.88e-16);
+    verifyEqual(testCase, tsR.epochs, ep);
+end
+verifyEqual(testCase, outR.nGaps, 7);
+verifyEqual(testCase, outR.mode, "solution");
+verifyEmpty(testCase, outR.basin);
+verifyEmpty(testCase, outR.grid);
+end
+
+function testRegionalKalmanIsTheJointAdjustment(testCase)
+%TESTREGIONALKALMANISTHEJOINTADJUSTMENT On an RBF basis the chain is the
+%   joint least-squares adjustment over all epochs (Kvas 2019, Sec. 2.3):
+%   the prior on a_1, the process steps a_t - Phi a_(t-1) ~ N(0, Q) and
+%   the per-epoch basis normal equations, solved densely here. Records
+%   mode, 12 epochs with 3 gaps. validate_regional_kalman.py CLAIM 2
+%   measured this configuration over 20 seeds: states 2.57e-15, sigmas
+%   1.67e-15, covariances 2.53e-15 (relative); the bounds are 3x those.
+idx = shLowLevel.shIndex(10);
+B = shLowLevel.regionalBasis(idx, @(la, lo) double(la > 55));
+K = B.K;
+rng(62);
+Ph = 0.75 * eye(K) + 0.02 * randn(K);
+Ph = Ph * (0.8 / max(abs(eig(Ph))));
+Lq = randn(K) / sqrt(K);
+cQ = chol(Lq * Lq' + 0.1 * eye(K), 'lower');
+a = zeros(K, 612);
+for k = 2:612
+    a(:, k) = Ph * a(:, k - 1) + cQ * randn(K, 1);
+end
+tsm = vecSeries(full(B.T * a(:, 1:600)), 2000 + ((1:600)' - 0.5) / 12, idx, []);
+ep = 2051 + ((1:12)' - 0.5) / 12;
+recs = struct('N', {}, 'b', {}, 'epoch', {});
+gaps = [4 8 9];
+for t = setdiff(1:12, gaps)
+    A = randn(3 * K, K);
+    c = 0.5 + 1.5 * rand(3 * K, 1);
+    y = A * a(:, 600 + t) + sqrt(c) .* randn(3 * K, 1);
+    Aw = A ./ sqrt(c);
+    recs(end + 1) = struct('N', Aw' * Aw, 'b', Aw' * (y ./ sqrt(c)), ...
+        'epoch', ep(t)); %#ok<AGROW>
+end
+[~, out] = shLowLevel.regionalKalman(recs, B, ModelSeries = tsm, Epochs = ep);
+Phi = out.model.Phi{1};
+Q = out.model.Q;
+Pm1 = Phi * out.model.Sigma0 * Phi' + Q;
+Pm1 = (Pm1 + Pm1') / 2;
+Qi = inv(Q);
+M = zeros(12 * K);
+r = zeros(12 * K, 1);
+blk = @(t) (t - 1) * K + (1:K);
+M(blk(1), blk(1)) = inv(Pm1);
+for t = 2:12
+    M(blk(t), blk(t)) = M(blk(t), blk(t)) + Qi;
+    M(blk(t - 1), blk(t - 1)) = M(blk(t - 1), blk(t - 1)) + Phi' * Qi * Phi;
+    M(blk(t), blk(t - 1)) = M(blk(t), blk(t - 1)) - Qi * Phi;
+    M(blk(t - 1), blk(t)) = M(blk(t - 1), blk(t)) - Phi' * Qi;
+end
+j = 0;
+for t = setdiff(1:12, gaps)
+    j = j + 1;
+    M(blk(t), blk(t)) = M(blk(t), blk(t)) + recs(j).N;
+    r(blk(t)) = recs(j).b;
+end
+Ci = inv(M);
+xj = reshape(Ci * r, K, 12);
+sj = reshape(sqrt(diag(Ci)), K, 12);
+verifyEqual(testCase, out.gap, ismember(1:12, gaps));
+verifyEqual(testCase, out.mode, "records");
+verifyLessThan(testCase, max(abs(out.a - xj), [], 'all') / max(abs(xj), [], 'all'), ...
+    3 * 2.57e-15);
+verifyLessThan(testCase, max(abs(out.sigA ./ sj - 1), [], 'all'), 3 * 1.67e-15);
+CL = Ci(blk(12), blk(12));
+verifyLessThan(testCase, max(abs(out.covLast - CL), [], 'all') / max(abs(CL), [], 'all'), ...
+    3 * 2.53e-15);
+end
+
+function testRegionalKalmanCarriesSigmasThroughT(testCase)
+%TESTREGIONALKALMANCARRIESSIGMASTHROUGHT The region's outputs are linear
+%   functionals of the smoothed basis coefficients, checked against
+%   synthesisPoints as an independent summation: the EWH at the region's
+%   points is the synthesis of the output series there (EWH as the
+%   potential of coefficients scaled by f_n R / GM, at r = R); the basin
+%   mean is their area-weighted mean over B.region.core; and the basin
+%   and grid sigmas at the last epoch are sqrt(f Ps f') with f built from
+%   the synthesis of each basis function and Ps the full smoothed
+%   covariance. Two summations of one series: synthesisPoints documents
+%   its paths agreeing to 5e-14, and the bound 1e-12 leaves 20x.
+idx = shLowLevel.shIndex(10);
+B = shLowLevel.regionalBasis(idx, @(la, lo) double(la > 55));
+K = B.K;
+rng(63);
+Ph = 0.75 * eye(K) + 0.02 * randn(K);
+Ph = Ph * (0.8 / max(abs(eig(Ph))));
+Lq = randn(K) / sqrt(K);
+cQ = chol(Lq * Lq' + 0.1 * eye(K), 'lower') * 1e-10;
+a = zeros(K, 624);
+for k = 2:624
+    a(:, k) = Ph * a(:, k - 1) + cQ * randn(K, 1);
+end
+tsm = vecSeries(full(B.T * a(:, 1:600)), 2000 + ((1:600)' - 0.5) / 12, idx, []);
+ep = 2051 + ((1:24)' - 0.5) / 12;
+seasonal = randn(idx.P, 1) * 3e-11 * cos(2 * pi * ep');
+sig = 2e-11 * ones(idx.P, 1);
+X = full(B.T * a(:, 601:624)) + seasonal + sig .* randn(idx.P, 24);
+tsObs = vecSeries(X, ep, idx, sig);
+n = (0:10)';
+kn = -0.30 * n ./ (n + 3.0);                       % synthetic Love numbers
+[tsK, out] = shLowLevel.regionalKalman(tsObs, B, ModelSeries = tsm, kn = kn);
+GM = tsK.GM;
+R = tsK.R;
+f = shLowLevel.kernelFactors("ewh", 10, GM, R, kn = kn);
+sc = f * R / GM;                                   % EWH as a scaled potential
+lat = out.grid.latDeg;
+lon = out.grid.lonDeg;
+[~, w] = shLowLevel.synthesisMatrix(idx, NLat = 22, NLon = 44, GridOnly = true);
+core = B.region.core;
+im = find(core > 0);
+wc = w(im) .* core(im);
+verifyEqual(testCase, out.basin.areaFraction, B.region.areaFraction);
+for t = [1 24]
+    g = tsK.at(t);
+    ref = shLowLevel.synthesisPoints(g.C .* sc, g.S .* sc, GM, R, lat, lon, ...
+        R * ones(size(lat)));
+    verifyLessThan(testCase, max(abs(out.grid.ewh(:, t) - ref)) / max(abs(ref)), 1e-12);
+    verifyLessThan(testCase, abs(out.basin.mean(t) - wc' * ref / sum(wc)) / ...
+        max(abs(ref)), 1e-12);
+end
+G = zeros(numel(lat), K);
+for k = 1:K
+    [Ck, Sk] = shLowLevel.csFromVec(full(B.T(:, k)), idx);
+    G(:, k) = shLowLevel.synthesisPoints(Ck .* sc, Sk .* sc, GM, R, lat, lon, ...
+        R * ones(size(lat)));
+end
+fb = wc' * G / sum(wc);
+verifyLessThan(testCase, abs(out.basin.sigma(end) / sqrt(fb * out.covLast * fb') - 1), 1e-12);
+sg = sqrt(sum((G * out.covLast) .* G, 2));
+verifyLessThan(testCase, max(abs(out.grid.sigma(:, end) ./ sg - 1)), 1e-12);
+verifySize(testCase, out.grid.ewh, [numel(lat), 24]);
+verifyTrue(testCase, all(out.basin.sigma > 0));
+end
+
+function testRtsSmootherFunctionals(testCase)
+%TESTRTSSMOOTHERFUNCTIONALS rtsSmoother's Functionals: for F = I (full or
+%   sparse) the functional sigmas ARE the coefficient sigmas, bit for bit,
+%   in the full pass and in the fixed-lag pass; for a general F they are
+%   sqrt(diag(F Ps F')) - at the last epoch against the explicit product,
+%   to 3x the worst relative difference validate_regional_kalman.py CLAIM 4
+%   measured over 201 cases of this shape, read the same way - the sigma
+%   squared back against diag(F Ps F') (4.40e-16).
+rng(64);
+P = 6;
+model = localStableModel(P);
+obs = repmat(struct('l', [], 'R', [], 'N', [], 'b', []), 1, 8);
+for t = [1 2 4 5 7 8]
+    obs(t).l = randn(P, 1);
+    obs(t).R = 0.3 * eye(P);
+end
+filt = shLowLevel.kalmanFilter(model, obs);
+s1 = shLowLevel.rtsSmoother(filt, Functionals = eye(P));
+s2 = shLowLevel.rtsSmoother(filt, Functionals = speye(P));
+verifyTrue(testCase, isequal(s1.sigF, s1.sig) && isequal(s2.sigF, s1.sig));
+s3 = shLowLevel.rtsSmoother(filt, Lag = 2, Functionals = eye(P));
+verifyTrue(testCase, isequal(s3.sigF, s3.sig));
+F = randn(8, P);
+s4 = shLowLevel.rtsSmoother(filt, Functionals = F);
+verifyTrue(testCase, isequal(s4.xs, s1.xs) && isequal(s4.sig, s1.sig));
+dx = diag(F * s4.PsLast * F');
+verifyLessThan(testCase, max(abs(s4.sigF(:, end).^2 - dx)) / max(dx), 3 * 4.40e-16);
+verifyEmpty(testCase, shLowLevel.rtsSmoother(filt).sigF);
+end

@@ -1608,3 +1608,52 @@ verifyTrue(testCase, any(lonW < -1) && any(lonW > 1), ...
     'the Loire basis lies on one side of lon 0 only');
 verifyEqual(testCase, L.region.name, "Loire");
 end
+
+% ------------------------------------------- WP8 8d: the chain
+function testRegionalKalmanLagMatfileAndPrediction(testCase)
+%TESTREGIONALKALMANLAGMATFILEANDPREDICTION The chain's run options: a
+%   matfile covariance store gives the in-memory result to the last bit
+%   (kalmanFilter's and rtsSmoother's contract); Lag = 0 is the filter,
+%   and from the last observation on there is no future data, so the
+%   smoother IS the filter there, bit for bit (its gain multiplies an
+%   exact zero); before it the smoother's variance is the smaller at
+%   every epoch; grid epochs past the last observation are gaps,
+%   predicted with a growing sigma; QC = "flag" passes its statistic
+%   through, NaN in the gaps.
+idx = shLowLevel.shIndex(8);
+B = shLowLevel.regionalBasis(idx, @(la, lo) double(la > 60));
+rng(65);
+n1 = 9;
+dec = 1 ./ ((0:8)' + 1) .^ 2;
+Cm = zeros(n1, n1, 150);                         % AR(1), rho = 0.8
+for k = 2:150
+    Cm(:, :, k) = 0.8 * Cm(:, :, k - 1) + tril(randn(n1) .* dec) * 1e-9;
+end
+Co = zeros(n1, n1, 20);
+for k = 1:20
+    Co(:, :, k) = tril(randn(n1) .* dec) * 1e-9;
+end
+Sm = Cm .* (1:n1 > 1);
+So = Co .* (1:n1 > 1);
+tsm = shSeries(Cm, Ss = Sm, Epochs = 1995 + ((1:150)' - 0.5) / 12);
+sg = repmat(tril(3e-11 * ones(n1)), 1, 1, 20);
+ep = 2010 + ((1:20)' - 0.5) / 12;
+tsObs = shSeries(Co, Ss = So, Epochs = ep, SigmaCs = sg, SigmaSs = sg);
+epg = [ep; ep(end) + (1:3)' / 12];
+[ts1, o1] = shLowLevel.regionalKalman(tsObs, B, ModelSeries = tsm, Epochs = epg);
+[tsM, oM] = shLowLevel.regionalKalman(tsObs, B, ModelSeries = tsm, Epochs = epg, ...
+    StoreCov = "matfile");
+verifyTrue(testCase, isequaln(ts1, tsM) && isequaln(o1, oM), ...
+    'the matfile store does not give the in-memory result');
+[~, o0] = shLowLevel.regionalKalman(tsObs, B, ModelSeries = tsm, Epochs = epg, ...
+    Lag = 0, QC = "flag");
+verifyTrue(testCase, isequal(o0.a(:, 20:23), o1.a(:, 20:23)) && ...
+    isequal(o0.sigA(:, 20:23), o1.sigA(:, 20:23)), ...
+    'from the last observation on, the smoother is not the filter');
+verifyTrue(testCase, all(sum(o1.sigA(:, 1:19) .^ 2) < sum(o0.sigA(:, 1:19) .^ 2)));
+verifyEqual(testCase, o1.gap, [false(1, 20), true(1, 3)]);
+v = sum(o1.sigA(:, 20:23) .^ 2);
+verifyTrue(testCase, all(diff(v) > 0), 'the prediction sigma does not grow');
+verifyTrue(testCase, all(isfinite(o0.qcStat(1:20))) && all(isnan(o0.qcStat(21:23))));
+verifyTrue(testCase, all(isfinite(o1.a(:))) && all(isfinite(o1.sigA(:))));
+end

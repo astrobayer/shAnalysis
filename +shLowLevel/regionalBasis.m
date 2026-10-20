@@ -137,6 +137,10 @@ function B = regionalBasis(idx, region, opts)
 %                    mask                 (Ngrid,1) double  the buffered
 %                                         mask on the OverSample grid; []
 %                                         without a region
+%                    core                 (Ngrid,1) double  the region
+%                                         itself, unbuffered, on the same
+%                                         grid - what basin means are
+%                                         taken over; [] without a region
 %                    overSample           (1,1) double  the OverSample
 %                                         option
 %                    R                    (1,1) double  the R option
@@ -213,7 +217,7 @@ end
 % ---- the region on the quadrature grid
 reg = struct('name', regName, 'bufferKm', opts.BufferKm, ...
     'areaFraction', NaN, 'areaFractionBuffered', NaN, 'mask', [], ...
-    'overSample', opts.OverSample, 'R', opts.R);
+    'core', [], 'overSample', opts.OverSample, 'R', opts.R);
 if hasRegion
     [~, w, qgrid] = shLowLevel.synthesisMatrix(idx, ...
         NLat = opts.OverSample * (L + 1), ...
@@ -228,6 +232,7 @@ if hasRegion
     reg.areaFraction = w' * m0;
     reg.areaFractionBuffered = w' * mb;
     reg.mask = mb;
+    reg.core = m0;
     if reg.areaFractionBuffered <= 0
         error('shLowLevel:regionalBasis:emptyRegion', ...
             'The region grown by %g km has no area on the quadrature grid.', ...

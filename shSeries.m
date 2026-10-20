@@ -2336,6 +2336,71 @@ methods
         [model, info] = shLowLevel.regionalProcessModel(obj, B, args{:});
     end
 
+    function [tsK, out] = regionalKalman(obj, B, opts)
+        %REGIONALKALMAN The regional Kalman filter on this series, in a basis.
+        %   [TSK, OUT] = ts.regionalKalman(B, ModelSeries = TSM) is
+        %   shLowLevel.regionalKalman(ts, B, ModelSeries = TSM): this
+        %   series' coefficients and sigmas are the observations, the
+        %   process model is estimated from TSM in the basis B of
+        %   ts.regionalBasis, and the filter and RTS smoother run on the
+        %   basis coefficients. TSK is the smoothed series T a with sigmas
+        %   through T; OUT carries the basis coefficients and, with kn, the
+        %   EWH grid of the region and its basin mean with sigma.
+        %   shLowLevel.regionalKalman documents the chain and its oracle.
+        %
+        %   Inputs
+        %     B  (1,1) struct  a basis from regionalBasis
+        %
+        %   Outputs
+        %     tsK  (1,1) shSeries  the smoothed series T a
+        %     out  (1,1) struct  as returned by shLowLevel.regionalKalman,
+        %          which documents every field
+        %
+        %   Options
+        %     ModelSeries (required)  the model series of the process
+        %     Order (lane default)  VAR order
+        %     Shrink (lane default)  diagonal loading
+        %     Structure (lane default)  "full" | "diagonal"
+        %     CondFun (lane default)  covariance conditioning
+        %     QScale (lane default)  Kurtenbach's alpha
+        %     GroundNoise (lane default)  isotropic ground noise [m EWH]
+        %     kn (lane default)  load Love numbers, for the EWH outputs
+        %     Epochs (lane default)  target epoch grid
+        %     Tolerance (lane default)  epoch matching tolerance [yr]
+        %     NoiseCov (lane default)  noise covariance of the series
+        %     Climatology (lane default)  remove and restore it
+        %     Lag (lane default)  smoothing lag in epochs
+        %     QC (lane default)  innovation quality control
+        %     QCAlpha (lane default)  its false-alarm level
+        %     StoreCov (lane default)  "full" | "matfile"
+        %
+        %   Example
+        %     B = ts.regionalBasis("Elbe", Type = "slepian", Threshold = 0.5);
+        %     [tsK, out] = ts.regionalKalman(B, ModelSeries = tsm, kn = kn);
+        arguments
+            obj
+            B (1,1) struct
+            opts.ModelSeries
+            opts.Order
+            opts.Shrink
+            opts.Structure
+            opts.CondFun
+            opts.QScale
+            opts.GroundNoise
+            opts.kn
+            opts.Epochs
+            opts.Tolerance
+            opts.NoiseCov
+            opts.Climatology
+            opts.Lag
+            opts.QC
+            opts.QCAlpha
+            opts.StoreCov
+        end
+        args = namedargs2cell(opts);
+        [tsK, out] = shLowLevel.regionalKalman(obj, B, args{:});
+    end
+
     function [out, info] = bridgeGaps(obj, bridge, opts)
         %BRIDGEGAPS Fill the months this series lacks from a second series.
         %   [OUT, INFO] = ts.bridgeGaps(TSB) is shLowLevel.bridgeGaps(ts,

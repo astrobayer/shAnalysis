@@ -23,12 +23,12 @@ says whether it was *read* or *inferred*.
 
 | Fact | Value | Evidence |
 |---|---|---|
-| Version | **5.16.0**, 20-Oct-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
+| Version | **5.17.0**, 21-Oct-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
 | Branches | `main` only; `claude/getframe-recapture` and `claude/readshm` are gone (merged/deleted) | `GET /branches` |
-| Public surface | 3 classes / 96 methods, 133 `+shLowLevel` functions (+5 private), 3 root functions. 86 of the 133 are reachable from a class method; each of the other 47 is a named exception (34) or in a backlog that may only shrink (13) | `tools/dev/api_extract.py`; `tools/dev/class_surface_audit.py` |
-| Tests | 5 classes, **392 methods / 406 runs**: Correctness 197, Contract 115, Robustness 58, Science 9, Performance 13 methods (27 runs, `budgetCase` x14 + `nmaxP` x2). On A8 7 filter out without the optional real-data fixtures (the GravIS-grid test joined them in v5.8.0, the ESMGFZ check in v5.11.0, the HLSST check in v5.12.0); on MATTHIASPC only 2 do, because `E:\DATAPOOL` supplies the SINEX files, the GravIS folder and - with `SHX_EARTHROTATION_FOLDER` and `SHX_BRIDGE_FOLDER` set for the run, no preference is stored - the ESMGFZ and HLSST series. The counter has matched the runner EXACTLY on the last ten green A8 runs and on every local Tier-A run. | `python3 tools/dev/count_tests.py` |
-| Python oracles | 26 `tools/dev/validate_*.py` (+ `regional_oracle_lib.py`, shared by the three WP8 oracles) + `tools/audit/*` | listing |
-| Docs | **27** hand-written `html/*.html` (24 per-entity duplicates retired in v5.0.1, WP6 stage 3; `regionalBasis.html` added in v5.14.0) + **236 generated `html/ref/*.html`** (one per entity + index, `make_refpages.py`), one shared `html/shAnalysis.css`, `helptoc.xml`, `info.xml`, guide PDF, generated `html/apiReference.html`. `docs/` holds the PDF and `apiExamples.json` only - no HTML page lives outside `html/` (gated). | listing |
+| Public surface | 3 classes / 97 methods, 134 `+shLowLevel` functions (+5 private), 3 root functions. 87 of the 134 are reachable from a class method; each of the other 47 is a named exception (34) or in a backlog that may only shrink (13) | `tools/dev/api_extract.py`; `tools/dev/class_surface_audit.py` |
+| Tests | 5 classes, **398 methods / 412 runs**: Correctness 201, Contract 116, Robustness 59, Science 9, Performance 13 methods (27 runs, `budgetCase` x14 + `nmaxP` x2). On A8 7 filter out without the optional real-data fixtures (the GravIS-grid test joined them in v5.8.0, the ESMGFZ check in v5.11.0, the HLSST check in v5.12.0); on MATTHIASPC only 2 do, because `E:\DATAPOOL` supplies the SINEX files, the GravIS folder and - with `SHX_EARTHROTATION_FOLDER` and `SHX_BRIDGE_FOLDER` set for the run, no preference is stored - the ESMGFZ and HLSST series. The counter has matched the runner EXACTLY on the last ten green A8 runs and on every local Tier-A run. | `python3 tools/dev/count_tests.py` |
+| Python oracles | 27 `tools/dev/validate_*.py` (+ `regional_oracle_lib.py`, shared by the four WP8 oracles) + `tools/audit/*` | listing |
+| Docs | **27** hand-written `html/*.html` (24 per-entity duplicates retired in v5.0.1, WP6 stage 3; `regionalBasis.html` added in v5.14.0) + **238 generated `html/ref/*.html`** (one per entity + index, `make_refpages.py`), one shared `html/shAnalysis.css`, `helptoc.xml`, `info.xml`, guide PDF, generated `html/apiReference.html`. `docs/` holds the PDF and `apiExamples.json` only - no HTML page lives outside `html/` (gated). | listing |
 | CI | `gates` job on ubuntu (help_audit, doc_sync_audit, no_map_renderer, toolbox_dependency_audit, nv_casing_audit, fixture_tag_audit, gate self-tests `tools/tests/`, `count_tests`, `name_coverage`, `class_surface_audit`, `error_id_audit`, `option_values_audit`, `refpages_audit`, `make_demos --check`, `perf_baseline_audit`) + `runAllTests (self-hosted)` on A8/R2026a; fixtures from tag `fixtures-2026-08` | `.github/workflows/ci.yml` |
 | Namespace | `+shLowLevel` (renamed from `+shx` in v3.0.0). Any memory saying `shx.*` is stale. | README §History |
 
@@ -590,7 +590,7 @@ on the series - so 14 remain; reach is 79 of 128.
 - **Oracle**: none (delegation).
 - **Size**: M. **Version**: MINOR.
 
-### WP8 — Regional Kalman with local basis functions   `[~] 8a DONE (v5.14.0), 8b DONE (v5.15.0), 8c DONE (v5.16.0)` (approved 2026-10-20)
+### WP8 — Regional Kalman with local basis functions   `[~] 8a DONE (v5.14.0), 8b DONE (v5.15.0), 8c DONE (v5.16.0), 8d DONE (v5.17.0)` (approved 2026-10-20)
 Approved by Matthias on 2026-10-20 in four answers to the review of
 Kurtenbach (DGK C-683) and the work since: (1) the state is a set of
 LOCAL basis functions (RBF, Slepian), not global SH; (2) the existing
@@ -622,7 +622,7 @@ shAnalysis, the basin is selectable, and otherwise a test area.
 | 8a `[x]` **DONE v5.14.0** | `readBasin` (GravIS GeoJSON -> wrap-safe region; the basin is selectable by name), `regionalBasis` (RBF on an icosahedral or Reuter grid with a degree-amplitude, Kaula or Shannon kernel; Slepian by threshold or count; SH), `regionalProject` (region-weighted LS projector), class routes `regionalBasis`/`regionalProject` | `validate_regional_basis.py`: node counts, kernel = Legendre series, projector normal equations, projector = `G'` for Slepian, polygon area of the Elbe |
 | 8b `[x]` **DONE v5.15.0** (approved 2026-10-20: "Go ahead") | process model in the basis: model series -> basis coefficients -> climatology reduced -> `estimateVAR`; diagnostics (spectral radius, Q PSD, signal variance ratio), Kurtenbach's alpha and ground-noise options | Order 1 = C-683 eqs. 3.84-3.85 on the projected series |
 | 8c `[x]` **DONE v5.16.0** (approved 2026-10-20: "Go ahead") | observation adapters to basis NEQs: SH solution + covariance, SH NEQ (SINEX), grid (EWH + covariance, observation area = region + buffer, Woehnke's dO), point functionals (potential, gravity disturbance, gravity vector along a direction, differences of two points = LGD) | `T' N T` against the SH NEQ; grid design against `synthesisPoints` |
-| 8d `[ ]` | the chain and its single point of access, `ts.regionalKalman(Region=, Basis=, ModelSeries=, ...)`: filter + RTS (reused), output as basis coefficients, EWH grids on the region, basin mean with sigma through T, an shSeries of `T a` | SH basis = `kalmanChain` (machine precision) |
+| 8d `[x]` **DONE v5.17.0** (approved 2026-10-21: "Go ahead"; the basis is passed in, not built inside - 6.1) | the chain and its single point of access, `ts.regionalKalman(Region=, Basis=, ModelSeries=, ...)`: filter + RTS (reused), output as basis coefficients, EWH grids on the region, basin mean with sigma through T, an shSeries of `T a` | SH basis = `kalmanChain` (machine precision) |
 | 8e `[ ]` | regional consistency: remove-compute-restore against a global background (low degrees / outside signal), the investigation/observation/computation areas of Woehnke 2025 | closed loop with signal outside the region |
 | 8f `[ ]` | closed loop of Woehnke 2025 / Steffen 2026: ESA ESM truth, ITSG-Grace2018 covariance noise, monthly, then daily | their published RMSD 0.62 / 0.58 cm, correlation 0.98 |
 | 8g `[ ]` | daily real data: ITSG daily NEQs (SINEX) in the basis; the Elbe (2013) and the September 2024 central-European flood as test cases | ITSG daily Kalman product, GravIS basin series |
@@ -651,6 +651,34 @@ shAnalysis, the basin is selectable, and otherwise a test area.
 ## 6. Records
 
 ### 6.1 Decisions (append-only; date, decision, evidence)
+- 2026-10-21 — **8d approved** (Matthias: "Go ahead", after #122
+  merged). Shipped as 5.17.0: `regionalKalman` and `ts.regionalKalman`,
+  `rtsSmoother`'s `Functionals`, and `B.region.core`.
+- 2026-10-21 — **The chain takes a built basis, not the basis' options.**
+  The row sketched `ts.regionalKalman(Region=, Basis=, ...)`; that would
+  copy regionalBasis' dozen options into a second home. `B =
+  ts.regionalBasis(...)` first, as rows 8a-8c already do.
+- 2026-10-21 — **Solution observations update in the information form.**
+  A general basis observes x = T a, H = T, and kalmanFilter's solution
+  mode knows H = I only. So every observation becomes a basis normal
+  equation (regionalNEQ) and kalmanFilter is reused unchanged. On the
+  SH basis this is the one place the chain differs from kalmanChain,
+  measured at 5.6e-15 (states) and 8.9e-16 (sigmas) over 40 seeds.
+- 2026-10-21 — **The basin sigma is formed inside the chain, from the
+  full smoothed covariance.** An shSeries carries per-coefficient sigmas
+  only, so a basin sigma computed afterwards would drop every
+  correlation. `rtsSmoother` gained `Functionals` (sqrt(diag(F Ps F'))
+  without the m x m product), exactly `sig` for F = I, pinned bitwise.
+- 2026-10-21 — **The basin mean is taken over the UNBUFFERED region**,
+  which the basis did not store; `B.region.core` is the evalMask result
+  regionalBasis already computed for `areaFraction`, now kept. Additive.
+- 2026-10-21 — **The climatology is restored in the basis, T (a + Proj
+  c).** Adding the global climatology to a regional estimate would mix
+  a global field into a regional one; on the SH basis (Proj = I) it is
+  exactly kalmanChain's restore.
+- 2026-10-21 — **Records mode refuses two records within Tolerance**
+  instead of picking one: several kinds of one epoch belong in
+  neqCombine, with variance components, before the filter.
 - 2026-10-20 — **8c approved** (Matthias: "Go ahead", after #121
   merged). Shipped as 5.16.0: `regionalNEQ` with three kinds and the
   class route `g.regionalNEQ`.
@@ -1659,7 +1687,8 @@ shAnalysis, the basin is selectable, and otherwise a test area.
 | v5.13.1 (documentation audit: help, html and guide in sync; the demo's v3.16 lookup; `doc_sync_audit` PROSE) | ☑ 16 gates + mlint + make_demos + 15 self-test suites (the new `test_doc_sync_prose`, 18 tests), 0 findings; the demo fix checked in MATLAB: D05 found the 257 fetched months it had missed | ☑ **Tier A LOCAL on MATTHIASPC — 384 runs, 382 passed, 0 failed, 2 filtered**; count exact per class (Contract 110, Correctness 181, Performance 27, Robustness 57, Science 9), all 27 performance runs asserted - unchanged from 5.13.0, as a documentation release should be; the demo fix was run on its own (D05 on the 257 fetched months) | ◐ pending | ◐ pending |
 | v5.14.0 (WP8 8a: `readBasin`, `regionalBasis`, `regionalProject`, class routes; `synthesisMatrix` GridOnly) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally** (the bridge's device was offline). ☑ **CI self-hosted (A8) at `bc74d1b` via PR #120, green — 394 runs, 387 passed, 0 failed, 7 filtered** (the optional real-data fixtures); the count prediction matched EXACTLY, per class as well as in total (Contract 112, Correctness 188, Performance 27, Robustness 58, Science 9). One red round first, at `52913ca`: two TEST defects of mine, both root-caused - `isequal` on a basis carrying NaN, and an expected area taken from an oracle whose point-in-polygon rule drops edge points (6.3) | ☑ PR #120 | ◐ pending |
 | v5.15.0 (WP8 8b: `regionalProcessModel`, `ts.regionalProcessModel`, `estimateVAR` `Sigma0Add`) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally** (the bridge's device offline). ☑ **CI self-hosted (A8) at `43a8b74` via PR #121, green — 399 runs, 392 passed, 0 failed, 7 filtered** (the optional real-data fixtures); the count prediction matched EXACTLY, per class as well as in total (Contract 113, Correctness 192, Performance 27, Robustness 58, Science 9). All five new tests passed on their first run - no red round | ☑ PR #121 | ◐ pending |
-| v5.16.0 (WP8 8c: `regionalNEQ`, `g.regionalNEQ`) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally** (the bridge's device offline). ☑ **CI self-hosted (A8) at `6de6098` via PR #122, green — 406 runs, 399 passed, 0 failed, 7 filtered** (the optional real-data fixtures); the count prediction matched EXACTLY, per class as well as in total (Contract 115, Correctness 197, Performance 27, Robustness 58, Science 9). All seven new tests passed on their first run - no red round | ☑ PR #122 | ◐ pending |
+| v5.16.0 (WP8 8c: `regionalNEQ`, `g.regionalNEQ`) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally** (the bridge's device offline). ☑ **CI self-hosted (A8) at `6de6098` via PR #122, green — 406 runs, 399 passed, 0 failed, 7 filtered** (the optional real-data fixtures); the count prediction matched EXACTLY, per class as well as in total (Contract 115, Correctness 197, Performance 27, Robustness 58, Science 9). All seven new tests passed on their first run - no red round | ☑ PR #122 | ☑ 2026-10-20 |
+| v5.17.0 (WP8 8d: `regionalKalman`, `ts.regionalKalman`, `rtsSmoother` `Functionals`, `B.region.core`) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally** (the bridge's device offline). ☑ **CI self-hosted (A8) at `9503ec3` via PR #123, green — 412 runs, 405 passed, 0 failed, 7 filtered** (the optional real-data fixtures); the count prediction matched EXACTLY, per class as well as in total (Contract 116, Correctness 201, Performance 27, Robustness 59, Science 9). All six new tests passed on their first run - no red round | ☑ PR #123 | ◐ pending |
 | v5.0.3 (WP2 step 1 baselines) | ☑ 14 gates + mlint + make_demos + 13 self-test suites, 0 findings; `NO_BASELINE` empty | ☑ **CI self-hosted (A8) at `b70c947`, green — 315 runs, 311 passed, 0 failed, 4 filtered**; the EIGHTH exact count prediction running, per class as well as in total. All ten budgets PASSED (they filtered at `f6d5529`), and the only filtered are the four real-data fixtures. Triggered by `workflow_dispatch`, not a PR — #99 merged mid-session and `ci.yml` runs only on push-to-main, pull_request and workflow_dispatch. | ☐ no PR (#99 merged; not asked) | ☐ |
 
 **Tier A debt: DISCHARGED for all nine releases.** The local MATLAB
@@ -1684,6 +1713,11 @@ confirmation that the counter is right about a real run and not only
 about the source.
 
 ### 6.3 What the next session could be wrong for not reading
+- **A Python heredoc that writes LaTeX must use raw strings all the
+  way down.** `\right` inside a plain string became a carriage return;
+  text-mode reading then split the line there, and an index-based repair
+  left a fragment behind that only `make_guide.py` itself caught. Write
+  generator edits with the Edit tool, or `r'''...'''`.
 - **`isequal` is false on NaN, whatever the bits.** A delegate test that
   compares two basis structs with `isequal` failed on A8 only for the
   Slepian basis, whose `level` and `nGlobal` are NaN; it looked like
