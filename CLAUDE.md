@@ -1637,6 +1637,17 @@ confirmation that the counter is right about a real run and not only
 about the source.
 
 ### 6.3 What the next session could be wrong for not reading
+- **`isequal` is false on NaN, whatever the bits.** A delegate test that
+  compares two basis structs with `isequal` failed on A8 only for the
+  Slepian basis, whose `level` and `nGlobal` are NaN; it looked like
+  eigen-solver nondeterminism and was not. Compare structs that can carry
+  NaN with `isequaln`.
+- **An oracle's point-in-polygon rule is part of its answer.** matplotlib's
+  `contains_points` leaves out points ON an edge; `inpolygon` keeps them.
+  A ring starting on lon 0 put one grid column on the edge, and the
+  oracle's area came out 1/244 short of the MATLAB one (v5.14.0, first A8
+  run). Where a region has an exact definition, pin the handle to that
+  definition, not to a second implementation's sum.
 - **A tolerance can hold on one branch only.** `leakageCorrect`'s "NaN
   outside both regions is tolerated" was true with a Mask, which zeroes
   the model outside it; without one the same NaN went into the analysis

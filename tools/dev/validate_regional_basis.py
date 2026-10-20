@@ -369,6 +369,19 @@ bound = (np.cos(np.deg2rad(70)) * gap / 2) / cap_exact
 claim(abs(cap_frac / cap_exact - 1) <= bound,
       "CLAIM 5d polar ring area within the ring-gap bound: rel. %.2e <= %.2e"
       % (abs(cap_frac / cap_exact - 1), bound))
+# The ring IS the cap lat < -70, so the handle must select exactly those
+# grid points. readBasin (inpolygon) counts points ON a ring as inside;
+# matplotlib's contains_points does not, and the ring starts and ends on
+# lon 0, so the handle here misses that one meridian column - 1/244 of the
+# cap. testCorrectness pins the MATLAB handle to the rule itself; this
+# check pins the explanation of the difference (found on A8, v5.14.0).
+LATd, LONd = np.rad2deg(LAT), np.rad2deg(LON)
+rule = W[LATd < -70].sum()
+column = W[(LATd < -70) & (np.abs(LONd) < 1e-9)].sum()
+print("  the cap rule lat < -70 on this grid: %.16f" % rule)
+claim(abs(rule - column - cap_frac) < 1e-15,
+      "CLAIM 5e the handle = the cap rule minus the lon-0 column matplotlib "
+      "leaves out (%.3e)" % abs(rule - column - cap_frac))
 
 print("validate_regional_basis: %d failed claim(s)" % len(FAIL))
 sys.exit(1 if FAIL else 0)

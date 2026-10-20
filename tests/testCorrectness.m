@@ -5182,8 +5182,14 @@ verifyEqual(testCase, ip.polygon, [1 2]);
 verifyEqual(testCase, p([-89 -75 -60 12], [123 359 10 332]), [1 1 0 1]);
 idx = shLowLevel.shIndex(60);
 south = @(la, lo) double(la < 0) .* p(la, lo);
-[~, w] = shLowLevel.synthesisMatrix(idx, NLat = 122, NLon = 244, GridOnly = true);
-% CLAIM 5d: the cap from the ring, 2.846402e-02 on this grid
-verifyEqual(testCase, w' * shLowLevel.evalMask(idx, south), 2.846402e-02, ...
-    'RelTol', 1e-6);
+[~, w, grid] = shLowLevel.synthesisMatrix(idx, NLat = 122, NLon = 244, ...
+    GridOnly = true);
+% the ring at -70 deg closed through the pole IS the cap lat < -70: the
+% same grid points, so the same quadrature sum (0.0285811544764553 in
+% validate_regional_basis.py CLAIM 5d). Points on the ring count as inside,
+% which keeps the lon-0 column the ring starts and ends on; matplotlib's
+% edge rule drops it, which is why the oracle's own handle reads 1/244 less.
+cap = repelem(grid.latDeg(:), numel(grid.lonDeg)) < -70;
+verifyEqual(testCase, w' * shLowLevel.evalMask(idx, south), w' * cap, ...
+    'RelTol', 1e-12);
 end

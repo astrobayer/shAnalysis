@@ -3026,13 +3026,15 @@ cap = @(la, lo) double(la > 60);
 idx = shLowLevel.shIndex(12);
 B1 = ts.regionalBasis(cap);
 B2 = shLowLevel.regionalBasis(idx, cap);
-verifyTrue(testCase, isequal(B1, B2), 'ts.regionalBasis is not the lane');
-verifyTrue(testCase, isequal(g.regionalBasis(cap), B2), ...
+verifyTrue(testCase, isequaln(B1, B2), 'ts.regionalBasis is not the lane');
+verifyTrue(testCase, isequaln(g.regionalBasis(cap), B2), ...
     'g.regionalBasis is not the lane');
 idx0 = shLowLevel.shIndex(12, Nmin = 0);
 S1 = ts.regionalBasis(cap, Nmin = 0, Type = "slepian", NKeep = 4, BufferKm = 0);
 S2 = shLowLevel.regionalBasis(idx0, cap, Type = "slepian", NKeep = 4, BufferKm = 0);
-verifyTrue(testCase, isequal(S1, S2), 'ts.regionalBasis with options is not the lane');
+% isequaln: a Slepian basis carries NaN in level and nGlobal (no rbf grid),
+% and isequal is false on NaN whatever the bits
+verifyTrue(testCase, isequaln(S1, S2), 'ts.regionalBasis with options is not the lane');
 [a1, r1] = ts.regionalProject(B1);
 [a2, r2] = shLowLevel.regionalProject(ts.Cs, ts.Ss, B2);
 verifyTrue(testCase, isequal(a1, a2) && isequal(r1, r2), ...
