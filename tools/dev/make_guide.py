@@ -1566,7 +1566,45 @@ B = tsGrace.regionalBasis("Elbe", Type = "slepian", Threshold = 0.5);
 errorbar(out.epochs, out.basin.mean, out.basin.sigma)   % basin mean EWH [m]
 """)
 
-story += [para("37. References", "h2"),
+story += [para("37. Regional consistency: remove-compute-restore (v5.18.0)", "h2"),
+          para("A regional basis sees the signal outside its region only "
+               "through the observations, and what it cannot represent leaks "
+               "into the coefficients it has. The option Background of "
+               "regionalKalman removes a global background series b from the "
+               "observations before they become normal equations in the "
+               "basis, and restores it in every output:")]
+story += eq(r"x(t)=b(t)+T\left(a(t)+P\,c(t)\right).")
+story += [para("The grid and basin outputs carry b's EWH too. The background "
+               "is taken as error-free, so no sigma changes. With the process "
+               "model fixed the chain is linear in its data, so a background "
+               "c z holding a fraction c of an outside signal z gives")]
+story += eq(r"x(\mathrm{obs};\,c z)=c z+x(\mathrm{obs}_{in})+(1-c)\left(x(\mathrm{obs}_{in}+z)-x(\mathrm{obs}_{in})\right),")
+story += [para("which is the test: exact to 5.6e-15. A basis built on an index "
+               "with Nmin above 2 leaves the low degrees to the background "
+               "entirely - remove-compute-restore of the low degrees. In "
+               "record mode the records must already be reduced; the "
+               "background is only restored. Neither Woehnke et al. (2025) "
+               "nor Steffen et al. (2026) apply it; Steffen et al. name it as "
+               "the treatment of long wavelengths, so it is checked here on "
+               "its own terms. In a closed loop (nmax 30, a cap north of "
+               "60 N, a 30 cm seasonal neighbour and a degree-2..4 random "
+               "walk, five seeds) the outside signal raises the grid RMS over "
+               "the region by 28%; with an 80% background the error is within "
+               "3.6% of what the same data give without any outside signal. "
+               "A background must be a good field: the observations' own "
+               "unfiltered low degrees did worse than none (1.57 against "
+               "1.20 cm). The process model may come from the full model "
+               "series (worst ratio 1.011). Woehnke's observation area, EWH on "
+               "the region grown by 300 km, helps without a background (1.04 "
+               "against 1.20 cm) and costs in every seed with one, so it is "
+               "not a chain option. Measured in "
+               "tools/dev/validate_regional_rcr.py.")]
+story += code("""
+[tsK, out] = tsGrace.regionalKalman(B, ModelSeries = tsESM, kn = kn, ...
+    Background = tsHydrologyModel);              % removed, filtered, restored
+""")
+
+story += [para("38. References", "h2"),
           *bullets([
     "Chambers, D.P., Willis, J.K. (2010): A global evaluation of ocean "
     "bottom pressure from GRACE, OMCT, and steric-corrected altimetry. "

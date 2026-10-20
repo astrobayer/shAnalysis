@@ -5723,3 +5723,94 @@ dx = diag(F * s4.PsLast * F');
 verifyLessThan(testCase, max(abs(s4.sigF(:, end).^2 - dx)) / max(dx), 3 * 4.40e-16);
 verifyEmpty(testCase, shLowLevel.rtsSmoother(filt).sigF);
 end
+
+% ------------------------------------------- WP8 8e: remove-compute-restore
+function [tsm, Xobs, Z, ep, idx, B, sig] = rcrFixture(seed)
+%RCRFIXTURE The configuration of validate_regional_rcr.py CLAIM 1b: nmax
+%   10, an RBF basis for the cap north of 55 N, a 600-epoch model series in
+%   the span of T, 24 monthly observations with sigmas of 2e-11, and a
+%   random field Z of 1e-10 per coefficient outside the basis' span.
+idx = shLowLevel.shIndex(10);
+B = shLowLevel.regionalBasis(idx, @(la, lo) double(la > 55));
+K = B.K;
+rng(seed);
+a = zeros(K, 624);
+for k = 2:624
+    a(:, k) = 0.8 * a(:, k - 1) + randn(K, 1);
+end
+tsm = vecSeries(full(B.T * a(:, 1:600)) * 1e-10, ...
+    2000 + ((1:600)' - 0.5) / 12, idx, []);
+ep = 2051 + ((1:24)' - 0.5) / 12;
+sig = 2e-11 * ones(idx.P, 1);
+Xobs = full(B.T * a(:, 601:624)) * 1e-10 + sig .* randn(idx.P, 24);
+Z = randn(idx.P, 24) * 1e-10;
+end
+
+function testRegionalKalmanBackgroundIsLinear(testCase)
+%TESTREGIONALKALMANBACKGROUNDISLINEAR With the process model fixed the
+%   chain is linear in its data, so a background holding a fraction c of
+%   a field Z leaves exactly 1 - c of Z's leakage:
+%     x(obs + Z; c Z) = c Z + x(obs) + (1 - c) (x(obs + Z) - x(obs)),
+%   for the series and the basin mean alike - the restore algebra,
+%   climatology removal and restore included. validate_regional_rcr.py
+%   CLAIM 1b measured the identity at this configuration over 20 seeds,
+%   5.57e-15 relative to the largest value; the bound is 3x that.
+[tsm, Xobs, Z, ep, idx, B, sig] = rcrFixture(66);
+kn = -0.30 * (0:10)' ./ ((0:10)' + 3.0);          % synthetic Love numbers
+go = @(X, bg) shLowLevel.regionalKalman(vecSeries(X, ep, idx, sig), B, ...
+    ModelSeries = tsm, kn = kn, Background = bg);
+[tIn, oIn] = go(Xobs, []);
+[tFull, oFull] = go(Xobs + Z, []);
+[~, oOne] = go(Xobs + Z, vecSeries(Z, ep, idx, []));
+bz = oOne.basin.mean - oIn.basin.mean;            % Z's own basin mean
+xIn = seriesVectors(tIn, idx);
+xFull = seriesVectors(tFull, idx);
+for c = [0.8 0.5]
+    [tc, oc] = go(Xobs + Z, vecSeries(c * Z, ep, idx, []));
+    xc = seriesVectors(tc, idx);
+    ref = c * Z + xIn + (1 - c) * (xFull - xIn);
+    verifyLessThan(testCase, max(abs(xc - ref), [], 'all') / max(abs(xc), [], 'all'), ...
+        3 * 5.57e-15);
+    bref = c * bz + oIn.basin.mean + (1 - c) * (oFull.basin.mean - oIn.basin.mean);
+    verifyLessThan(testCase, max(abs(oc.basin.mean - bref)) / max(abs(oc.basin.mean)), ...
+        3 * 5.57e-15);
+    verifyTrue(testCase, oc.background && ~oIn.background);
+    verifyTrue(testCase, isequal(oc.basin.sigma, oIn.basin.sigma), ...
+        'the background is error-free and must not change the sigmas');
+end
+end
+
+function testRegionalKalmanBackgroundRemovesAndRestores(testCase)
+%TESTREGIONALKALMANBACKGROUNDREMOVESANDRESTORES The background is
+%   removed from the observations as the series difference obs - b and
+%   restored as the sum: the result is bit for bit the chain on obs - b
+%   plus b, with the same basis coefficients and the same sigmas. The EWH
+%   outputs add the background's EWH at the region's points, checked
+%   against synthesisPoints of the background (EWH as the potential of
+%   coefficients scaled by f_n R / GM at r = R; two summations of one
+%   series, synthesisPoints' paths agree to 5e-14, the bound 1e-12 leaves
+%   20x).
+[tsm, Xobs, Z, ep, idx, B, sig] = rcrFixture(67);
+kn = -0.30 * (0:10)' ./ ((0:10)' + 3.0);          % synthetic Love numbers
+obs = vecSeries(Xobs, ep, idx, sig);
+bg = vecSeries(Z, ep, idx, []);
+[t1, o1] = shLowLevel.regionalKalman(obs, B, ModelSeries = tsm, kn = kn, Background = bg);
+[t0, o0] = shLowLevel.regionalKalman(obs - bg, B, ModelSeries = tsm, kn = kn);
+verifyTrue(testCase, isequal(t1.Cs, t0.Cs + bg.Cs) && isequal(t1.Ss, t0.Ss + bg.Ss));
+verifyTrue(testCase, isequal(o1.a, o0.a) && isequal(o1.sigA, o0.sigA));
+verifyTrue(testCase, isequal(t1.sigmaCs, t0.sigmaCs));
+GM = t1.GM;
+R = t1.R;
+f = shLowLevel.kernelFactors("ewh", 10, GM, R, kn = kn);
+sc = f * R / GM;
+lat = o1.grid.latDeg;
+lon = o1.grid.lonDeg;
+for t = [1 24]
+    g = bg.at(t);
+    e = shLowLevel.synthesisPoints(g.C .* sc, g.S .* sc, GM, R, lat, lon, ...
+        R * ones(size(lat)));
+    d = o1.grid.ewh(:, t) - o0.grid.ewh(:, t);
+    verifyLessThan(testCase, max(abs(d - e)) / max(abs(e)), 1e-12);
+end
+verifyTrue(testCase, contains(t1.history(end), "background removed and restored"));
+end

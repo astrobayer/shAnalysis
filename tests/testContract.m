@@ -3257,3 +3257,28 @@ filt = struct('storeCov', "full", 'B', 0.5, 'P', 1, 'xf', [1 2], ...
 verifyError(testCase, @() shLowLevel.rtsSmoother(filt, Functionals = ones(2)), ...
     'shLowLevel:rtsSmoother:badFunctionals');
 end
+
+% ------------------------------------------- WP8 8e: remove-compute-restore
+function testRegionalKalmanBackgroundRouteAndIDs(testCase)
+%TESTREGIONALKALMANBACKGROUNDROUTEANDIDS ts.regionalKalman forwards
+%   Background to the lane, bitwise; the background is refused when it is
+%   not an shSeries, does not reach the basis' degree, or lacks an epoch
+%   the observations or the output grid need.
+tsObs = wp7Series(6, 30, 160);
+tsm = wp7Series(6, 120, 161);
+bgS = wp7Series(6, 30, 162);
+B = tsObs.regionalBasis(@(la, lo) double(la > 50));
+[a1, o1] = tsObs.regionalKalman(B, ModelSeries = tsm, Background = bgS);
+[a2, o2] = shLowLevel.regionalKalman(tsObs, B, ModelSeries = tsm, Background = bgS);
+verifyTrue(testCase, isequaln(a1, a2) && isequaln(o1, o2), ...
+    'ts.regionalKalman with Background is not the lane');
+verifyTrue(testCase, o1.background);
+verifyError(testCase, @() shLowLevel.regionalKalman(tsObs, B, ModelSeries = tsm, ...
+    Background = 5), 'shLowLevel:regionalKalman:badBackground');
+verifyError(testCase, @() shLowLevel.regionalKalman(tsObs, B, ModelSeries = tsm, ...
+    Background = bgS.truncate(5)), 'shLowLevel:regionalKalman:badBackground');
+short = shSeries(bgS.Cs(:, :, 1:10), Ss = bgS.Ss(:, :, 1:10), ...
+    Epochs = bgS.epochs(1:10));
+verifyError(testCase, @() shLowLevel.regionalKalman(tsObs, B, ModelSeries = tsm, ...
+    Background = short), 'shLowLevel:regionalKalman:badBackground');
+end

@@ -1657,3 +1657,55 @@ verifyTrue(testCase, all(diff(v) > 0), 'the prediction sigma does not grow');
 verifyTrue(testCase, all(isfinite(o0.qcStat(1:20))) && all(isnan(o0.qcStat(21:23))));
 verifyTrue(testCase, all(isfinite(o1.a(:))) && all(isfinite(o1.sigA(:))));
 end
+
+% ------------------------------------------- WP8 8e: remove-compute-restore
+function testRegionalKalmanLowDegreesAndRecordsWithBackground(testCase)
+%TESTREGIONALKALMANLOWDEGREESANDRECORDSWITHBACKGROUND Remove-compute-
+%   restore of the low degrees: a basis on degrees 4..10 leaves degrees 2
+%   and 3 to the background, which comes back in them exactly, while
+%   degrees 4..10 are bit for bit the chain without it (the background
+%   has nothing there, and the climatology is fitted coefficient by
+%   coefficient). In record mode the records are already reduced, so the
+%   background is restored only: the basis coefficients do not move.
+idx4 = shLowLevel.shIndex(10, Nmin = 4);
+B4 = shLowLevel.regionalBasis(idx4, @(la, lo) double(la > 55));
+rng(68);
+n1 = 11;
+dec = 1 ./ ((0:10)' + 1) .^ 2;
+Cm = zeros(n1, n1, 150);
+for k = 2:150
+    Cm(:, :, k) = 0.8 * Cm(:, :, k - 1) + tril(randn(n1) .* dec) * 1e-9;
+end
+tsm = shSeries(Cm, Ss = Cm .* (1:n1 > 1), Epochs = 1995 + ((1:150)' - 0.5) / 12);
+ep = 2010 + ((1:20)' - 0.5) / 12;
+Co = zeros(n1, n1, 20);
+for k = 1:20
+    Co(:, :, k) = tril(randn(n1) .* dec) * 1e-9;
+end
+sg = repmat(tril(3e-11 * ones(n1)), 1, 1, 20);
+obs = shSeries(Co, Ss = Co .* (1:n1 > 1), Epochs = ep, SigmaCs = sg, SigmaSs = sg);
+lowC = zeros(n1, n1, 20);
+lowC(3:4, 1:4, :) = randn(2, 4, 20) * 1e-10;      % degrees 2 and 3 only
+lowC = lowC .* tril(ones(n1));
+lowS = lowC .* (1:n1 > 1);
+bg = shSeries(lowC, Ss = lowS, Epochs = ep);
+[t1, o1] = shLowLevel.regionalKalman(obs, B4, ModelSeries = tsm, Background = bg);
+[t0, o0] = shLowLevel.regionalKalman(obs, B4, ModelSeries = tsm);
+verifyTrue(testCase, isequal(t1.Cs(3:4, :, :), lowC(3:4, :, :)) && ...
+    isequal(t1.Ss(3:4, :, :), lowS(3:4, :, :)), 'degrees 2 and 3 are not the background');
+verifyTrue(testCase, isequal(t1.Cs(5:end, :, :), t0.Cs(5:end, :, :)) && ...
+    isequal(t1.Ss(5:end, :, :), t0.Ss(5:end, :, :)), 'degrees 4..10 moved');
+verifyTrue(testCase, isequal(o1.a, o0.a));
+K = B4.K;
+recs = struct('N', {}, 'b', {}, 'epoch', {});
+for t = 1:20
+    r = shLowLevel.regionalNEQ(B4, "solution", Solution = ...
+        shLowLevel.vecFromCS(Co(:, :, t), Co(:, :, t) .* (1:n1 > 1), idx4), ...
+        Cov = (3e-11)^2);
+    recs(t) = struct('N', r.N, 'b', r.b, 'epoch', ep(t));
+end
+[r1, q1] = shLowLevel.regionalKalman(recs, B4, ModelSeries = tsm, Background = bg);
+[r0, q0] = shLowLevel.regionalKalman(recs, B4, ModelSeries = tsm);
+verifyTrue(testCase, isequal(q1.a, q0.a) && isequal(r1.Cs, r0.Cs + lowC));
+verifySize(testCase, q1.a, [K, 20]);
+end

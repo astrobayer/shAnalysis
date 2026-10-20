@@ -55,6 +55,32 @@ function [ts, out] = regionalKalman(obsIn, B, opts)
 %   region: OUT.basin and OUT.grid are [] without them, or for an SH
 %   basis built without a region.
 %
+%   Remove-compute-restore (Background). A global background series b(t)
+%   - a hydrology or ESM model, a global solution's long wavelengths - is
+%   removed from the observations before they become normal equations in
+%   the basis and restored afterwards: TS = b + T (a + Proj c), and the
+%   EWH outputs carry b's EWH too. With the process model fixed the chain
+%   is linear, so a background holding a fraction c of an outside signal
+%   leaves exactly 1 - c of that signal's leakage (Python-validated to
+%   5.6e-15). Steffen et al. (2026) name this as the treatment of long
+%   wavelengths and of signal outside the region; neither they nor
+%   Woehnke et al. (2025) apply it. Measured in a closed loop
+%   (tools/dev/validate_regional_rcr.py; nmax 30, a polar cap, a 30 cm
+%   neighbour and a degree-2..4 random walk): the outside signal raised
+%   the grid RMS over the region by 28%, and with an 80% background the
+%   error came within 3.6% of what the same data give without any outside
+%   signal. Two cautions from the same loop: a background must be a good
+%   field - the observations' own unfiltered low degrees, restored as they
+%   are, put their noise back and did worse than none; and the process
+%   model may come from the full model series (no worse than from the
+%   reduced one). The background is taken as error-free: it adds nothing
+%   to the sigmas. In record mode the records must already be reduced by
+%   it; it is only restored. A basis built on an index with Nmin above 2
+%   leaves the low degrees to the background entirely - remove-compute-
+%   restore of the low degrees. Degrees 0 and 1 of the background are
+%   restored in TS; the EWH outputs start at degree min(2, B.idx Nmin), as
+%   the rest of the chain.
+%
 %   Inputs
 %     obsIn  (1,1) shSeries | (1,M) struct  the observations, see above;
 %            a series must reach exactly degree B.idx.Lmax
@@ -95,6 +121,11 @@ function [ts, out] = regionalKalman(obsIn, B, opts)
 %     StoreCov ("full")  "full" | "matfile"   where the filter keeps the
 %                    covariances the smoother needs (see kalmanFilter); a
 %                    matfile is deleted after smoothing
+%     Background ([]) (1,1) shSeries  global background, nmax =
+%                    B.idx.Lmax, with an epoch within Tolerance of every
+%                    observation and every output epoch: removed from the
+%                    observations (solution mode) and restored in every
+%                    output, see above
 %
 %   Outputs
 %     ts   (1,1) shSeries  T (a + Proj c) on the epoch grid with formal
@@ -109,7 +140,8 @@ function [ts, out] = regionalKalman(obsIn, B, opts)
 %          gap              (1,E) logical  epochs without an observation
 %          nGaps            (1,1) double  their number
 %          a                (K,E) double  smoothed basis coefficients, the
-%                           restored climatology included (a + Proj c)
+%                           restored climatology included (a + Proj c);
+%                           the background is NOT in them
 %          sigA             (K,E) double  their 1-sigma
 %          covLast          (K,K) double  full smoothed covariance of the
 %                           last epoch
@@ -137,6 +169,8 @@ function [ts, out] = regionalKalman(obsIn, B, opts)
 %                           sigma   (G,E) double  its 1-sigma [m]
 %          memGB            (1,1) double  covariance storage of the
 %                           filter [GB] (disk for "matfile")
+%          background       (1,1) logical  whether a Background was
+%                           removed and restored
 %
 %   Example
 %     idx = shLowLevel.shIndex(60);
@@ -165,6 +199,9 @@ function [ts, out] = regionalKalman(obsIn, B, opts)
 %         records fall within Tolerance of each other
 %     shLowLevel:regionalKalman:noNoise
 %         an epoch has no formal sigmas and NoiseCov is empty
+%     shLowLevel:regionalKalman:badBackground
+%         Background is not an shSeries of the basis' nmax, or has no
+%         epoch within Tolerance of an observation or output epoch
 %
 %   References
 %     Kurtenbach, E. (2012), Entwicklung eines Kalman-Filters zur
@@ -175,11 +212,15 @@ function [ts, out] = regionalKalman(obsIn, B, opts)
 %     Woehnke, V., Eicker, A., Weigelt, M., et al. (2025), Kalman filter
 %       framework for a regional mass change model from GRACE satellite
 %       gravity, GEM - Int. J. Geomath. 16:2.
+%     Steffen, R., Woehnke, V., Weigelt, M., Eicker, A. (2026), Improved
+%       regional mass change estimation using Slepian functions in a
+%       Kalman filter framework, IAG Symposia, doi:10.1007/1345_2026_348.
 %
-%   Numerics pre-validated in Python (tools/dev/validate_regional_kalman.py).
+%   Numerics pre-validated in Python (tools/dev/validate_regional_kalman.py,
+%   tools/dev/validate_regional_rcr.py).
 %
 %   Developed by Matthias Weigelt with the help of Claude (Opus 5.5),
-%   2026-10-21.
+%   2026-10-21 (Background: 2026-10-21, WP8 8e).
 arguments
     obsIn
     B (1,1) struct
@@ -199,6 +240,7 @@ arguments
     opts.QC (1,1) string {mustBeMember(opts.QC, ["none", "flag", "reject"])} = "none"
     opts.QCAlpha (1,1) double {mustBeInRange(opts.QCAlpha, 0, 1, "exclusive")} = 1e-3
     opts.StoreCov (1,1) string {mustBeMember(opts.StoreCov, ["full", "matfile"])} = "full"
+    opts.Background = []
 end
 if ~all(isfield(B, {'T', 'Proj', 'idx', 'type', 'region', 'K'}))
     error('shLowLevel:regionalKalman:badBasis', ...
@@ -219,6 +261,12 @@ if tsm.nmax ~= L
         'The model series reaches degree %d, the basis %d - truncate first.', ...
         tsm.nmax, L);
 end
+bg = opts.Background;
+hasBg = ~(isnumeric(bg) && isempty(bg));
+if hasBg && ~(isa(bg, 'shSeries') && isscalar(bg) && bg.nmax == L)
+    error('shLowLevel:regionalKalman:badBackground', ...
+        'Background must be an shSeries reaching degree %d, the basis'' band limit.', L);
+end
 
 % ---- 1. process model in the basis
 [model, pinfo] = shLowLevel.regionalProcessModel(tsm, B, Order = opts.Order, ...
@@ -234,6 +282,11 @@ if solMode
         error('shLowLevel:regionalKalman:nmaxMismatch', ...
             'The observation series reaches degree %d, the basis %d - truncate first.', ...
             tsObs.nmax, L);
+    end
+    if hasBg                                    % remove
+        [bC, bS] = backgroundAt(bg, tsObs.epochs, opts.Tolerance);
+        tsObs = tsObs - shSeries(bC, Ss = bS, Epochs = tsObs.epochs, ...
+            GM = tsObs.GM, R = tsObs.R);
     end
     if opts.Climatology
         [climObs, tsObs] = tsObs.climatology;
@@ -283,7 +336,7 @@ end
 % ---- 3. filter and smoother; 4. the functionals
 filt = shLowLevel.kalmanFilter(model, obs, StoreCov = opts.StoreCov, ...
     QC = opts.QC, QCAlpha = opts.QCAlpha);
-[fB, Fg, gLat, gLon, areaFrac] = regionFunctionals(B, opts.kn, tsm);
+[fB, Fg, gLat, gLon, areaFrac, wc, fEwh] = regionFunctionals(B, opts.kn, tsm);
 F = [B.T; fB; Fg];
 smo = shLowLevel.rtsSmoother(filt, Lag = opts.Lag, Functionals = F);
 if opts.StoreCov == "matfile" && isfile(filt.covFile)
@@ -306,20 +359,39 @@ for t = 1:nE
     [Cs(:, :, t), Ss(:, :, t)] = shLowLevel.csFromVec(X(:, t), idx);
     [sC(:, :, t), sS(:, :, t)] = shLowLevel.csFromVec(sigX(:, t), idx);
 end
+if hasBg                                        % restore
+    [bC, bS] = backgroundAt(bg, epGrid, opts.Tolerance);
+    Cs = Cs + bC;
+    Ss = Ss + bS;
+end
 modeName = "records";
 if solMode, modeName = "solution"; end
 ts = shSeries(Cs, Ss = Ss, Epochs = epGrid, GM = tsm.GM, R = tsm.R, ...
     SigmaCs = sC, SigmaSs = sS, ProductType = "KALMAN", History = sprintf( ...
-    "regionalKalman: %s basis, K = %d, %s mode, VAR(%d), %d epochs (%d gaps), lag %g", ...
-    B.type, K, modeName, opts.Order, nE, nnz(filt.gap), opts.Lag));
+    "regionalKalman: %s basis, K = %d, %s mode, VAR(%d), %d epochs (%d gaps), lag %g%s", ...
+    B.type, K, modeName, opts.Order, nE, nnz(filt.gap), opts.Lag, ...
+    tern(hasBg, ", background removed and restored", "")));
 
 % ---- the region
 basin = [];
 gridOut = [];
 if ~isempty(fB)
-    basin = struct('mean', fB * a, 'sigma', smo.sigF(P + 1, :), ...
+    ewh = Fg * a;
+    bmean = fB * a;
+    if hasBg                                    % the background's EWH
+        idxBg = shLowLevel.shIndex(L, Nmin = min(2, idx.minDegree));
+        Ybg = shLowLevel.ylm(deg2rad(gLat), deg2rad(gLon), idxBg) .* ...
+            fEwh(idxBg.n + 1).';
+        Ebg = zeros(numel(gLat), nE);
+        for t = 1:nE
+            Ebg(:, t) = Ybg * shLowLevel.vecFromCS(bC(:, :, t), bS(:, :, t), idxBg);
+        end
+        ewh = ewh + Ebg;
+        bmean = bmean + (wc.' * Ebg) / sum(wc);
+    end
+    basin = struct('mean', bmean, 'sigma', smo.sigF(P + 1, :), ...
         'areaFraction', areaFrac);
-    gridOut = struct('latDeg', gLat, 'lonDeg', gLon, 'ewh', Fg * a, ...
+    gridOut = struct('latDeg', gLat, 'lonDeg', gLon, 'ewh', ewh, ...
         'sigma', smo.sigF(P + 2:end, :));
 end
 memGB = 8 * nE * (model.order * K)^2 * 2 / 1e9;
@@ -330,7 +402,7 @@ out = struct('mode', modeName, 'basisType', B.type, 'K', K, ...
     'nRejected', nnz(filt.qcReject), 'specRadius', model.specRadius, ...
     'meanContribution', mean(filt.contrib, 1), ...
     'representation', pinfo.representation, 'model', model, ...
-    'basin', basin, 'grid', gridOut, 'memGB', memGB);
+    'basin', basin, 'grid', gridOut, 'memGB', memGB, 'background', hasBg);
 end
 
 % ---------------------------------------------------------------- local
@@ -354,10 +426,11 @@ rec = shLowLevel.regionalNEQ(B, "solution", Solution = l, Cov = C);
 o = struct('l', [], 'R', [], 'N', rec.N, 'b', rec.b);
 end
 
-function [fB, Fg, lat, lon, areaFrac] = regionFunctionals(B, kn, tsm)
+function [fB, Fg, lat, lon, areaFrac, wc, f] = regionFunctionals(B, kn, tsm)
 % EWH at the region's quadrature points and their area-weighted mean, as
-% rows acting on the basis coefficients; empty without kn or a region.
-fB = []; Fg = []; lat = []; lon = []; areaFrac = NaN;
+% rows acting on the basis coefficients; empty without kn or a region. wc
+% are the area weights of the points, f the EWH kernel.
+fB = []; Fg = []; lat = []; lon = []; areaFrac = NaN; wc = []; f = [];
 if isempty(kn) || isempty(B.region.core)
     return
 end
@@ -379,4 +452,24 @@ Fg = full(Ye * B.T);
 wc = w(im) .* core(im);
 fB = (wc.' * Fg) / sum(wc);
 areaFrac = w' * core;
+end
+
+function [bC, bS] = backgroundAt(bg, ep, tol)
+% The background's coefficients at the epochs EP, nearest within TOL.
+n1 = bg.nmax + 1;
+bC = zeros(n1, n1, numel(ep));
+bS = bC;
+for t = 1:numel(ep)
+    [d, k] = min(abs(bg.epochs - ep(t)));
+    if isempty(d) || d > tol
+        error('shLowLevel:regionalKalman:badBackground', ...
+            'The background has no epoch within Tolerance of %.4f.', ep(t));
+    end
+    bC(:, :, t) = bg.Cs(:, :, k);
+    bS(:, :, t) = bg.Ss(:, :, k);
+end
+end
+
+function out = tern(c, a, b)
+if c, out = a; else, out = b; end
 end
