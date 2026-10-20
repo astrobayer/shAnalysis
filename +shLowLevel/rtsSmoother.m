@@ -33,6 +33,14 @@ function smo = rtsSmoother(filt, opts)
 %           estimate at t uses data up to t+Lag; 0 returns the pure
 %           filter estimates, Inf the full RTS pass. The filt
 %           requirement below applies to both.
+%     Functionals ([])  (m x P) double  linear functionals F of the
+%           physical state: their 1-sigma, sqrt(diag(F Ps F')), is
+%           returned per epoch in SMO.sigF, formed from the full smoothed
+%           covariance as sum((F Ps) .* F, 2) (Python-validated against
+%           the explicit F Ps F' to 4e-16; exactly diag(Ps) for F = I).
+%           This is how the regional chain carries a basis covariance to
+%           SH coefficients, grid values and basin means
+%           (shLowLevel.regionalKalman); F may be sparse.
 %
 %           StoreCov = "full" (covariances in RAM) or "matfile"
 %           (covariances read epoch-by-epoch from FILT.covFile: RAM
@@ -46,6 +54,8 @@ function smo = rtsSmoother(filt, opts)
 %          xs      (P x T) double  smoothed states
 %          sig     (P x T) double  formal 1-sigma per coefficient, the
 %                  square root of the smoothed covariance diagonal
+%          sigF    (m x T) double  1-sigma of the Functionals per
+%                  epoch; [] without them
 %          PsLast  (P x P) double  the full smoothed covariance of the
 %                  LAST epoch, which equals the filtered one there
 %          P       (1,1) double  block size
@@ -61,6 +71,8 @@ function smo = rtsSmoother(filt, opts)
 %   Numerics pre-validated in Python (tools/dev/validate_kalman.py).
 %
 %   Error identifiers
+%     shLowLevel:rtsSmoother:badFunctionals
+%         Functionals does not have one column per state element
 %     shLowLevel:rtsSmoother:covFileMissing
 %         the matfile covariance store named by the filter no longer exists
 %     shLowLevel:rtsSmoother:needFullCov
@@ -73,6 +85,7 @@ function smo = rtsSmoother(filt, opts)
 arguments
     filt (1,1) struct
     opts.Lag (1,1) double {mustBeNonnegative} = Inf
+    opts.Functionals double = []
 end
 
 useFile = filt.storeCov == "matfile";
@@ -93,6 +106,15 @@ end
 B = filt.B;
 P = filt.P;
 T = size(filt.xf, 2);
+F = opts.Functionals;
+doF = ~isempty(F);
+if doF && size(F, 2) ~= P
+    error('shLowLevel:rtsSmoother:badFunctionals', ...
+        'Functionals must have %d columns, one per state element; it has %d.', ...
+        P, size(F, 2));
+end
+sigF = [];
+if doF, sigF = zeros(size(F, 1), T); end
 if useFile
     getPf = @(t) mf.Pf(:, :, t);
     getPp = @(t) mf.Pp(:, :, t);
@@ -119,9 +141,10 @@ if isfinite(opts.Lag)
         end
         xsL(:, t) = xN(1:P);
         sigL(:, t) = sqrt(max(diag(PN(1:P, 1:P)), 0));
+        if doF, sigF(:, t) = functionalSigma(F, PN(1:P, 1:P)); end
         if t == T, PfLast = PN(1:P, 1:P); end
     end
-    smo = struct('xs', xsL, 'sig', sigL, 'PsLast', PfLast, ...
+    smo = struct('xs', xsL, 'sig', sigL, 'sigF', sigF, 'PsLast', PfLast, ...
         'P', P, 'order', filt.order);
     return
 end
@@ -131,6 +154,7 @@ Ps = getPf(T);
 PfLast = Ps(1:P, 1:P);
 sig = zeros(P, T);
 sig(:, T) = sqrt(max(diag(Ps(1:P, 1:P)), 0));
+if doF, sigF(:, T) = functionalSigma(F, Ps(1:P, 1:P)); end
 xsNext = xs(:, T);
 PsNext = Ps;
 for t = T-1:-1:1
@@ -142,9 +166,15 @@ for t = T-1:-1:1
     PsT = (PsT + PsT.') / 2;
     xs(:, t) = xsT;
     sig(:, t) = sqrt(max(diag(PsT(1:P, 1:P)), 0));
+    if doF, sigF(:, t) = functionalSigma(F, PsT(1:P, 1:P)); end
     xsNext = xsT; PsNext = PsT;
 end
 
-smo = struct('xs', xs(1:P, :), 'sig', sig, ...
+smo = struct('xs', xs(1:P, :), 'sig', sig, 'sigF', sigF, ...
     'PsLast', PfLast, 'P', P, 'order', filt.order);
+end
+
+function s = functionalSigma(F, Ps)
+% sqrt(diag(F Ps F')) without forming the m x m product.
+s = sqrt(max(full(sum((F * Ps) .* F, 2)), 0));
 end

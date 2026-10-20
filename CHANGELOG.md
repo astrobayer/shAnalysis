@@ -1,5 +1,60 @@
 # Changelog
 
+## [5.17.0] - 2026-10-21 - WP8 8d: the regional Kalman filter in one call
+
+A MINOR release: one new function, one class method, two additive options
+on existing functions, and the fourth row of WP8. No documented call or
+error identifier changes.
+
+### Added
+- `shLowLevel.regionalKalman(obs, B, ModelSeries = tsm)` is the single
+  point of access to the regional Kalman filter. It chains the earlier
+  rows and changes none of them:
+  - the process model in the basis (`regionalProcessModel`, with QScale
+    and GroundNoise);
+  - one basis normal equation per epoch: an shSeries with formal sigmas
+    or `NoiseCov` (via `regionalNEQ`, kind "solution"), or a struct array
+    of basis normal equations with an `epoch` field;
+  - `kalmanFilter` in its normal-equation mode and `rtsSmoother`
+    (`Lag`: Inf the full pass, 0 the filter), which together are the
+    joint least-squares adjustment over all epochs;
+  - the output through linear functionals with sigmas from the full
+    smoothed covariance: the series T a (sigmas through T), the EWH at
+    the region's quadrature points (`out.grid`) and its area-weighted
+    basin mean with sigma (`out.basin`). The EWH outputs need `kn`.
+
+  In solution mode the observation climatology is removed first and
+  restored in the basis, T (a + Proj c). On the SH basis that is exactly
+  kalmanChain's restore.
+- `ts.regionalKalman(B, ModelSeries = tsm, ...)` is the lane with the
+  series as the observations, pinned bitwise.
+- `shLowLevel.rtsSmoother(..., Functionals = F)` returns
+  `smo.sigF = sqrt(diag(F Ps F'))` per epoch, formed as
+  `sum((F Ps) .* F, 2)` without the m x m product. For F = I it is
+  `smo.sig` bit for bit. New identifier
+  `shLowLevel:rtsSmoother:badFunctionals`.
+- `B.region.core` in `regionalBasis`: the unbuffered region on the
+  basis' quadrature grid, which the basin mean is taken over. Every
+  other field is unchanged.
+- `tools/dev/validate_regional_kalman.py`:
+  - on the SH basis the information form equals kalmanChain's gain form,
+    states 5.6e-15 and sigmas 8.9e-16 over 40 seeds;
+  - on an RBF basis filter + RTS equal the dense joint least-squares
+    adjustment over 20 seeds (2.6e-15), gaps included;
+  - in a closed loop the basin-mean error is 1.07 predicted sigmas (RMS,
+    60 seeds);
+  - the functional rule equals diag(F Ps F') to 4.4e-16, and is exactly
+    diag(Ps) for F = I.
+
+### Decisions
+- The chain takes a basis built by `regionalBasis`, not the basis'
+  options. CLAUDE.md sketched `Region = , Basis =`; folding regionalBasis'
+  option set into the chain would have given it a second home.
+- Solution observations update in the information form, because a
+  general basis has H = T, not I, and kalmanFilter's solution mode only
+  knows H = I. On the SH basis this is the one place the chain differs
+  from kalmanChain, by 5.6e-15.
+
 ## [5.16.0] - 2026-10-20 - WP8 8c: every observation level as a normal equation in the basis
 
 A MINOR release: one new function, one class method, and the third row of

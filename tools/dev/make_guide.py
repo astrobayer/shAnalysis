@@ -1527,7 +1527,46 @@ r2 = shLowLevel.regionalNEQ(B, "points", Values = dg, LatDeg = lat, ...
 [a, out] = shLowLevel.neqCombine([r1, r2]);              % VCE of the two
 """)
 
-story += [para("36. References", "h2"),
+story += [para("36. The regional Kalman filter (v5.17.0)", "h2"),
+          para("The fourth step chains the three before it into one call. "
+               "<font face='Courier'>shLowLevel.regionalKalman</font> and "
+               "<font face='Courier'>ts.regionalKalman</font> estimate the "
+               "process model in the basis from a model series (chapter 34), "
+               "turn every observation epoch into a normal equation in the "
+               "basis (chapter 35) and run the existing kalmanFilter in its "
+               "normal-equation mode and the RTS smoother on the basis "
+               "coefficients. With the stationary start of kalmanFilter the "
+               "two passes are the joint least-squares adjustment over all "
+               "epochs (Kvas 2019, Sec. 2.3); in an RBF basis the oracle "
+               "solves that block-tridiagonal system densely and agrees to "
+               "2.6e-15, gaps included. The observations are a series with "
+               "formal sigmas, whose climatology is removed first and "
+               "restored in the basis afterwards, T(a + P c), or a struct "
+               "array of basis normal equations with an epoch each. The "
+               "smoothed coefficients leave the chain through linear "
+               "functionals F a whose sigmas come from the full smoothed "
+               "covariance,")]
+story += eq(r"\sigma_F=\sqrt{\mathrm{diag}\left(F\,P_s\,F^{\mathsf{T}}\right)},")
+story += [para("with F = T for the output series, the EWH design at the "
+               "region's quadrature points for out.grid, and their "
+               "area-weighted mean over the unbuffered region for out.basin "
+               "- the basin mean EWH and its sigma, which the per-coefficient "
+               "sigmas of the output series could not give back afterwards. "
+               "The EWH outputs need the load Love numbers. On the SH basis "
+               "the chain is kalmanChain: the same process model bit for bit "
+               "and, through the information form instead of the gain form, "
+               "the same estimates to 5.6e-15 and the same sigmas to 8.9e-16. "
+               "In a closed loop with a known VAR(1) the basin-mean error is "
+               "1.07 predicted sigmas (RMS over 60 seeds), the predicted "
+               "sigma honest to within the error of the estimated model. "
+               "Measured in tools/dev/validate_regional_kalman.py.")]
+story += code("""
+B = tsGrace.regionalBasis("Elbe", Type = "slepian", Threshold = 0.5);
+[tsK, out] = tsGrace.regionalKalman(B, ModelSeries = tsESM, kn = kn, QScale = 10);
+errorbar(out.epochs, out.basin.mean, out.basin.sigma)   % basin mean EWH [m]
+""")
+
+story += [para("37. References", "h2"),
           *bullets([
     "Chambers, D.P., Willis, J.K. (2010): A global evaluation of ocean "
     "bottom pressure from GRACE, OMCT, and steric-corrected altimetry. "

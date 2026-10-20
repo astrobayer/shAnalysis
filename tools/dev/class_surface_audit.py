@@ -155,6 +155,7 @@ DELEGATES = {
     ("shSeries", "regionalProject"): "regionalProject",
     ("shSeries", "regionalProcessModel"): "regionalProcessModel",
     ("shCoefficients", "regionalNEQ"): "regionalNEQ",
+    ("shSeries", "regionalKalman"): "regionalKalman",
 }
 
 

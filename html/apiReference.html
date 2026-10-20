@@ -3,7 +3,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="shAnalysis.css">
 </head><body><div class="content">
-<h1>shAnalysis API reference (v5.16.0)</h1>
+<h1>shAnalysis API reference (v5.17.0)</h1>
 <p>Generated from the source arguments blocks and help text - inputs,
 name-value options with defaults, and outputs for every public function
 and method. Regenerated with every release; the source of truth is the
@@ -95,6 +95,7 @@ code itself.</p>
 <a href="#shLowLevel.readTN13">readTN13</a>
 <a href="#shLowLevel.readTN14">readTN14</a>
 <a href="#shLowLevel.regionalBasis">regionalBasis</a>
+<a href="#shLowLevel.regionalKalman">regionalKalman</a>
 <a href="#shLowLevel.regionalNEQ">regionalNEQ</a>
 <a href="#shLowLevel.regionalProcessModel">regionalProcessModel</a>
 <a href="#shLowLevel.regionalProject">regionalProject</a>
@@ -1259,13 +1260,34 @@ code itself.</p>
 <b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>idx</code></td><td>1 x 1</td><td>struct</td><td>required</td></tr><tr><td><code>region</code></td><td>n x m</td><td>-</td><td>[]</td></tr></table>
 <b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Type</code></td><td>1 x 1</td><td>string</td><td>&quot;rbf&quot;</td></tr><tr><td><code>BufferKm</code></td><td>1 x 1</td><td>double</td><td>600</td></tr><tr><td><code>Grid</code></td><td>1 x 1</td><td>string</td><td>&quot;icosahedral&quot;</td></tr><tr><td><code>Level</code></td><td>1 x 1</td><td>double</td><td>[]</td></tr><tr><td><code>Kernel</code></td><td>1 x 1</td><td>string</td><td>&quot;kaula&quot;</td></tr><tr><td><code>DegreeAmplitude</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>Threshold</code></td><td>1 x 1</td><td>double</td><td>[]</td></tr><tr><td><code>NKeep</code></td><td>1 x 1</td><td>double</td><td>[]</td></tr><tr><td><code>EigTol</code></td><td>1 x 1</td><td>double</td><td>1e-10</td></tr><tr><td><code>R</code></td><td>1 x 1</td><td>double</td><td>6378136.3</td></tr><tr><td><code>OverSample</code></td><td>1 x 1</td><td>double</td><td>2</td></tr><tr><td><code>BasinFile</code></td><td>1 x 1</td><td>string</td><td>&quot;basins_rivbas.json&quot;</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
-<tr><td><code>B</code></td><td>(1,1) struct  the basis, fields type        (1,1) string  &quot;rbf&quot;, &quot;slepian&quot; or &quot;sh&quot; idx         (1,1) struct  the IDX it maps to T           (P,K) double  basis coefficients -&gt; SH coefficients (sparse identity for &quot;sh&quot;) Proj        (K,P) double  SH coefficients -&gt; basis coefficients, region-weighted least squares (sparse identity for &quot;sh&quot;) K           (1,1) double  number of basis functions nodes       (K,2) double  rbf centres [latDeg lonDeg]; [] otherwise kernel      (Lmax+1,1) double  rbf phi_n for n = 0..Lmax; [] otherwise kernelName  (1,1) string  the Kernel option; &quot;&quot; unless rbf grid        (1,1) string  the rbf node grid; &quot;&quot; otherwise level       (1,1) double  the rbf grid level used; NaN otherwise nGlobal     (1,1) double  nodes of the global rbf grid; NaN otherwise lambda      (K,1) double  slepian concentrations; [] otherwise rank        (1,1) double  eigenvalues kept in the projector (K for slepian and sh) eigTol      (1,1) double  the EigTol option region      (1,1) struct  fields name                 (1,1) string  basin name; &quot;&quot; for other region forms bufferKm             (1,1) double  the BufferKm option areaFraction         (1,1) double  region area / 4pi on the quadrature grid; NaN without a region areaFractionBuffered (1,1) double  the same for the buffered region mask                 (Ngrid,1) double  the buffered mask on the OverSample grid; [] without a region overSample           (1,1) double  the OverSample option R                    (1,1) double  the R option</td></tr>
+<tr><td><code>B</code></td><td>(1,1) struct  the basis, fields type        (1,1) string  &quot;rbf&quot;, &quot;slepian&quot; or &quot;sh&quot; idx         (1,1) struct  the IDX it maps to T           (P,K) double  basis coefficients -&gt; SH coefficients (sparse identity for &quot;sh&quot;) Proj        (K,P) double  SH coefficients -&gt; basis coefficients, region-weighted least squares (sparse identity for &quot;sh&quot;) K           (1,1) double  number of basis functions nodes       (K,2) double  rbf centres [latDeg lonDeg]; [] otherwise kernel      (Lmax+1,1) double  rbf phi_n for n = 0..Lmax; [] otherwise kernelName  (1,1) string  the Kernel option; &quot;&quot; unless rbf grid        (1,1) string  the rbf node grid; &quot;&quot; otherwise level       (1,1) double  the rbf grid level used; NaN otherwise nGlobal     (1,1) double  nodes of the global rbf grid; NaN otherwise lambda      (K,1) double  slepian concentrations; [] otherwise rank        (1,1) double  eigenvalues kept in the projector (K for slepian and sh) eigTol      (1,1) double  the EigTol option region      (1,1) struct  fields name                 (1,1) string  basin name; &quot;&quot; for other region forms bufferKm             (1,1) double  the BufferKm option areaFraction         (1,1) double  region area / 4pi on the quadrature grid; NaN without a region areaFractionBuffered (1,1) double  the same for the buffered region mask                 (Ngrid,1) double  the buffered mask on the OverSample grid; [] without a region core                 (Ngrid,1) double  the region itself, unbuffered, on the same grid - what basin means are taken over; [] without a region overSample           (1,1) double  the OverSample option R                    (1,1) double  the R option</td></tr>
 </table>
 <b>Example</b><pre>    idx = shLowLevel.shIndex(60);
     B = shLowLevel.regionalBasis(idx, &quot;Elbe&quot;);            % RBF, Kaula
     a = shLowLevel.regionalProject(ts.Cs, ts.Ss, B);      % K x T
     S = shLowLevel.regionalBasis(idx, &quot;Elbe&quot;, Type = &quot;slepian&quot;, ...
                                  Threshold = 0.5);</pre>
+</div>
+<div class="entry" id="shLowLevel.regionalKalman">
+<h3><code>shLowLevel.regionalKalman(obsIn, B, opts)</code></h3>
+<p class="h1line">Kalman-smoothed regional gravity field in a local basis.</p>
+<p>[TS, OUT] = shLowLevel.regionalKalman(OBSIN, B, ModelSeries=TSM) is the single point of access to the regional Kalman filter of CLAUDE.md WP8: Kurtenbach&#x27;s normal-equation filter (2012, DGK C-683, Sec. 3.3) and the RTS smoother on the coefficients a of the regional basis B of shLowLevel.regionalBasis, after Woehnke et al. (2025, RBF) and Steffen et al. (2026, Slepian). It chains the pieces the earlier rows built and changes none of them: 1. the process model in the basis from the model series TSM (shLowLevel.regionalProcessModel: climatology removed, every epoch projected onto B, VAR(Order) by Yule-Walker, Kurtenbach&#x27;s alpha and ground noise on request) 2. one normal equation in the basis per epoch: the observation series&#x27; coefficients with their covariance (shLowLevel.regionalNEQ, kind &quot;solution&quot;), or the records the caller built - any kind of regionalNEQ, combined per epoch with shLowLevel.neqCombine 3. the forward filter in its normal-equation mode (shLowLevel.kalmanFilter) and the RTS smoother (shLowLevel.rtsSmoother) - together the joint least-squares adjustment over all epochs (Kvas 2019, Sec. 2.3; Python-validated in an RBF basis to 2e-15, gaps included) 4. the smoothed coefficients carried out through linear functionals F a whose sigmas come from the FULL smoothed covariance, sqrt(diag(F Ps F&#x27;)): SH coefficients x = T a (the output series), EWH at the points of the region and the area-weighted basin mean of EWH. Formal sigmas of an shSeries are per coefficient, so the basin sigma could not be recovered from TS afterwards - this is where it is formed. On the SH basis (B.T = I) the chain IS shLowLevel.kalmanChain in solution mode: the same process model bit for bit, the same estimator - the information-form update agrees with kalmanChain&#x27;s gain form to 5.6e-15 relative in the states and 8.9e-16 in the sigmas (tools/dev/validate_regional_kalman.py CLAIM 1). That is its oracle.</p>
+<b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>obsIn</code></td><td>1 x 1</td><td>-</td><td>required</td></tr><tr><td><code>B</code></td><td>1 x 1</td><td>struct</td><td>required</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>ModelSeries</code></td><td>1 x 1</td><td>shSeries</td><td>-</td></tr><tr><td><code>Order</code></td><td>1 x 1</td><td>double</td><td>1</td></tr><tr><td><code>Shrink</code></td><td>1 x 1</td><td>double</td><td>0</td></tr><tr><td><code>Structure</code></td><td>1 x 1</td><td>string</td><td>&quot;full&quot;</td></tr><tr><td><code>CondFun</code></td><td>n x m</td><td>-</td><td>[]</td></tr><tr><td><code>QScale</code></td><td>1 x 1</td><td>double</td><td>1</td></tr><tr><td><code>GroundNoise</code></td><td>1 x 1</td><td>double</td><td>0</td></tr><tr><td><code>kn</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>Epochs</code></td><td>: x 1</td><td>double</td><td>[]</td></tr><tr><td><code>Tolerance</code></td><td>1 x 1</td><td>double</td><td>0.5/365.25</td></tr><tr><td><code>NoiseCov</code></td><td>n x m</td><td>double</td><td>[]</td></tr><tr><td><code>Climatology</code></td><td>1 x 1</td><td>logical</td><td>true</td></tr><tr><td><code>Lag</code></td><td>1 x 1</td><td>double</td><td>Inf</td></tr><tr><td><code>QC</code></td><td>1 x 1</td><td>string</td><td>&quot;none&quot;</td></tr><tr><td><code>QCAlpha</code></td><td>1 x 1</td><td>double</td><td>1e-3</td></tr><tr><td><code>StoreCov</code></td><td>1 x 1</td><td>string</td><td>&quot;full&quot;</td></tr></table>
+<b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
+<tr><td><code>ts</code></td><td>(1,1) shSeries  T (a + Proj c) on the epoch grid with formal 1-sigma stacks sqrt(diag(T Ps T&#x27;)), every step in the history</td></tr>
+<tr><td><code>out</code></td><td>(1,1) struct  fields mode             (1,1) string  &quot;solution&quot; | &quot;records&quot; basisType        (1,1) string  B.type K                (1,1) double  number of basis functions order            (1,1) double  VAR order epochs           (E,1) double  the epoch grid [decimal years] nEpochs          (1,1) double  E gap              (1,E) logical  epochs without an observation nGaps            (1,1) double  their number a                (K,E) double  smoothed basis coefficients, the restored climatology included (a + Proj c) sigA             (K,E) double  their 1-sigma covLast          (K,K) double  full smoothed covariance of the last epoch qcStat           (1,E) double  innovation statistic; NaN with QC = &quot;none&quot; nRejected        (1,1) double  epochs QC rejected specRadius       (1,1) double  spectral radius of the companion matrix; &lt; 1 is stable meanContribution (1,E) double  mean data share per epoch (Kurtenbach Sec. 3.3.2); NaN in gaps representation   (1,1) double  share of the model signal the basis carries (see regionalProcessModel) model            (1,1) struct  the estimateVAR struct basin            (1,1) struct  area-weighted basin mean of EWH over B.region.core, [] without kn or region; fields mean          (1,E) double  [m] sigma         (1,E) double  its 1-sigma [m] areaFraction  (1,1) double  region area / 4pi grid             (1,1) struct  EWH at the quadrature points of the region, [] without kn or region; fields latDeg  (G,1) double  geocentric latitude lonDeg  (G,1) double  longitude ewh     (G,E) double  [m] sigma   (G,E) double  its 1-sigma [m] memGB            (1,1) double  covariance storage of the filter [GB] (disk for &quot;matfile&quot;)</td></tr>
+</table>
+<b>Example</b><pre>    idx = shLowLevel.shIndex(60);
+    B = shLowLevel.regionalBasis(idx, &quot;Elbe&quot;, Type = &quot;slepian&quot;, ...
+        Threshold = 0.5);
+    [tsK, out] = shLowLevel.regionalKalman(tsGrace, B, ...
+        ModelSeries = tsESM, kn = kn, QScale = 10);
+    errorbar(out.epochs, out.basin.mean, out.basin.sigma)
+
+  Memory: the filter keeps two K x K covariances per epoch with the
+  smoother; K is the number of basis functions, which for a region is
+  far below the (nmax+1)^2 of the global chain.</pre>
 </div>
 <div class="entry" id="shLowLevel.regionalNEQ">
 <h3><code>shLowLevel.regionalNEQ(B, kind, opts)</code></h3>
@@ -1358,9 +1380,9 @@ code itself.</p>
 <p class="h1line">Rauch-Tung-Striebel backward pass for kalmanFilter output.</p>
 <p>SMO = shLowLevel.rtsSmoother(FILT) runs the fixed-interval RTS smoother (Kurtenbach 2012, Sec. 3.3.3) over the forward-filter result of shLowLevel.kalmanFilter: G_t  = Pf_t B&#x27; Pp_{t+1}^-1 xs_t = xf_t + G_t (xs_{t+1} - xp_{t+1}) Ps_t = Pf_t + G_t (Ps_{t+1} - Pp_{t+1}) G_t&#x27; so the estimate at epoch t uses ALL observations, past and future. With the stationary initialization of kalmanFilter this reproduces the joint least-squares adjustment over all epochs exactly (Kvas 2019, Sec. 2.3; unit-tested to machine precision), i.e. the forward-backward pass is an exact solver for the block-tridiagonal joint normal-equation system - never build that system explicitly.</p>
 <b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>filt</code></td><td>1 x 1</td><td>struct</td><td>required</td></tr></table>
-<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Lag</code></td><td>1 x 1</td><td>double</td><td>Inf</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Lag</code></td><td>1 x 1</td><td>double</td><td>Inf</td></tr><tr><td><code>Functionals</code></td><td>n x m</td><td>double</td><td>[]</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
-<tr><td><code>smo</code></td><td>(1,1) struct  smoothed results, PHYSICAL block only. Fields xs      (P x T) double  smoothed states sig     (P x T) double  formal 1-sigma per coefficient, the square root of the smoothed covariance diagonal PsLast  (P x P) double  the full smoothed covariance of the LAST epoch, which equals the filtered one there P       (1,1) double  block size order   (1,1) double  the VAR order</td></tr>
+<tr><td><code>smo</code></td><td>(1,1) struct  smoothed results, PHYSICAL block only. Fields xs      (P x T) double  smoothed states sig     (P x T) double  formal 1-sigma per coefficient, the square root of the smoothed covariance diagonal sigF    (m x T) double  1-sigma of the Functionals per epoch; [] without them PsLast  (P x P) double  the full smoothed covariance of the LAST epoch, which equals the filtered one there P       (1,1) double  block size order   (1,1) double  the VAR order</td></tr>
 </table>
 <b>Example</b><pre>    filt = shLowLevel.kalmanFilter(model, obs);   % StoreCov=&quot;full&quot;
     smo  = shLowLevel.rtsSmoother(filt);
@@ -2372,6 +2394,7 @@ code itself.</p>
 <a href="#shSeries.poleTideConvert">poleTideConvert</a>
 <a href="#shSeries.read">read</a>
 <a href="#shSeries.regionalBasis">regionalBasis</a>
+<a href="#shSeries.regionalKalman">regionalKalman</a>
 <a href="#shSeries.regionalProcessModel">regionalProcessModel</a>
 <a href="#shSeries.regionalProject">regionalProject</a>
 <a href="#shSeries.removeAlias">removeAlias</a>
@@ -2685,6 +2708,19 @@ code itself.</p>
 <b>Example</b><pre>    B = ts.regionalBasis(&quot;Elbe&quot;, Type = &quot;slepian&quot;);
     a = ts.regionalProject(B);</pre>
 </div>
+<div class="entry" id="shSeries.regionalKalman">
+<h3><code>shSeries.regionalKalman(obj, B, opts)</code></h3>
+<p class="h1line">The regional Kalman filter on this series, in a basis.</p>
+<p>[TSK, OUT] = ts.regionalKalman(B, ModelSeries = TSM) is shLowLevel.regionalKalman(ts, B, ModelSeries = TSM): this series&#x27; coefficients and sigmas are the observations, the process model is estimated from TSM in the basis B of ts.regionalBasis, and the filter and RTS smoother run on the basis coefficients. TSK is the smoothed series T a with sigmas through T; OUT carries the basis coefficients and, with kn, the EWH grid of the region and its basin mean with sigma. shLowLevel.regionalKalman documents the chain and its oracle.</p>
+<b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td>required</td></tr><tr><td><code>B</code></td><td>1 x 1</td><td>struct</td><td>required</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>ModelSeries</code></td><td>required</td><td>-</td><td>-</td></tr><tr><td><code>Order</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>Shrink</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>Structure</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>CondFun</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>QScale</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>GroundNoise</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>kn</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>Epochs</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>Tolerance</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>NoiseCov</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>Climatology</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>Lag</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>QC</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>QCAlpha</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>StoreCov</code></td><td>lane default</td><td>-</td><td>-</td></tr></table>
+<b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
+<tr><td><code>tsK</code></td><td>(1,1) shSeries  the smoothed series T a</td></tr>
+<tr><td><code>out</code></td><td>(1,1) struct  as returned by shLowLevel.regionalKalman, which documents every field</td></tr>
+</table>
+<b>Example</b><pre>    B = ts.regionalBasis(&quot;Elbe&quot;, Type = &quot;slepian&quot;, Threshold = 0.5);
+    [tsK, out] = ts.regionalKalman(B, ModelSeries = tsm, kn = kn);</pre>
+</div>
 <div class="entry" id="shSeries.regionalProcessModel">
 <h3><code>shSeries.regionalProcessModel(obj, B, opts)</code></h3>
 <p class="h1line">Kurtenbach&#x27;s process model of this series in a basis.</p>
@@ -2938,4 +2974,4 @@ code itself.</p>
 <tr><td><code>obj</code></td><td>(1 x 1) shClimatology   copy with the note appended to its history</td></tr>
 </table>
 </div>
-<p class="provenance">Developed by Matthias Weigelt with the help of Claude (Fable 5), 20-Oct-2026 (v5.16.0). Generated by tools - do not edit.</p></div></body></html>
+<p class="provenance">Developed by Matthias Weigelt with the help of Claude (Fable 5), 21-Oct-2026 (v5.17.0). Generated by tools - do not edit.</p></div></body></html>

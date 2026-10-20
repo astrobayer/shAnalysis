@@ -3209,3 +3209,51 @@ filt = shLowLevel.kalmanFilter(model, obs, StoreCov = "diag");
 verifyEqual(testCase, filt.gap, [true false true]);
 verifyTrue(testCase, all(isfinite(filt.xf(:))));
 end
+
+% ------------------------------------------- WP8 8d: the chain
+function testRegionalKalmanRouteAndIDs(testCase)
+%TESTREGIONALKALMANROUTEANDIDS ts.regionalKalman is the lane with the
+%   series as the observations - bitwise, with options and with the lane's
+%   defaults; every identifier of the lane, and rtsSmoother's new one, is
+%   driven by the guard it names.
+tsObs = wp7Series(6, 30, 150);
+tsm = wp7Series(6, 120, 151);
+B = tsObs.regionalBasis(@(la, lo) double(la > 50));
+[a1, o1] = tsObs.regionalKalman(B, ModelSeries = tsm);
+[a2, o2] = shLowLevel.regionalKalman(tsObs, B, ModelSeries = tsm);
+verifyTrue(testCase, isequaln(a1, a2) && isequaln(o1, o2), ...
+    'ts.regionalKalman is not the lane');
+kn = -0.3 * (0:6)' ./ ((0:6)' + 3);
+opt = {"Shrink", 1e-3, "QScale", 3, "Lag", 2, "Climatology", false};
+[a1, o1] = tsObs.regionalKalman(B, opt{:}, ModelSeries = tsm, kn = kn);
+[a2, o2] = shLowLevel.regionalKalman(tsObs, B, opt{:}, ModelSeries = tsm, kn = kn);
+verifyTrue(testCase, isequaln(a1, a2) && isequaln(o1, o2), ...
+    'ts.regionalKalman with options is not the lane');
+verifyNotEmpty(testCase, o1.basin);
+K = B.K;
+rec = struct('N', eye(K), 'b', zeros(K, 1), 'epoch', 2005.5);
+verifyError(testCase, @() shLowLevel.regionalKalman(tsObs, struct('T', 1), ...
+    ModelSeries = tsm), 'shLowLevel:regionalKalman:badBasis');
+verifyError(testCase, @() shLowLevel.regionalKalman(tsObs, B), ...
+    'shLowLevel:regionalKalman:missingModel');
+verifyError(testCase, @() shLowLevel.regionalKalman(tsObs, B, ...
+    ModelSeries = tsm.truncate(5)), 'shLowLevel:regionalKalman:nmaxMismatch');
+verifyError(testCase, @() shLowLevel.regionalKalman(tsObs.truncate(5), B, ...
+    ModelSeries = tsm), 'shLowLevel:regionalKalman:nmaxMismatch');
+verifyError(testCase, @() shLowLevel.regionalKalman(5, B, ModelSeries = tsm), ...
+    'shLowLevel:regionalKalman:badInput');
+verifyError(testCase, @() shLowLevel.regionalKalman(rmfield(rec, 'epoch'), B, ...
+    ModelSeries = tsm), 'shLowLevel:regionalKalman:badRecord');
+verifyError(testCase, @() shLowLevel.regionalKalman(struct('N', eye(2), ...
+    'b', [0; 0], 'epoch', 2005.5), B, ModelSeries = tsm), ...
+    'shLowLevel:regionalKalman:badRecord');
+verifyError(testCase, @() shLowLevel.regionalKalman([rec, rec], B, ...
+    ModelSeries = tsm), 'shLowLevel:regionalKalman:badRecord');
+tsNo = shSeries(tsObs.Cs, Ss = tsObs.Ss, Epochs = tsObs.epochs);
+verifyError(testCase, @() shLowLevel.regionalKalman(tsNo, B, ModelSeries = tsm), ...
+    'shLowLevel:regionalKalman:noNoise');
+filt = struct('storeCov', "full", 'B', 0.5, 'P', 1, 'xf', [1 2], ...
+    'xp', [1 2], 'Pf', ones(1, 1, 2), 'Pp', ones(1, 1, 2), 'order', 1);
+verifyError(testCase, @() shLowLevel.rtsSmoother(filt, Functionals = ones(2)), ...
+    'shLowLevel:rtsSmoother:badFunctionals');
+end
