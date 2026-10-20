@@ -1453,7 +1453,47 @@ S = shLowLevel.regionalBasis(idx, "Elbe", Type = "slepian", Threshold = 0.5);
 [B.K, B.nGlobal, S.K]
 """)
 
-story += [para("34. References", "h2"),
+story += [para("34. The process model in a regional basis (v5.15.0)", "h2"),
+          para("The second step towards the regional Kalman filter: "
+               "Kurtenbach's (2012) stochastic process model, estimated in "
+               "the coefficients of the basis of chapter 33. "
+               "<font face='Courier'>shLowLevel.regionalProcessModel</font> "
+               "and <font face='Courier'>ts.regionalProcessModel</font> "
+               "remove the climatology of a geophysical model series (mean, "
+               "trend, annual, semi-annual), project every epoch onto the "
+               "basis, a = P x, and estimate the VAR model from the basis "
+               "coefficients. The climatology is a fit along time with one "
+               "design for every coefficient and the projection a map along "
+               "the coefficients, so the two commute (6e-16 in the oracle). "
+               "For order 1 the estimate is Kurtenbach's")]
+story += eq(r"B=\Sigma(1)\,\Sigma(0)^{-1},\qquad "
+            r"Q=\Sigma(0)-B\,\Sigma(1)^{\mathsf{T}},")
+story += [para("and on the SH basis it is, bit for bit, the model "
+               "<font face='Courier'>kalmanChain</font> builds. His two "
+               "adjustments are options. QScale multiplies Q alone (his eq. "
+               "4.8): with alpha = 10 the largest error RMS of his closed "
+               "loop fell from 4.83 to 3.41 cm EWH and the mean from 1.12 to "
+               "1.01 cm, because an underestimated process variance "
+               "suppresses signal while an overestimated one costs little. "
+               "GroundNoise adds an isotropic, temporally uncorrelated "
+               "variance to Sigma(0), his 2 cm EWH for the real data; it is "
+               "read as the white EWH field band-limited to the index, "
+               "sigma<super>2</super>/(P f<sub>n</sub><super>2</super>) per "
+               "Stokes coefficient, whose pointwise variance is exactly "
+               "sigma<super>2</super> by the addition theorem. It changes B "
+               "as well as Q, and in his simulation it made results worse, "
+               "so both default to off. info.representation reports the "
+               "share of the model's regional signal energy the basis "
+               "carries. Measured in tools/dev/validate_regional_process.py: "
+               "a VAR(1) simulated in an RBF basis is recovered through the "
+               "whole pipeline within the sampling error over 60 seeds.")]
+story += code("""
+B = tsModel.regionalBasis("Elbe", Type = "slepian", Threshold = 0.5);
+[model, info] = tsModel.regionalProcessModel(B, QScale = 10);
+[info.representation, model.specRadius, info.minEigQ]
+""")
+
+story += [para("35. References", "h2"),
           *bullets([
     "Chambers, D.P., Willis, J.K. (2010): A global evaluation of ocean "
     "bottom pressure from GRACE, OMCT, and steric-corrected altimetry. "

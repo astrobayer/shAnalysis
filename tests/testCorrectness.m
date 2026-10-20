@@ -5193,3 +5193,131 @@ cap = repelem(grid.latDeg(:), numel(grid.lonDeg)) < -70;
 verifyEqual(testCase, w' * shLowLevel.evalMask(idx, south), w' * cap, ...
     'RelTol', 1e-12);
 end
+
+% ------------------------------------------- WP8 8b: the process model
+function ts = processSeries(nmax, T, seed)
+%PROCESSSERIES Monthly series with a 1/(n+1)^2 spectrum for the 8b tests.
+rng(seed);
+n1 = nmax + 1;
+dec = 1 ./ ((0:nmax)' + 1) .^ 2;
+Cs = zeros(n1, n1, T);
+Ss = Cs;
+for k = 1:T
+    Cs(:, :, k) = tril(randn(n1) .* dec) * 1e-9;
+    s = tril(randn(n1) .* dec) * 1e-9;
+    s(:, 1) = 0;
+    Ss(:, :, k) = s;
+end
+ts = shSeries(Cs, Ss = Ss, Epochs = 2003 + ((1:T)' - 0.5) / 12);
+end
+
+function testRegionalProcessModelOnTheSHBasisIsKalmanChains(testCase)
+%TESTREGIONALPROCESSMODELONTHESHBASISISKALMANCHAINS On the SH basis the
+%   regional process model IS the one kalmanChain builds from the same
+%   model series - climatology residuals, vecFromCS, estimateVAR - bit for
+%   bit. This is the oracle the regional chain stands on.
+ts = processSeries(8, 60, 31);
+idx = shLowLevel.shIndex(8);
+B = shLowLevel.regionalBasis(idx, [], Type = "sh");
+[model, info] = shLowLevel.regionalProcessModel(ts, B, Shrink = 1e-3);
+[~, resid] = ts.climatology;
+X = zeros(idx.P, resid.nEpochs);
+for k = 1:resid.nEpochs
+    g = resid.at(k);
+    X(:, k) = shLowLevel.vecFromCS(g.C, g.S, idx);
+end
+ref = shLowLevel.estimateVAR(X, Order = 1, Shrink = 1e-3, CondFun = [], ...
+    Structure = "full");
+verifyTrue(testCase, isequaln(model, ref), ...
+    'the SH-basis process model is not kalmanChain''s');
+verifyTrue(testCase, isequal(info.A, X));
+verifyEqual(testCase, info.representation, 1);
+end
+
+function testRegionalProcessModelRecoversAKnownVAR(testCase)
+%TESTREGIONALPROCESSMODELRECOVERSAKNOWNVAR A VAR(1) simulated in the
+%   coefficients of an RBF basis (nmax 12, a 30 deg polar cap plus 600
+%   km), mapped to SH by T, given a mean and an annual cycle, comes back
+%   through climatology removal, projection and Yule-Walker. The error is
+%   a sampling error: validate_regional_process.py CLAIM 3 measured
+%   sqrt(T) x error over 60 seeds at this configuration, medians 3.21 (B,
+%   max abs) and 2.16 (Q, max abs relative to max|Q|); the bounds are 3x
+%   those. The series lies in the span of T once the climatology is gone,
+%   so the representation is 1 to rounding.
+idx = shLowLevel.shIndex(12);
+B = shLowLevel.regionalBasis(idx, @(la, lo) double(la > 60));
+K = B.K;
+nT = 20000;
+rng(52);
+Ph = 0.8 * eye(K) + 0.02 * randn(K);
+Ph = Ph * (0.85 / max(abs(eig(Ph))));
+Lq = randn(K) / sqrt(K);
+Qtrue = Lq * Lq' + 0.1 * eye(K);
+cQ = chol(Qtrue, 'lower');
+a = zeros(K, nT);
+for k = 2:nT
+    a(:, k) = Ph * a(:, k - 1) + cQ * randn(K, 1);
+end
+t = 2000 + (0:nT - 1)' / 365.25;
+X = full(B.T * a) + (randn(idx.P, 1) + randn(idx.P, 1) .* cos(2 * pi * t')) * 1e-3;
+Cs = zeros(13, 13, nT);
+Ss = Cs;
+for k = 1:nT
+    [Cs(:, :, k), Ss(:, :, k)] = shLowLevel.csFromVec(X(:, k), idx);
+end
+ts = shSeries(Cs, Ss = Ss, Epochs = t);
+[model, info] = shLowLevel.regionalProcessModel(ts, B);
+eB = max(abs(model.Phi{1} - Ph), [], 'all') * sqrt(nT);
+eQ = max(abs(model.Q - Qtrue), [], 'all') / max(abs(Qtrue), [], 'all') * sqrt(nT);
+verifyLessThan(testCase, eB, 3 * 3.21);
+verifyLessThan(testCase, eQ, 3 * 2.16);
+verifyGreaterThan(testCase, info.representation, 1 - 1e-10);
+verifySize(testCase, info.A, [K, nT]);
+verifyGreaterThan(testCase, info.minEigQ, 0);
+end
+
+function testRegionalProcessModelAdjustments(testCase)
+%TESTREGIONALPROCESSMODELADJUSTMENTS Kurtenbach's alpha scales Q and
+%   nothing else (his eq. 4.8): Phi and Sigma0 are bitwise unchanged and Q
+%   is exactly alpha Q. The ground noise is a white EWH field of pointwise
+%   variance sigma^2 everywhere (validate_regional_process.py CLAIM 2:
+%   1.3e-14, bound 3x), and because it enters Sigma(0) it changes Phi too.
+ts = processSeries(8, 60, 32);
+idx = shLowLevel.shIndex(8);
+B = shLowLevel.regionalBasis(idx, [], Type = "sh");
+m1 = shLowLevel.regionalProcessModel(ts, B, Shrink = 1e-3);
+m10 = shLowLevel.regionalProcessModel(ts, B, Shrink = 1e-3, QScale = 10);
+verifyTrue(testCase, isequal(m10.Phi, m1.Phi) && isequal(m10.Sigma0, m1.Sigma0));
+verifyTrue(testCase, isequal(m10.Q, 10 * m1.Q));
+n = (0:8)';
+kn = -0.30 * n ./ (n + 3.0);                       % synthetic Love numbers
+[mg, ig] = shLowLevel.regionalProcessModel(ts, B, Shrink = 1e-3, ...
+    GroundNoise = 0.02, kn = kn);
+f = shLowLevel.kernelFactors("ewh", 8, ts.GM, ts.R, kn = kn);
+lat = linspace(-89, 89, 40)';
+lon = mod(97 * (1:40)', 360);
+Ye = shLowLevel.ylm(deg2rad(lat), deg2rad(lon), idx) .* f(idx.n + 1)';
+pv = sum((Ye * ig.groundCov) .* Ye, 2);
+verifyLessThan(testCase, max(abs(pv / 0.02^2 - 1)), 3 * 1.27e-14);
+verifyGreaterThan(testCase, max(abs(mg.Phi{1} - m1.Phi{1}), [], 'all'), 0);
+verifyEqual(testCase, ig.groundNoise, 0.02);
+end
+
+function testEstimateVARSigma0AddGeneralisesShrink(testCase)
+%TESTESTIMATEVARSIGMA0ADDGENERALISESSHRINK Shrink is Sigma0Add with
+%   s trace(Sigma(0))/P I, bit for bit, and a vector Sigma0Add is its
+%   diagonal matrix.
+rng(9);
+X = randn(6, 400);
+X = filter(1, [1 -0.6], X, [], 2);
+s = 0.05;
+S0 = (X * X.') / size(X, 2);
+m1 = shLowLevel.estimateVAR(X, Shrink = s);
+m2 = shLowLevel.estimateVAR(X, Sigma0Add = s * trace(S0) / 6 * eye(6));
+verifyTrue(testCase, isequal(m1, m2));
+d = (1:6)' * 0.01;
+m3 = shLowLevel.estimateVAR(X, Sigma0Add = d);
+m4 = shLowLevel.estimateVAR(X, Sigma0Add = diag(d));
+verifyTrue(testCase, isequal(m3, m4));
+verifyFalse(testCase, isequal(m3.Phi, shLowLevel.estimateVAR(X).Phi));
+end

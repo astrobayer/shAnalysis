@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shLowLevel.regionalProcessModel &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shLowLevel.regionalProcessModel</nav>
+<h1>shLowLevel.regionalProcessModel</h1>
+<p class="h1line">Kurtenbach&#x27;s process model in a regional basis.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>[model, info] = shLowLevel.regionalProcessModel(ts, B)</code><code>[model, info] = shLowLevel.regionalProcessModel(ts, B, Order=1, Shrink=0, Structure=&quot;full&quot;, ...)</code></div>
+<h2>Description</h2>
+<p>[MODEL, INFO] = shLowLevel.regionalProcessModel(TS, B) estimates the stochastic process model of the regional Kalman filter from a geophysical model series TS - hydrology, ESA ESM, AOD1B errors - in the coefficients of the regional basis B of <a href="shLowLevel_regionalBasis.html"><code>shLowLevel.regionalBasis</code></a>, following Kurtenbach (2012, DGK C-683, Sec. 3.2): 1. the climatology of TS (mean, trend, annual, semi-annual; his eq. 3.81) is removed with ts.climatology; 2. every epoch is projected onto the basis, a_t = B.Proj x_t (<a href="shLowLevel_regionalProject.html"><code>shLowLevel.regionalProject</code></a>). The two steps commute - the climatology is a fit along time with one design for every coefficient, the projection a map along the coefficients - so their order does not matter (Python-validated to 6e-16); 3. the VAR(Order) model is estimated from a_t by <a href="shLowLevel_estimateVAR.html"><code>shLowLevel.estimateVAR</code></a>; Order = 1 is his eqs. 3.84-3.85, B = Sigma(1) Sigma(0)^-1,   Q = Sigma(0) - B Sigma(1)&#x27;. MODEL has the fields of estimateVAR&#x27;s output and drives <a href="shLowLevel_kalmanFilter.html"><code>shLowLevel.kalmanFilter</code></a> / rtsSmoother with the basis coefficients as the state. On the SH basis (B.T = I) it IS the model kalmanChain builds - bitwise, which is the regional chain&#x27;s oracle.</p>
+<h2>Examples</h2>
+<details class="example"><summary>From the help block</summary><div><pre><code>    B = tsModel.regionalBasis(&quot;Elbe&quot;, Type = &quot;slepian&quot;, Threshold = 0.5);
+    [model, info] = tsModel.regionalProcessModel(B, QScale = 10);
+    info.representation, model.specRadius</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>ts</code></td><td>1 x 1</td><td>shSeries</td><td><code>required</code></td><td class="desc"><a href="shSeries.html"><code>shSeries</code></a>  the model series, nmax &gt;= B.idx.Lmax, at the sampling of the filter (daily for daily solutions)</td></tr><tr><td><code>B</code></td><td>1 x 1</td><td>struct</td><td><code>required</code></td><td class="desc">struct    a basis from <a href="shLowLevel_regionalBasis.html"><code>shLowLevel.regionalBasis</code></a></td></tr></table>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>Order</code></td><td>1 x 1</td><td>double</td><td><code>1</code></td><td class="desc">(1,1) double  VAR order (see estimateVAR)</td></tr><tr><td><code>Shrink</code></td><td>1 x 1</td><td>double</td><td><code>0</code></td><td class="desc">(1,1) double  diagonal loading (see estimateVAR)</td></tr><tr><td><code>Structure</code></td><td>1 x 1</td><td>string</td><td><code>&quot;full&quot;</code></td><td class="desc">&quot;full&quot; | &quot;diagonal&quot;   coupling of the estimate; estimateVAR&#x27;s &quot;orderblock&quot; has no meaning for a regional basis</td></tr><tr><td><code>CondFun</code></td><td>n x m</td><td>-</td><td><code>[]</code></td><td class="desc">function handle  covariance conditioning on the K x K basis covariances (see estimateVAR)</td></tr><tr><td><code>Climatology</code></td><td>1 x 1</td><td>logical</td><td><code>true</code></td><td class="desc">(1,1) logical  remove TS&#x27;s climatology first; false when TS is already reduced</td></tr><tr><td><code>QScale</code></td><td>1 x 1</td><td>double</td><td><code>1</code></td><td class="desc">(1,1) double  Kurtenbach&#x27;s alpha</td></tr><tr><td><code>GroundNoise</code></td><td>1 x 1</td><td>double</td><td><code>0</code></td><td class="desc">(1,1) double  isotropic ground noise [m EWH]</td></tr><tr><td><code>kn</code></td><td>n x m</td><td>double</td><td><code>[]</code></td><td class="desc">(&gt;=Lmax+1,1) double  load Love numbers, required by GroundNoise &gt; 0 (never invented)</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>model</code></td><td class="desc">(1,1) struct  as returned by <a href="shLowLevel_estimateVAR.html"><code>shLowLevel.estimateVAR</code></a>, which documents every field; Q is the scaled one</td></tr><tr><td><code>info</code></td><td class="desc">(1,1) struct  fields A               (K,T) double  basis coefficients of the reduced model series - the realisation epochs          (T,1) double  its epochs [decimal years] clim            <a href="shClimatology.html"><code>shClimatology</code></a>  the removed climatology; [] with Climatology = false representation  (1,1) double  share of the regional signal energy the basis carries, see above minEigQ         (1,1) double  smallest eigenvalue of Q; a negative one means Q is not a covariance groundCov       (K,K) double  the covariance added to Sigma(0); [] without GroundNoise qScale          (1,1) double  the QScale option groundNoise     (1,1) double  the GroundNoise option [m]</td></tr></table>
+<h2>Error Identifiers</h2>
+<table><tr><th>Identifier</th><th>Raised when</th></tr><tr><td><code>shLowLevel:regionalProcessModel:badBasis</code></td><td class="desc">B is not a basis from shLowLevel.regionalBasis</td></tr><tr><td><code>shLowLevel:regionalProcessModel:nmaxMismatch</code></td><td class="desc">the series&#x27; nmax is below the basis&#x27; band limit</td></tr><tr><td><code>shLowLevel:regionalProcessModel:missingLoveNumbers</code></td><td class="desc">GroundNoise &gt; 0 without kn</td></tr></table>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<ul class="seealso"><li><a href="shLowLevel_regionalBasis.html"><code>shLowLevel.regionalBasis</code></a></li><li><a href="shLowLevel_regionalProject.html"><code>shLowLevel.regionalProject</code></a></li><li><a href="shLowLevel_estimateVAR.html"><code>shLowLevel.estimateVAR</code></a></li><li><a href="shLowLevel_kalmanFilter.html"><code>shLowLevel.kalmanFilter</code></a></li></ul>
+<p class="prov">shAnalysis v5.15.0 (20-Oct-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

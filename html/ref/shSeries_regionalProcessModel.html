@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shSeries.regionalProcessModel &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shSeries.regionalProcessModel</nav>
+<h1>shSeries.regionalProcessModel</h1>
+<p class="h1line">Kurtenbach&#x27;s process model of this series in a basis.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>[model, info] = shSeries.regionalProcessModel(obj, B)</code><code>[model, info] = shSeries.regionalProcessModel(obj, B, Order=..., Shrink=..., Structure=..., ...)</code></div>
+<h2>Description</h2>
+<p>[MODEL, INFO] = ts.regionalProcessModel(B) is <a href="shLowLevel_regionalProcessModel.html"><code>shLowLevel.regionalProcessModel</code></a>(ts, B): the climatology of this model series is removed, every epoch projected onto the basis B of ts.regionalBasis, and the VAR process model of Kurtenbach (2012) estimated from the basis coefficients. That function documents the method and its two adjustments (QScale, the alpha of his eq. 4.8, and GroundNoise).</p>
+<h2>Examples</h2>
+<details class="example"><summary>From the help block</summary><div><pre><code>    B = tsModel.regionalBasis(&quot;Elbe&quot;);
+    [model, info] = tsModel.regionalProcessModel(B, QScale = 10);</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td><code>required</code></td><td class="desc">the object the method is called on</td></tr><tr><td><code>B</code></td><td>1 x 1</td><td>struct</td><td><code>required</code></td><td class="desc">struct  a basis from regionalBasis</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>Order</code></td><td>lane default</td><td>-</td><td><code>-</code></td><td class="desc">VAR order</td></tr><tr><td><code>Shrink</code></td><td>lane default</td><td>-</td><td><code>-</code></td><td class="desc">diagonal loading</td></tr><tr><td><code>Structure</code></td><td>lane default</td><td>-</td><td><code>-</code></td><td class="desc">&quot;full&quot; | &quot;diagonal&quot;</td></tr><tr><td><code>CondFun</code></td><td>lane default</td><td>-</td><td><code>-</code></td><td class="desc">covariance conditioning</td></tr><tr><td><code>Climatology</code></td><td>lane default</td><td>-</td><td><code>-</code></td><td class="desc">remove the climatology first</td></tr><tr><td><code>QScale</code></td><td>lane default</td><td>-</td><td><code>-</code></td><td class="desc">Kurtenbach&#x27;s alpha</td></tr><tr><td><code>GroundNoise</code></td><td>lane default</td><td>-</td><td><code>-</code></td><td class="desc">isotropic ground noise [m EWH]</td></tr><tr><td><code>kn</code></td><td>lane default</td><td>-</td><td><code>-</code></td><td class="desc">load Love numbers, for GroundNoise</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>model</code></td><td class="desc">(1,1) struct  as returned by <a href="shLowLevel_regionalProcessModel.html"><code>shLowLevel.regionalProcessModel</code></a>, which documents every field</td></tr><tr><td><code>info</code></td><td class="desc">(1,1) struct  as returned by <a href="shLowLevel_regionalProcessModel.html"><code>shLowLevel.regionalProcessModel</code></a>, which documents every field</td></tr></table>
+<h2>Error Identifiers</h2>
+<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<ul class="seealso"><li><a href="shLowLevel_regionalProcessModel.html"><code>shLowLevel.regionalProcessModel</code></a></li></ul>
+<p class="prov">shAnalysis v5.15.0 (20-Oct-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

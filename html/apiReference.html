@@ -3,7 +3,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="shAnalysis.css">
 </head><body><div class="content">
-<h1>shAnalysis API reference (v5.14.0)</h1>
+<h1>shAnalysis API reference (v5.15.0)</h1>
 <p>Generated from the source arguments blocks and help text - inputs,
 name-value options with defaults, and outputs for every public function
 and method. Regenerated with every release; the source of truth is the
@@ -95,6 +95,7 @@ code itself.</p>
 <a href="#shLowLevel.readTN13">readTN13</a>
 <a href="#shLowLevel.readTN14">readTN14</a>
 <a href="#shLowLevel.regionalBasis">regionalBasis</a>
+<a href="#shLowLevel.regionalProcessModel">regionalProcessModel</a>
 <a href="#shLowLevel.regionalProject">regionalProject</a>
 <a href="#shLowLevel.requireGeoMap">requireGeoMap</a>
 <a href="#shLowLevel.rescaleGMR">rescaleGMR</a>
@@ -465,7 +466,7 @@ code itself.</p>
 <p class="h1line">Empirical VAR(p) process model from an SH state series.</p>
 <p>MODEL = shLowLevel.estimateVAR(X) estimates the stochastic process model of Kurtenbach et al. (2012) from a centred state realization: the vector autoregressive model x_t = Phi_1 x_{t-1} + ... + Phi_p x_{t-p} + w,  w ~ N(0, Q) determined by the Yule-Walker equations from the empirical (cross-)covariances Sigma(h) = 1/(T-h) sum x_i x_{i-h}&#x27; of the series (Kvas 2019, Sec. 2.4). For Order = 1 this is EXACTLY the closed form of Kurtenbach (2012), eqs. (3.84)-(3.85): B = Sigma(1) Sigma(0)^-1,  Q = Sigma(0) - B Sigma(0) B&#x27; (unit-tested against it). The realization X is typically a geophysical model series (AOD1B/GAX, ESA ESM, hydrology) reduced by mean, trend and (semi-)annual cycle - shSeries.climatology does that reduction; the state ordering is shLowLevel.shIndex.</p>
 <b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>X</code></td><td>: x :</td><td>double</td><td>required</td></tr></table>
-<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Order</code></td><td>1 x 1</td><td>double</td><td>1</td></tr><tr><td><code>Shrink</code></td><td>1 x 1</td><td>double</td><td>0</td></tr><tr><td><code>CondFun</code></td><td>n x m</td><td>-</td><td>[]</td></tr><tr><td><code>Structure</code></td><td>1 x 1</td><td>string</td><td>&quot;full&quot;</td></tr><tr><td><code>Blocks</code></td><td>n x 1</td><td>cell</td><td>{}</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Order</code></td><td>1 x 1</td><td>double</td><td>1</td></tr><tr><td><code>Shrink</code></td><td>1 x 1</td><td>double</td><td>0</td></tr><tr><td><code>CondFun</code></td><td>n x m</td><td>-</td><td>[]</td></tr><tr><td><code>Structure</code></td><td>1 x 1</td><td>string</td><td>&quot;full&quot;</td></tr><tr><td><code>Blocks</code></td><td>n x 1</td><td>cell</td><td>{}</td></tr><tr><td><code>Sigma0Add</code></td><td>n x 1</td><td>double</td><td>[]</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
 <tr><td><code>model</code></td><td>(1,1) struct  the process model, fields Phi     (1 x p) cell of (P x P) double  coefficient matrices Q       (P x P) double  symmetric PSD process-noise covariance Sigma0  (P x P) double  empirical auto-covariance Sigma(0): the stationary state covariance, and the filter&#x27;s initial covariance order   (1,1) double   the VAR order p P       (1,1) double   state dimension specRadius (1,1) double  spectral radius of the companion matrix; &lt; 1 is stable, and anything else raises a warning because filtering an unstable model diverges over long gaps</td></tr>
 </table>
@@ -1264,6 +1265,20 @@ code itself.</p>
     a = shLowLevel.regionalProject(ts.Cs, ts.Ss, B);      % K x T
     S = shLowLevel.regionalBasis(idx, &quot;Elbe&quot;, Type = &quot;slepian&quot;, ...
                                  Threshold = 0.5);</pre>
+</div>
+<div class="entry" id="shLowLevel.regionalProcessModel">
+<h3><code>shLowLevel.regionalProcessModel(ts, B, opts)</code></h3>
+<p class="h1line">Kurtenbach&#x27;s process model in a regional basis.</p>
+<p>[MODEL, INFO] = shLowLevel.regionalProcessModel(TS, B) estimates the stochastic process model of the regional Kalman filter from a geophysical model series TS - hydrology, ESA ESM, AOD1B errors - in the coefficients of the regional basis B of shLowLevel.regionalBasis, following Kurtenbach (2012, DGK C-683, Sec. 3.2): 1. the climatology of TS (mean, trend, annual, semi-annual; his eq. 3.81) is removed with ts.climatology; 2. every epoch is projected onto the basis, a_t = B.Proj x_t (shLowLevel.regionalProject). The two steps commute - the climatology is a fit along time with one design for every coefficient, the projection a map along the coefficients - so their order does not matter (Python-validated to 6e-16); 3. the VAR(Order) model is estimated from a_t by shLowLevel.estimateVAR; Order = 1 is his eqs. 3.84-3.85, B = Sigma(1) Sigma(0)^-1,   Q = Sigma(0) - B Sigma(1)&#x27;. MODEL has the fields of estimateVAR&#x27;s output and drives shLowLevel.kalmanFilter / rtsSmoother with the basis coefficients as the state. On the SH basis (B.T = I) it IS the model kalmanChain builds - bitwise, which is the regional chain&#x27;s oracle.</p>
+<b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>ts</code></td><td>1 x 1</td><td>shSeries</td><td>required</td></tr><tr><td><code>B</code></td><td>1 x 1</td><td>struct</td><td>required</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Order</code></td><td>1 x 1</td><td>double</td><td>1</td></tr><tr><td><code>Shrink</code></td><td>1 x 1</td><td>double</td><td>0</td></tr><tr><td><code>Structure</code></td><td>1 x 1</td><td>string</td><td>&quot;full&quot;</td></tr><tr><td><code>CondFun</code></td><td>n x m</td><td>-</td><td>[]</td></tr><tr><td><code>Climatology</code></td><td>1 x 1</td><td>logical</td><td>true</td></tr><tr><td><code>QScale</code></td><td>1 x 1</td><td>double</td><td>1</td></tr><tr><td><code>GroundNoise</code></td><td>1 x 1</td><td>double</td><td>0</td></tr><tr><td><code>kn</code></td><td>n x m</td><td>double</td><td>[]</td></tr></table>
+<b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
+<tr><td><code>model</code></td><td>(1,1) struct  as returned by shLowLevel.estimateVAR, which documents every field; Q is the scaled one</td></tr>
+<tr><td><code>info</code></td><td>(1,1) struct  fields A               (K,T) double  basis coefficients of the reduced model series - the realisation epochs          (T,1) double  its epochs [decimal years] clim            shClimatology  the removed climatology; [] with Climatology = false representation  (1,1) double  share of the regional signal energy the basis carries, see above minEigQ         (1,1) double  smallest eigenvalue of Q; a negative one means Q is not a covariance groundCov       (K,K) double  the covariance added to Sigma(0); [] without GroundNoise qScale          (1,1) double  the QScale option groundNoise     (1,1) double  the GroundNoise option [m]</td></tr>
+</table>
+<b>Example</b><pre>    B = tsModel.regionalBasis(&quot;Elbe&quot;, Type = &quot;slepian&quot;, Threshold = 0.5);
+    [model, info] = tsModel.regionalProcessModel(B, QScale = 10);
+    info.representation, model.specRadius</pre>
 </div>
 <div class="entry" id="shLowLevel.regionalProject">
 <h3><code>shLowLevel.regionalProject(Cs, Ss, B)</code></h3>
@@ -2326,6 +2341,7 @@ code itself.</p>
 <a href="#shSeries.poleTideConvert">poleTideConvert</a>
 <a href="#shSeries.read">read</a>
 <a href="#shSeries.regionalBasis">regionalBasis</a>
+<a href="#shSeries.regionalProcessModel">regionalProcessModel</a>
 <a href="#shSeries.regionalProject">regionalProject</a>
 <a href="#shSeries.removeAlias">removeAlias</a>
 <a href="#shSeries.removeGIA">removeGIA</a>
@@ -2638,6 +2654,19 @@ code itself.</p>
 <b>Example</b><pre>    B = ts.regionalBasis(&quot;Elbe&quot;, Type = &quot;slepian&quot;);
     a = ts.regionalProject(B);</pre>
 </div>
+<div class="entry" id="shSeries.regionalProcessModel">
+<h3><code>shSeries.regionalProcessModel(obj, B, opts)</code></h3>
+<p class="h1line">Kurtenbach&#x27;s process model of this series in a basis.</p>
+<p>[MODEL, INFO] = ts.regionalProcessModel(B) is shLowLevel.regionalProcessModel(ts, B): the climatology of this model series is removed, every epoch projected onto the basis B of ts.regionalBasis, and the VAR process model of Kurtenbach (2012) estimated from the basis coefficients. That function documents the method and its two adjustments (QScale, the alpha of his eq. 4.8, and GroundNoise).</p>
+<b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td>required</td></tr><tr><td><code>B</code></td><td>1 x 1</td><td>struct</td><td>required</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Order</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>Shrink</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>Structure</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>CondFun</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>Climatology</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>QScale</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>GroundNoise</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>kn</code></td><td>lane default</td><td>-</td><td>-</td></tr></table>
+<b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
+<tr><td><code>model</code></td><td>(1,1) struct  as returned by shLowLevel.regionalProcessModel, which documents every field</td></tr>
+<tr><td><code>info</code></td><td>(1,1) struct  as returned by shLowLevel.regionalProcessModel, which documents every field</td></tr>
+</table>
+<b>Example</b><pre>    B = tsModel.regionalBasis(&quot;Elbe&quot;);
+    [model, info] = tsModel.regionalProcessModel(B, QScale = 10);</pre>
+</div>
 <div class="entry" id="shSeries.regionalProject">
 <h3><code>shSeries.regionalProject(obj, B)</code></h3>
 <p class="h1line">Every epoch in a regional basis, and back.</p>
@@ -2878,4 +2907,4 @@ code itself.</p>
 <tr><td><code>obj</code></td><td>(1 x 1) shClimatology   copy with the note appended to its history</td></tr>
 </table>
 </div>
-<p class="provenance">Developed by Matthias Weigelt with the help of Claude (Fable 5), 20-Oct-2026 (v5.14.0). Generated by tools - do not edit.</p></div></body></html>
+<p class="provenance">Developed by Matthias Weigelt with the help of Claude (Fable 5), 20-Oct-2026 (v5.15.0). Generated by tools - do not edit.</p></div></body></html>
