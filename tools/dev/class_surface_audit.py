@@ -102,7 +102,6 @@ EXCEPTIONS = {
     "writeGrid": _EXPORT,
     "geocentric2geodetic": _HELPER,
     "erodeMask": _HELPER,
-    "evalMask": _HELPER,
     "gravisDataFolder": _HELPER,
     "makeTutorials": _HELPER,
     "standardChain": _CHAIN,
@@ -131,7 +130,6 @@ BACKLOG = {
     "seaLevelFingerprint": "elastic sea-level fingerprint of a load",
     "sensitivityKernel": "a basin kernel with a leakage/noise trade-off",
     "signalVarianceKaula": "Kaula signal variance, an input of the VDK filter",
-    "slepianBasis": "a Slepian basis for a region",
 }
 
 DELEGATES = {
@@ -151,6 +149,10 @@ DELEGATES = {
     ("shCoefficients", "synthesisPoints"): "synthesisPoints",
     ("shCoefficients", "gradientTensor"): "shSynthesisGradientTensor",
     ("shCoefficients", "vdkApply"): "vdkApply",
+    ("shCoefficients", "regionalBasis"): "regionalBasis",
+    ("shCoefficients", "regionalProject"): "regionalProject",
+    ("shSeries", "regionalBasis"): "regionalBasis",
+    ("shSeries", "regionalProject"): "regionalProject",
 }
 
 

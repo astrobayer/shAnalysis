@@ -109,7 +109,7 @@ class TestCounting(unittest.TestCase):
         self.assertEqual(c["runs"], c["methods"])
 
 
-EXPECTED_RUNS = 384          # v5.13.0: 382 + two class-surface route tests
+EXPECTED_RUNS = 394          # v5.14.0: 384 + ten WP8 8a tests (regional basis, readBasin, GridOnly)
                              # (5 correctness, 4 contract, 2 robustness)
 
 

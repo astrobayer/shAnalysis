@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shSeries.regionalBasis &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shSeries.regionalBasis</nav>
+<h1>shSeries.regionalBasis</h1>
+<p class="h1line">A local basis for a region, at this series&#x27;s degree.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>B = shSeries.regionalBasis(obj, region)</code><code>B = shSeries.regionalBasis(obj, region, Nmin=..., Type=..., BufferKm=..., ...)</code></div>
+<h2>Description</h2>
+<p>B = ts.regionalBasis(REGION) is <a href="shLowLevel_regionalBasis.html"><code>shLowLevel.regionalBasis</code></a>(<a href="shLowLevel_shIndex.html"><code>shLowLevel.shIndex</code></a>(ts.nmax), REGION): radial basis functions, Slepian tapers or the SH basis for a basin or region, built for the degree this series carries, so that ts.regionalProject(B) cannot meet an index of another size. That function documents the bases and the projector.</p>
+<h2>Examples</h2>
+<details class="example"><summary>From the help block</summary><div><pre><code>    B = ts.regionalBasis(&quot;Elbe&quot;, Type = &quot;slepian&quot;);
+    a = ts.regionalProject(B);</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td><code>required</code></td><td class="desc">the object the method is called on</td></tr><tr><td><code>region</code></td><td>n x m</td><td>-</td><td><code>[]</code></td><td class="desc">basin name, handle, polygon or mask, as <a href="shLowLevel_regionalBasis.html"><code>shLowLevel.regionalBasis</code></a> takes it ([] for Type &quot;sh&quot;)</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>Nmin</code></td><td>shIndex default</td><td>-</td><td><code>-</code></td><td class="desc">first degree of the index</td></tr><tr><td><code>Type</code></td><td>lane default</td><td>-</td><td><code>-</code></td><td class="desc">&quot;rbf&quot; | &quot;slepian&quot; | &quot;sh&quot;</td></tr><tr><td><code>BufferKm</code></td><td>lane default</td><td>-</td><td><code>-</code></td><td class="desc">growth of the region [km]</td></tr><tr><td><code>Grid</code></td><td>lane default</td><td>-</td><td><code>-</code></td><td class="desc">&quot;icosahedral&quot; | &quot;reuter&quot;</td></tr><tr><td><code>Level</code></td><td>lane default</td><td>-</td><td><code>-</code></td><td class="desc">rbf grid level</td></tr><tr><td><code>Kernel</code></td><td>lane default</td><td>-</td><td><code>-</code></td><td class="desc">&quot;kaula&quot; | &quot;shannon&quot; | &quot;amplitude&quot;</td></tr><tr><td><code>DegreeAmplitude</code></td><td>lane default</td><td>-</td><td><code>-</code></td><td class="desc">sigma_n for Kernel &quot;amplitude&quot;</td></tr><tr><td><code>Threshold</code></td><td>lane default</td><td>-</td><td><code>-</code></td><td class="desc">slepian concentration cut</td></tr><tr><td><code>NKeep</code></td><td>lane default</td><td>-</td><td><code>-</code></td><td class="desc">slepian taper count</td></tr><tr><td><code>EigTol</code></td><td>lane default</td><td>-</td><td><code>-</code></td><td class="desc">rbf projector eigenvalue cut</td></tr><tr><td><code>R</code></td><td>lane default</td><td>-</td><td><code>-</code></td><td class="desc">sphere radius [m]</td></tr><tr><td><code>OverSample</code></td><td>lane default</td><td>-</td><td><code>-</code></td><td class="desc">mask quadrature refinement</td></tr><tr><td><code>BasinFile</code></td><td>lane default</td><td>-</td><td><code>-</code></td><td class="desc">GeoJSON for a basin name</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>B</code></td><td class="desc">(1,1) struct  the basis, as returned by <a href="shLowLevel_regionalBasis.html"><code>shLowLevel.regionalBasis</code></a>, which documents every field</td></tr></table>
+<h2>Error Identifiers</h2>
+<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<ul class="seealso"><li><a href="shLowLevel_regionalBasis.html"><code>shLowLevel.regionalBasis</code></a></li><li><a href="shLowLevel_shIndex.html"><code>shLowLevel.shIndex</code></a></li></ul>
+<p class="prov">shAnalysis v5.14.0 (20-Oct-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

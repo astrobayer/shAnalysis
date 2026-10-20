@@ -70,6 +70,7 @@
     <tocitem target="ref/shLowLevel_basinScaling.html">Basin scaling factors</tocitem>
     <tocitem target="leakage.html">Leakage correction (forward modelling, gridded k)</tocitem>
     <tocitem target="slepianBasis.html">slepianBasis (Slepian localization)</tocitem>
+    <tocitem target="regionalBasis.html">Regional bases for a selectable basin (RBF, Slepian)</tocitem>
     <tocitem target="ref/shSeries_removeGIA.html">GIA correction (removeGIA)</tocitem>
     <tocitem target="eofAnalysis.html">EOF analysis</tocitem>
     <tocitem target="ref/shLowLevel_combineCenters.html">Multi-center combination</tocitem>

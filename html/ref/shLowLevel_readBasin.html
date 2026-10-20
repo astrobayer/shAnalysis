@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shLowLevel.readBasin &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shLowLevel.readBasin</nav>
+<h1>shLowLevel.readBasin</h1>
+<p class="h1line">A basin of a GravIS GeoJSON file as a region, by name.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>[region, info] = shLowLevel.readBasin(name)</code><code>[region, info] = shLowLevel.readBasin(name, File=&quot;basins_rivbas.json&quot;)</code></div>
+<h2>Description</h2>
+<p>[REGION, INFO] = shLowLevel.readBasin(NAME) finds the basin NAME in the GravIS river-basin file shipped with the toolbox (data/gravis/basins_rivbas.json, 100 basins) and returns it as a REGION function handle, m = REGION(latDeg, lonDeg), 1 inside and 0 outside, that every region-taking function accepts (evalMask, basinKernel, slepianBasis, regionalBasis). The match is exact first, then case-insensitive, then a case-insensitive substring that only ONE basin contains - so &quot;Elbe&quot; finds &quot;Elbe River&quot; - and INFO.name says which basin was taken. A substring two basins contain is refused rather than resolved.</p>
+<h2>Examples</h2>
+<details class="example"><summary>From the help block</summary><div><pre><code>    [reg, info] = shLowLevel.readBasin(&quot;Elbe&quot;);
+    idx = shLowLevel.shIndex(60);
+    B = shLowLevel.regionalBasis(idx, reg, Type = &quot;slepian&quot;);</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>name</code></td><td>1 x 1</td><td>string</td><td><code>required</code></td><td class="desc">string  basin name, or a unique part of one (&quot;Elbe&quot;)</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>File</code></td><td>1 x 1</td><td>string</td><td><code>&quot;basins_rivbas.json&quot;</code></td><td class="desc">(1,1) string  a GeoJSON file: a path, or a name looked up in the toolbox&#x27;s data/gravis folder (basins_rivbas.json, basins_GIS.json, basins_AIS.json ship there; https://gravis.gfz.de/basins for more)</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>region</code></td><td class="desc">function handle  m = region(latDeg, lonDeg): equal-size double arrays in, a double array of 0/1 of the same size out; lon may be in any range</td></tr><tr><td><code>info</code></td><td class="desc">(1,1) struct  fields name       (1,1) string  the basin actually taken file       (1,1) string  the file it was read from names      (N,1) string  every basin name in the file rings      (1,R) cell  each ring as a (K,2) double [latDeg lonDeg], longitudes as in the file hole       (1,R) logical  the ring is a hole of its polygon polar      (1,R) logical  the ring winds around a pole polygon    (1,R) double  which polygon each ring belongs to properties (1,1) struct  the feature&#x27;s GeoJSON properties</td></tr></table>
+<h2>Error Identifiers</h2>
+<table><tr><th>Identifier</th><th>Raised when</th></tr><tr><td><code>shLowLevel:readBasin:missingFile</code></td><td class="desc">the GeoJSON file is neither a path nor in data/gravis</td></tr><tr><td><code>shLowLevel:readBasin:unknownBasin</code></td><td class="desc">no basin name matches NAME, even as a substring</td></tr><tr><td><code>shLowLevel:readBasin:ambiguousBasin</code></td><td class="desc">NAME is a substring of several basin names</td></tr><tr><td><code>shLowLevel:readBasin:badGeometry</code></td><td class="desc">the feature is not a Polygon or MultiPolygon with [lon lat] rings</td></tr></table>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<p class="none">No other entity is named in this help block.</p>
+<p class="prov">shAnalysis v5.14.0 (20-Oct-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

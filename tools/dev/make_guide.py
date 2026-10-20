@@ -1401,7 +1401,59 @@ ts.names(info.bridged)                                   % "bridge:..." months
 [info.overlap, nnz(info.bridged)]
 """)
 
-story += [para("33. References", "h2"),
+story += [para("33. Regional bases for a selectable basin (v5.14.0)", "h2"),
+          para("The first step towards a regional Kalman filter after "
+               "Kurtenbach (2012) whose state is a set of LOCAL basis "
+               "functions. Every basis is a linear map to spherical-harmonic "
+               "coefficients, x = T a with T of size P x K, so an SH "
+               "solution or normal equation enters it as T'NT and T'b, a "
+               "grid or point functional as A T, and a model series through "
+               "a projector; on the SH basis itself (T = I) the regional "
+               "filter is the global one, which is its oracle. "
+               "<font face='Courier'>shLowLevel.readBasin</font> finds a "
+               "GravIS basin by name or a unique part of it and returns a "
+               "wrap-safe region: basins across lon 0 (Loire, Niger, Volta) "
+               "and rings around a pole are inside where they should be. "
+               "<font face='Courier'>shLowLevel.regionalBasis</font> builds "
+               "radial basis functions after Eicker (2008) and Woehnke et "
+               "al. (2025), Slepian tapers, or the SH basis, for the region "
+               "grown by BufferKm (600 km, Woehnke's computation area). A "
+               "radial basis function centred on node x_k is the Legendre "
+               "series")]
+story += eq(r"\Psi_k(x)=\sum_{n}\varphi_n\,(2n+1)\,P_n(\cos\psi_k),"
+            r"\qquad T_{nm,k}=\varphi_n\,\bar{Y}_{nm}(x_k),"
+            r"\qquad \varphi_n=\frac{\sigma_n}{\sqrt{2n+1}}")
+story += [para("with the shape coefficients from the signal's degree "
+               "amplitudes (Woehnke's eq. 7), Kaula's 1/n<super>2</super> "
+               "(the default) or one. Nodes are an icosahedral grid of "
+               "10(j+1)<super>2</super> + 2 points or a Reuter grid, the "
+               "default level the smallest whose global grid is as large as "
+               "the SH basis (j = 30 at nmax 96); a node belongs to the "
+               "basis when its nearest quadrature point lies in the "
+               "buffered region. The projector is the least-squares fit "
+               "over that region,")]
+story += eq(r"P=\left(T^{\mathsf{T}}KT\right)^{+}T^{\mathsf{T}}K,"
+            r"\qquad K=Y^{\mathsf{T}}\mathrm{diag}(w\,m)\,Y,")
+story += [para("which for Slepian tapers is exactly G' (2.2e-15 in the "
+               "oracle), so <font face='Courier'>regionalProject</font> "
+               "generalises <font face='Courier'>slepianProject</font>. Only "
+               "the grid points inside the buffered region are formed. "
+               "Measured in tools/dev/validate_regional_basis.py: the radial "
+               "basis function against scipy's Legendre series to 1.2e-14, "
+               "the projector's normal equations to 2e-11, and the Elbe "
+               "polygon's area, 140 031 km<super>2</super>, against the mask "
+               "quadrature (3.6% below it at nmax 60). The process model, "
+               "the observation adapters and the filter on this state "
+               "come next.")]
+story += code("""
+idx = shLowLevel.shIndex(60);
+B = shLowLevel.regionalBasis(idx, "Elbe");          % RBF, Kaula kernel
+S = shLowLevel.regionalBasis(idx, "Elbe", Type = "slepian", Threshold = 0.5);
+[a, rec] = ts.regionalProject(ts.regionalBasis("Elbe"));   % K x T state
+[B.K, B.nGlobal, S.K]
+""")
+
+story += [para("34. References", "h2"),
           *bullets([
     "Chambers, D.P., Willis, J.K. (2010): A global evaluation of ocean "
     "bottom pressure from GRACE, OMCT, and steric-corrected altimetry. "
@@ -1414,6 +1466,9 @@ story += [para("33. References", "h2"),
     "Dobslaw, H., Dill, R. (2019): Product Description Document: "
     "Effective Angular Momentum Functions from Earth System Modelling at "
     "GFZ, rev. 1.1. (The length of day of chapter 31.)",
+    "Eicker, A. (2008): Gravity field refinement by radial basis "
+    "functions from in-situ satellite data. PhD thesis, University of "
+    "Bonn. (Chapter 33.)",
     "Gerchberg, R.W. (1974): Super-resolution through error energy "
     "reduction. Optica Acta 21, 709&ndash;720. (With Papoulis 1975, the "
     "support-projection principle behind Section 24.)",
@@ -1465,6 +1520,10 @@ story += [para("33. References", "h2"),
     "R.C. (2017): Characterizing drought in India using GRACE "
     "observations of terrestrial water storage deficit. "
     "J. Hydrometeorol. 18, 381&ndash;396.",
+    "Steffen, R., Woehnke, V., Weigelt, M., Eicker, A. (2026): Improved "
+    "regional mass change estimation using Slepian functions in a "
+    "Kalman filter framework. IAG Symposia, doi:10.1007/1345_2026_348. "
+    "(Chapter 33.)",
     "Swenson, S., Wahr, J. (2002): Methods for inferring regional "
     "surface-mass anomalies from GRACE. J. Geophys. Res. 107, 2193.",
     "Swenson, S., Wahr, J. (2006): Post-processing removal of correlated "
@@ -1486,6 +1545,9 @@ story += [para("33. References", "h2"),
     "Weigelt, M. et al. (2024): Bridging the gap between GRACE and GRACE "
     "Follow-On by combining high-low satellite-to-satellite tracking data "
     "and satellite laser ranging. J. Geodesy 98, 84. (Chapter 32.)",
+    "Woehnke, V., Eicker, A., Weigelt, M., et al. (2025): Kalman filter "
+    "framework for a regional mass change model from GRACE satellite "
+    "gravity. GEM - Int. J. Geomath. 16, 2. (Chapter 33.)",
     "Zhao, M., Geruo, A., Velicogna, I., Kimball, J.S. (2017): A global "
     "gridded dataset of GRACE drought severity index. "
     "J. Hydrometeorol. 18, 2117&ndash;2129."]),

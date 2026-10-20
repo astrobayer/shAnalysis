@@ -19,8 +19,12 @@ function [Y, w, grid] = synthesisMatrix(idx, opts)
 %     idx        struct   from shLowLevel.shIndex
 %     opts.NLat  (1,1)    number of latitude rings   [default Lmax+1]
 %     opts.NLon  (1,1)    number of longitudes  [default 2*idx.Lmax + 2]
+%     opts.GridOnly (false)  return Y = [] and only the weights and the
+%                 grid. The matrix is NLat*NLon x P doubles - 0.9 GB at
+%                 Lmax 60 and OverSample 2, 5.6 GB at Lmax 96 - and a
+%                 caller that wants the grid (evalMask) must not pay for it
 %   Outputs
-%     Y      (NLat*NLon x idx.P) double   synthesis matrix
+%     Y      (NLat*NLon x idx.P) double   synthesis matrix ([] with GridOnly)
 %     w      (NLat*NLon x 1)     double   quadrature weights, sum(w) = 1
 %     grid  (1,1) struct  fields
 %           theta   (NLat x 1) double  co-latitude of each ring [rad]
@@ -35,11 +39,20 @@ arguments
     idx (1,1) struct
     opts.NLat (1,1) double {mustBeInteger, mustBePositive} = idx.Lmax + 1
     opts.NLon (1,1) double {mustBeInteger, mustBePositive} = 2*idx.Lmax + 2
+    opts.GridOnly (1,1) logical = false
 end
 
 [tGL, wGL] = shLowLevel.gaussLegendre(opts.NLat);
 lat    = asin(tGL);                               % geocentric latitude [rad]
 lambda = (0:opts.NLon-1)' * (2*pi/opts.NLon);
+grid.theta  = pi/2 - lat;  grid.lambda = lambda;
+grid.latDeg = rad2deg(lat);
+grid.lonDeg = rad2deg(lambda);
+w = kron(wGL(:) / (2*opts.NLon), ones(opts.NLon, 1));   % sum(w) = 1
+if opts.GridOnly
+    Y = [];
+    return
+end
 
 % all Legendre functions for all rings in ONE call to the unified engine
 Pall = shLowLevel.legendreALF(idx.Lmax, lat);            % (L+1)x(L+1)xNLat
@@ -57,9 +70,4 @@ for i = 1:opts.NLat
     Y((i-1)*opts.NLon + (1:opts.NLon), :) = Trig .* Pb(lin)';
 end
 
-w = kron(wGL(:) / (2*opts.NLon), ones(opts.NLon, 1));   % sum(w) = 1
-
-grid.theta  = pi/2 - lat;  grid.lambda = lambda;
-grid.latDeg = rad2deg(lat);
-grid.lonDeg = rad2deg(lambda);
 end

@@ -1,5 +1,5 @@
 % shAnalysis - Spherical harmonic analysis toolbox
-% Version 5.13.1 (R2026a-compatible) 11-Sep-2026
+% Version 5.14.0 (R2026a-compatible) 20-Oct-2026
 %
 % The line above is what ver('shAnalysis') reports as the product name:
 % keep it a SHORT name, not a sentence and not a version string (pinned
@@ -14,12 +14,14 @@
 %   shCoefficients  - One coefficient set: I/O, arithmetic, TN-14 and degree 1,
 %                     filters (Gaussian, fan, destripe, DDK, VDK), spectra,
 %                     synthesis on the sphere or the ellipsoid, gradients,
-%                     deformation, error maps, gfct evaluation.
+%                     deformation, error maps, gfct evaluation, regional
+%                     bases.
 %   shSeries        - Time series of coefficient sets: mean field, climatology,
 %                     GAX restore, low-degree/GIA/pole-tide corrections,
 %                     classic and tvANS chains, basin averages with exact
 %                     deconvolution, Kalman smoothing, EOFs, leakage
-%                     correction, Earth-rotation excitation, gap bridging.
+%                     correction, Earth-rotation excitation, gap bridging,
+%                     regional bases (RBF, Slepian) for a selectable basin.
 %   shClimatology   - Bias/trend/annual/semi-annual (+extra periods) model:
 %                     evaluate at epochs, extract components with 1-sigma
 %                     significance, amplitude/phase maps.

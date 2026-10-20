@@ -23,12 +23,12 @@ says whether it was *read* or *inferred*.
 
 | Fact | Value | Evidence |
 |---|---|---|
-| Version | **5.13.1**, 11-Sep-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
+| Version | **5.14.0**, 20-Oct-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
 | Branches | `main` only; `claude/getframe-recapture` and `claude/readshm` are gone (merged/deleted) | `GET /branches` |
-| Public surface | 3 classes / 90 methods, 128 `+shLowLevel` functions (+5 private), 3 root functions. 79 of the 128 are reachable from a class method; each of the other 49 is a named exception (35) or in a backlog that may only shrink (14) | `tools/dev/api_extract.py`; `tools/dev/class_surface_audit.py` |
-| Tests | 5 classes, **370 methods / 384 runs**: Correctness 181, Contract 110, Robustness 57, Science 9, Performance 13 methods (27 runs, `budgetCase` x14 + `nmaxP` x2). On A8 7 filter out without the optional real-data fixtures (the GravIS-grid test joined them in v5.8.0, the ESMGFZ check in v5.11.0, the HLSST check in v5.12.0); on MATTHIASPC only 2 do, because `E:\DATAPOOL` supplies the SINEX files, the GravIS folder and - with `SHX_EARTHROTATION_FOLDER` and `SHX_BRIDGE_FOLDER` set for the run, no preference is stored - the ESMGFZ and HLSST series. The counter has matched the runner EXACTLY on the last ten green A8 runs and on every local Tier-A run. | `python3 tools/dev/count_tests.py` |
-| Python oracles | 23 `tools/dev/validate_*.py` + `tools/audit/*` | listing |
-| Docs | **26** hand-written `html/*.html` (24 per-entity duplicates retired in v5.0.1, WP6 stage 3) + **225 generated `html/ref/*.html`** (one per entity + index, `make_refpages.py`), one shared `html/shAnalysis.css`, `helptoc.xml`, `info.xml`, guide PDF, generated `html/apiReference.html`. `docs/` holds the PDF and `apiExamples.json` only - no HTML page lives outside `html/` (gated). | listing |
+| Public surface | 3 classes / 94 methods, 131 `+shLowLevel` functions (+5 private), 3 root functions. 84 of the 131 are reachable from a class method; each of the other 47 is a named exception (34) or in a backlog that may only shrink (13) | `tools/dev/api_extract.py`; `tools/dev/class_surface_audit.py` |
+| Tests | 5 classes, **380 methods / 394 runs**: Correctness 188, Contract 112, Robustness 58, Science 9, Performance 13 methods (27 runs, `budgetCase` x14 + `nmaxP` x2). On A8 7 filter out without the optional real-data fixtures (the GravIS-grid test joined them in v5.8.0, the ESMGFZ check in v5.11.0, the HLSST check in v5.12.0); on MATTHIASPC only 2 do, because `E:\DATAPOOL` supplies the SINEX files, the GravIS folder and - with `SHX_EARTHROTATION_FOLDER` and `SHX_BRIDGE_FOLDER` set for the run, no preference is stored - the ESMGFZ and HLSST series. The counter has matched the runner EXACTLY on the last ten green A8 runs and on every local Tier-A run. | `python3 tools/dev/count_tests.py` |
+| Python oracles | 24 `tools/dev/validate_*.py` + `tools/audit/*` | listing |
+| Docs | **27** hand-written `html/*.html` (24 per-entity duplicates retired in v5.0.1, WP6 stage 3; `regionalBasis.html` added in v5.14.0) + **232 generated `html/ref/*.html`** (one per entity + index, `make_refpages.py`), one shared `html/shAnalysis.css`, `helptoc.xml`, `info.xml`, guide PDF, generated `html/apiReference.html`. `docs/` holds the PDF and `apiExamples.json` only - no HTML page lives outside `html/` (gated). | listing |
 | CI | `gates` job on ubuntu (help_audit, doc_sync_audit, no_map_renderer, toolbox_dependency_audit, nv_casing_audit, fixture_tag_audit, gate self-tests `tools/tests/`, `count_tests`, `name_coverage`, `class_surface_audit`, `error_id_audit`, `option_values_audit`, `refpages_audit`, `make_demos --check`, `perf_baseline_audit`) + `runAllTests (self-hosted)` on A8/R2026a; fixtures from tag `fixtures-2026-08` | `.github/workflows/ci.yml` |
 | Namespace | `+shLowLevel` (renamed from `+shx` in v3.0.0). Any memory saying `shx.*` is stale. | README §History |
 
@@ -207,6 +207,7 @@ do not see; **L** = polish.
 | A30 | M | **CLOSED v5.12.1** - the lane refuses NaN too (`shAnalysisGrid:nanInGrid`), and its two NaN-exposed callers refuse under their own identifiers: `leakageCorrect` without a Mask, which reported `diverged`, and `gridScaling` with a NaN model, which returned no finite k, silently. Measured before the fix: one NaN polar cap put NaN into 153 of 289 C coefficients. **PARTIALLY CLOSED v5.8.0** - a grid holding NaN (a land-only model grid, a masked field) reached every coefficient of `shCoefficients.analysis` without an error. The class now refuses it until `Fill = value` says what the gaps mean. The lane `shLowLevel.shAnalysisGrid` still passed NaN through. | `testAnalysisRefusesNaNUntilToldWhatTheyMean`, `testNaNNeverReachesAnAnalysis` |
 | A31 | L | **CLOSED v5.8.0** - `readMascon` read its time axis with a pattern of its own that took two-digit months only, so it refused GravIS's `days since 2002-4-18 00:00:00`. `readGrid` needed the same decoding, and a second copy would have been the A17 shape; both now call one private `cfTimeToYears`, and `readMascon` is bitwise unchanged on the real CSR file. | `testCFTimeUnitsAreReadOneWay` |
 | A32 | H | **CLOSED v5.13.1** - an audit of the help, the html pages and the guide, asked for by Matthias, run as read-only probes over what the documentation gates do NOT read. With all 19 gates green it found: **wrong for a user** - the README quick start called `clim.amplitudeMap` with five positional arguments (three allowed); ten guide snippets and two html pages assigned `Idx=` and then used `idx`; guide G9 called `shLowLevel.plotSHMap`, removed in v3.32.0; `shSynthesis.html` and `legendreALF.html` called both functions without `shLowLevel.`; `demo_shAnalysis` looked for fetched ITSG data only in the pre-v3.16 folders, so D05/D06 never found a fetch made since (Tier A: 257 months found now, 0 before); six guide paragraphs printed a literal `%%` and one a mangled path; six html pages opened `<body>` twice and one closed `</head>` twice. **Stale** - the refuted "5-20x" on two pages; GIA "treated as exact" (v5.2.0 propagates it); "two" opt-in tests (seven); the pre-v3.16 download layout in five pages, four help blocks and the guide; fixtures "shipped in tests/test_data" (a plain clone has none); "four" suites; "six" CI gates; the guide's Edition 5, "169 unit tests" and two-part identifier convention; `standardChain`'s "DDKn (fetched on demand)". **Missing** - 28 public methods from the three class pages; guide chapters for everything after v3.26 (now 28-32 and G14); 51 of 128 functions in the guide's "Utilities" index (now 5, the utilities). The four probe rules that fire only on defects, and a one-head-one-body check, are gated as `doc_sync_audit` PROSE, fault-injected in `tools/tests/test_doc_sync_prose.py`. | `python3 tools/doc_sync_audit.py` |
+| A33 | M | **OPEN** - GravIS basin GeoJSON is parsed in four places (`twsChain`, `gravisRegionChain`, `greenlandChain`, `antarcticaChain`), each converting `[lon lat]` rings itself; three rivbas basins (Loire, Niger, Volta) cross lon 0, where `evalMask`'s planar polygon test in `[0, 360)` breaks. v5.14.0 adds `shLowLevel.readBasin`, wrap-safe, as the one reader for new code; migrating the four chains onto it is left for a row with captured references (the A25 pattern). | `grep -ln jsondecode +shLowLevel/*.m` |
 | A15 | M | **CLOSED v4.0.0** with A3 — `kernelFactors`, `shSynthesisGradient` and `seaLevelFingerprint` now own their identifiers, and the tests that pinned the old names were remapped per raising file (the same old id mapped to two different owners, so a global replace would have been wrong). Original finding: A3 is **wider than the audit's 12**: `kernelFactors` (`shSynthesis:missingLoveNumbers`, `:badQuantity`, `:heightInvalid`), `shSynthesisGradient` (`shSynthesis:badInput`) and `seaLevelFingerprint` (`shSynthesis:missingLoveNumbers`) also raise identifiers they do not own. Unlike `shSynthesisDeformation`'s, these ARE documented and pinned by `testContract`/`testCorrectness`, so renaming them is a MAJOR change. Belongs in WP1's identifier sweep, not in a patch. | `grep -rn "shSynthesis:" --include=*.m` |
 | A14 | M | **CLOSED v3.33.1** — the three gate self-tests in `tools/tests/` (committed in v3.32/v3.33) were **never run by CI**, and `test_legacy_name_tolerated` had been broken since the v3.33.0 sweep drained `LEGACY` to empty — an untested instrument, silently. CI now runs `tools/tests/`; the stale test asserts the mechanism with a temporary entry instead of pinning a member name. | `.github/workflows/ci.yml` before/after |
 | A13 | L | **CLOSED v3.34.0** — the km conversion is the `RadiusKm` option, default unchanged at 6371 so no number moves, documented as the MEAN radius (deliberately not the coefficients' reference radius 6378.1363 km) and overridable. Pinned by `testResolutionMapRadiusIsAChoice`, a metamorphic test: the angular half-widths are radius-invariant, every km figure scales exactly with it, and `anisotropy` — a ratio — does not. That test also removes `resolutionMap` from A10's never-named list. | `+shLowLevel/resolutionMap.m` |
@@ -589,6 +590,54 @@ on the series - so 14 remain; reach is 79 of 128.
 - **Oracle**: none (delegation).
 - **Size**: M. **Version**: MINOR.
 
+### WP8 — Regional Kalman with local basis functions   `[~] 8a DONE (v5.14.0)` (approved 2026-10-20)
+Approved by Matthias on 2026-10-20 in four answers to the review of
+Kurtenbach (DGK C-683) and the work since: (1) the state is a set of
+LOCAL basis functions (RBF, Slepian), not global SH; (2) the existing
+filter is REUSED - `estimateVAR`, `kalmanFilter`, `rtsSmoother`,
+`neqCombine` are already generic in the state vector; (3) ALL
+observation levels, in the row order below; (4) it is part of
+shAnalysis, the basin is selectable, and otherwise a test area.
+
+- **Goal**: Kurtenbach's NEQ-form filter (C-683 eqs. 3.84-3.88,
+  3.112-3.113, RTS 3.127-3.129) on the coefficients of a regional
+  basis, so that daily or monthly gravity information of every level
+  updates one regional state. The outlook of C-683 (local support,
+  extra observation groups) and the closed loops of Woehnke et al.
+  2025 (RBF, GEM 16:2) and Steffen et al. 2026 (Slepian, IAG Symp.)
+  are the starting point.
+- **The one design idea**: every basis is a LINEAR MAP `T` from its
+  coefficients to SH coefficients (`x_SH = T a`, `P x K`), band-limited
+  at the series' nmax. RBF: `T(:,k) = phi_n .* Ybar(x_k)'` (addition
+  theorem); Slepian: the tapers `G`; SH: the identity. Everything else
+  is then SH machinery the toolbox already validates: an SH solution or
+  NEQ enters as `T' N T`, `T' b`; a grid or point functional as
+  `A_SH T`; the process model as `estimateVAR` on projected model
+  output. **SH with T = I is the oracle**: the regional chain must
+  reproduce `kalmanChain` there.
+- **Rows** (each its own release, each measured before built):
+
+| Row | Content | Oracle |
+|---|---|---|
+| 8a `[x]` **DONE v5.14.0** | `readBasin` (GravIS GeoJSON -> wrap-safe region; the basin is selectable by name), `regionalBasis` (RBF on an icosahedral or Reuter grid with a degree-amplitude, Kaula or Shannon kernel; Slepian by threshold or count; SH), `regionalProject` (region-weighted LS projector), class routes `regionalBasis`/`regionalProject` | `validate_regional_basis.py`: node counts, kernel = Legendre series, projector normal equations, projector = `G'` for Slepian, polygon area of the Elbe |
+| 8b `[ ]` | process model in the basis: model series -> basis coefficients -> climatology reduced -> `estimateVAR`; diagnostics (spectral radius, Q PSD, signal variance ratio), Kurtenbach's alpha and ground-noise options | Order 1 = C-683 eqs. 3.84-3.85 on the projected series |
+| 8c `[ ]` | observation adapters to basis NEQs: SH solution + covariance, SH NEQ (SINEX), grid (EWH + covariance, observation area = region + buffer, Woehnke's dO), point functionals (potential, gravity disturbance, gravity vector along a direction, differences of two points = LGD) | `T' N T` against the SH NEQ; grid design against `synthesisPoints` |
+| 8d `[ ]` | the chain and its single point of access, `ts.regionalKalman(Region=, Basis=, ModelSeries=, ...)`: filter + RTS (reused), output as basis coefficients, EWH grids on the region, basin mean with sigma through T, an shSeries of `T a` | SH basis = `kalmanChain` (machine precision) |
+| 8e `[ ]` | regional consistency: remove-compute-restore against a global background (low degrees / outside signal), the investigation/observation/computation areas of Woehnke 2025 | closed loop with signal outside the region |
+| 8f `[ ]` | closed loop of Woehnke 2025 / Steffen 2026: ESA ESM truth, ITSG-Grace2018 covariance noise, monthly, then daily | their published RMSD 0.62 / 0.58 cm, correlation 0.98 |
+| 8g `[ ]` | daily real data: ITSG daily NEQs (SINEX) in the basis; the Elbe (2013) and the September 2024 central-European flood as test cases | ITSG daily Kalman product, GravIS basin series |
+| 8h `[ ]` | LGD observations: the point-functional design here; along-track preprocessing, transfer function and noise PSD stay in lgdToolbox, which hands over records (toolboxes stay independent) | lgdToolbox forward model |
+| 8i `[ ]` | adaptive process noise (VCE of Q per block from the innovations, replacing Kurtenbach's hand-tuned alpha), VAR(p > 1), space-domain conditioning through `CondFun` | closed loop of 8f |
+
+- **GNSS and terrestrial gravimetry** enter as SH NEQs or point
+  records built OUTSIDE shAnalysis: WP4's decision of 2026-09-10 put
+  GNSS inversion and joint combination into a GNSS toolbox, and this
+  WP does not reverse it - the regional filter only accepts the NEQ.
+- **Tests**: per row; `metamorphic` (SH basis = global chain),
+  `precision` (projector identities), `reference` (Woehnke/Steffen
+  numbers), `robustness` (dateline basins, polar regions, gaps).
+- **Size**: XL over the rows. **Version**: MINOR per row.
+
 ### Deliberately not proposed
 - MAGIC/GRACE-C/NGGM readiness — no product format exists to read; revisit
   when simulated L2 products are public.
@@ -602,6 +651,40 @@ on the series - so 14 remain; reach is 79 of 128.
 ## 6. Records
 
 ### 6.1 Decisions (append-only; date, decision, evidence)
+- 2026-10-20 — **WP8 approved: a regional Kalman with local basis
+  functions, inside shAnalysis** (Matthias: "1 local basis function /
+  2. Reuse it / 3. All of them / 4. Make it part of the shAnalysis
+  toolbox and the basin shall be selectable. Else can be a test area").
+  The answers followed a review of Kurtenbach's thesis and the work
+  since, which ended "once these are settled I start the basis row";
+  8a starts on that reading, the later rows wait for their own tick.
+- 2026-10-20 — **Every basis is a linear map to SH coefficients.**
+  RBF, Slepian and SH differ only in `T`; the filter, the NEQs and the
+  VAR estimate stay SH-agnostic, which is what makes "reuse it"
+  possible without a second filter. The price is band-limitation at
+  nmax - the RBF of Eicker (2008) and Woehnke (2025) are band-limited
+  Legendre series already, so nothing is lost against the literature.
+- 2026-10-20 — **The RBF kernel follows Woehnke 2025 eq. 7, not a
+  window.** Their shape coefficients are phi_n = sigma_n / sqrt(2n+1)
+  from the signal's degree amplitudes (Eicker 2008), and they report
+  Kaula's rule within 0.07% in correlation. So the kernel options are
+  the user's degree amplitudes, Kaula's 1/n^2 (default, no data
+  needed) and Shannon (phi_n = 1). A Blackman window was NOT
+  implemented: its formula was not in hand, and 6.3 says what happens
+  to methods built from memory.
+- 2026-10-20 — **The default node level makes the GLOBAL grid as large
+  as the SH basis**, 10(j+1)^2 + 2 >= (nmax+1)^2. At nmax 96 that is
+  j = 30, the level Woehnke's Fig. 4 labels "n = 30" (their text gives
+  the node count as K = 10(j+1)^2 + 2, eq. 8).
+- 2026-10-20 — **A node belongs to the basis when its nearest
+  quadrature point is inside the buffered region**, one rule for every
+  region form (name, polygon, handle, mask), and the same buffered mask
+  the projector weights with. The cost is a node-selection resolution
+  of half a grid spacing, stated in the help; OverSample refines it.
+- 2026-10-20 — **The GeoJSON reader is new, and the four chains that
+  parse GeoJSON themselves were left alone** (A33). Moving them onto
+  `readBasin` changes their code paths in a release whose claim is
+  "additive"; it is a row of its own, with captured references first.
 - 2026-09-11 — **The documentation audit shipped as 5.13.1, a PATCH**
   (Matthias: "Audit the help text, html doc and pdf documentation for
   completeness and if they are in sync. Fix everything mistake or miss
@@ -1530,6 +1613,7 @@ on the series - so 14 remain; reach is 79 of 128.
 | v5.12.2 (WP2: B1 and the FFT/direct sweep measured, neither built; the `Method` help) | ☑ 16 gates + mlint + make_demos + 15 self-test suites, 0 findings; documentation only | ☑ **Tier A LOCAL on MATTHIASPC — 382 runs, 380 passed, 0 failed, 2 filtered**; count exact per class (Contract 108, Correctness 181, Performance 27, Robustness 57, Science 9), all 27 performance runs asserted. Then ☑ **CI self-hosted (A8) at `8a8141b` via PR #116, green — 382 runs, 375 passed, 0 failed, 7 filtered**, per class exactly as predicted | ☑ PR #116 | ☑ 2026-09-10 |
 | v5.13.0 (WP7 backlog: `poleTideConvert`, `estimateDegree1`, `combineCenters`, `slepianProject` behind the classes) | ☑ 16 gates + mlint + make_demos + 15 self-test suites, 0 findings; reach 75 -> 79 of 128, 16 delegates pinned | ☑ **Tier A LOCAL on MATTHIASPC — 384 runs, 382 passed, 0 failed, 2 filtered**; count exact per class (Contract 110, Correctness 181, Performance 27, Robustness 57, Science 9), all 27 performance runs asserted, and both new tests passed on their first run. Then ☑ **CI self-hosted (A8) at `385e44f` via PR #117, green — 384 runs, 377 passed, 0 failed, 7 filtered**, per class exactly as predicted, and both new tests ran there | ☑ PR #117 | ☑ 2026-09-10 |
 | v5.13.1 (documentation audit: help, html and guide in sync; the demo's v3.16 lookup; `doc_sync_audit` PROSE) | ☑ 16 gates + mlint + make_demos + 15 self-test suites (the new `test_doc_sync_prose`, 18 tests), 0 findings; the demo fix checked in MATLAB: D05 found the 257 fetched months it had missed | ☑ **Tier A LOCAL on MATTHIASPC — 384 runs, 382 passed, 0 failed, 2 filtered**; count exact per class (Contract 110, Correctness 181, Performance 27, Robustness 57, Science 9), all 27 performance runs asserted - unchanged from 5.13.0, as a documentation release should be; the demo fix was run on its own (D05 on the 257 fetched months) | ◐ pending | ◐ pending |
+| v5.14.0 (WP8 8a: `readBasin`, `regionalBasis`, `regionalProject`, class routes; `synthesisMatrix` GridOnly) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally** (the bridge's device was offline). ☑ **CI self-hosted (A8) at `bc74d1b` via PR #120, green — 394 runs, 387 passed, 0 failed, 7 filtered** (the optional real-data fixtures); the count prediction matched EXACTLY, per class as well as in total (Contract 112, Correctness 188, Performance 27, Robustness 58, Science 9). One red round first, at `52913ca`: two TEST defects of mine, both root-caused - `isequal` on a basis carrying NaN, and an expected area taken from an oracle whose point-in-polygon rule drops edge points (6.3) | ☑ PR #120 | ◐ pending |
 | v5.0.3 (WP2 step 1 baselines) | ☑ 14 gates + mlint + make_demos + 13 self-test suites, 0 findings; `NO_BASELINE` empty | ☑ **CI self-hosted (A8) at `b70c947`, green — 315 runs, 311 passed, 0 failed, 4 filtered**; the EIGHTH exact count prediction running, per class as well as in total. All ten budgets PASSED (they filtered at `f6d5529`), and the only filtered are the four real-data fixtures. Triggered by `workflow_dispatch`, not a PR — #99 merged mid-session and `ci.yml` runs only on push-to-main, pull_request and workflow_dispatch. | ☐ no PR (#99 merged; not asked) | ☐ |
 
 **Tier A debt: DISCHARGED for all nine releases.** The local MATLAB
@@ -1554,6 +1638,17 @@ confirmation that the counter is right about a real run and not only
 about the source.
 
 ### 6.3 What the next session could be wrong for not reading
+- **`isequal` is false on NaN, whatever the bits.** A delegate test that
+  compares two basis structs with `isequal` failed on A8 only for the
+  Slepian basis, whose `level` and `nGlobal` are NaN; it looked like
+  eigen-solver nondeterminism and was not. Compare structs that can carry
+  NaN with `isequaln`.
+- **An oracle's point-in-polygon rule is part of its answer.** matplotlib's
+  `contains_points` leaves out points ON an edge; `inpolygon` keeps them.
+  A ring starting on lon 0 put one grid column on the edge, and the
+  oracle's area came out 1/244 short of the MATLAB one (v5.14.0, first A8
+  run). Where a region has an exact definition, pin the handle to that
+  definition, not to a second implementation's sum.
 - **A tolerance can hold on one branch only.** `leakageCorrect`'s "NaN
   outside both regions is tolerated" was true with a Mask, which zeroes
   the model outside it; without one the same NaN went into the analysis

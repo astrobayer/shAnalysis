@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Regional bases</title>
+<link rel="stylesheet" href="shAnalysis.css">
+</head>
+<body><div class="content">
+<span class="tag">Regional</span> <span class="tag">v5.14.0</span>
+<h1>Regional bases for a selectable basin</h1>
+<p>Local basis functions - radial basis functions or Slepian tapers - for a basin chosen by name, as the state of a regional Kalman filter.</p>
+<h2>Syntax</h2>
+<pre>[region, info] = shLowLevel.readBasin("Elbe")
+B = shLowLevel.regionalBasis(idx, region)
+B = shLowLevel.regionalBasis(idx, "Elbe", Type="slepian", Threshold=0.5)
+[a, rec] = shLowLevel.regionalProject(Cs, Ss, B)
+B = ts.regionalBasis("Elbe");  [a, rec] = ts.regionalProject(B);</pre>
+<h2>Description</h2>
+<p>Every basis is a <b>linear map to spherical-harmonic coefficients</b>: <code class="inline">x = B.T * a</code>, with <code class="inline">B.T</code> of size P&times;K, band-limited at the index's Lmax. That one choice lets the rest of the toolbox stay what it is - an SH solution or normal equation enters the basis as <code class="inline">T' N T</code> and <code class="inline">T' b</code>, a grid or a point functional as <code class="inline">A_SH * T</code>, a model series through the projector <code class="inline">B.Proj</code> - and it makes the global SH basis (<code class="inline">Type="sh"</code>, T = I) the oracle of the regional filter: on it, the regional chain must be the global one. It is the first step towards a regional Kalman filter after Kurtenbach (2012) on local basis functions; the process model, the observation adapters and the filter follow.</p>
+<p><b>The region.</b> <code class="inline">shLowLevel.readBasin</code> finds a basin of a GravIS GeoJSON file (the 100 river basins of <code class="inline">data/gravis/basins_rivbas.json</code> by default; the Greenland and Antarctic files ship too) by its name or a unique part of it, and returns a wrap-safe region handle: basins that cross lon 0 (Loire, Niger, Volta) and rings around a pole are inside where they should be, which a [lat lon] polygon in [0, 360) is not. Any other region form - a handle, a polygon, a mask - is accepted as well.</p>
+<p><b>Radial basis functions</b> (<code class="inline">Type="rbf"</code>, the default) follow Eicker (2008) and Woehnke et&nbsp;al. (2025): <code class="inline">T(:,k) = phi_n .* Ybar(x_k)'</code>, so each function is the Legendre series &sum; phi_n (2n+1) P_n(cos &psi;) around its node. The shape coefficients come from the signal's degree amplitudes, phi_n = &sigma;_n / &radic;(2n+1) (<code class="inline">Kernel="amplitude"</code>, their eq.&nbsp;7), from Kaula's 1/n&sup2; (the default; Woehnke et&nbsp;al. found it within 0.07% in correlation), or are all one (<code class="inline">"shannon"</code>). Nodes come from an icosahedral grid of 10 (j+1)&sup2; + 2 points or a Reuter grid; the default level makes the global grid as large as the SH basis (j = 30 at nmax 96).</p>
+<p><b>Slepian tapers</b> (<code class="inline">Type="slepian"</code>) are those of <a href="slepianBasis.html">slepianBasis</a>, kept by Shannon number, count or a concentration threshold (Steffen et&nbsp;al. 2026 use 0.5).</p>
+<p><b>The buffer.</b> The region is grown by <code class="inline">BufferKm</code> (600 km, Woehnke's computation area: the region plus twice 300 km) before nodes are selected, tapers concentrated and the projector weighted. A node belongs to the basis when its nearest quadrature point is inside the buffered region.</p>
+<p><b>The projector</b> is the least-squares fit over the buffered region, <code class="inline">Proj = (T'KT)<sup>+</sup> T'K</code> with <code class="inline">K = Y' diag(w.*mask) Y</code>; for Slepian tapers it is exactly G', so <code class="inline">regionalProject</code> equals <code class="inline">slepianProject</code> there. Only grid points inside the buffered region are formed, so the cost follows the region, not the sphere.</p>
+<h2>Arguments</h2>
+<table><tr><th>Name</th><th>Type / size</th><th>Description</th></tr>
+<tr><td>idx</td><td>(1,1) struct</td><td><code class="inline">shLowLevel.shIndex</code> of the coefficients the basis maps to</td></tr>
+<tr><td>region</td><td>name | handle | polygon | mask</td><td>a basin name is resolved by <code class="inline">readBasin</code>; [] only for Type "sh"</td></tr>
+<tr><td>Type</td><td>"rbf" | "slepian" | "sh"</td><td>the basis</td></tr>
+<tr><td>BufferKm</td><td>(1,1) double, 600</td><td>growth of the region before the basis is built</td></tr>
+<tr><td>Grid, Level</td><td>"icosahedral" | "reuter", []</td><td>rbf node grid and its level</td></tr>
+<tr><td>Kernel, DegreeAmplitude</td><td>"kaula" | "shannon" | "amplitude"</td><td>rbf shape coefficients</td></tr>
+<tr><td>Threshold, NKeep</td><td>(1,1) double</td><td>slepian taper selection</td></tr>
+<tr><td>B</td><td>(1,1) struct</td><td>T, Proj, K, nodes, kernel, lambda, rank, region (with its buffered mask)</td></tr>
+<tr><td>a</td><td>(K,T) double</td><td>basis coefficients per coefficient set</td></tr>
+<tr><td>rec</td><td>(1,1) struct</td><td>Cs, Ss of <code class="inline">B.T * a</code></td></tr></table>
+<h2>Examples</h2>
+<pre>idx = shLowLevel.shIndex(60);
+B = shLowLevel.regionalBasis(idx, "Elbe");               % RBF, Kaula kernel
+fprintf("%d RBF nodes of %d\n", B.K, B.nGlobal);
+S = shLowLevel.regionalBasis(idx, "Elbe", Type="slepian", Threshold=0.5);
+[a, rec] = ts.regionalProject(ts.regionalBasis("Elbe"));  % K x T regional state</pre>
+<div class="note">Validated in <code class="inline">tools/dev/validate_regional_basis.py</code>: the icosahedral node count 10 f&sup2; + 2, the RBF against scipy's Legendre series (1.2e-14), the projector's normal equations (2e-11) and span reproduction (9e-12), projector = G' for Slepian (2.2e-15), the Elbe's area against its exact spherical polygon (140&nbsp;031 km&sup2;; the mask quadrature is 3.6% below it at nmax 60), the Loire across lon 0 and a ring around the south pole.</div>
+<h2>See Also</h2><p class="seealso"><a href="ref/shLowLevel_readBasin.html">readBasin</a> <a href="ref/shLowLevel_regionalBasis.html">regionalBasis</a> <a href="ref/shLowLevel_regionalProject.html">regionalProject</a> <a href="slepianBasis.html">slepianBasis</a> <a href="kalman.html">Kalman filter</a></p>
+<h2>References</h2>
+<p>Kurtenbach, E. (2011), Entwicklung eines Kalman-Filters zur Bestimmung kurzzeitiger Variationen des Erdschwerefeldes aus Daten der Satellitenmission GRACE, DGK C-683. Eicker, A. (2008), Gravity field refinement by radial basis functions from in-situ satellite data, PhD thesis, Bonn. Woehnke, V., Eicker, A., Weigelt, M., et&nbsp;al. (2025), Kalman filter framework for a regional mass change model from GRACE satellite gravity, GEM - Int. J. Geomath. 16:2, doi:10.1007/s13137-024-00260-1. Steffen, R., Woehnke, V., Weigelt, M., Eicker, A. (2026), Improved regional mass change estimation using Slepian functions in a Kalman filter framework, IAG Symposia, doi:10.1007/1345_2026_348.</p>
+</div><p class="provenance">Developed by Matthias Weigelt with the help of Claude (Opus 5.5), 2026-10-20.</p>
+</body></html>
