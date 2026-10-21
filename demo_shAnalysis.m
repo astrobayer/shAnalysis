@@ -56,8 +56,8 @@ function reg = demo_shAnalysis(cases, opts)
 %     Visible (true)  (1 x 1) logical  show figures (false keeps them
 %                 off-screen for batch/CI runs)
 %     OutDir (string(tempdir))  (1 x 1) string   output folder for exported files;
-%                 D16 writes into it directly (fullfile), so "" writes
-%                 into the current folder
+%                 "" = a fresh folder under tempdir (before v5.23.4 ""
+%                 wrote into the current folder)
 %     StopOnError (false)  (1 x 1) logical  true stops at the first failing
 %                 case; false (default) prints FAILED and continues -
 %                 the fail-and-continue contract the suite exercises
@@ -89,13 +89,20 @@ if any(cases == "list")
 end
 if any(cases == "core"), cases = ["D01" "D02" "D04" "D05" "D15"]; end
 if any(cases == "all"),  cases = [reg.id]; end
+% "" is a fresh folder under tempdir, never the current folder (v5.23.4:
+% it reached D16's fullfile as '' and wrote the exports into pwd)
+outDir = opts.OutDir;
+if strlength(outDir) == 0
+    outDir = string(tempname);
+    mkdir(outDir);
+end
 okList = strings(1, 0); failList = strings(1, 0);
 for c = cases
     k = find([reg.id] == c, 1);
     assert(~isempty(k), 'shAnalysis:demo:unknownCase', 'Unknown case %s (try "list").', c);
     fprintf('\n=== %s: %s ===\n', reg(k).id, reg(k).title);
     try
-        reg(k).run(opts.Visible, char(opts.OutDir));
+        reg(k).run(opts.Visible, char(outDir));
         okList(end+1) = reg(k).id; %#ok<AGROW>
     catch err
         failList(end+1) = reg(k).id; %#ok<AGROW>

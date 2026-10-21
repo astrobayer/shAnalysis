@@ -143,9 +143,12 @@ if isnumeric(model) || ...
         rows = T;
     else
         rows = T(1, []); %#ok<NASGU>
+        % a temporal catalogue names its rows in `series`, not `name`
+        % (v5.23.4: T.name raised a table error there)
+        lab = catalogueLabels(T);
         idxs = zeros(1, numel(model));
         for k = 1:numel(model)
-            h = find(strcmpi(T.name, model(k)), 1);
+            h = find(strcmpi(lab, model(k)), 1);
             assert(~isempty(h), 'shLowLevel:fetchICGEM:notFound', ...
                 'Model "%s" not found (see shLowLevel.listICGEM).', model(k));
             idxs(k) = h;
@@ -227,14 +230,18 @@ else
             end
         end
     end
-    if isempty(hit)
+    % the prefix rule is the static catalogue's; a temporal one has no
+    % `name` column, and reading it there raised a table error instead
+    % of notFound (v5.23.4)
+    if isempty(hit) && ismember('name', T.Properties.VariableNames)
         hit = find(startsWith(lower(T.name), lower(name)));
     end
     assert(~isempty(hit), 'shLowLevel:fetchICGEM:notFound', ...
         'Model "%s" not found at ICGEM (see shLowLevel.listICGEM).', name);
+    lab = catalogueLabels(T);
     assert(isscalar(hit), 'shLowLevel:fetchICGEM:ambiguous', ...
         '"%s" matches %d models: %s', name, numel(hit), ...
-        strjoin(T.name(hit(1:min(5, end))), ', '));
+        strjoin(lab(hit(1:min(5, end))), ', '));
     row = T(hit, :);
 end
 dest = opts.Dest;
@@ -452,5 +459,15 @@ for nm = ["MaxTries", "BaseDelay"]
     if isfield(opts, nm)
         c = [c, {char(nm), opts.(nm)}]; %#ok<AGROW>
     end
+end
+end
+
+function lab = catalogueLabels(T)
+%CATALOGUELABELS The column a catalogue names its rows by: `name` for the
+%   static list, `series` for the temporal one.
+if ismember('name', T.Properties.VariableNames)
+    lab = string(T.name);
+else
+    lab = string(T.series);
 end
 end

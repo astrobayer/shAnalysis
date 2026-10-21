@@ -123,7 +123,10 @@ if isempty(opts.OceanMask)
 end
 R = 6378136.3; GM = 3.986004415e14; Re = 6371e3;
 % ---- corrected series (shared core)
-l2bArgs = {'GIAEpoch', opts.GIAEpoch, 'GIAFile', opts.GIAFile};
+% Quiet reaches gravisL2B too (v5.23.4): its own default is false, so
+% the chain's Quiet = true used to leave its stages printed
+l2bArgs = {'GIAEpoch', opts.GIAEpoch, 'GIAFile', opts.GIAFile, ...
+    'Quiet', opts.Quiet};
 if ~isempty(opts.SpanEnd), l2bArgs = [l2bArgs, {'SpanEnd', opts.SpanEnd}]; end
 [ts, repL] = shLowLevel.gravisL2B(folder, opts.GravisFolder, l2bArgs{:});
 ep = ts.epochs(:); T = numel(ep);

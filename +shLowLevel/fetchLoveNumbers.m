@@ -42,8 +42,9 @@ function [files, info] = fetchLoveNumbers(names, opts)
 %
 %   Error identifiers
 %     shLowLevel:fetchLoveNumbers:badFormat
-%         the downloaded file is neither an N x 1 GROOPS matrix file nor a
-%         bare finite numeric column
+%         the downloaded file is neither a GROOPS matrix file nor a bare
+%         finite numeric table with the expected columns (one for the
+%         load Love numbers, two - h' and l' - for a deformation table)
 %     shLowLevel:fetchLoveNumbers:unknownName
 %         the requested file is not one of the known Love-number files
 %
@@ -99,7 +100,10 @@ for nm = names(:)'
                 webFetch(opts.BaseURL + "/" + nm, tmpf, ...
                     opts.Timeout, opts.Proxy);
             end
-            parseGroopsMatrix(tmpf);            % verify BEFORE swap
+            % verify BEFORE swap; a deformation table holds h' and l' in
+            % two columns, which the one-column check refused, so every
+            % deformation fetch failed before v5.23.4
+            parseGroopsMatrix(tmpf, 1 + startsWith(nm, "deformation"));
             shLowLevel.safeMove(tmpf, fp);
             files(end+1) = string(fp); %#ok<AGROW>
             if present, info.updated(end+1) = string(fp);
@@ -117,7 +121,7 @@ for nm = names(:)'
         end
     end
     if startsWith(nm, "loadLoveNumbers") && nargout > 1
-        kn = parseGroopsMatrix(fp);
+        kn = parseGroopsMatrix(fp, 1);
         parsed(end+1) = struct('name', nm, ...
             'n', (0:numel(kn)-1)', 'kn', kn); %#ok<AGROW>
     end
@@ -125,29 +129,35 @@ end
 info.parsed = parsed;
 end
 
-function v = parseGroopsMatrix(fp)
-% single-column GROOPS matrix: 'groops matrix version=...' header,
-% 'Matrix( N x 1 )', then N values
+function v = parseGroopsMatrix(fp, ncol)
+% N x NCOL GROOPS matrix: 'groops matrix version=...' header,
+% 'Matrix( N x NCOL )', then N rows; NCOL is 1 for the load Love numbers
+% and 2 (h', l') for the deformation tables
 txt = fileread(char(fp));
 lines = strsplit(strtrim(txt), '\n');
 if numel(lines) < 3 || ~contains(lines{1}, 'groops matrix')
     % the GROOPS loading folder itself ships BOTH layouts: Gegout97
     % carries the two-line matrix header, the ak135 variants are bare
     % single-column numeric (audit F-12). Accept the bare form when it
-    % parses cleanly as one finite column.
+    % parses cleanly as NCOL finite columns.
     v = sscanf(txt, '%f');
-    ok = numel(v) >= 100 && all(isfinite(v)) && ...
-        numel(v) == nnz(~cellfun(@(s) isempty(strtrim(s)), lines));
+    nRows = nnz(~cellfun(@(s) isempty(strtrim(s)), lines));
+    ok = numel(v) >= 100 * ncol && all(isfinite(v)) && ...
+        numel(v) == ncol * nRows;
     assert(ok, 'shLowLevel:fetchLoveNumbers:badFormat', ...
-        'Neither a GROOPS matrix file nor a bare numeric column.');
+        'Neither a GROOPS matrix file nor a bare numeric table.');
+    v = reshape(v, ncol, []).';
     return
 end
 tok = regexp(lines{2}, 'Matrix\(\s*(\d+)\s*x\s*(\d+)\s*\)', 'tokens', 'once');
-assert(~isempty(tok) && str2double(tok{2}) == 1, ...
-    'shLowLevel:fetchLoveNumbers:badFormat', 'Expected an N x 1 GROOPS matrix.');
+assert(~isempty(tok) && str2double(tok{2}) == ncol, ...
+    'shLowLevel:fetchLoveNumbers:badFormat', ...
+    'Expected an N x %d GROOPS matrix.', ncol);
 N = str2double(tok{1});
-v = str2double(string(lines(3:2+N)))';
-v = v(:);
-assert(all(isfinite(v)) && numel(v) == N, ...
+assert(numel(lines) >= 2 + N, 'shLowLevel:fetchLoveNumbers:badFormat', ...
+    'Matrix body parse failed.');
+v = sscanf(strjoin(lines(3:2+N), ' '), '%f');
+assert(all(isfinite(v)) && numel(v) == N * ncol, ...
     'shLowLevel:fetchLoveNumbers:badFormat', 'Matrix body parse failed.');
+v = reshape(v, ncol, N).';
 end

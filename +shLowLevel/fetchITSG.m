@@ -49,7 +49,9 @@ function [files, info] = fetchITSG(months, opts)
 %     Release ("")  "" routes each month by the rule below; a release
 %                   name ("ITSG-Grace2018" | "ITSG-Grace_operational")
 %                   pins every file to that release folder
-%     Catalog ([])  row numbers of the shLowLevel.listITSG catalogue to fetch completely
+%     Catalog ([])  row numbers of the shLowLevel.listITSG catalogue to fetch
+%                   completely; a static or daily row is skipped with a
+%                   warning (staticSkipped, dailySkipped)
 %   Outputs
 %     files  (1,:) string   paths of all present files (new + existing)
 %     info   (1,1) struct  fields
@@ -73,6 +75,9 @@ function [files, info] = fetchITSG(months, opts)
 %     shLowLevel:fetchITSG:allDaily
 %         months = "all" with the daily product refuses to run - it would
 %         fetch tens of GB; name the months or years
+%     shLowLevel:fetchITSG:dailySkipped
+%         warning - a Catalog row names the daily product, which is not
+%         fetched completely; give months or years with Product = "daily"
 %     shLowLevel:fetchITSG:badCatalog
 %         a Catalog index lies outside 1..height(listITSG)
 %     shLowLevel:fetchITSG:badMonth
@@ -145,11 +150,20 @@ if ~isempty(opts.Catalog)
                 'Catalog %d is a static model folder; use shLowLevel.fetchICGEM.', ii);
             continue
         end
-        nmaxArg = row.nmax;
-        if row.product == "daily", nmaxArg = 40; end
+        if row.product == "daily"
+            % "fetch completely" is months = "all", which the daily product
+            % refuses (tens of GB). Before v5.23.4 the row recursed into
+            % that refusal and stopped the whole call with allDaily; now it
+            % is skipped like a static row, and the other rows are fetched
+            warning('shLowLevel:fetchITSG:dailySkipped', ...
+                ['Catalog %d is the daily product, which is not fetched ' ...
+                 'completely (tens of GB); give months or years with ' ...
+                 'Product = "daily".'], ii);
+            continue
+        end
         [fk, ik] = shLowLevel.fetchITSG("all", Release = row.release, ...
-            Product = ternary(row.product == "daily", "daily", "monthly"), ...
-            Nmax = nmaxArg, Dest = opts.Dest, BaseURL = opts.BaseURL, ...
+            Product = "monthly", ...
+            Nmax = row.nmax, Dest = opts.Dest, BaseURL = opts.BaseURL, ...
             Timeout = opts.Timeout, Proxy = opts.Proxy, ...
             Update = opts.Update, Quiet = opts.Quiet);
         files = [files, fk]; %#ok<AGROW>

@@ -6564,3 +6564,96 @@ cf = info.category(~isnan(info.category));
 verifyTrue(testCase, all(cf >= -5 & cf <= 5 & cf == round(cf)));
 verifyEqual(testCase, numel(info.categoryNames(cf + 6)), numel(cf));
 end
+
+function d = synthGsmFolder(nmax, seed)
+%SYNTHGSMFOLDER Three synthetic GSM-2 months of 2005 near the GravIS NFIL
+%   mean, which the correction tables shipped in data/gravis cover - the
+%   smallest input that runs gravisL2B (and the chains on it) to the end.
+d = tempname; mkdir(d);
+n1 = nmax + 1;
+mn = shLowLevel.readSHM(fullfile(shLowLevel.gravisDataFolder(), ...
+    "GRAVIS-2B_COSTG_0200_MEAN_2002095-2020091_NFIL_0001.gz"), Nmax = nmax);
+lowS = tril(ones(n1), -1); lowS(:, 1) = 0;
+rng(seed);
+spans = ["2005001-2005031", "2005032-2005059", "2005060-2005090"];
+for k = 1:3
+    g = shCoefficients(mn.C + 1e-10 * tril(randn(n1)), ...
+        mn.S + 1e-10 * lowS .* randn(n1));
+    g.write(fullfile(d, "GSM-2_" + spans(k) + "_TEST.gfc"), Sidecar = false);
+end
+end
+
+function testTwsChainFindsTheDDKFileOnTheDefaultPath(testCase)
+%TESTTWSCHAINFINDSTHEDDKFILEONTHEDEFAULTPATH v5.23.4: twsChain's DDK
+%   lookup joined its candidate paths as char rows with [;], a dimension
+%   error whenever two paths differ in length - on every default
+%   Filter = "DDK3" call. A garbage file under the DDK3 name in DDKFolder
+%   must be FOUND (the first candidate) and then refused by readDDK.
+d = synthGsmFolder(6, 46); c1 = onCleanup(@() rmIfFolder(d));
+ddk = tempname; mkdir(ddk); c2 = onCleanup(@() rmIfFolder(ddk));
+fn = shLowLevel.ddkNames(); fn = fn(3);
+fid = fopen(fullfile(ddk, fn), 'w'); fprintf(fid, 'not a filter\n'); fclose(fid);
+verifyError(testCase, @() shLowLevel.twsChain(d, kn = zeros(7, 1), ...
+    DDKFolder = ddk, Filter = "DDK3", Quiet = true), ...
+    'shLowLevel:readDDK:badLine');
+end
+
+function testOceanChainsForwardQuiet(testCase)
+%TESTOCEANCHAINSFORWARDQUIET v5.23.4: obpChain passes Quiet to gravisL2B,
+%   whose own default is false, so the chain's default Quiet = true used
+%   to leave gravisL2B's stages printed.
+d = synthGsmFolder(6, 47); c1 = onCleanup(@() rmIfFolder(d));
+gad = tempname; mkdir(gad); c2 = onCleanup(@() rmIfFolder(gad));
+txt = evalc(['shLowLevel.obpChain(d, kn = zeros(7, 1), ' ...
+    'OceanMask = @(la, lo) la < 0, GridStep = 10, GADFolder = gad);']);
+verifyFalse(testCase, contains(txt, "NFIL mean"), ...
+    'gravisL2B printed its stages although Quiet = true');
+end
+
+function testCombineCentersKeepsTheReference(testCase)
+%TESTCOMBINECENTERSKEEPSTHEREFERENCE v5.23.4: the combined series carries
+%   the inputs' GM and R (it took shSeries' defaults) and their common
+%   ProductType (it was always "GSM"); centres on different references
+%   are refused, since their coefficients are not the same field.
+rng(74);
+L = 4; n1 = L + 1; T = 10;
+ep = 2010 + (0:T-1) / 12;
+GM = 3.986004418e14; R = 6378137;
+tsC = cell(1, 2);
+for c = 1:2
+    Cs = randn(n1, n1, T) * 1e-9; Ss = randn(n1, n1, T) * 1e-9;
+    Ss(:, 1, :) = 0;
+    tsC{c} = shSeries(Cs, Ss = Ss, Epochs = ep, GM = GM, R = R, ...
+        ProductType = "GAD");
+end
+out = shLowLevel.combineCenters(tsC, MaxIter = 2);
+verifyEqual(testCase, [out.GM, out.R], [GM, R]);
+verifyEqual(testCase, out.productType, "GAD");
+tsMix = shSeries(tsC{2}.Cs, Ss = tsC{2}.Ss, Epochs = ep, GM = GM, R = R, ...
+    ProductType = "GSM");
+outM = shLowLevel.combineCenters({tsC{1}, tsMix}, MaxIter = 2);
+verifyEqual(testCase, outM.productType, "unknown");
+tsR = shSeries(tsC{2}.Cs, Ss = tsC{2}.Ss, Epochs = ep, GM = GM, ...
+    R = 6378136.3, ProductType = "GAD");
+verifyError(testCase, @() shLowLevel.combineCenters({tsC{1}, tsR}), ...
+    'shLowLevel:combineCenters:constantsMismatch');
+end
+
+function testWriteGridKeepsTheEpochOfA2DField(testCase)
+%TESTWRITEGRIDKEEPSTHEEPOCHOFA2DFIELD v5.23.4: a 2-D field given one
+%   epoch is written with a time axis of length 1; before, Epochs was
+%   ignored for T = 1 and the epoch was lost. Without Epochs the file
+%   is unchanged (no time axis).
+lat = (88:-4:-88)'; lon = (0:4:356)';
+[LA, LO] = ndgrid(lat, lon);
+G = sind(LA) .* cosd(LO);
+f = [tempname, '.nc']; c = onCleanup(@() delete(f));
+shLowLevel.writeGrid(f, G, lat, lon, Name = "ewh", Epochs = 2010.29, ...
+    Sidecar = false);
+[g, ~, ~, info] = shLowLevel.readGrid(f);
+verifyEqual(testCase, g, G);
+% the same day-count round trip as testReadGridIsTheInverseOfWriteGrid
+verifyEqual(testCase, info.epochs, 2010.29, 'AbsTol', 1e-9);
+verifyError(testCase, @() shLowLevel.writeGrid(f, G, lat, lon, ...
+    Epochs = [2010 2011], Sidecar = false), 'shLowLevel:writeGrid:badEpochs');
+end

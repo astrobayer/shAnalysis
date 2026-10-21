@@ -1,5 +1,84 @@
 # Changelog
 
+## [5.23.4] - 2026-10-21 - code defects of the help-versus-code review
+
+A PATCH release: fifteen defects that 5.23.3 recorded in the help as
+the code behaved, now fixed in the code, each with a test written to
+fail on the old code. Two new identifiers, both on input that used to
+give a wrong result without an error
+(`shLowLevel:combineCenters:constantsMismatch`, and `badMethod` of
+`shSynthesis` now also covers an unknown value); one new warning
+(`shLowLevel:fetchITSG:dailySkipped`). No documented valid call changes
+its result, except where the old result was the defect.
+
+### Fixed
+- **`twsChain`** joined its DDK candidate paths as char rows with
+  `[;]` - a dimension error whenever two paths differ in length, that
+  is on every default `Filter = "DDK3"` call. A string column now.
+  `testTwsChainFindsTheDDKFileOnTheDefaultPath` runs the chain to the
+  lookup on three synthetic GSM months.
+- **`standardChain(OnMissing = "drop")`** dropped only epochs outside a
+  correction table's overall range; an epoch in an interior gap (TN-13
+  has no record for 2017-07..2018-05) stopped the chain with
+  `epochNotInTable`. It now applies the rule `applyTN14`/`addDegree1`
+  apply - a record within Tolerance - and the step reads "dropped N
+  epoch(s) without a TN-13 record". `OnMissing = "error"` raises
+  `uncoveredEpochs` for such an epoch too.
+- **`obpChain`, `oceanChain`** forward `Quiet` to `gravisL2B`, whose
+  own default printed its stages under the chains' `Quiet = true`.
+- **`combineCenters`** carries the inputs' GM and R (it took shSeries'
+  defaults) and their common ProductType (it was always "GSM";
+  "unknown" when they differ), and refuses centres on different
+  references (`constantsMismatch`).
+- **`estimateDegree1`**'s degree-1 basis uses the series' R; it fixed
+  6378136.3 while the observations are synthesised on the series' own,
+  so a series on another radius got estimates scaled by the ratio.
+  Pinned metamorphically: the same coefficients on R and 1.01 R give
+  the same estimate.
+- **`fetchICGEM`** raises `notFound` for an unmatched name on a temporal
+  catalogue, single or in a list; it read a `name` column only the
+  static catalogue has.
+- **`fetchITSGBackground`** reports a month ANY selected product lacks in
+  `info.missing`, and each product its own months in
+  `products(i).missing` (new field); the months were formed over all
+  products' files together.
+- **`fetchITSG(Catalog = ...)`** skips a daily row with the warning
+  `dailySkipped` and fetches the others; the row recursed into the
+  daily `months = "all"` refusal and stopped the whole call.
+- **`fetchLoveNumbers`** verifies a deformation table as two columns
+  (h', l'), in either layout of the loading folder; the one-column check
+  refused every deformation file. Inferred from the documented layout
+  of the tables (CLAUDE.md 6.3), pinned on synthetic files of both
+  layouts; a load file with two columns is still refused.
+- **`shSynthesis`** refuses an unknown `Method` with `badMethod`; any
+  other value ran the direct path silently.
+- **`writeGrid`** writes a 2-D field given one epoch with a time axis of
+  length 1 (`readGrid` reads it back); the epoch was dropped.
+- **`plotSHSpectrum`** overlays a struct array of spectra, as it does a
+  cell array.
+- **`demo_shAnalysis(OutDir = "")`** writes into a fresh folder under
+  tempdir, not the current folder.
+- **`buildNoiseCov`**'s `notBlockDiagonal` message names its own option
+  (Assemble) beside tvANSFilter's.
+- The opt-in trend-regression and mascon tests read the preference
+  `setup_shAnalysis` stores after the environment variable, as the
+  other real-data tests and the setup code's own comment say.
+
+### Recorded, not changed
+- `readSINEX` reads an estimate line without a std field wrongly (the
+  last two numbers are always value and std): a fix needs the column
+  layout of such a file, which no file in hand has.
+- `gravisRegionChain` has `rep.basins` for Antarctica only, as its help
+  now says; adding an empty field for Greenland is a design choice.
+- `standardChain`'s `rep.files` is the raw listing, as documented.
+- MaxFailures counts failures in total, as documented.
+- `synthesisPoints` quotes 2.0x/34x where CLAUDE.md A22 says 2.3x/37x;
+  a run has to settle which.
+
+### Verification
+Tier B: static gates and Python only. 431 methods / 445 runs predicted
+(435 + 10); the A8 run on the pull request is the MATLAB verdict.
+
 ## [5.23.3] - 2026-10-21 - help text that says what the code does
 
 A PATCH release: help text in 69 files and one README line. Not one

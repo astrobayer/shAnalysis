@@ -3,7 +3,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="shAnalysis.css">
 </head><body><div class="content">
-<h1>shAnalysis API reference (v5.23.3)</h1>
+<h1>shAnalysis API reference (v5.23.4)</h1>
 <p>Generated from the source arguments blocks and help text - inputs,
 name-value options with defaults, and outputs for every public function
 and method. Regenerated with every release; the source of truth is the
@@ -281,7 +281,7 @@ code itself.</p>
 <b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>tsCell</code></td><td>1 x :</td><td>cell</td><td>required</td></tr></table>
 <b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Tolerance</code></td><td>1 x 1</td><td>double</td><td>0.05</td></tr><tr><td><code>AllowMissing</code></td><td>1 x 1</td><td>logical</td><td>true</td></tr><tr><td><code>Robust</code></td><td>1 x 1</td><td>logical</td><td>false</td></tr><tr><td><code>MaxIter</code></td><td>1 x 1</td><td>double</td><td>6</td></tr><tr><td><code>Tol</code></td><td>1 x 1</td><td>double</td><td>1e-3</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
-<tr><td><code>tsComb</code></td><td>shSeries  combined stacks on the reference epochs (first center), sigmaCs/Ss = posterior sqrt(diag(H)) per month, provenance in history; built with ProductType &quot;GSM&quot; and shSeries&#x27; default GM/R (the inputs&#x27; constants are not carried over)</td></tr>
+<tr><td><code>tsComb</code></td><td>shSeries  combined stacks on the reference epochs (first center), sigmaCs/Ss = posterior sqrt(diag(H)) per month, provenance in history; GM and R of the inputs (which must agree), and their common ProductType (&quot;unknown&quot; when they differ). Before v5.23.4 GM/R were shSeries&#x27; defaults and ProductType was always &quot;GSM&quot;</td></tr>
 <tr><td><code>info</code></td><td>(1,1) struct  fields s2         (C x T) double   variance factors per centre and month, NaN where that centre has no solution weights    (C x T) double   normalized 1/s2 redundancy (C x T) double   partial redundancy per centre interCenterCorr  (C x C) double  empirical residual correlation - the honesty diagnostic: VCE assumes independence, and GRACE centres share data and background models nIter      (1,1) double   VCE iterations used epochs     (T x 1) double   the combined epoch grid centers    (1 x C) string   each input series&#x27; productType, in the row order of s2/weights/redundancy note       (1,:) char     what the combination actually did</td></tr>
 </table>
 </div>
@@ -556,7 +556,7 @@ code itself.</p>
 <b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>months</code></td><td>n x 1</td><td>-</td><td>required</td></tr></table>
 <b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Products</code></td><td>1 x :</td><td>string</td><td>&quot;dealiasing&quot;</td></tr><tr><td><code>Dest</code></td><td>1 x 1</td><td>string</td><td>&quot;&quot;</td></tr><tr><td><code>Release</code></td><td>1 x 1</td><td>string</td><td>&quot;&quot;</td></tr><tr><td><code>Update</code></td><td>1 x 1</td><td>logical</td><td>false</td></tr><tr><td><code>MaxFiles</code></td><td>1 x 1</td><td>double</td><td>Inf</td></tr><tr><td><code>BudgetSec</code></td><td>1 x 1</td><td>double</td><td>Inf</td></tr><tr><td><code>MaxFailures</code></td><td>1 x 1</td><td>double</td><td>5</td></tr><tr><td><code>PauseSec</code></td><td>1 x 1</td><td>double</td><td>1.5</td></tr><tr><td><code>RetryAfterCap</code></td><td>1 x 1</td><td>double</td><td>30</td></tr><tr><td><code>Downloader</code></td><td>1 x 1</td><td>string</td><td>&quot;websave&quot;</td></tr><tr><td><code>BaseURL</code></td><td>1 x 1</td><td>string</td><td>&quot;https://ftp.tugraz.at/pub/ITSG/GRACE&quot;</td></tr><tr><td><code>Quiet</code></td><td>1 x 1</td><td>logical</td><td>false</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
-<tr><td><code>info</code></td><td>(1,1) struct  fields products  (1 x nProducts) struct array, one per product, with product, nListed, nDownloaded, nSkipped, nFailed, nRemaining missing   (k,1) string  months for which no file of ANY selected product is present - absent on the server, failed, or cut by MaxFiles/BudgetSec/MaxFailures. A month missing from one product while another has it is not listed; read products(i).nFailed and nRemaining for that releases  (r,1) string  releases actually used</td></tr>
+<tr><td><code>info</code></td><td>(1,1) struct  fields products  (1 x nProducts) struct array, one per product, with product, nListed, nDownloaded, nSkipped, nFailed, nRemaining, and missing ((k,1) string, the months that product has no file for) missing   (k,1) string  months for which at least one selected product has no file - absent on the server, failed, or cut by MaxFiles/BudgetSec/ MaxFailures; products(i).missing says which (until v5.23.4 a month was listed only when every product lacked it) releases  (r,1) string  releases actually used</td></tr>
 </table>
 <b>Example</b><pre>    f = shLowLevel.fetchITSGBackground([&quot;2018-06&quot;, &quot;2018-07&quot;]);
     g = shCoefficients.read(f(1));   % plain gfc, C(n+1, m+1)</pre>
@@ -1846,7 +1846,7 @@ code itself.</p>
 <div class="entry" id="shLowLevel.writeGrid">
 <h3><code>shLowLevel.writeGrid(filename, grid, latDeg, lonDeg, opts)</code></h3>
 <p class="h1line">Export gridded fields to CF-style netCDF (base MATLAB).</p>
-<p>shLowLevel.writeGrid(&#x27;ewh.nc&#x27;, GRID, LAT, LON, Name=&quot;lwe_thickness&quot;, Units=&quot;m&quot;) writes a 2-D field or a 3-D stack (nlat x nlon x T with Epochs=) using nccreate/ncwrite - a stack is directly readable back by shLowLevel.readMascon (roundtrip-tested), by GMT, panoply, xarray, etc. Time is stored as &quot;days since 2002-01-01&quot; like the mascon products. A 2-D field (T = 1) gets NO time variable: Epochs is ignored there.</p>
+<p>shLowLevel.writeGrid(&#x27;ewh.nc&#x27;, GRID, LAT, LON, Name=&quot;lwe_thickness&quot;, Units=&quot;m&quot;) writes a 2-D field or a 3-D stack (nlat x nlon x T with Epochs=) using nccreate/ncwrite - a stack is directly readable back by shLowLevel.readMascon (roundtrip-tested), by GMT, panoply, xarray, etc. Time is stored as &quot;days since 2002-01-01&quot; like the mascon products. A 2-D field gets a time axis of length 1 when one epoch is given (Epochs = 2010.29), and none without (before v5.23.4 its epoch was dropped silently).</p>
 <b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>filename</code></td><td>n x m</td><td>-</td><td>required</td></tr><tr><td><code>grid</code></td><td>nlat x nlon</td><td>double</td><td>required</td></tr><tr><td><code>latDeg</code></td><td>: x 1</td><td>double</td><td>required</td></tr><tr><td><code>lonDeg</code></td><td>: x 1</td><td>double</td><td>required</td></tr></table>
 <b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Name</code></td><td>1 x 1</td><td>string</td><td>&quot;field&quot;</td></tr><tr><td><code>Units</code></td><td>1 x 1</td><td>string</td><td>&quot;&quot;</td></tr><tr><td><code>Epochs</code></td><td>: x 1</td><td>double</td><td>[]</td></tr><tr><td><code>LatType</code></td><td>1 x 1</td><td>string</td><td>&quot;geocentric&quot;</td></tr><tr><td><code>Description</code></td><td>1 x 1</td><td>string</td><td>&quot;&quot;</td></tr><tr><td><code>Sidecar</code></td><td>1 x 1</td><td>logical</td><td>true</td></tr></table>
 </div>
@@ -2981,4 +2981,4 @@ code itself.</p>
 <tr><td><code>obj</code></td><td>(1 x 1) shClimatology   copy with the note appended to its history</td></tr>
 </table>
 </div>
-<p class="provenance">Developed by Matthias Weigelt with the help of Claude (Fable 5), 21-Oct-2026 (v5.23.3). Generated by tools - do not edit.</p></div></body></html>
+<p class="provenance">Developed by Matthias Weigelt with the help of Claude (Fable 5), 21-Oct-2026 (v5.23.4). Generated by tools - do not edit.</p></div></body></html>

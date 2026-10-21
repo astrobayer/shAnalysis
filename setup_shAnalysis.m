@@ -61,12 +61,12 @@ function summary = setup_shAnalysis(opts)
 %                         persisted via setpref('shAnalysis',
 %                         'SeriesFolder', ...). The opt-in trend
 %                         regression in testScience reads the
-%                         environment variable ONLY, so after a restart
-%                         it needs this call again (or a setenv in
-%                         startup.m); the real-data chain, excitation
-%                         and gap-bridging tests also read the
-%                         preference. A trend needs a real monthly
-%                         series, which is far too large to ship as a
+%                         environment variable, then the preference
+%                         (since v5.23.4), so it stays enabled after a
+%                         restart; the real-data chain, excitation and
+%                         gap-bridging tests read both too. A trend
+%                         needs a real monthly series, which is far too
+%                         large to ship as a
 %                         fixture, and the fixture suite cannot see the
 %                         class of failure that only appears on a real
 %                         series of real length. Deliberately NOT wired
@@ -76,8 +76,8 @@ function summary = setup_shAnalysis(opts)
 %     MasconFile ("")     a mascon .nc, exported as SHX_MASCON_FILE and
 %                         stored as preference 'MasconFile'. The opt-in
 %                         readMascon check reads the environment
-%                         variable ONLY (so it runs in this session, not
-%                         after a restart); it checks readMascon against a
+%                         variable, then the preference (since v5.23.4);
+%                         it checks readMascon against a
 %                         REAL product: the synthetic fixture writes
 %                         (lon, lat, time) while the JPL file writes
 %                         (time, lat, lon), and a size check passes

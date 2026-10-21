@@ -35,8 +35,8 @@ function h = plotSHSpectrum(specs, opts)
 %   2026-08-07 (Kaula + crossover overlays v2.4).
 %
 %   Inputs
-%     specs  struct or cell array of structs  spectrum struct(s) from
-%            shLowLevel.shDegreeRMS; a cell array is overlaid
+%     specs  struct, struct array or cell array of structs  spectrum
+%            struct(s) from shLowLevel.shDegreeRMS; several are overlaid
 %   Outputs
 %     h          (1 x 1) graphics handle   spectrum axes (log y)
 %
@@ -69,7 +69,11 @@ arguments
 end
 % one spectrum or many: normalise AFTER the arguments block, which must
 % be the first statement in the function
-if ~iscell(specs)
+if isstruct(specs)
+    % a struct array is several spectra, as a cell array is (v5.23.4:
+    % it was wrapped as ONE cell and failed on s.(field) * scale)
+    specs = num2cell(specs(:)');
+elseif ~iscell(specs)
     specs = {specs};
 end
 names = opts.Names;

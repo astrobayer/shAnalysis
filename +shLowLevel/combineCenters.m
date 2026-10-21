@@ -37,9 +37,10 @@ function [tsComb, info] = combineCenters(tsCell, opts)
 %   Outputs
 %     tsComb  shSeries  combined stacks on the reference epochs (first
 %             center), sigmaCs/Ss = posterior sqrt(diag(H)) per month,
-%             provenance in history; built with ProductType "GSM" and
-%             shSeries' default GM/R (the inputs' constants are not
-%             carried over)
+%             provenance in history; GM and R of the inputs (which must
+%             agree), and their common ProductType ("unknown" when they
+%             differ). Before v5.23.4 GM/R were shSeries' defaults and
+%             ProductType was always "GSM"
 %     info  (1,1) struct  fields
 %           s2         (C x T) double   variance factors per centre and
 %                      month, NaN where that centre has no solution
@@ -61,6 +62,9 @@ function [tsComb, info] = combineCenters(tsCell, opts)
 %   posterior sigmas are a lower bound (documented).
 %
 %   Error identifiers
+%     shLowLevel:combineCenters:constantsMismatch
+%         the series do not share GM and R - rescale them to one
+%         reference first (shCoefficients.toReference, epoch by epoch)
 %     shLowLevel:combineCenters:nmaxMismatch
 %         the series do not all share the same nmax
 %     shLowLevel:combineCenters:noCommonEpochs
@@ -86,6 +90,17 @@ for c = 2:C
     assert(tsCell{c}.nmax == nmax, 'shLowLevel:combineCenters:nmaxMismatch', ...
         'All series must share nmax (center 1: %d, center %d: %d).', ...
         nmax, c, tsCell{c}.nmax);
+end
+% coefficients on different (GM, R) references are not the same field,
+% so they cannot be averaged coefficient by coefficient
+GM = tsCell{1}.GM; R = tsCell{1}.R;
+for c = 2:C
+    if tsCell{c}.GM ~= GM || tsCell{c}.R ~= R
+        error('shLowLevel:combineCenters:constantsMismatch', ...
+            ['Center %d has GM = %.10g, R = %.10g; center 1 has GM = ' ...
+             '%.10g, R = %.10g. Rescale to one reference first.'], ...
+            c, tsCell{c}.GM, tsCell{c}.R, GM, R);
+    end
 end
 idx = shLowLevel.shIndex(nmax, Nmin = 0);
 n1 = nmax + 1;
@@ -235,7 +250,10 @@ for t = 1:T
 end
 names = strings(1, C);
 for c = 1:C, names(c) = tsCell{c}.productType; end
-tsComb = shSeries(Cs, Ss = Ss, Epochs = epochs, ProductType = "GSM", ...
+pt = "unknown";
+if all(names == names(1)), pt = names(1); end
+tsComb = shSeries(Cs, Ss = Ss, Epochs = epochs, ProductType = pt, ...
+    GM = GM, R = R, ...
     SigmaCs = sCs, SigmaSs = sSs, History = sprintf( ...
     "combined from %d centers, per-(center,month) VCE (robust=%d, %d iters)", ...
     C, opts.Robust, it));

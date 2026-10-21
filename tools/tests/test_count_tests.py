@@ -109,7 +109,7 @@ class TestCounting(unittest.TestCase):
         self.assertEqual(c["runs"], c["methods"])
 
 
-EXPECTED_RUNS = 435          # v5.23.1: 431 + designFilter C, obpChain run, hydro NaN category, applyDDK badBlock
+EXPECTED_RUNS = 445          # v5.23.4: 435 + ten code-fix tests (4 Correctness, 5 Contract, 1 Robustness)
                              # (5 correctness, 4 contract, 2 robustness)
 
 

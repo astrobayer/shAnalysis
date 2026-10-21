@@ -962,9 +962,13 @@ function testMasconReaderOnARealFile(tc)
 %   Sources: CSR (www2.csr.utexas.edu/grace, no login), GSFC
 %   (earth.gsfc.nasa.gov/geo/data/grace-mascons), JPL (PO.DAAC, needs a
 %   free Earthdata login).
+% the environment first, then the preference setup_shAnalysis stores
+% (MasconFile=), as the other real-data tests do (v5.23.4)
 f = getenv('SHX_MASCON_FILE');
+if isempty(f), f = getpref('shAnalysis', 'MasconFile', ''); end
 assumeNotEmpty(tc, f, ...
-    'set SHX_MASCON_FILE to a mascon .nc to run this');
+    ['set SHX_MASCON_FILE (or setup_shAnalysis(MasconFile=...)) to a ' ...
+     'mascon .nc to run this']);
 assumeTrue(tc, isfile(f), sprintf('not a file: %s', f));
 
 mas = shLowLevel.readMascon(f);
@@ -1282,6 +1286,25 @@ verifyLessThan(tc, kn(3:end), 0);                          % all negative
 verifyEqual(tc, numel(i2.skipped), 1);
 verifyError(tc, @() shLowLevel.fetchLoveNumbers("nonsense.txt", BaseURL = mir), ...
     'shLowLevel:fetchLoveNumbers:unknownName');
+% v5.23.4: a deformation table holds h' and l' in two columns, in either
+% layout the loading folder uses (matrix header, bare numbers); the
+% one-column check refused both, so every deformation fetch failed
+N = 200; hl = [-(1:N)' * 1e-3, (1:N)' * 1e-4];
+fid = fopen(fullfile(mir, 'deformationLoveNumbers_CE_Gegout97.txt'), 'w');
+fprintf(fid, 'groops matrix version=20200123\nMatrix( %d x 2 )\n', N);
+fprintf(fid, '%.10e %.10e\n', hl.'); fclose(fid);
+fid = fopen(fullfile(mir, 'deformationLoveNumbers_CE_ak135.txt'), 'w');
+fprintf(fid, '%.10e %.10e\n', hl.'); fclose(fid);
+[fd, idf] = shLowLevel.fetchLoveNumbers(["deformationLoveNumbers_CE_Gegout97.txt", ...
+    "deformationLoveNumbers_CE_ak135.txt"], BaseURL = mir, Dest = dst, Quiet = true);
+verifyEqual(tc, numel(fd), 2);
+verifyEmpty(tc, idf.failed);
+% and a load file is still refused with two columns
+fid = fopen(fullfile(mir, 'loadLoveNumbers_ak135.txt'), 'w');
+fprintf(fid, '%.10e %.10e\n', hl.'); fclose(fid);
+[~, ib] = shLowLevel.fetchLoveNumbers("loadLoveNumbers_ak135.txt", ...
+    BaseURL = mir, Dest = dst, Quiet = true);
+verifyNumElements(tc, ib.failed, 1);
 end
 
 function testListITSGAndFetchAllMirror(tc)
@@ -1314,6 +1337,12 @@ ii = find(T.product == "monthly" & T.nmax == 96, 1);
     Quiet = true);
 verifyEqual(tc, numel(f2), 2);
 verifyEqual(tc, numel(i2.skipped), 2);       % already present
+% v5.23.4: a daily row is skipped with a warning (not fetched completely,
+% tens of GB); it used to recurse into months = "all" and stop the call
+% with allDaily
+iD = find(T.product == "daily", 1);
+verifyWarning(tc, @() shLowLevel.fetchITSG(Catalog = iD, BaseURL = mir, ...
+    Dest = dst, Quiet = true), 'shLowLevel:fetchITSG:dailySkipped');
 end
 
 function testICGEMListFixtureAndResolve(testCase)
@@ -1352,6 +1381,15 @@ verifyError(testCase, ...
     'shLowLevel:fetchICGEM:notFound');
 verifyError(testCase, @() shLowLevel.fetchICGEM("WHU", List = T), ...
     'shLowLevel:fetchICGEM:ambiguous');
+% v5.23.4: a temporal catalogue names its rows in `series`; an unmatched
+% name (single or in a list) read T.name there and raised a table error
+Tt = table(["01_A"; "01_B"], ["TC"; "TC"], ["Series A"; "Series B"], ...
+    ["01_A/TC/Series A"; "01_B/TC/Series B"], ["u1"; "u2"], ["z1"; "z2"], ...
+    'VariableNames', {'group', 'center', 'series', 'path', 'url', 'zip'});
+verifyError(testCase, @() shLowLevel.fetchICGEM("no_such_series", ...
+    List = Tt), 'shLowLevel:fetchICGEM:notFound');
+verifyError(testCase, @() shLowLevel.fetchICGEM(["no_a", "no_b"], ...
+    List = Tt), 'shLowLevel:fetchICGEM:notFound');
 % temporal branch on a saved live page (the v2.4.1 nested-group regexp
 % crash regression: MATLAB tokens = outermost parentheses only).
 % v2.4.2: the branch now parses the FULL /sp/ series-page catalogue
@@ -1723,4 +1761,26 @@ end
 [r0, q0] = shLowLevel.regionalKalman(recs, B4, ModelSeries = tsm);
 verifyTrue(testCase, isequal(q1.a, q0.a) && isequal(r1.Cs, r0.Cs + lowC));
 verifySize(testCase, q1.a, [K, 20]);
+end
+
+function testFetchITSGBackgroundReportsAMonthOneProductLacks(tc)
+%TESTFETCHITSGBACKGROUNDREPORTSAMONTHONEPRODUCTLACKS v5.23.4: info.missing
+%   lists a month any selected product has no file for, and each product
+%   says which months it lacks. It was formed over all products' files
+%   together, so a month one product lacked went unreported while another
+%   had it. Offline: the files are present, nothing is downloaded.
+dst = tempname;
+c1 = onCleanup(@() rmIfFolder(dst)); %#ok<NASGU>
+mkdir(fullfile(dst, 'dealiasing')); mkdir(fullfile(dst, 'oceanTide'));
+for f = ["dealiasing/model_dealiasing_2010-01.gfc", ...
+         "dealiasing/model_dealiasing_2010-02.gfc", ...
+         "oceanTide/model_oceanTide_2010-01.gfc"]
+    fid = fopen(fullfile(dst, f), 'w'); fprintf(fid, 'x\n'); fclose(fid);
+end
+[~, info] = shLowLevel.fetchITSGBackground(["2010-01", "2010-02"], ...
+    Products = ["dealiasing", "oceanTide"], Dest = dst, MaxFiles = 0, ...
+    BaseURL = "https://invalid.invalid", Quiet = true);
+verifyEqual(tc, info.missing, "2010-02");
+verifyEmpty(tc, info.products(1).missing);
+verifyEqual(tc, info.products(2).missing, "2010-02");
 end
