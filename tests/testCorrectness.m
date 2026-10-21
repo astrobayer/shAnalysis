@@ -5814,3 +5814,150 @@ for t = [1 24]
 end
 verifyTrue(testCase, contains(t1.history(end), "background removed and restored"));
 end
+
+% ------------------------------------------- WP8 8h: LGD observations
+function [rA, rB] = lgdPairs(M, seed)
+%LGDPAIRS M satellite pairs at random places and headings, 490 +- 20 km
+%   high, B 220 km ahead of A, |lat| <= 85 deg (validate_regional_lgd.py's
+%   pairs()).
+rng(seed);
+R = 6378136.3;
+lat = deg2rad(-85 + 170 * rand(M, 1));
+lon = -pi + 2 * pi * rand(M, 1);
+r = R + 490e3 + 40e3 * (rand(M, 1) - 0.5);
+u = [cos(lat) .* cos(lon), cos(lat) .* sin(lon), sin(lat)];
+t = cross(u, randn(M, 3), 2);
+t = t ./ vecnorm(t, 2, 2);
+th = 220e3 ./ r;
+rA = r .* u;
+rB = r .* (cos(th) .* u + sin(th) .* t);
+end
+
+function lgdRef = lgdReferenceJ2Local(rA, rB, J2)
+%LGDREFERENCEJ2LOCAL lgdToolbox realdata/lgdReferenceJ2.m, line for line:
+%   e . (gB - gA) of a point mass plus J2 about the frame's z axis.
+GM = 3.986004415e14; R = 6378136.3;
+gA = j2Gravity(rA, GM, R, J2);
+gB = j2Gravity(rB, GM, R, J2);
+d = rB - rA;
+e = d ./ sqrt(sum(d .^ 2, 2));
+lgdRef = sum(e .* (gB - gA), 2);
+end
+
+function g = j2Gravity(r, GM, R, J2)
+rr = sqrt(sum(r .^ 2, 2));
+z2 = (r(:, 3) ./ rr) .^ 2;
+f = 1.5 * J2 * (R ./ rr) .^ 2;
+k = -GM ./ rr .^ 3;
+g = k .* [r(:, 1) .* (1 - f .* (5 * z2 - 1)), r(:, 2) .* (1 - f .* (5 * z2 - 1)), ...
+          r(:, 3) .* (1 - f .* (5 * z2 - 3))];
+end
+
+function testRegionalNEQLgdIsLgdToolboxsForwardModel(testCase)
+%TESTREGIONALNEQLGDISLGDTOOLBOXSFORWARDMODEL Kind "lgd" against the two
+%   forward models of lgdToolbox. On the SH basis of degrees 0..2 with
+%   C00 = 1 and C20 = -J2/sqrt(5) the design reproduces lgdReferenceJ2
+%   (point mass + J2, closed form) - the total and the J2 part on its own,
+%   which is 5e-3 of it. Degree 0 alone reproduces five rows of the
+%   50-digit Kepler pair of lgdToolbox's oracle O2
+%   (tests/refdata/kepler_pair.json). Rounding scales with |g| at the
+%   satellites, so the bounds are in units of |g|:
+%   validate_regional_lgd.py measured 1.7e-15 (CLAIM 1) and 5.3e-16
+%   (CLAIM 2) with a complex-step derivative; the bound 2e-14 is about 10x,
+%   because MATLAB's derivative is legendreALFDeriv's, not the oracle's.
+idx = shLowLevel.shIndex(2, Nmin = 0);
+B = shLowLevel.regionalBasis(idx, [], Type = "sh");
+J2 = 1.0826359e-3;
+gsat = 3.986004415e14 / (6378136.3 + 490e3) ^ 2;
+[rA, rB] = lgdPairs(200, 81);
+[~, info] = shLowLevel.regionalNEQ(B, "lgd", Values = zeros(200, 1), ...
+    PositionA = rA, PositionB = rB, Cov = 1);
+x0 = zeros(idx.P, 1);
+x0(idx.pos(1, 1, 1)) = 1;
+x = x0;
+x(idx.pos(3, 1, 1)) = -J2 / sqrt(5);
+ref = lgdReferenceJ2Local(rA, rB, J2);
+verifyLessThan(testCase, max(abs(info.A * x - ref)) / gsat, 2e-14, 'total');
+refJ2 = ref - lgdReferenceJ2Local(rA, rB, 0);
+verifyLessThan(testCase, max(abs(info.A * (x - x0) - refJ2)) / gsat, 2e-14, 'J2 part');
+kA = [4512997.478287725, 2694451.3364104237, 4409297.116052281
+      -5070483.813394559, -2853662.7653212734, 3660682.922583132
+      -1462898.200822358, -978647.053148104, -6650454.147907468
+      5932954.93395928, 3432291.694546043, 342269.3481886636
+      -1455906.161136149, -706070.4417370488, 6673028.238021222];
+kB = [4385663.580707991, 2623495.5872420436, 4576796.38841529
+      -5168144.096511687, -2916462.981551038, 3471124.4759983197
+      -1279284.0957959588, -871319.9938125537, -6703759.152552041
+      5917750.75935825, 3429061.7307759067, 560361.235087979
+      -1638482.2633512663, -815622.220504692, 6618209.754707613];
+kLgd = [-0.2741007674070423; -0.2727220827822083; -0.26838615696227075
+        -0.2696566435557386; -0.2706971398324607];
+[~, ik] = shLowLevel.regionalNEQ(B, "lgd", Values = zeros(5, 1), ...
+    PositionA = kA, PositionB = kB, Cov = 1);
+verifyLessThan(testCase, max(abs(ik.A * x0 - kLgd)) / gsat, 2e-14, 'Kepler pair O2');
+end
+
+function testRegionalNEQLgdOperatorAndMask(testCase)
+%TESTREGIONALNEQLGDOPERATORANDMASK Kind "lgd" is kind "points" with the
+%   line of sight as Direction at both satellites and Combine = [-I, I]
+%   (two nonzero terms per row, so equal to rounding of one subtraction:
+%   bound 2 eps of the largest entry). The operator is applied once to
+%   [Values, A]: a band-pass as a matrix and as a handle give identical
+%   records, and noise-free data stay on the design, W y = (W A) a
+%   (validate_regional_lgd.py CLAIM 4: 5.5e-16; bound 1e-13 relative).
+%   Rows the operator leaves non-finite, and rows outside Valid, are
+%   dropped with their rows and columns of Cov: the record equals the
+%   explicit A'(C\A), A'(C\y) on the kept rows (bound 100 eps cond(C)).
+idx = shLowLevel.shIndex(16);
+B = shLowLevel.regionalBasis(idx, @(la, lo) double(la > 50));
+R = 6378136.3;
+M = 256;
+r0 = R + 490e3;
+th = linspace(0.6, 0.6 + 2 * pi * 0.9, M)';
+lam = 0.3 - 0.0004 * (0:M - 1)';
+uA = [cos(th) .* cos(lam), cos(th) .* sin(lam), sin(th)];
+th2 = th + 220e3 / r0;
+uB = [cos(th2) .* cos(lam), cos(th2) .* sin(lam), sin(th2)];
+rA = r0 * uA; rB = r0 * uB;
+rng(82);
+a0 = randn(B.K, 1) * 1e-10;
+[~, i0] = shLowLevel.regionalNEQ(B, "lgd", Values = zeros(M, 1), ...
+    PositionA = rA, PositionB = rB, Cov = 1);
+A = i0.A;
+e = (rB - rA) ./ vecnorm(rB - rA, 2, 2);
+X = [rA; rB];
+rr = vecnorm(X, 2, 2);
+[~, ip] = shLowLevel.regionalNEQ(B, "points", Values = zeros(M, 1), ...
+    LatDeg = asind(X(:, 3) ./ rr), LonDeg = atan2d(X(:, 2), X(:, 1)), ...
+    Height = rr - R, Quantity = "potential", Direction = [e; e], ...
+    Combine = [-eye(M), eye(M)], Cov = 1);
+verifyLessThan(testCase, max(abs(A - ip.A), [], 'all'), 2 * eps * max(abs(A), [], 'all'));
+y = A * a0;
+f = min(0:M - 1, M - (0:M - 1))' / (M * 5);
+w = double(f > 1e-3 & f < 2e-2);
+W = real(ifft(w .* fft(eye(M))));
+[rm, im] = shLowLevel.regionalNEQ(B, "lgd", Values = y, PositionA = rA, ...
+    PositionB = rB, Cov = 1e-20, Operator = W);
+[rh, ih] = shLowLevel.regionalNEQ(B, "lgd", Values = y, PositionA = rA, ...
+    PositionB = rB, Cov = 1e-20, Operator = @(Z) W * Z);
+verifyTrue(testCase, isequaln(rm, rh) && isequaln(im, ih), 'matrix and handle differ');
+verifyLessThan(testCase, max(abs(im.y - im.A * a0)) / max(abs(im.y)), 1e-13);
+verifyLessThan(testCase, max(abs(im.y - W * y)) / max(abs(im.y)), 1e-13);
+op = @(Z) [NaN(10, size(Z, 2)); W(11:end, :) * Z];
+valid = true(M, 1);
+valid(end - 19:end) = false;
+Lc = randn(M) / sqrt(M);
+Cv = (Lc * Lc' + 0.5 * eye(M)) * 1e-20;
+[rk, ik] = shLowLevel.regionalNEQ(B, "lgd", Values = y, PositionA = rA, ...
+    PositionB = rB, Cov = Cv, Operator = op, Valid = valid);
+keep = [false(10, 1); true(M - 30, 1); false(20, 1)];
+verifyEqual(testCase, ik.kept, keep);
+verifyEqual(testCase, rk.nobs, M - 30);
+Ak = W(keep, :) * A;
+yk = W(keep, :) * y;
+Ck = Cv(keep, keep);
+N2 = Ak' * (Ck \ Ak);
+bound = 100 * eps * cond(Ck);
+verifyLessThan(testCase, max(abs(rk.N - N2), [], 'all') / max(abs(N2), [], 'all'), bound);
+verifyLessThan(testCase, max(abs(rk.b - Ak' * (Ck \ yk))) / max(abs(rk.b)), bound);
+end

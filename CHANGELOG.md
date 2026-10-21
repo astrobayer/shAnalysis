@@ -1,5 +1,57 @@
 # Changelog
 
+## [5.19.0] - 2026-10-21 - WP8 8h: line-of-sight gravity differences as observations
+
+A MINOR release: one new kind of `regionalNEQ` and the sixth row of WP8.
+No documented call or error identifier changes.
+
+### Added
+- `shLowLevel.regionalNEQ(B, "lgd", ...)`: line-of-sight gravity
+  differences of a satellite pair, LGD = e . (gB - gA),
+  e = (rB - rA) / |rB - rA|, the definition of lgdToolbox (its HANDOVER
+  D1), as a normal equation in the basis.
+  - The design comes from the two orbits (`PositionA`, `PositionB`, one
+    arc in time order): the potential's gradient design along e at B
+    minus that at A. The orbits must be in the Earth-fixed frame of the
+    coefficients; lgdToolbox works in an inertial frame and the caller
+    rotates both.
+  - `Operator` is the along-track filter, a handle or an (M, M) matrix,
+    applied ONCE to [Values, A], data first. `lgd.spectralOperator`
+    fits its edge predictor on that first column and applies the fitted
+    map to every column, so the design is filtered as the data are. So
+    `Values` are the unfiltered LGD and `Valid` is the data's own mask.
+  - Rows the operator leaves non-finite, and rows outside `Valid`, are
+    dropped with their rows and columns of `Cov`, which belongs to the
+    filtered data.
+  - New identifiers `shLowLevel:regionalNEQ:badOperator` and
+    `shLowLevel:regionalNEQ:noObservations`; new fields `info.y` (the
+    data as used) and `info.kept` (the epochs used), empty for the other
+    kinds.
+- `tools/dev/validate_regional_lgd.py`, against lgdToolbox's own forward
+  models:
+  - CLAIM 1: degrees 0 and 2 with C00 = 1 and C20 = -J2/sqrt(5) reproduce
+    `lgdReferenceJ2` (point mass + J2, closed form) to 1.7e-15 |g|, the
+    J2 part on its own to 2.4e-16 |g|;
+  - CLAIM 2: degree 0 reproduces five rows of lgdToolbox's 50-digit
+    Kepler pair (oracle O2) to 5.3e-16 |g|;
+  - CLAIM 3: degrees 2..30 agree with Cartesian central differences of
+    the potential to 1.8e-8, the difference floor;
+  - CLAIM 4: a band-pass on [y, A] keeps noise-free data on the design
+    (5.5e-16); an operator fitted on its first column does so only when
+    the data are that column.
+
+### Decisions
+- The along-track processing stays in lgdToolbox (CLAUDE.md WP8): band
+  filter, transfer function and noise PSD. shAnalysis takes the filter as
+  a function handle and calls no `lgd.*` function, so the two toolboxes
+  stay independent.
+- The data go through the operator with the design, rather than arriving
+  filtered: the only way the predictor lgdToolbox fits on its first
+  column is the one applied to the partials.
+- No frame rotation inside shAnalysis. The LGD is a scalar; only the
+  orbits must be Earth-fixed, and the rotation (EOP, precession-nutation)
+  belongs to the toolbox that reads the orbits.
+
 ## [5.18.0] - 2026-10-21 - WP8 8e: remove-compute-restore in the regional Kalman filter
 
 A MINOR release: one additive option on `regionalKalman` and its class

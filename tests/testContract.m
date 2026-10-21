@@ -3282,3 +3282,35 @@ short = shSeries(bgS.Cs(:, :, 1:10), Ss = bgS.Ss(:, :, 1:10), ...
 verifyError(testCase, @() shLowLevel.regionalKalman(tsObs, B, ModelSeries = tsm, ...
     Background = short), 'shLowLevel:regionalKalman:badBackground');
 end
+
+function testRegionalNEQLgdIDs(testCase)
+%TESTREGIONALNEQLGDIDS Every identifier kind "lgd" can raise, each driven
+%   by the guard it names: a missing orbit, orbits or a mask that do not fit
+%   the data, a covariance of the wrong size, an operator of the wrong kind
+%   or returning the wrong size, and a mask that leaves nothing.
+idx = shLowLevel.shIndex(8);
+B = shLowLevel.regionalBasis(idx, @(la, lo) double(la > 60));
+R = 6378136.3;
+th = linspace(0.9, 1.3, 20)';
+rA = (R + 490e3) * [cos(th), zeros(20, 1), sin(th)];
+rB = (R + 490e3) * [cos(th + 0.03), zeros(20, 1), sin(th + 0.03)];
+y = zeros(20, 1);
+base = {"Values", y, "PositionA", rA, "PositionB", rB};
+verifyError(testCase, @() shLowLevel.regionalNEQ(B, "lgd", Values = y, ...
+    PositionA = rA, Cov = 1), 'shLowLevel:regionalNEQ:missingInput');
+verifyError(testCase, @() shLowLevel.regionalNEQ(B, "lgd", Values = y, ...
+    PositionA = rA(1:19, :), PositionB = rB, Cov = 1), 'shLowLevel:regionalNEQ:sizeMismatch');
+verifyError(testCase, @() shLowLevel.regionalNEQ(B, "lgd", base{:}, Cov = 1, ...
+    Valid = true(19, 1)), 'shLowLevel:regionalNEQ:sizeMismatch');
+verifyError(testCase, @() shLowLevel.regionalNEQ(B, "lgd", base{:}, Cov = ones(19, 1)), ...
+    'shLowLevel:regionalNEQ:sizeMismatch');
+verifyError(testCase, @() shLowLevel.regionalNEQ(B, "lgd", base{:}, Cov = 1, ...
+    Operator = eye(19)), 'shLowLevel:regionalNEQ:badOperator');
+verifyError(testCase, @() shLowLevel.regionalNEQ(B, "lgd", base{:}, Cov = 1, ...
+    Operator = @(Z) Z(1:19, :)), 'shLowLevel:regionalNEQ:badOperator');
+verifyError(testCase, @() shLowLevel.regionalNEQ(B, "lgd", base{:}, Cov = 1, ...
+    Valid = false(20, 1)), 'shLowLevel:regionalNEQ:noObservations');
+[rec, info] = shLowLevel.regionalNEQ(B, "lgd", base{:}, Cov = 1);
+verifyEqual(testCase, rec.nobs, 20);
+verifyEqual(testCase, info.kept, true(20, 1));
+end

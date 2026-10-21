@@ -23,11 +23,11 @@ says whether it was *read* or *inferred*.
 
 | Fact | Value | Evidence |
 |---|---|---|
-| Version | **5.18.0**, 21-Oct-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
+| Version | **5.19.0**, 21-Oct-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
 | Branches | `main` only; `claude/getframe-recapture` and `claude/readshm` are gone (merged/deleted) | `GET /branches` |
 | Public surface | 3 classes / 97 methods, 134 `+shLowLevel` functions (+5 private), 3 root functions. 87 of the 134 are reachable from a class method; each of the other 47 is a named exception (34) or in a backlog that may only shrink (13) | `tools/dev/api_extract.py`; `tools/dev/class_surface_audit.py` |
-| Tests | 5 classes, **402 methods / 416 runs**: Correctness 203, Contract 117, Robustness 60, Science 9, Performance 13 methods (27 runs, `budgetCase` x14 + `nmaxP` x2). On A8 7 filter out without the optional real-data fixtures (the GravIS-grid test joined them in v5.8.0, the ESMGFZ check in v5.11.0, the HLSST check in v5.12.0); on MATTHIASPC only 2 do, because `E:\DATAPOOL` supplies the SINEX files, the GravIS folder and - with `SHX_EARTHROTATION_FOLDER` and `SHX_BRIDGE_FOLDER` set for the run, no preference is stored - the ESMGFZ and HLSST series. The counter has matched the runner EXACTLY on the last ten green A8 runs and on every local Tier-A run. | `python3 tools/dev/count_tests.py` |
-| Python oracles | 28 `tools/dev/validate_*.py` (+ `regional_oracle_lib.py`, shared by the five WP8 oracles) + `tools/audit/*` | listing |
+| Tests | 5 classes, **405 methods / 419 runs**: Correctness 205, Contract 118, Robustness 60, Science 9, Performance 13 methods (27 runs, `budgetCase` x14 + `nmaxP` x2). On A8 7 filter out without the optional real-data fixtures (the GravIS-grid test joined them in v5.8.0, the ESMGFZ check in v5.11.0, the HLSST check in v5.12.0); on MATTHIASPC only 2 do, because `E:\DATAPOOL` supplies the SINEX files, the GravIS folder and - with `SHX_EARTHROTATION_FOLDER` and `SHX_BRIDGE_FOLDER` set for the run, no preference is stored - the ESMGFZ and HLSST series. The counter has matched the runner EXACTLY on the last ten green A8 runs and on every local Tier-A run. | `python3 tools/dev/count_tests.py` |
+| Python oracles | 29 `tools/dev/validate_*.py` (+ `regional_oracle_lib.py`, shared by the six WP8 oracles) + `tools/audit/*` | listing |
 | Docs | **27** hand-written `html/*.html` (24 per-entity duplicates retired in v5.0.1, WP6 stage 3; `regionalBasis.html` added in v5.14.0) + **238 generated `html/ref/*.html`** (one per entity + index, `make_refpages.py`), one shared `html/shAnalysis.css`, `helptoc.xml`, `info.xml`, guide PDF, generated `html/apiReference.html`. `docs/` holds the PDF and `apiExamples.json` only - no HTML page lives outside `html/` (gated). | listing |
 | CI | `gates` job on ubuntu (help_audit, doc_sync_audit, no_map_renderer, toolbox_dependency_audit, nv_casing_audit, fixture_tag_audit, gate self-tests `tools/tests/`, `count_tests`, `name_coverage`, `class_surface_audit`, `error_id_audit`, `option_values_audit`, `refpages_audit`, `make_demos --check`, `perf_baseline_audit`) + `runAllTests (self-hosted)` on A8/R2026a; fixtures from tag `fixtures-2026-08` | `.github/workflows/ci.yml` |
 | Namespace | `+shLowLevel` (renamed from `+shx` in v3.0.0). Any memory saying `shx.*` is stale. | README §History |
@@ -591,7 +591,7 @@ on the series - so 14 remain; reach is 79 of 128.
 - **Oracle**: none (delegation).
 - **Size**: M. **Version**: MINOR.
 
-### WP8 — Regional Kalman with local basis functions   `[~] 8a DONE (v5.14.0), 8b DONE (v5.15.0), 8c DONE (v5.16.0), 8d DONE (v5.17.0), 8e DONE (v5.18.0)` (approved 2026-10-20)
+### WP8 — Regional Kalman with local basis functions   `[~] 8a DONE (v5.14.0), 8b DONE (v5.15.0), 8c DONE (v5.16.0), 8d DONE (v5.17.0), 8e DONE (v5.18.0), 8h DONE (v5.19.0); 8f, 8g POSTPONED` (approved 2026-10-20)
 Approved by Matthias on 2026-10-20 in four answers to the review of
 Kurtenbach (DGK C-683) and the work since: (1) the state is a set of
 LOCAL basis functions (RBF, Slepian), not global SH; (2) the existing
@@ -627,7 +627,7 @@ shAnalysis, the basin is selectable, and otherwise a test area.
 | 8e `[x]` **DONE v5.18.0** (approved 2026-10-21: "Go ahead"; the background built, the observation area measured and not built - 6.1) | regional consistency: remove-compute-restore against a global background (low degrees / outside signal), the investigation/observation/computation areas of Woehnke 2025 | closed loop with signal outside the region |
 | 8f `[-]` **POSTPONED** (2026-10-21: the bridge is unavailable, and A8 cannot hold the covariances - 6.1) | closed loop of Woehnke 2025 / Steffen 2026: ESA ESM truth, ITSG-Grace2018 covariance noise, monthly, then daily | their published RMSD 0.62 / 0.58 cm, correlation 0.98 |
 | 8g `[-]` **POSTPONED** with 8f (needs the same data machine) | daily real data: ITSG daily NEQs (SINEX) in the basis; the Elbe (2013) and the September 2024 central-European flood as test cases | ITSG daily Kalman product, GravIS basin series |
-| 8h `[ ]` | LGD observations: the point-functional design here; along-track preprocessing, transfer function and noise PSD stay in lgdToolbox, which hands over records (toolboxes stay independent) | lgdToolbox forward model |
+| 8h `[x]` **DONE v5.19.0** (approved 2026-10-21: "Go ahead in this order: 8h, 8i, A33 and A34") | LGD observations: the point-functional design here; along-track preprocessing, transfer function and noise PSD stay in lgdToolbox, which hands over records (toolboxes stay independent) | lgdToolbox forward model |
 | 8i `[ ]` | adaptive process noise (VCE of Q per block from the innovations, replacing Kurtenbach's hand-tuned alpha), VAR(p > 1), space-domain conditioning through `CondFun` | closed loop of 8f |
 
 - **GNSS and terrestrial gravimetry** enter as SH NEQs or point
@@ -652,6 +652,27 @@ shAnalysis, the basin is selectable, and otherwise a test area.
 ## 6. Records
 
 ### 6.1 Decisions (append-only; date, decision, evidence)
+- 2026-10-21 — **The order after the postponement** (Matthias: "Go
+  ahead in this order: 8h, 8i, A33 and A34"). 8h shipped as 5.19.0:
+  kind "lgd" of `regionalNEQ`.
+- 2026-10-21 — **lgdToolbox has no SH forward model, so 8h's oracle is
+  the two it has.** "lgdToolbox forward model" in the row means its
+  point mass + J2 closed form (`lgdReferenceJ2`) and its 50-digit Kepler
+  pair (oracle O2); degrees 0 and 2 of the shAnalysis design reproduce
+  both to rounding of |g|. Higher degrees are checked against Cartesian
+  differences of the potential. lgdToolbox was read from its `main`, in
+  an extracted copy; its working clone was left on its own branch.
+- 2026-10-21 — **The data go through the operator with the design, data
+  first.** `lgd.spectralOperator` fits its edge predictor on its first
+  column and applies the fitted map to every column, and its help says
+  partials must pass through the same call. Filtered values with a
+  separately filtered design would get another predictor. So `Values`
+  are the unfiltered LGD (Route A's `info.components.unfiltered`) and
+  `Valid` is the mask of the data's own call.
+- 2026-10-21 — **shAnalysis calls no `lgd.*` function and rotates no
+  frame.** The operator is a handle the caller builds, so the toolboxes
+  stay independent; the orbits must be Earth-fixed, because the field is,
+  and the rotation belongs to the toolbox that reads the orbits.
 - 2026-10-21 — **8f postponed** (Matthias: "We have to postpone this as
   the bridge will not be available for the time being. Only the CI is
   available but has limited memory and cannot accommodate the covariance
@@ -1726,6 +1747,7 @@ shAnalysis, the basin is selectable, and otherwise a test area.
 | v5.16.0 (WP8 8c: `regionalNEQ`, `g.regionalNEQ`) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally** (the bridge's device offline). ☑ **CI self-hosted (A8) at `6de6098` via PR #122, green — 406 runs, 399 passed, 0 failed, 7 filtered** (the optional real-data fixtures); the count prediction matched EXACTLY, per class as well as in total (Contract 115, Correctness 197, Performance 27, Robustness 58, Science 9). All seven new tests passed on their first run - no red round | ☑ PR #122 | ☑ 2026-10-20 |
 | v5.17.0 (WP8 8d: `regionalKalman`, `ts.regionalKalman`, `rtsSmoother` `Functionals`, `B.region.core`) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally** (the bridge's device offline). ☑ **CI self-hosted (A8) at `9503ec3` via PR #123, green — 412 runs, 405 passed, 0 failed, 7 filtered** (the optional real-data fixtures); the count prediction matched EXACTLY, per class as well as in total (Contract 116, Correctness 201, Performance 27, Robustness 59, Science 9). All six new tests passed on their first run - no red round | ☑ PR #123 | ◐ pending |
 | v5.18.0 (WP8 8e: `regionalKalman` `Background`, remove-compute-restore; A34 opened) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally** (the bridge's device offline). ☑ **CI self-hosted (A8) at `f4d69a5` via PR #124, green — 416 runs, 409 passed, 0 failed, 7 filtered** (the optional real-data fixtures); the count prediction matched EXACTLY, per class as well as in total (Contract 117, Correctness 203, Performance 27, Robustness 60, Science 9). All four new tests passed on their first run - no red round | ☑ PR #124 | ◐ pending |
+| v5.19.0 (WP8 8h: `regionalNEQ` kind "lgd") | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally** (no bridge). CI on A8 pending; predicted 419 runs (Contract 118, Correctness 205, Performance 27, Robustness 60, Science 9), 7 filtered | ◐ pending | ◐ pending |
 | v5.0.3 (WP2 step 1 baselines) | ☑ 14 gates + mlint + make_demos + 13 self-test suites, 0 findings; `NO_BASELINE` empty | ☑ **CI self-hosted (A8) at `b70c947`, green — 315 runs, 311 passed, 0 failed, 4 filtered**; the EIGHTH exact count prediction running, per class as well as in total. All ten budgets PASSED (they filtered at `f6d5529`), and the only filtered are the four real-data fixtures. Triggered by `workflow_dispatch`, not a PR — #99 merged mid-session and `ci.yml` runs only on push-to-main, pull_request and workflow_dispatch. | ☐ no PR (#99 merged; not asked) | ☐ |
 
 **Tier A debt: DISCHARGED for all nine releases.** The local MATLAB

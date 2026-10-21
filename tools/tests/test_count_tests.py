@@ -109,7 +109,7 @@ class TestCounting(unittest.TestCase):
         self.assertEqual(c["runs"], c["methods"])
 
 
-EXPECTED_RUNS = 416          # v5.18.0: 412 + four WP8 8e tests (regionalKalman Background, remove-compute-restore)
+EXPECTED_RUNS = 419          # v5.19.0: 416 + three WP8 8h tests (regionalNEQ kind "lgd")
                              # (5 correctness, 4 contract, 2 robustness)
 
 

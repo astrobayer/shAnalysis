@@ -1604,7 +1604,37 @@ story += code("""
     Background = tsHydrologyModel);              % removed, filtered, restored
 """)
 
-story += [para("38. References", "h2"),
+story += [para("38. Line-of-sight gravity differences (v5.19.0)", "h2"),
+          para("Kind lgd of regionalNEQ takes the line-of-sight gravity "
+               "differences of a satellite pair in lgdToolbox's definition, "
+               "the difference of the gravitational acceleration at the two "
+               "satellites projected on the line of sight e = (rB - rA)/|rB - rA|:")]
+story += eq(r"\mathrm{LGD}=e\cdot\left(g_B-g_A\right),\qquad g=\nabla V.")
+story += [para("The design is the potential's gradient design along e at B "
+               "minus that at A, from the two orbits in the Earth-fixed frame "
+               "of the coefficients; lgdToolbox works in an inertial frame, and "
+               "the caller rotates both orbits. The along-track processing "
+               "stays in lgdToolbox. Its band filter is passed as Operator and "
+               "applied once to the block [y, A], data first, because "
+               "lgd.spectralOperator fits its edge predictor on the first "
+               "column and applies the fitted map to every column: filtered "
+               "data against unfiltered partials would bias the inversion. So "
+               "the values are the unfiltered LGD, Valid is the mask of the "
+               "data's own filtered call, and Cov belongs to the filtered data; "
+               "rows left non-finite or outside Valid are dropped with their "
+               "part of Cov. Checked against lgdToolbox's own forward models in "
+               "tools/dev/validate_regional_lgd.py: degrees 0 and 2 with C00 = 1 "
+               "and C20 = -J2/sqrt(5) reproduce lgdReferenceJ2 to 1.7e-15 of "
+               "|g| at the satellites, degree 0 its 50-digit Kepler pair to "
+               "5.3e-16 of |g|, and degrees 2..30 agree with Cartesian "
+               "differences of the potential to the difference floor, 1.8e-8.")]
+story += code("""
+op = @(X) lgd.spectralOperator(t, X, Band = band);      % the data's operator
+rec = shLowLevel.regionalNEQ(B, "lgd", Values = lgdUnfiltered, ...
+    PositionA = rA, PositionB = rB, Operator = op, Valid = valid, Cov = C);
+""")
+
+story += [para("39. References", "h2"),
           *bullets([
     "Chambers, D.P., Willis, J.K. (2010): A global evaluation of ocean "
     "bottom pressure from GRACE, OMCT, and steric-corrected altimetry. "
@@ -1623,6 +1653,10 @@ story += [para("38. References", "h2"),
     "Gerchberg, R.W. (1974): Super-resolution through error energy "
     "reduction. Optica Acta 21, 709&ndash;720. (With Papoulis 1975, the "
     "support-projection principle behind Section 24.)",
+    "Ghobadi-Far, K., Han, S.-C., Weller, S., et al. (2018): A transfer "
+    "function between line-of-sight gravity difference and GRACE "
+    "intersatellite ranging data. J. Geophys. Res. Solid Earth 123. "
+    "(Chapter 38.)",
     "Gouweleeuw, B.T. et al. (2018): Daily GRACE gravity field solutions "
     "track major flood events in the Ganges&ndash;Brahmaputra Delta. "
     "Hydrol. Earth Syst. Sci. 22, 2867&ndash;2880.",
