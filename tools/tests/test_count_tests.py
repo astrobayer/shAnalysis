@@ -109,7 +109,7 @@ class TestCounting(unittest.TestCase):
         self.assertEqual(c["runs"], c["methods"])
 
 
-EXPECTED_RUNS = 427          # v5.21.0: 426 + the A33 mask-equivalence test
+EXPECTED_RUNS = 430          # v5.22.0: 427 + the three A34 tests (FitClimatology in both chains, the routes)
                              # (5 correctness, 4 contract, 2 robustness)
 
 

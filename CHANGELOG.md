@@ -1,5 +1,66 @@
 # Changelog
 
+## [5.22.0] - 2026-10-21 - A34: the observation climatology fitted to a first filter pass
+
+A MINOR release: one option on `kalmanChain`, `regionalKalman` and
+their class routes. The default is unchanged, bitwise.
+
+### Added
+- `FitClimatology = "observations" | "filtered"` on
+  `shLowLevel.kalmanChain`, `shLowLevel.regionalKalman`, `ts.kalman` and
+  `ts.regionalKalman` (solution mode, `Climatology = true`).
+  "observations" (default) fits the removed-and-restored climatology to
+  the observations, as before; "filtered" runs the chain once with
+  `Climatology = false`, fits the climatology (bias, trend, annual,
+  semiannual) to that smoothed estimate at the output epochs, removes it
+  from the observations, filters the residual and restores it - in
+  `regionalKalman` through Proj, after the background is removed and
+  before it is restored. Twice the cost. Sigmas are unchanged: the
+  restored climatology carries none, as before.
+
+### Measured (tools/dev/validate_climatology_restore.py)
+- The 8e closed loop (nmax 30, cap north of 60 N, RBF basis, noise
+  rising to 3 cm per coefficient at degree 30), five seeds, grid RMS in
+  cm for no / 5 cm / 15 cm annual climatology inside the region:
+  "observations" 14.5 / 14.5 / 14.5, Climatology = false 0.90 / 1.09 /
+  2.02, "filtered" 0.89 / 1.07 / 1.96; at a third of the noise 4.4,
+  0.55 / 0.76 / 1.63 and 0.55 / 0.72 / 1.49. "filtered" beats
+  "observations" in every seed and case, and is the better of the other
+  two once the climatology is strong.
+- A third pass changes the median by at most 5.1 percent and was not
+  built; the bar written before the run was 5 percent.
+- On the SH basis, nmax 6, noise above the signal from degree 3: the
+  "filtered" coefficient RMS error is 0.391 of the default's in the
+  median, 0.433 at worst over 40 seeds. With noise below the signal the
+  first sizing gave 0.95-1.00 - the two fits differ only where A34's
+  noise is.
+
+### Decisions
+- Optional, not the default (Matthias, 2026-10-21: "make it optional").
+  The default restore is kalmanChain's documented behaviour, and every
+  result computed with it stays reproducible.
+- Named `FitClimatology`, not `ClimatologyFit`: `Climatology` would
+  have been a prefix of the new name, so any abbreviation of it would
+  have raised AmbiguousInputName (`nv_casing_audit`'s prefix rule, the
+  `RelTol`/`R` lesson of 5.16.0).
+- No new output field: the report of a "filtered" run is the second
+  pass's, and the first pass is reproducible from the documented
+  definition, which the tests check bit for bit.
+
+### Tests
+- `testKalmanChainFitClimatologyFiltered`,
+  `testRegionalKalmanFitClimatologyFiltered`: "filtered" equals the two
+  passes written out by hand, bitwise (on the SH basis for the regional
+  chain, where restoring through Proj is exact); the default equals
+  "observations" bitwise; the error ratio below 0.6 on the oracle's
+  configuration.
+- `testFitClimatologyRoutes`: both class routes forward it bitwise; a
+  value outside the two is refused.
+- 416 methods / 430 runs (Correctness 214, Contract 120).
+
+Developed by Matthias Weigelt with the help of Claude (Opus 5.5),
+2026-10-21.
+
 ## [5.21.0] - 2026-10-21 - A33: one GeoJSON reader for every GravIS chain
 
 A MINOR release: `readBasin` takes several names, or none for the whole

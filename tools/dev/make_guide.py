@@ -1606,6 +1606,21 @@ story += code("""
 [tsK, out] = tsGrace.regionalKalman(B, ModelSeries = tsESM, kn = kn, ...
     Background = tsHydrologyModel);              % removed, filtered, restored
 """)
+story += [para("The observation climatology the chains remove and restore "
+               "is, by default, fitted to the noisy observations, so the "
+               "noise of the fit returns unfiltered in every epoch. In the "
+               "closed loop above it dominates: 14.5 cm grid RMS. Since "
+               "v5.22.0 FitClimatology = \"filtered\" fits it instead to a "
+               "first pass run without a climatology, removes that and "
+               "filters the residual - twice the cost, 0.89 to 1.96 cm over "
+               "three climatology strengths, and never more than 2% above "
+               "leaving the climatology in the filter. The same option exists "
+               "on kalmanChain; the default is unchanged. Measured in "
+               "tools/dev/validate_climatology_restore.py.")]
+story += code("""
+[tsK, out] = tsGrace.regionalKalman(B, ModelSeries = tsESM, kn = kn, ...
+    FitClimatology = "filtered");                % fit it to a first pass
+""")
 
 story += [para("38. Line-of-sight gravity differences (v5.19.0)", "h2"),
           para("Kind lgd of regionalNEQ takes the line-of-sight gravity "

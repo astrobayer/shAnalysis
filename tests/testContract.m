@@ -2293,6 +2293,28 @@ verifyTrue(testCase, isequaln(a0, b0) && isequaln(ra0, rb0), ...
     'with the lane defaults, ts.kalman differs from kalmanChain');
 end
 
+function testFitClimatologyRoutes(testCase)
+%TESTCLIMATOLOGYFITROUTES A34: ts.kalman and ts.regionalKalman forward
+%   FitClimatology to their lanes bitwise, and both lanes refuse a value
+%   outside "observations" | "filtered".
+tsObs = wp7Series(3, 36, 74);
+tsModel = wp7Series(3, 120, 75);
+[a, ra] = tsObs.kalman(ModelSeries = tsModel, FitClimatology = "filtered");
+[b, rb] = shLowLevel.kalmanChain(tsObs, ModelSeries = tsModel, FitClimatology = "filtered");
+verifyTrue(testCase, isequaln(a, b) && isequaln(ra, rb), ...
+    'ts.kalman does not forward FitClimatology');
+B = tsObs.regionalBasis(@(la, lo) double(la > 50));
+[a1, o1] = tsObs.regionalKalman(B, ModelSeries = tsModel, FitClimatology = "filtered");
+[a2, o2] = shLowLevel.regionalKalman(tsObs, B, ModelSeries = tsModel, ...
+    FitClimatology = "filtered");
+verifyTrue(testCase, isequaln(a1, a2) && isequaln(o1, o2), ...
+    'ts.regionalKalman does not forward FitClimatology');
+verifyError(testCase, @() shLowLevel.kalmanChain(tsObs, ModelSeries = tsModel, ...
+    FitClimatology = "model"), 'MATLAB:validators:mustBeMember');
+verifyError(testCase, @() shLowLevel.regionalKalman(tsObs, B, ModelSeries = tsModel, ...
+    FitClimatology = "model"), 'MATLAB:validators:mustBeMember');
+end
+
 function testSeriesEofIsEofAnalysis(testCase)
 %TESTSERIESEOFISEOFANALYSIS ts.eof is shLowLevel.eofAnalysis(ts), bitwise.
 ts = wp7Series(6, 20, 73);

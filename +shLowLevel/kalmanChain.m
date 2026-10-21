@@ -74,6 +74,20 @@ function [ts, rep] = kalmanChain(obsIn, opts)
 %            [] derives diagonals from the series' formal sigmas
 %     Climatology (true)  solution mode: reduce OBSIN by its own
 %            climatology before filtering and restore it afterwards
+%     FitClimatology ("observations")  "observations" | "filtered"   what
+%            that climatology is fitted to. "observations" fits it to OBSIN
+%            itself, so the noise of the fit is restored unfiltered in every
+%            epoch (A34). "filtered" runs the chain once with Climatology =
+%            false, fits the climatology to that smoothed series at the
+%            output epochs, removes it from OBSIN, filters the residual and
+%            restores it - twice the cost. In the 8e closed loop (noise
+%            rising to 3 cm per coefficient at degree 30) the grid RMS is
+%            14.5 cm with "observations", 0.89-1.96 cm with "filtered" and
+%            0.90-2.02 cm with Climatology = false; "filtered" is the better
+%            of the last two once the climatology is strong
+%            (tools/dev/validate_climatology_restore.py). With noise below
+%            the signal the two fits differ little. Ignored when
+%            Climatology = false and in neq mode.
 %     Smoother (true)   run the RTS pass (false: filter only, e.g. for
 %            NRT-style one-way runs a la Kvas Ch. 3; then the internal
 %            filter stores only diagonals and memory stays flat)
@@ -149,7 +163,8 @@ function [ts, rep] = kalmanChain(obsIn, opts)
 %         a SINEX file carries no normal-equation block
 %
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5),
-%   2026-08-17, 20:10 UTC.
+%   2026-08-17, 20:10 UTC. FitClimatology: Claude (Opus 5.5), 2026-10-21
+%   (A34).
 
 arguments
     obsIn
@@ -162,6 +177,7 @@ arguments
     opts.Tolerance (1,1) double {mustBePositive} = 0.5/365.25
     opts.NoiseCov double = []
     opts.Climatology (1,1) logical = true
+    opts.FitClimatology (1,1) string {mustBeMember(opts.FitClimatology, ["observations", "filtered"])} = "observations"
     opts.Smoother (1,1) logical = true
     opts.QC (1,1) string {mustBeMember(opts.QC, ["none","flag","reject"])} = "none"
     opts.QCAlpha (1,1) double {mustBeInRange(opts.QCAlpha, 0, 1, "exclusive")} = 1e-3
@@ -209,7 +225,16 @@ if solMode
             'Observation nmax %d ~= model nmax %d - truncate first.', ...
             tsObs.nmax, nmax);
     end
-    if opts.Climatology
+    if opts.Climatology && opts.FitClimatology == "filtered"
+        % A34: fit the climatology to a first pass without one
+        o1 = opts;
+        o1.Climatology = false;
+        o1.FitClimatology = "observations";
+        a1 = namedargs2cell(o1);
+        ts1 = shLowLevel.kalmanChain(obsIn, a1{:});
+        climObs = ts1.climatology;
+        tsObs = tsObs - climatologySeries(climObs, tsObs);
+    elseif opts.Climatology
         [climObs, tsObs] = tsObs.climatology;
     else
         climObs = [];
@@ -383,4 +408,19 @@ end
 
 function out = tern(c, a, b)
 if c, out = a; else, out = b; end
+end
+
+function s = climatologySeries(clim, ts)
+%CLIMATOLOGYSERIES The climatology CLIM evaluated at the epochs of TS, as
+%   an shSeries with TS's constants, so that TS - s is epoch-matched.
+n1 = ts.nmax + 1;
+nT = ts.nEpochs;
+C = zeros(n1, n1, nT);
+S = C;
+for k = 1:nT
+    g = clim.eval(ts.epochs(k));
+    C(:, :, k) = g.C;
+    S(:, :, k) = g.S;
+end
+s = shSeries(C, Ss = S, Epochs = ts.epochs, GM = ts.GM, R = ts.R);
 end
