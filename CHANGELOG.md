@@ -32,8 +32,15 @@ changes; a call without them behaves exactly as before.
 - `testFetchRetryOptionsReachHttpFetch` (contract): `MaxTries = 2`
   reaches `httpFetch`, an omitted `MaxTries` is `httpFetch`'s 4, and
   `MaxTries = 0` is refused.
-- 417 methods / 431 runs (Contract 121). The wall time saved is the
-  claim the next A8 run measures; it is not asserted here.
+- 417 methods / 431 runs (Contract 121).
+
+### Measured after (A8, PR #130)
+- The three tests ran 0.86, 0.86 and 7.04 s; the new contract test
+  17.96 s. 26.7 s where 130 s were: 103 s off every run. What remains is
+  not backoff - a refused connection to 127.0.0.1:1 costs about 3 s per
+  attempt on Windows - and most of it is the contract test's 4-attempt
+  half, kept because it pins that an omitted `MaxTries` is `httpFetch`'s
+  own default.
 
 Developed by Matthias Weigelt with the help of Claude (Opus 5.5),
 2026-10-21.

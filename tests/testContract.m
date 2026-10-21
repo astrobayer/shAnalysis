@@ -2297,8 +2297,9 @@ function testFetchRetryOptionsReachHttpFetch(testCase)
 %TESTFETCHRETRYOPTIONSREACHHTTPFETCH A36: fetchTN forwards MaxTries and
 %   BaseDelay to shLowLevel.httpFetch, and forwards nothing it was not
 %   given - so an omitted MaxTries is httpFetch's own default (4). Offline:
-%   127.0.0.1:1 refuses at once, and BaseDelay = 0.01 keeps the backoff
-%   below 0.1 s.
+%   BaseDelay = 0.01 keeps the backoff below 0.1 s, but a refused
+%   connection to 127.0.0.1:1 is NOT instant on Windows - A8 measured 18 s
+%   for the six attempts here, about 3 s each (v5.23.0, PR #130).
 dst = tempname;
 c = onCleanup(@() rmdir(dst, 's')); %#ok<NASGU>
 [~, i2] = shLowLevel.fetchTN(Dest = dst, BaseURL = "https://127.0.0.1:1", ...
