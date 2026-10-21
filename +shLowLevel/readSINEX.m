@@ -13,7 +13,11 @@ function snx = readSINEX(filename, opts)
 %   opts.Only ("all") = "estimate" (v2.2) streams the SOLUTION/ESTIMATE block
 %   line-by-line (gz via Java GZIPInputStream) and skips all matrix
 %   blocks - reads the estimates of a 460-MB n96 NEQ SINEX in seconds
-%   with negligible memory. Returns kind='estimate', M=[].
+%   with negligible memory. Returns kind='estimate', M=[], epoch=NaN and
+%   a note; Index reorders it as below (v5.23.1 - it was ignored),
+%   Output has nothing to act on. The sigmas are in sig, like the full
+%   read; sigma carries the same values, the name this path used before
+%   v5.23.1, kept so existing callers do not break.
 %
 %   SNX = shLowLevel.readSINEX(..., Index (struct([]))=IDX) additionally reorders the result
 %   into the shLowLevel.shIndex ordering IDX: SNX.M and SNX.x then match IDX row
@@ -35,7 +39,8 @@ function snx = readSINEX(filename, opts)
 %                    NaN where the file carries none
 %          M         (Q x Q) double  covariance or normal-equation
 %                    matrix, per Output=; [] when absent
-%          kind      (1,:) char  'COVA' | 'NEQ' | ''
+%          kind      (1,:) char  'COVA' | 'NEQ' | '' ('estimate' on
+%                    the Only="estimate" path)
 %          epoch     (1,1) double  the solution's reference epoch
 %          stats     (1,1) struct  the parsed +SOLUTION/STATISTICS block
 %                    (v3.20): keys and values verbatim, plus nobs, nunk,
@@ -92,6 +97,8 @@ arguments
 end
 if opts.Only == "estimate"
     snx = readEstimateStreaming(filename);       % v2.2: no full-file load
+    % v5.23.1: Index reorders this path too (it was silently ignored)
+    snx = reorderToIndex(snx, opts.Index);
     return
 end
 filename = char(filename);
@@ -242,25 +249,30 @@ if opts.Output == "covariance" && strcmp(kind, 'NEQ') && ~isempty(M)
 end
 
 % ---- optional reordering to a shIndex ordering
-if ~isempty(fieldnames(opts.Index))
-    idx = opts.Index;
-    perm = zeros(idx.P, 1);
-    for r = 1:idx.P
-        hit = find(n == idx.n(r) & m == idx.m(r) & cs == idx.cs(r), 1);
-        if isempty(hit)
-            error('shLowLevel:readSINEX:missingParam', ...
-                'Coefficient (n=%d, m=%d, %s) not in the SINEX file.', ...
-                idx.n(r), idx.m(r), char('C' + 16*idx.cs(r)));
-        end
-        perm(r) = hit;
-    end
-    snx.n = snx.n(perm); snx.m = snx.m(perm); snx.cs = snx.cs(perm);
-    snx.x = snx.x(perm); snx.sig = snx.sig(perm);
-    if ~isempty(snx.M), snx.M = snx.M(perm, perm); end
-end
+snx = reorderToIndex(snx, opts.Index);
 end
 
 % ---------------------------------------------------------------- local
+function snx = reorderToIndex(snx, idx)
+%REORDERTOINDEX Reorder a parsed solution into a shIndex ordering.
+%   One home for both read paths; a no-op for an empty Index.
+if isempty(fieldnames(idx)), return, end
+perm = zeros(idx.P, 1);
+for r = 1:idx.P
+    hit = find(snx.n == idx.n(r) & snx.m == idx.m(r) & snx.cs == idx.cs(r), 1);
+    if isempty(hit)
+        error('shLowLevel:readSINEX:missingParam', ...
+            'Coefficient (n=%d, m=%d, %s) not in the SINEX file.', ...
+            idx.n(r), idx.m(r), char('C' + 16*idx.cs(r)));
+    end
+    perm(r) = hit;
+end
+snx.n = snx.n(perm); snx.m = snx.m(perm); snx.cs = snx.cs(perm);
+snx.x = snx.x(perm); snx.sig = snx.sig(perm);
+if isfield(snx, 'sigma'), snx.sigma = snx.sigma(perm); end
+if ~isempty(snx.M), snx.M = snx.M(perm, perm); end
+end
+
 function y = sinexEpoch2Year(tok)
 %SINEXEPOCH2YEAR yy:doy:sssss -> decimal year (leap-year exact).
 p = double(split(string(tok), ":"));
@@ -342,7 +354,8 @@ end
 assert(nEst > 0, 'shLowLevel:readSINEX:noEstimates', ...
     'No SOLUTION/ESTIMATE CN/SN lines found (streaming mode).');
 snx = struct('n', nA(1:nEst), 'm', mA(1:nEst), 'cs', csA(1:nEst), ...
-    'x', xA(1:nEst), 'sigma', sigA(1:nEst), 'M', [], 'kind', 'estimate', ...
+    'x', xA(1:nEst), 'sig', sigA(1:nEst), 'sigma', sigA(1:nEst), ...
+    'M', [], 'kind', 'estimate', ...
     'epoch', NaN, ...
     'note', 'streaming Only="estimate": matrix blocks and STATISTICS skipped');
 snx.stats = struct([]);

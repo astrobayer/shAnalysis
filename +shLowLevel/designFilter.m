@@ -40,8 +40,10 @@ function [W, info] = designFilter(SigmaC, SigmaS, opts)
 %        nmax    (1,1) double  maximum degree the filter covers
 %        name    (1,:) char    the filter's label
 %        blocks  (1,K) struct  one per (order, cs) block, each with
-%                m (1,1 double), cs ('c'|'s'), n (1,B double, the
-%                degrees) and M (B x B double, the block matrix)
+%                m (1,1 double), cs (1,1 double, 0 for C and 1 for
+%                S, as readDDK stores it - applyDDK branches on it),
+%                n (1,B double, the degrees) and M (B x B double, the
+%                block matrix)
 %     info  (1,1) struct  fields
 %           alpha      (1,1) double  the regularisation actually used
 %           mode       (1,1) string  "diagonal" | "fullcov"
@@ -132,7 +134,11 @@ for m = 0:nmax
         M = (Nblk + opts.Alpha * inv(Sblk)) \ Nblk;             %#ok<MINV>
         ev = eig((M + M') / 2);
         evmin = min(evmin, min(ev)); evmax = max(evmax, max(ev));
-        blocks(end+1) = struct('m', m, 'cs', cs, 'n', nvec, 'M', M); %#ok<AGROW>
+        % cs is stored as readDDK stores it, 0 for C and 1 for S: before
+        % v5.23.1 it was the char 'c'/'s', which applyDDK's cs == 0 test
+        % sent down the S branch, so C was never filtered
+        blocks(end+1) = struct('m', m, 'cs', double(cs == 's'), ...
+            'n', nvec, 'M', M); %#ok<AGROW>
     end
 end
 W = struct('nmax', nmax, 'name', char(opts.Name), 'blocks', blocks);

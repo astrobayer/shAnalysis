@@ -1,5 +1,55 @@
 # Changelog
 
+## [5.23.1] - 2026-10-21 - four defects found by a help-versus-code review
+
+A PATCH release. A static review of every help block against its code
+(Tier B) found four places where the code itself was wrong; each is
+fixed here with a test that fails on the old code. No documented valid
+call changes, except `hydroExtremeIndex`'s `category`, which changes
+class (see below).
+
+### Fixed
+- **`designFilter` filters C again - it never did.** Its blocks stored
+  `cs` as the char `'c'`/`'s'`; `applyDDK` branches on `cs == 0` (the
+  numeric 0/1 `readDDK` stores), so every block went down the S branch
+  and the cosine coefficients passed unfiltered. Present since v3.1.0;
+  `g.applyDDK(W)`, `ts.applyDDK(W)` and `standardChain(Filter = W)` with
+  a designed W were all affected. `testDesignFilter` checked the degree
+  RMS of C and S together, which the S filtering alone damps. The blocks
+  now carry 0/1, as the help always promised ("identical layout to
+  readDDK"), and `readDDK`'s own help, which also said `'c'|'s'`, is
+  corrected. `applyDDK` now refuses a block whose `cs` is neither 0 nor
+  1 (`shLowLevel:applyDDK:badBlock`), so a W saved before this release
+  fails loudly instead of filtering S twice. Pinned by
+  `testDesignFilterFiltersBothCoefficients` (bitwise per block) and
+  `testApplyDDKRefusesAnUnknownBlockType`.
+- **`obpChain` finishes a run.** Its last line called
+  `shLowLevel.shxVersion`, gone since the v3.0.0 rename, so every call
+  that passed the guards failed after all the synthesis; the tests only
+  reached the guards. `rep.version` is now the string the help
+  documents. Pinned by `testObpChainRunsToTheEnd`, which also checks that
+  a GAD field equal in every month cancels in the anomalies.
+- **`readSINEX(Only = "estimate")`** returned its sigmas as `sigma`,
+  not the documented `sig`, and ignored `Index`. Both paths now share
+  one reordering; `sig` is added and `sigma` kept as an alias, so no
+  caller breaks. Pinned in `testSINEXStreamingEstimateOnly` against the
+  full read, with and without `Index`.
+- **`hydroExtremeIndex`'s `category` is NaN where Z is NaN.** It was
+  `int8`, which turned `discretize`'s NaN into 0 and the category into
+  -6 - outside every class and every index into `categoryNames` - in
+  each calendar month below `MinYears`. The category is now **double**
+  (the values -5..+5 are unchanged); `testCorrectness`'s D4 pin compared
+  against `int8(-5)` and now compares against -5. Code comparing with
+  `==` is unaffected; code that relied on the class `int8` is not.
+  Pinned by `testHydroExtremeIndexCategoryIsNaNWhereZIs`. The help
+  example (and the guide's snippet) read `tws.grid` from `twsChain`,
+  which returns basin series and no grid; it now synthesizes the stack
+  with `ts.toGrid`.
+
+### Verification
+Tier B: static gates and Python only; the MATLAB verdict is the A8 run
+on this release's pull request.
+
 ## [5.23.0] - 2026-10-21 - A36: the offline fetch tests stop sleeping
 
 A MINOR release: two options on `fetchTN` and `fetchICGEM`. No default

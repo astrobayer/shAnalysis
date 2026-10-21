@@ -20,6 +20,12 @@ function [Cf, Sf] = applyDDK(C, S, W)
 %   n60/n96 GRACE fields. Fields with nmax >= the block degree are
 %   filtered exactly as before.
 %
+%   Error identifiers
+%     shLowLevel:applyDDK:badBlock
+%         a block's cs is not 0 (C) or 1 (S) - W was not built by
+%         readDDK or designFilter (v5.23.1: designFilter's char 'c'/'s'
+%         used to fall silently into the S branch)
+%
 %   Claude (Fable 5), 2026-08-07.
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 arguments
@@ -31,6 +37,11 @@ n1 = size(C, 1);
 Cf = C; Sf = S;
 for k = 1:numel(W.blocks)
     b = W.blocks(k);
+    if ~(isnumeric(b.cs) && isscalar(b.cs) && (b.cs == 0 || b.cs == 1))
+        error('shLowLevel:applyDDK:badBlock', ...
+            ['W.blocks(%d).cs must be 0 (C) or 1 (S), as readDDK and ' ...
+             'designFilter store it.'], k);
+    end
     if b.m + 1 > n1, continue; end
     % v2.5.1: filter blocks reaching beyond the field's nmax are
     % TRUNCATED to the available degrees (submatrix of the gain) - the

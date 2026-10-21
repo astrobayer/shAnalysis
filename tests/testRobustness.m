@@ -1012,6 +1012,17 @@ verifyEqual(tc, est.cs, full_.cs);
 verifyEqual(tc, est.x, full_.x, 'AbsTol', 0);
 verifyEqual(tc, est.kind, 'estimate');
 verifyTrue(tc, isempty(est.M));
+% v5.23.1: the sigmas are in sig, as on the full read (they were only in
+% sigma, which stays as an alias), and Index reorders this path too
+verifyEqual(tc, est.sig, full_.sig, 'AbsTol', 0);
+verifyEqual(tc, est.sigma, est.sig, 'AbsTol', 0);
+rev = struct('n', flipud(full_.n), 'm', flipud(full_.m), ...
+    'cs', flipud(full_.cs), 'P', numel(full_.n));
+estI = shLowLevel.readSINEX(f, Only = "estimate", Index = rev);
+fullI = shLowLevel.readSINEX(f, Index = rev);
+verifyEqual(tc, estI.x, fullI.x, 'AbsTol', 0);
+verifyEqual(tc, estI.sig, fullI.sig, 'AbsTol', 0);
+verifyEqual(tc, estI.n, rev.n);
 % gz variant through the streaming path
 tmp = tempname; mkdir(tmp);
 cleanup = onCleanup(@() rmIfFolder(tmp)); %#ok<NASGU>

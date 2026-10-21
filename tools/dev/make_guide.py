@@ -1055,8 +1055,8 @@ story += [para("25. Hydrological extremes: standardized indices (v3.14)",
                "Figure T8 &mdash; the causal storage deficit (computed "
                "illustration): zero at a running maximum, growing as the "
                "basin dries; small deficit means flood-prone."),
-          *code("""[tws, rep] = shLowLevel.twsChain(ser, kn = kn);
-[Z, ih] = shLowLevel.hydroExtremeIndex(tws.grid, tws.epochs);
+          *code("""B = ts.toGrid(-89.5:89.5, 0.5:359.5, Quantity = "ewh", kn = kn);
+[Z, ih] = shLowLevel.hydroExtremeIndex(B.Z, ts.epochs);
 ih.categoryNames(ih.category(iLat, iLon, end) + 6)""")]
 
 story += [para("26. Daily solutions and near-real-time monitoring "
@@ -2830,7 +2830,7 @@ snx = shLowLevel.readSINEX(f, Index = idx);        % N + x, idx order
 [ab, ~] = shLowLevel.signalVarianceKaula(ts.Cs, ts.Ss, ts.epochs);
 xf = shLowLevel.vdkApply(snx.x, snx.M, idx.n, ab(mo, :), Alpha = 1);""")
 story += [para("<b>Flood and drought indices per cell or basin.</b> "
-               "hydroExtremeIndex turns any TWS stack - twsChain grids "
+               "hydroExtremeIndex turns any TWS stack - ts.toGrid grids "
                "or basinAverage series - into published extreme "
                "indices: the GRACE-DSI of Zhao et al. (2017), the "
                "standardized anomaly per calendar month with the "

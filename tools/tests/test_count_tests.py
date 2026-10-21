@@ -109,7 +109,7 @@ class TestCounting(unittest.TestCase):
         self.assertEqual(c["runs"], c["methods"])
 
 
-EXPECTED_RUNS = 431          # v5.23.0: 430 + the A36 retry-forwarding contract test
+EXPECTED_RUNS = 435          # v5.23.1: 431 + designFilter C, obpChain run, hydro NaN category, applyDDK badBlock
                              # (5 correctness, 4 contract, 2 robustness)
 
 

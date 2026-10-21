@@ -1806,7 +1806,7 @@ L = 60;
 sc = 3e-11 * ones(L+1); ss = sc;
 [W, inf1] = shLowLevel.designFilter(sc, ss, Alpha = 1, Kaula = 1e-6);
 gain = @(n) 1 ./ (1 + (3e-11 * n.^2 / 1e-6).^2);
-b0 = W.blocks(strcmp({W.blocks.cs}, 'c') & [W.blocks.m] == 0);
+b0 = W.blocks([W.blocks.cs] == 0 & [W.blocks.m] == 0);
 d = diag(b0.M);
 verifyEqual(testCase, d(b0.n == 10), gain(10), 'RelTol', 1e-12);
 verifyEqual(testCase, d(b0.n == 30), gain(30), 'RelTol', 1e-12);
@@ -1832,7 +1832,7 @@ Nn(sel, sel) = inv([4, 1; 1, 3]);
 Ss2(sel, sel) = [2, 0.5; 0.5, 1];
 Wf = shLowLevel.designFilter(zeros(4), zeros(4), Alpha = 0.5, ...
     Noise = Nn, Signal = Ss2, Idx = idx);
-bm = Wf.blocks(strcmp({Wf.blocks.cs}, 'c') & [Wf.blocks.m] == 2);
+bm = Wf.blocks([Wf.blocks.cs] == 0 & [Wf.blocks.m] == 2);
 verifyEqual(testCase, bm.M, [0.92156862745098, 0.068627450980392; ...
     0.058823529411765, 0.823529411764706], 'RelTol', 1e-12);
 verifyError(testCase, @() shLowLevel.designFilter(zeros(4), zeros(4), ...
@@ -2744,7 +2744,7 @@ x(201) = clim(201) + 0.5*(200/12) + 2.5*sigj(201);
 verifyLessThanOrEqual(testCase, zD(101), -2.0);
 verifyGreaterThanOrEqual(testCase, zD(201), 2.0);
 verifyGreaterThan(testCase, zN(101), zD(101) + 0.5);   % trend eats it
-verifyEqual(testCase, infD.category(101), int8(-5));   % D4
+verifyEqual(testCase, infD.category(101), -5);   % D4 (double since v5.23.1)
 verifyEqual(testCase, infD.categoryNames(1), "D4");
 % robust sigma vs one outlier
 x2 = x; x2(4) = x2(4) + 50;
@@ -6464,4 +6464,103 @@ for q = 1:numel(parts)
         dist(i) = min(dist(i), min(hypot(ax + t .* bx - gx(i), ay + t .* by - la(i))));
     end
 end
+end
+
+function testDesignFilterFiltersBothCoefficients(testCase)
+%TESTDESIGNFILTERFILTERSBOTHCOEFFICIENTS v5.23.1: a designFilter W
+%   filters C as well as S. Its blocks carried cs = 'c'/'s' while
+%   applyDDK branches on cs == 0, so every block took the S branch and C
+%   passed unfiltered - and testDesignFilter, which checks the degree RMS
+%   of C and S together, could not see it. Each block must act on its own
+%   coefficients, bitwise: applyDDK forms the same M * c product here.
+L = 20;
+sc = 3e-11 * ones(L + 1);
+W = shLowLevel.designFilter(sc, sc, Kaula = 1e-8);
+cs = [W.blocks.cs];
+verifyClass(testCase, cs, 'double');
+verifyTrue(testCase, all(cs == 0 | cs == 1), 'cs must be 0 (C) or 1 (S)');
+rng(43); g = randomField(L);
+[Cf, Sf] = shLowLevel.applyDDK(g.C, g.S, W);
+for k = 1:numel(W.blocks)
+    b = W.blocks(k); ii = b.n + 1;
+    if b.cs == 0
+        verifyEqual(testCase, Cf(ii, b.m+1), b.M * g.C(ii, b.m+1), ...
+            sprintf('C block m = %d is not M * C', b.m));
+    else
+        verifyEqual(testCase, Sf(ii, b.m+1), b.M * g.S(ii, b.m+1), ...
+            sprintf('S block m = %d is not M * S', b.m));
+    end
+end
+% at Kaula 1e-8 the gain at degree 20 is about 0.41, so C must move
+verifyLessThan(testCase, norm(Cf(L+1, :)), 0.9 * norm(g.C(L+1, :)), ...
+    'the cosine coefficients were not filtered');
+end
+
+function testObpChainRunsToTheEnd(testCase)
+%TESTOBPCHAINRUNSTOTHEEND v5.23.1: obpChain finishes a run. Its last
+%   line called shLowLevel.shxVersion, gone since v3.0.0, so every call
+%   that got past its guards failed there, after all the synthesis; the
+%   tests reached the guards only. Three synthetic 2005 months (the
+%   shipped GravIS tables cover them) near the NFIL mean, plus GAD.
+%   Metamorphic: a GAD field that is the same every month cancels in the
+%   anomalies, so the grid equals that of a run without GAD.
+d = tempname; mkdir(d); c1 = onCleanup(@() rmIfFolder(d));
+gadD = tempname; mkdir(gadD); c2 = onCleanup(@() rmIfFolder(gadD));
+noGad = tempname; mkdir(noGad); c3 = onCleanup(@() rmIfFolder(noGad));
+nmax = 6; n1 = nmax + 1;
+mn = shLowLevel.readSHM(fullfile(shLowLevel.gravisDataFolder(), ...
+    "GRAVIS-2B_COSTG_0200_MEAN_2002095-2020091_NFIL_0001.gz"), Nmax = nmax);
+spans = ["2005001-2005031", "2005032-2005059", "2005060-2005090"];
+rng(44);
+lowS = tril(ones(n1), -1); lowS(:, 1) = 0;
+gD = shCoefficients(1e-10 * tril(randn(n1)), 1e-10 * lowS .* randn(n1));
+for k = 1:3
+    g = shCoefficients(mn.C + 1e-10 * tril(randn(n1)), ...
+        mn.S + 1e-10 * lowS .* randn(n1));
+    g.write(fullfile(d, "GSM-2_" + spans(k) + "_TEST.gfc"), Sidecar = false);
+    gD.write(fullfile(gadD, "GAD-2_" + spans(k) + "_TEST.gfc"), Sidecar = false);
+end
+kn = zeros(n1, 1);
+ocean = @(la, lo) la < 0;
+args = {'kn', kn, 'OceanMask', ocean, 'GridStep', 10};
+[out, rep] = shLowLevel.obpChain(d, args{:}, GADFolder = gadD);
+v = shLowLevel.version();
+verifyEqual(testCase, rep.version, string(v.Name + " " + v.Version));
+verifyEqual(testCase, rep.nEpochs, 3);
+verifyEqual(testCase, rep.nGadRestored, 3);
+verifyEqual(testCase, size(out.grid), [18, 36, 3]);
+land = out.lat >= 0;
+verifyTrue(testCase, all(isnan(out.grid(land, :, :)), 'all'), 'land must be NaN');
+verifyTrue(testCase, all(isfinite(out.grid(~land, :, :)), 'all'));
+[out0, rep0] = shLowLevel.obpChain(d, args{:}, GADFolder = noGad);
+verifyEqual(testCase, rep0.nGadRestored, 0);
+% the bound is the rounding of adding and removing the same GAD field
+% before the anomaly: a few eps of the largest anomaly (no oracle needed,
+% the two runs differ by that sum only)
+scale = max(abs(out0.grid(~land, :, :)), [], 'all');
+verifyLessThan(testCase, max(abs(out.grid(~land, :, :) - out0.grid(~land, :, :)), [], 'all'), ...
+    1e-10 * scale, 'a GAD field equal every month must cancel in the anomalies');
+end
+
+function testHydroExtremeIndexCategoryIsNaNWhereZIs(testCase)
+%TESTHYDROEXTREMEINDEXCATEGORYISNANWHEREZIS v5.23.1: where a calendar
+%   month has fewer than MinYears epochs, Z is NaN and so is its
+%   category. Before, the int8 conversion turned discretize's NaN into 0
+%   and the category into -6, outside every class and every index into
+%   categoryNames.
+rng(45);
+ep = 2010 + ((0:71)' + 0.5) / 12;
+mo = mod(0:71, 12)' + 1;
+keep = ~(mo == 1 & ep < 2012);                 % January: 4 years < 5
+ep = ep(keep); mo = mo(keep);
+x = 10 * sin(2*pi*ep) + randn(numel(ep), 1);
+ws = warning('off', 'shLowLevel:hydroExtremeIndex:shortMonths');
+cw = onCleanup(@() warning(ws));
+[z, info] = shLowLevel.hydroExtremeIndex(x, ep);
+verifyTrue(testCase, all(isnan(z(mo == 1))), 'January must be NaN');
+verifyEqual(testCase, isnan(info.category), isnan(z), ...
+    'category must be NaN exactly where Z is');
+cf = info.category(~isnan(info.category));
+verifyTrue(testCase, all(cf >= -5 & cf <= 5 & cf == round(cf)));
+verifyEqual(testCase, numel(info.categoryNames(cf + 6)), numel(cf));
 end
