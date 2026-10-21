@@ -5972,3 +5972,286 @@ bound = 100 * eps * cond(Ck);
 verifyLessThan(testCase, max(abs(rk.N - N2), [], 'all') / max(abs(N2), [], 'all'), bound);
 verifyLessThan(testCase, max(abs(rk.b - Ak' * (Ck \ yk))) / max(abs(rk.b)), bound);
 end
+
+% ------------------------------------------- WP8 8i: process-noise scales
+function testKalmanFilterLikelihoodIsTheDenseOne(testCase)
+%TESTKALMANFILTERLIKELIHOODISTHEDENSEONE kalmanFilter's Likelihood: the
+%   neq-mode terms summed over the epochs, plus log|R| + l'R^-1 l of every
+%   observed epoch, are the dense Gaussian -2 log likelihood of all
+%   observations under the joint prior of the stationary VAR(1) states,
+%   Cov(x_s, x_t) = Phi^(s-t) Sigma0 - gaps included (log(2 pi) left out of
+%   both). validate_regional_adaptive.py CLAIM 1 measured 3.9e-15 in numpy;
+%   the bound 1e-13 allows MATLAB's own LAPACK in the filter's inverses.
+%   And the solution-mode term of an epoch exceeds the neq-mode term of the
+%   same data (N = R^-1, b = R^-1 l) by exactly log|R| + l'R^-1 l (CLAIM 1:
+%   1.8e-14; bound 1e-12 relative).
+rng(91);
+P = 4;
+[model, S0] = localStableModel(P);
+A1 = model.Phi{1};
+T = 12;
+gaps = [4 9];
+cS = chol(S0, 'lower');
+x = cS * randn(P, 1);
+X = zeros(P, T);
+cQ = chol(model.Q, 'lower');
+for t = 1:T
+    x = A1 * x + cQ * randn(P, 1);
+    X(:, t) = x;
+end
+obs = repmat(struct('l', [], 'R', [], 'N', [], 'b', []), 1, T);
+rows = {}; ys = {}; rs = {};
+const = 0;
+for t = setdiff(1:T, gaps)
+    A = randn(3, P);
+    r = 0.3 + rand(3, 1);
+    y = A * X(:, t) + sqrt(r) .* randn(3, 1);
+    obs(t).N = A' * (A ./ r);
+    obs(t).b = A' * (y ./ r);
+    const = const + sum(log(r)) + y' * (y ./ r);
+    At = zeros(3, P * T);
+    At(:, (t - 1) * P + (1:P)) = A;
+    rows{end + 1} = At; ys{end + 1} = y; rs{end + 1} = r; %#ok<AGROW>
+end
+filt = shLowLevel.kalmanFilter(model, obs, Likelihood = true);
+verifyEqual(testCase, filt.negLogLik(gaps), [0 0]);
+Sig = zeros(P * T);
+for s = 1:T
+    for t = 1:s
+        C = A1 ^ (s - t) * S0;
+        Sig((s - 1) * P + (1:P), (t - 1) * P + (1:P)) = C;
+        Sig((t - 1) * P + (1:P), (s - 1) * P + (1:P)) = C';
+    end
+end
+A = vertcat(rows{:}); y = vertcat(ys{:}); r = vertcat(rs{:});
+C = A * Sig * A' + diag(r);
+Lc = chol((C + C') / 2, 'lower');
+z = Lc \ y;
+dense = 2 * sum(log(diag(Lc))) + z' * z;
+verifyLessThan(testCase, abs(sum(filt.negLogLik) + const - dense) / abs(dense), 1e-13);
+Lr = randn(P);
+R = Lr * Lr' / P + 0.5 * eye(P);
+l = randn(P, 1);
+o1 = struct('l', l, 'R', R, 'N', [], 'b', []);
+o2 = struct('l', [], 'R', [], 'N', inv(R), 'b', R \ l);
+f1 = shLowLevel.kalmanFilter(model, o1, Likelihood = true);
+f2 = shLowLevel.kalmanFilter(model, o2, Likelihood = true);
+dR = 2 * sum(log(diag(chol(R)))) + l' * (R \ l);
+verifyLessThan(testCase, abs(f1.negLogLik - f2.negLogLik - dR) / abs(f1.negLogLik), 1e-12);
+f0 = shLowLevel.kalmanFilter(model, obs);
+verifyEmpty(testCase, f0.negLogLik);
+verifyTrue(testCase, isequal(f0.xf, filt.xf) && isequal(f0.Pf, filt.Pf), ...
+    'Likelihood changed the filter');
+end
+
+function [tsm, tsObs, Xo, idx] = scaleFixture(seed, alpha)
+%SCALEFIXTURE A VAR(1) at nmax 4 (P = 21) with a 1/(n+1)^2 signal: a model
+%   series of 300 epochs from Q, and 150 observed epochs from alpha Q with
+%   formal sigmas of 1e-11 - the process the model under-predicts, as in
+%   Kurtenbach's Sec. 4.3.5.
+rng(seed);
+idx = shLowLevel.shIndex(4);
+P = idx.P;
+dec = 1 ./ (idx.n + 1) .^ 2;
+Ph = 0.7 * eye(P) + 0.02 * randn(P);
+Ph = Ph * (0.8 / max(abs(eig(Ph))));
+Lq = randn(P) / sqrt(P);
+Q = (Lq * Lq' + 0.2 * eye(P)) .* (dec * dec') * 1e-18;
+Q = (Q + Q') / 2;
+sim = @(Qs, n) simVAR(Ph, Qs, n);
+Xm = sim(Q, 300);
+Xo = sim(alpha * Q, 150);
+sig = 1e-11 * ones(P, 1);
+tsm = vecSeries(Xm, 1980 + ((1:300)' - 0.5) / 12, idx, []);
+tsObs = vecSeries(Xo + sig .* randn(P, 150), 2003 + ((1:150)' - 0.5) / 12, idx, sig);
+end
+
+function X = simVAR(Ph, Q, n)
+P = size(Ph, 1);
+cQ = chol(Q, 'lower');
+X = zeros(P, n + 100);
+for k = 2:n + 100
+    X(:, k) = Ph * X(:, k - 1) + cQ * randn(P, 1);
+end
+X = X(:, 101:end);
+end
+
+function testRegionalKalmanEstimatesTheProcessNoiseScale(testCase)
+%TESTREGIONALKALMANESTIMATESTHEPROCESSNOISESCALE EstimateQScale finds
+%   Kurtenbach's alpha from the data: the observed process runs with 4 Q,
+%   the model series with Q. The estimate lands closer to 4 than to 1 and
+%   below 8 (validate_regional_adaptive.py CLAIM 3: relative spread 9-20
+%   percent at a weaker data set), it is a maximum of the likelihood (5
+%   percent either side is no better), and it lowers the error of the
+%   smoothed states against alpha = 1 (30 of 30 seeds in CLAIM 3).
+[tsm, tsObs, Xo, idx] = scaleFixture(92, 4);
+B = shLowLevel.regionalBasis(idx, [], Type = "sh");
+args = {"ModelSeries", tsm, "Climatology", false};
+[ts1, o1] = shLowLevel.regionalKalman(tsObs, B, args{:});
+[tsE, oE] = shLowLevel.regionalKalman(tsObs, B, args{:}, EstimateQScale = true);
+qs = oE.qScale;
+verifyTrue(testCase, oE.qEstimate.estimated && oE.qEstimate.evaluations > 0 && ...
+    ~oE.qEstimate.atBound, 'the search did not run to an interior maximum');
+verifyGreaterThan(testCase, qs, 2);
+verifyLessThan(testCase, qs, 8);
+for f = [1.05, 1 / 1.05]
+    [~, oF] = shLowLevel.regionalKalman(tsObs, B, args{:}, QScale = f * qs, ...
+        QBlocks = ones(B.K, 1), EstimateQScale = false);
+    verifyGreaterThanOrEqual(testCase, oF.negLogLik, oE.negLogLik - 1e-6 * abs(oE.negLogLik));
+end
+xE = seriesVectors(tsE, idx);
+x1 = seriesVectors(ts1, idx);
+verifyLessThan(testCase, sqrt(mean((xE - Xo) .^ 2, 'all')), sqrt(mean((x1 - Xo) .^ 2, 'all')));
+verifyEqual(testCase, o1.qScale, 1);
+verifyFalse(testCase, o1.qEstimate.estimated);
+end
+
+function testRegionalKalmanQBlocksScaleBlockwise(testCase)
+%TESTREGIONALKALMANQBLOCKSSCALEBLOCKWISE With QBlocks and one QScale per
+%   block the process noise is D Q D, D = diag(sqrt(alpha)), formed from
+%   the same Q the plain chain estimates - bitwise; the dynamics and
+%   Sigma0 are unchanged. QBlocks all ones is one block, and one fixed
+%   alpha is v5.18.0's chain - bitwise.
+[tsm, tsObs, ~, idx] = scaleFixture(93, 1);
+B = shLowLevel.regionalBasis(idx, [], Type = "sh");
+args = {"ModelSeries", tsm, "Climatology", false};
+[~, o0] = shLowLevel.regionalKalman(tsObs, B, args{:});
+blocks = 1 + double(idx.n >= 4);
+al = [2; 0.5];
+[~, oB] = shLowLevel.regionalKalman(tsObs, B, args{:}, QBlocks = blocks, QScale = al);
+d = sqrt(al(blocks));
+Qref = d .* o0.model.Q .* d.';
+Qref = (Qref + Qref.') / 2;
+verifyTrue(testCase, isequal(oB.model.Q, Qref), 'Q is not D Q D');
+verifyTrue(testCase, isequal(oB.model.Phi, o0.model.Phi) && ...
+    isequal(oB.model.Sigma0, o0.model.Sigma0), 'the dynamics or Sigma0 changed');
+verifyEqual(testCase, oB.qScale, al);
+verifyEqual(testCase, oB.qBlocks, blocks);
+[t3, o3] = shLowLevel.regionalKalman(tsObs, B, args{:}, QScale = 3);
+[t4, o4] = shLowLevel.regionalKalman(tsObs, B, args{:}, QScale = 3, ...
+    QBlocks = ones(B.K, 1), EstimateQScale = false);
+verifyTrue(testCase, isequaln(t3, t4) && isequaln(rmfield(o3, 'qBlocks'), ...
+    rmfield(o4, 'qBlocks')), 'one block is not the plain chain');
+end
+
+function testRegionalKalmanOrderTwoOnTheSHBasisIsKalmanChain(testCase)
+%TESTREGIONALKALMANORDERTWOONTHESHBASISISKALMANCHAIN VAR(2) through the
+%   regional chain: on the SH basis it is kalmanChain at Order 2 - the same
+%   process model bit for bit, and the information-form update against
+%   kalmanChain's gain form in companion space. The fixture is
+%   validate_regional_adaptive.py CLAIM 4b's: the five degree-2
+%   coefficients, a stationary VAR(2) truth behind a 3000-epoch model
+%   series, 30 observed epochs of which every fourth is missing. There the
+%   two forms agree to 9.45e-16 in the smoothed states and 1.11e-15 in the
+%   sigmas over 40 seeds; the bounds are 3x those. (The first fixture, nmax 6 with 240
+%   model epochs, asked 2 x 45^2 VAR parameters of 240 epochs; the estimate
+%   was explosive - companion radius 6.8 - and the two rounding paths grew
+%   apart, 8.6e-12 in the states on A8.)
+[tsm, tsObs, ep, idx] = var2Fixture(64);
+B = shLowLevel.regionalBasis(idx, [], Type = "sh");
+[tsR, outR] = shLowLevel.regionalKalman(tsObs, B, ModelSeries = tsm, ...
+    Epochs = ep, Order = 2, Climatology = false);
+[tsC, repC] = shLowLevel.kalmanChain(tsObs, ModelSeries = tsm, Epochs = ep, ...
+    Order = 2, Climatology = false);
+verifyTrue(testCase, isequaln(outR.model, repC.model), 'the VAR(2) model differs');
+verifyEqual(testCase, outR.order, 2);
+verifyLessThan(testCase, outR.model.specRadius, 1, 'the fixture is not stationary');
+[xR, sR] = seriesVectors(tsR, idx);
+[xC, sC] = seriesVectors(tsC, idx);
+verifyLessThan(testCase, max(abs(xR - xC), [], 'all') / max(abs(xC), [], 'all'), ...
+    3 * 9.45e-16);
+verifyLessThan(testCase, max(abs(sR ./ sC - 1), [], 'all'), 3 * 1.11e-15);
+end
+
+function testEstimateVAROrderTwoSolvesTheYuleWalkerEquations(testCase)
+%TESTESTIMATEVARORDERTWOSOLVESTHEYULEWALKEREQUATIONS A35: for Order 2 the
+%   estimate satisfies the Yule-Walker equations of the series' own sample
+%   covariances G(h) = E[x_(t+h) x_t'],
+%     G(1) = Phi1 G(0) + Phi2 G(1)',   G(2) = Phi1 G(1) + Phi2 G(0),
+%   to rounding (9.8e-17 of |G| in numpy on this configuration; bound
+%   1e-13, for the conditioning of a 10 x 10 solve - the defect it guards
+%   against misses by 0.30), and
+%   recovers a stationary truth (companion radius about 0.7) as a
+%   stationary model. Before v5.20.0 the block matrix held G(i - j) where
+%   E[x_(t-i) x_(t-j)'] = G(j - i) belongs, which missed the first
+%   equation by O(|G|) and put the companion radius at 1.45
+%   (validate_regional_adaptive.py's Yule-Walker, and this fixture).
+[tsm, ~, ~, idx] = var2Fixture(64);
+X = zeros(idx.P, tsm.nEpochs);                 % the model series has no sigmas
+for t = 1:tsm.nEpochs
+    X(:, t) = shLowLevel.vecFromCS(tsm.Cs(:, :, t), tsm.Ss(:, :, t), idx);
+end
+model = shLowLevel.estimateVAR(X, Order = 2);
+T = size(X, 2);
+G0 = X * X.' / T;
+G1 = X(:, 2:end) * X(:, 1:end-1).' / (T - 1);
+G2 = X(:, 3:end) * X(:, 1:end-2).' / (T - 2);
+[P1, P2] = deal(model.Phi{1}, model.Phi{2});
+sc = max(abs(G0), [], 'all');
+verifyLessThan(testCase, max(abs(P1 * G0 + P2 * G1.' - G1), [], 'all') / sc, 1e-13);
+verifyLessThan(testCase, max(abs(P1 * G1 + P2 * G0 - G2), [], 'all') / sc, 1e-13);
+verifyLessThan(testCase, model.specRadius, 0.95);
+end
+
+function [tsm, tsObs, ep, idx] = var2Fixture(seed)
+%VAR2FIXTURE validate_regional_adaptive.py CLAIM 4b: nmax 2 with shIndex's
+%   default Nmin = 2 (P = 5, the degree-2 coefficients), a
+%   VAR(2) with Phi1 = 0.9 I + noise and Phi2 = -0.5 I + noise (companion
+%   radius about 0.7, capped at 0.97), a 3000-epoch model series and 30
+%   monthly epochs observed directly with sigmas of 0.5-1 signal standard
+%   deviations, every fourth missing.
+rng(seed);
+idx = shLowLevel.shIndex(2);
+K = idx.P;
+Bc = [0.9 * eye(K) + 0.05 * randn(K), -0.5 * eye(K) + 0.05 * randn(K); ...
+      eye(K), zeros(K)];
+rho = max(abs(eig(Bc)));
+if rho > 0.97
+    Bc(1:K, :) = Bc(1:K, :) * (0.97 / rho);
+end
+L = randn(K);
+cQ = chol((L * L.' / K + 0.3 * eye(K)) * 1e-18, 'lower');
+z = zeros(2 * K, 1);
+X = zeros(K, 3030);
+for t = 1:3230
+    z = Bc * z;
+    z(1:K) = z(1:K) + cQ * randn(K, 1);
+    if t > 200
+        X(:, t - 200) = z(1:K);
+    end
+end
+sig = 0.5 * std(X(:, 1:3000), 0, 2) .* (1 + rand(K, 1));
+tsm = vecSeries(X(:, 1:3000), 1750 + ((1:3000)' - 0.5) / 12, idx, []);
+ep = 2003 + ((1:30)' - 0.5) / 12;
+keep = mod(0:29, 4) ~= 3;
+Lobs = X(:, 3001:3030) + sig .* randn(K, 30);
+tsObs = vecSeries(Lobs(:, keep), ep(keep), idx, sig);
+end
+
+function testBuildCondFunInABasis(testCase)
+%TESTBUILDCONDFUNINABASIS buildCondFun(..., Basis = B) conditions basis
+%   covariances as Proj f(T S T') Proj'. On the SH basis (T = Proj = I) it
+%   is the SH conditioner bitwise; on an RBF basis without taper and
+%   regions it is the identity to the projector's tolerance
+%   (validate_regional_adaptive.py CLAIM 5: 1.1e-10; bound 1e-9 of the
+%   largest entry), and with a taper it stays positive semidefinite.
+idx = shLowLevel.shIndex(8);
+kn = -0.3 * ones(idx.Lmax + 1, 1);            % synthetic Love numbers
+Bsh = shLowLevel.regionalBasis(idx, [], Type = "sh");
+rng(94);
+Ar = randn(idx.P, 2 * idx.P);
+C = Ar * Ar.' / (2 * idx.P);
+cf = shLowLevel.buildCondFun(idx, kn = kn, Psi0Km = 2000);
+cfB = shLowLevel.buildCondFun(idx, kn = kn, Psi0Km = 2000, Basis = Bsh);
+verifyTrue(testCase, isequal(cfB(C), cf(C)), 'not the SH conditioner on the SH basis');
+B = shLowLevel.regionalBasis(idx, @(la, lo) double(la > 40));
+Ak = randn(B.K, 2 * B.K);
+S = Ak * Ak.' / (2 * B.K);
+cfI = shLowLevel.buildCondFun(idx, kn = kn, Basis = B);
+verifyLessThan(testCase, max(abs(cfI(S) - S), [], 'all') / max(abs(S), [], 'all'), 1e-9);
+cfT = shLowLevel.buildCondFun(idx, kn = kn, Psi0Km = 1500, Basis = B);
+St = cfT(S);
+verifyEqual(testCase, size(St), [B.K B.K]);
+verifyTrue(testCase, issymmetric(St));
+verifyGreaterThan(testCase, min(eig(St)), -1e-12 * max(eig(St)));
+end

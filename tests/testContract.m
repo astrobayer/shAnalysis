@@ -3314,3 +3314,41 @@ verifyError(testCase, @() shLowLevel.regionalNEQ(B, "lgd", base{:}, Cov = 1, ...
 verifyEqual(testCase, rec.nobs, 20);
 verifyEqual(testCase, info.kept, true(20, 1));
 end
+
+function testRegionalKalmanQScaleRouteAndIDs(testCase)
+%TESTREGIONALKALMANQSCALEROUTEANDIDS ts.regionalKalman forwards QBlocks,
+%   a QScale per block and EstimateQScale to the lane - bitwise - and the
+%   new identifiers are driven by the guards they name: block labels that
+%   do not fit the basis, a block left empty, a QScale of the wrong length;
+%   and buildCondFun refuses a basis on another index.
+tsObs = wp7Series(6, 30, 152);
+tsm = wp7Series(6, 120, 153);
+B = tsObs.regionalBasis(@(la, lo) double(la > 50));
+K = B.K;
+blocks = 1 + double((1:K)' > K / 2);
+opt = {"QBlocks", blocks, "QScale", [2; 0.5], "Climatology", false};
+[a1, o1] = tsObs.regionalKalman(B, opt{:}, ModelSeries = tsm);
+[a2, o2] = shLowLevel.regionalKalman(tsObs, B, opt{:}, ModelSeries = tsm);
+verifyTrue(testCase, isequaln(a1, a2) && isequaln(o1, o2), ...
+    'ts.regionalKalman with QBlocks is not the lane');
+[a1, o1] = tsObs.regionalKalman(B, ModelSeries = tsm, EstimateQScale = true, ...
+    Climatology = false);
+[a2, o2] = shLowLevel.regionalKalman(tsObs, B, ModelSeries = tsm, ...
+    EstimateQScale = true, Climatology = false);
+verifyTrue(testCase, isequaln(a1, a2) && isequaln(o1, o2), ...
+    'ts.regionalKalman with EstimateQScale is not the lane');
+verifyTrue(testCase, o1.qEstimate.estimated);
+verifyError(testCase, @() shLowLevel.regionalKalman(tsObs, B, ModelSeries = tsm, ...
+    QBlocks = ones(K - 1, 1)), 'shLowLevel:regionalKalman:badQBlocks');
+verifyError(testCase, @() shLowLevel.regionalKalman(tsObs, B, ModelSeries = tsm, ...
+    QBlocks = 2 * ones(K, 1)), 'shLowLevel:regionalKalman:badQBlocks');
+verifyError(testCase, @() shLowLevel.regionalKalman(tsObs, B, ModelSeries = tsm, ...
+    QBlocks = 1.5 * ones(K, 1)), 'shLowLevel:regionalKalman:badQBlocks');
+verifyError(testCase, @() shLowLevel.regionalKalman(tsObs, B, ModelSeries = tsm, ...
+    QBlocks = blocks, QScale = [1; 2; 3]), 'shLowLevel:regionalKalman:badQBlocks');
+kn = -0.3 * ones(7, 1);
+verifyError(testCase, @() shLowLevel.buildCondFun(shLowLevel.shIndex(5), kn = kn, ...
+    Basis = B), 'shLowLevel:buildCondFun:badBasis');
+verifyError(testCase, @() shLowLevel.buildCondFun(shLowLevel.shIndex(6), kn = kn, ...
+    Basis = struct('T', 1)), 'shLowLevel:buildCondFun:badBasis');
+end

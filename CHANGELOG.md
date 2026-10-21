@@ -1,5 +1,96 @@
 # Changelog
 
+## [5.20.0] - 2026-10-21 - WP8 8i: process-noise scales from the data, VAR(2) and conditioning in a basis
+
+A MINOR release: options on `regionalKalman`, `kalmanFilter` and
+`buildCondFun`, and the seventh row of WP8. No documented call or error
+identifier changes; without the new options every result is v5.19.0's,
+except a VAR of `Order` >= 2, which was wrong until now (Fixed, below).
+
+### Fixed
+- **`estimateVAR` with `Order` >= 2 solved the wrong Yule-Walker
+  system** (A35, since the function was written). Block (i, j) of the
+  system matrix must be E[x_(t-i) x_(t-j)'] = Sigma(j - i); the code
+  held Sigma(i - j), each block transposed. That is exact for `Order = 1`
+  and for 1 x 1 blocks (`Structure = "diagonal"`), so every default call
+  and every earlier test was unaffected; a multivariate VAR(2) came back
+  wrong - from a stationary truth with companion radius 0.76, a model
+  with radius 1.45, missing the Yule-Walker equations by 0.30 of |Sigma(0)|
+  against 1e-16 now. `kalmanChain(..., Order >= 2)` and
+  `regionalKalman(..., Order >= 2)` inherited it. Found by this release's
+  VAR(2) test on A8, after its first two fixtures failed for reasons of
+  their own (below); pinned by `testEstimateVAROrderTwoSolvesTheYuleWalkerEquations`.
+
+### Added
+- `regionalKalman(..., QBlocks = lab, QScale = alpha)`: one process-noise
+  factor per block of basis coefficients, Q(alpha) = D Q D,
+  D = diag(sqrt(alpha_k)), so the correlations of the estimated Q are
+  kept. One block is Kurtenbach's alpha (DGK C-683, Sec. 4.3.5), and one
+  fixed factor is v5.19.0's chain, bitwise.
+- `regionalKalman(..., EstimateQScale = true)`: the factors as the
+  maximum of the innovation likelihood. Kurtenbach notes that for real
+  data such a factor cannot be fixed beforehand.
+  - The search is fminbnd for one block and fminsearch for several,
+    within a factor 1e4 of QScale (the start).
+  - `out.qScale`, `out.qBlocks` and `out.qEstimate` (evaluations, exit
+    flag, and whether the search ended at the limit) report it.
+  - `out.negLogLik` is the -2 log likelihood of every run.
+  - New identifier `shLowLevel:regionalKalman:badQBlocks`.
+- `kalmanFilter(..., Likelihood = true)`: `filt.negLogLik`, the -2 log
+  likelihood term of every epoch given the past, formed through Cholesky
+  factors. In normal-equation form it is log|I + P N| + m'N m - 2 m'b -
+  u'(P^-1 + N)^-1 u; the omitted log|R| + l'R^-1 l does not depend on
+  the model. 0 in a gap or a rejected epoch; `[]` without the option.
+  The filter's states and covariances are unchanged.
+- `buildCondFun(..., Basis = B)`: Kvas' space-domain conditioner for the
+  K x K covariances of a regional basis, Proj f(T S T') Proj'. It is the
+  SH conditioner, bitwise, on the SH basis, and the identity to the
+  projector's tolerance without a taper. New identifier
+  `shLowLevel:buildCondFun:badBasis`.
+- VAR(2) through the regional chain is now tested: on the SH basis it is
+  kalmanChain at Order 2.
+- `tools/dev/validate_regional_adaptive.py`:
+  - CLAIM 1: the summed likelihood equals the dense Gaussian -2 log L of
+    all observations under the joint prior to 3.9e-15, gaps included;
+    the solution-mode term exceeds the neq-mode term by exactly log|R| +
+    l'R^-1 l (1.8e-14);
+  - CLAIM 2: for one block the likelihood maximum is the EM fixed point
+    (Shumway and Stoffer 1982), from the smoother and its lag-one
+    covariance, to 1.3e-8;
+  - CLAIM 3: with true factors (4, 0.5) on two blocks the estimates
+    average (3.95, 0.49) over 30 seeds, relative spread 9 and 20 percent,
+    and lower the state error against alpha = 1 in 30 of 30 seeds;
+  - CLAIM 4: with a VAR(2) truth Order 2 has the lower -2 log L in 10 of
+    10 seeds; information and gain form agree in companion space (states
+    6.8e-15, sigmas 7.5e-15); CLAIM 4b repeats it in the MATLAB test's
+    configuration (the five degree-2 coefficients, a 3000-epoch model
+    series, direct observations, smoothed output, kalmanFilter's and
+    regionalNEQ's own formulas): 9.45e-16 in the states, 1.11e-15 in the
+    sigmas over 40 seeds. The
+    first A8 run of this release failed that test at 8.6e-12: its fixture
+    (nmax 6, 240 model epochs) asked 2 x 45^2 VAR parameters of 240
+    epochs, the estimate was explosive (companion radius 6.8), and two
+    rounding paths through an explosive model grow apart. A test fixture
+    defect, not a filter one; the test now also asserts the model it
+    compares is stationary;
+  - CLAIM 5: the basis conditioner is the identity to 1.1e-10 and stays
+    positive semidefinite with a taper.
+
+### Decisions
+- Maximum likelihood of the innovations, not a variance-component
+  formula. Kurtenbach gives no method for estimating his alpha, and the
+  one-block case has two derivable estimators that must agree: the
+  likelihood maximum and the EM fixed point. They agree (CLAIM 2), so
+  the implementation uses the likelihood, which works for any number of
+  blocks.
+- Q(alpha) = D Q D rather than a block-diagonal Q: scaling blocks keeps
+  the cross-block correlations the Yule-Walker estimate measured.
+  Dropping them would change the model in a way no factor reverses.
+- Sigma0 is not scaled, as for QScale since v5.15.0; the likelihood is
+  that of the model with this start.
+- The 8i row's "closed loop of 8f" needs the data 8f was postponed for;
+  the closed loops here are synthetic, as in 8b.
+
 ## [5.19.0] - 2026-10-21 - WP8 8h: line-of-sight gravity differences as observations
 
 A MINOR release: one new kind of `regionalNEQ` and the sixth row of WP8.

@@ -62,6 +62,22 @@ function filt = kalmanFilter(model, obs, opts)
 %     QCAlpha (1e-3)  false-alarm level; threshold from
 %            shLowLevel.chi2Quantile(1-QCAlpha, dof) (Wilson-Hilferty,
 %            essentially exact at dof = P; see its accuracy note)
+%     Likelihood (false)  record the -2 log likelihood of every epoch's
+%            observation given the past (the innovation likelihood), the
+%            quantity whose sum is maximised to estimate process-noise
+%            scales (shLowLevel.regionalKalman, EstimateQScale). With the
+%            predicted state m and covariance P- (physical block):
+%              solution  log|S| + d' S^-1 d,  S = P- + R, d = l - m
+%              neq       log|I + P- N| + m'N m - 2 m'b
+%                        - u' (P-^-1 + N)^-1 u,   u = b - N m
+%            The neq term omits log|R| + l'R^-1 l, which the normal
+%            equation does not carry and which no model parameter
+%            changes; for N = R^-1, b = R^-1 l the two differ by exactly
+%            that (validate_regional_adaptive.py CLAIM 1, 1.8e-14). Both
+%            are formed through Cholesky factors, never an inverse; the
+%            sum over epochs equals the dense Gaussian -2 log likelihood
+%            of all observations under the joint process prior (CLAIM 1,
+%            3.9e-15, gaps included)
 %
 %   Outputs
 %     filt  (1,1) struct  companion-space filter results. The PHYSICAL
@@ -82,6 +98,10 @@ function filt = kalmanFilter(model, obs, opts)
 %           qcDof     (1 x T) double   its degrees of freedom
 %           qcReject  (1 x T) logical  epochs rejected; always all-false
 %                     unless QC="reject"
+%           negLogLik (1 x T) double  the -2 log likelihood term of each
+%                     epoch (see Likelihood); 0 in a gap or a rejected
+%                     epoch, which contribute nothing; [] unless
+%                     Likelihood = true
 %           P         (1,1) double  block size
 %           order     (1,1) double  the VAR order
 %           storeCov  (1,1) string  which of the three layouts above is
@@ -108,6 +128,7 @@ function filt = kalmanFilter(model, obs, opts)
 %
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5),
 %   2026-08-17, 20:10 UTC.
+%   Likelihood: Claude (Opus 5.5), 2026-10-21 (WP8 8i).
 
 arguments
     model (1,1) struct
@@ -116,6 +137,7 @@ arguments
     opts.Contribution (1,1) logical = true
     opts.QC (1,1) string {mustBeMember(opts.QC, ["none","flag","reject"])} = "none"
     opts.QCAlpha (1,1) double {mustBeInRange(opts.QCAlpha, 0, 1, "exclusive")} = 1e-3
+    opts.Likelihood (1,1) logical = false
 end
 
 P = model.P;
@@ -155,6 +177,9 @@ contrib = NaN(P, T);
 gap = false(1, T);
 qcStat = NaN(1, T); qcDof = NaN(1, T); qcReject = false(1, T);
 doQC = opts.QC ~= "none";
+doLik = opts.Likelihood;
+nll = [];
+if doLik, nll = zeros(1, T); end
 
 xPrev = zeros(Pc, 1);
 PPrev = S0;
@@ -202,6 +227,9 @@ for t = 1:T
                 continue
             end
         end
+        if doLik
+            nll(t) = solutionTerm(Pm(1:P, 1:P), R, l - xm(1:P));
+        end
         % observation touches the first block only: H = [I 0 ... 0]
         PmH = Pm(:, 1:P);                              % Pm * H'
         K = PmH / ((Pm(1:P, 1:P) + R).');              % gain, no inverse
@@ -237,6 +265,9 @@ for t = 1:T
                 continue
             end
         end
+        if doLik
+            nll(t) = neqTerm(Pm(1:P, 1:P), o.N, o.b(:), xm(1:P));
+        end
         Nc = zeros(Pc); Nc(1:P, 1:P) = o.N;            % embed in companion space
         bc = zeros(Pc, 1); bc(1:P) = o.b(:);
         Jm = inv(Pm);                                  % information form
@@ -263,10 +294,40 @@ end
 filt = struct('xf', xf, 'xp', xp, 'contrib', contrib, 'gap', gap, ...
     'qcStat', qcStat, 'qcDof', qcDof, 'qcReject', qcReject, ...
     'P', P, 'order', p, 'storeCov', opts.StoreCov, 'B', B, ...
-    'covFile', covFile);
+    'covFile', covFile, 'negLogLik', nll);
 if full
     filt.Pf = Pf; filt.Pp = Pp;
 else
     filt.dPf = dPf; filt.dPp = dPp;
 end
+end
+
+function v = solutionTerm(Pm, R, d)
+% log|S| + d' S^-1 d, S = Pm + R, through the Cholesky factor of S.
+[Ls, flag] = chol((Pm + R + (Pm + R).') / 2, 'lower');
+if flag ~= 0
+    v = NaN;
+    return
+end
+z = Ls \ d;
+v = 2 * sum(log(diag(Ls))) + z.' * z;
+end
+
+function v = neqTerm(Pm, N, b, m)
+% log|I + Pm N| + m'N m - 2 m'b - u'(Pm^-1 + N)^-1 u, u = b - N m, with
+% Pm = L L': log|I + L'N L| and u' L (I + L'N L)^-1 L' u.
+[L, flag] = chol((Pm + Pm.') / 2, 'lower');
+if flag ~= 0
+    v = NaN;
+    return
+end
+M = eye(size(Pm, 1)) + L.' * N * L;
+[Lm, flag] = chol((M + M.') / 2, 'lower');
+if flag ~= 0
+    v = NaN;
+    return
+end
+u = b - N * m;
+z = Lm \ (L.' * u);
+v = 2 * sum(log(diag(Lm))) + m.' * N * m - 2 * (m.' * b) - z.' * z;
 end

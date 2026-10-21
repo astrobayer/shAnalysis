@@ -81,6 +81,29 @@ function [ts, out] = regionalKalman(obsIn, B, opts)
 %   restored in TS; the EWH outputs start at degree min(2, B.idx Nmin), as
 %   the rest of the chain.
 %
+%   Process-noise scales (QScale, QBlocks, EstimateQScale). Kurtenbach
+%   (2012, Sec. 4.3.5) scales Q by a hand-tuned alpha and notes that for
+%   real data such a factor cannot be fixed beforehand. Here Q(alpha) =
+%   D Q D, D = diag(sqrt(alpha_k)) on block k of the basis coefficients
+%   (QBlocks labels them; one block is Kurtenbach's alpha), so the
+%   correlations of the estimated Q are kept. With EstimateQScale the
+%   alphas are the maximum of the innovation likelihood (kalmanFilter's
+%   Likelihood: -2 log L of every epoch given the past, summed), found by
+%   fminbnd for one block and fminsearch for several, within a factor 1e4
+%   of QScale, the start. Validated (tools/dev/validate_regional_
+%   adaptive.py): the likelihood equals the dense joint Gaussian one to
+%   3.9e-15; for one block its maximum is the EM fixed point of Shumway
+%   and Stoffer (1982) to 1.3e-8; in a closed loop with alpha = (4, 0.5)
+%   on two blocks the estimates scatter about the truth (mean 3.95, 0.49
+%   over 30 seeds, relative spread 9 and 20 percent) and lower the state
+%   error against alpha = 1 in 30 of 30 seeds. Sigma0, the filter's
+%   start, is not scaled (as for QScale since v5.15.0), and the
+%   likelihood is that of the model with this start. Order > 1 and
+%   CondFun pass through to regionalProcessModel: a VAR(2) truth gives
+%   the lower -2 log L at Order 2 in 10 of 10 seeds (CLAIM 4), and
+%   shLowLevel.buildCondFun(..., Basis = B) turns Kvas' space-domain
+%   conditioner into one of basis covariances.
+%
 %   Inputs
 %     obsIn  (1,1) shSeries | (1,M) struct  the observations, see above;
 %            a series must reach exactly degree B.idx.Lmax
@@ -95,7 +118,13 @@ function [ts, out] = regionalKalman(obsIn, B, opts)
 %     Structure ("full")  "full" | "diagonal"   coupling of the VAR
 %                    estimate (see regionalProcessModel)
 %     CondFun ([])   function handle  covariance conditioning
-%     QScale (1)     (1,1) double  Kurtenbach's alpha, Q -> alpha Q
+%     QScale (1)     (1,1) or (nB,1) double  Kurtenbach's alpha, one
+%                    per block of QBlocks: Q -> D Q D; the start of the
+%                    search with EstimateQScale
+%     QBlocks ([])   (K,1) double  block label 1..nB of every basis
+%                    coefficient; [] is one block
+%     EstimateQScale (false)  (1,1) logical  estimate the alphas by
+%                    maximum likelihood of the innovations, see above
 %     GroundNoise (0)  (1,1) double  isotropic ground noise [m EWH],
 %                    added to Sigma(0) (see regionalProcessModel)
 %     kn ([])        (>=Lmax+1,1) double  load Love numbers: needed by
@@ -171,6 +200,24 @@ function [ts, out] = regionalKalman(obsIn, B, opts)
 %                           filter [GB] (disk for "matfile")
 %          background       (1,1) logical  whether a Background was
 %                           removed and restored
+%          negLogLik        (1,1) double  -2 log likelihood of all
+%                           observations given the process model, without
+%                           the terms no model parameter changes
+%                           (kalmanFilter's Likelihood, summed)
+%          qScale           (nB,1) double  the alphas used (estimated
+%                           with EstimateQScale)
+%          qBlocks          (K,1) double  the block of every coefficient
+%          qEstimate        (1,1) struct  the search, fields
+%                           estimated    (1,1) logical  EstimateQScale
+%                           start        (nB,1) double  QScale given
+%                           evaluations  (1,1) double  filter runs of the
+%                                        search; 0 when not estimated
+%                           atBound      (1,1) logical  an alpha ended
+%                                        within 1 percent of the factor
+%                                        1e4 search limit
+%                           exitFlag     (1,1) double  of fminbnd or
+%                                        fminsearch; NaN when not
+%                                        estimated
 %
 %   Example
 %     idx = shLowLevel.shIndex(60);
@@ -202,6 +249,9 @@ function [ts, out] = regionalKalman(obsIn, B, opts)
 %     shLowLevel:regionalKalman:badBackground
 %         Background is not an shSeries of the basis' nmax, or has no
 %         epoch within Tolerance of an observation or output epoch
+%     shLowLevel:regionalKalman:badQBlocks
+%         QBlocks is not one label 1..nB per basis coefficient with every
+%         block used, or QScale has neither 1 nor nB entries
 %
 %   References
 %     Kurtenbach, E. (2012), Entwicklung eines Kalman-Filters zur
@@ -215,12 +265,17 @@ function [ts, out] = regionalKalman(obsIn, B, opts)
 %     Steffen, R., Woehnke, V., Weigelt, M., Eicker, A. (2026), Improved
 %       regional mass change estimation using Slepian functions in a
 %       Kalman filter framework, IAG Symposia, doi:10.1007/1345_2026_348.
+%     Shumway, R.H., Stoffer, D.S. (1982), An approach to time series
+%       smoothing and forecasting using the EM algorithm, J. Time Ser.
+%       Anal. 3, 253-264.
 %
 %   Numerics pre-validated in Python (tools/dev/validate_regional_kalman.py,
-%   tools/dev/validate_regional_rcr.py).
+%   tools/dev/validate_regional_rcr.py, tools/dev/validate_regional_
+%   adaptive.py).
 %
 %   Developed by Matthias Weigelt with the help of Claude (Opus 5.5),
-%   2026-10-21 (Background: 2026-10-21, WP8 8e).
+%   2026-10-21 (Background: 2026-10-21, WP8 8e; process-noise scales:
+%   2026-10-21, WP8 8i).
 arguments
     obsIn
     B (1,1) struct
@@ -229,7 +284,9 @@ arguments
     opts.Shrink (1,1) double {mustBeNonnegative} = 0
     opts.Structure (1,1) string {mustBeMember(opts.Structure, ["full", "diagonal"])} = "full"
     opts.CondFun = []
-    opts.QScale (1,1) double {mustBePositive} = 1
+    opts.QScale (:,1) double {mustBePositive} = 1
+    opts.QBlocks (:,1) double = []
+    opts.EstimateQScale (1,1) logical = false
     opts.GroundNoise (1,1) double {mustBeNonnegative} = 0
     opts.kn double = []
     opts.Epochs (:,1) double = []
@@ -269,9 +326,25 @@ if hasBg && ~(isa(bg, 'shSeries') && isscalar(bg) && bg.nmax == L)
 end
 
 % ---- 1. process model in the basis
+[blocks, nB] = qBlocks(opts.QBlocks, K);
+qs0 = opts.QScale(:);
+if isscalar(qs0)
+    qs0 = repmat(qs0, nB, 1);
+elseif numel(qs0) ~= nB
+    error('shLowLevel:regionalKalman:badQBlocks', ...
+        'QScale has %d entries for %d blocks; give one, or one per block.', ...
+        numel(qs0), nB);
+end
+plain = nB == 1 && ~opts.EstimateQScale;        % v5.18.0's path, bitwise
+qModel = 1;
+if plain, qModel = qs0; end
 [model, pinfo] = shLowLevel.regionalProcessModel(tsm, B, Order = opts.Order, ...
     Shrink = opts.Shrink, Structure = opts.Structure, CondFun = opts.CondFun, ...
-    QScale = opts.QScale, GroundNoise = opts.GroundNoise, kn = opts.kn);
+    QScale = qModel, GroundNoise = opts.GroundNoise, kn = opts.kn);
+Q0 = model.Q;
+if ~plain
+    model.Q = scaleQ(Q0, qs0, blocks);
+end
 
 % ---- 2. observation records
 solMode = isa(obsIn, 'shSeries');
@@ -333,9 +406,16 @@ for t = 1:nE
     end
 end
 
-% ---- 3. filter and smoother; 4. the functionals
+% ---- 3. process-noise scales, filter and smoother; 4. the functionals
+qs = qs0;
+qEst = struct('estimated', opts.EstimateQScale, 'start', qs0, ...
+    'evaluations', 0, 'atBound', false, 'exitFlag', NaN);
+if opts.EstimateQScale
+    [qs, qEst] = estimateScales(model, Q0, blocks, qs0, obs, qEst);
+    model.Q = scaleQ(Q0, qs, blocks);
+end
 filt = shLowLevel.kalmanFilter(model, obs, StoreCov = opts.StoreCov, ...
-    QC = opts.QC, QCAlpha = opts.QCAlpha);
+    QC = opts.QC, QCAlpha = opts.QCAlpha, Likelihood = true);
 [fB, Fg, gLat, gLon, areaFrac, wc, fEwh] = regionFunctionals(B, opts.kn, tsm);
 F = [B.T; fB; Fg];
 smo = shLowLevel.rtsSmoother(filt, Lag = opts.Lag, Functionals = F);
@@ -402,7 +482,67 @@ out = struct('mode', modeName, 'basisType', B.type, 'K', K, ...
     'nRejected', nnz(filt.qcReject), 'specRadius', model.specRadius, ...
     'meanContribution', mean(filt.contrib, 1), ...
     'representation', pinfo.representation, 'model', model, ...
-    'basin', basin, 'grid', gridOut, 'memGB', memGB, 'background', hasBg);
+    'basin', basin, 'grid', gridOut, 'memGB', memGB, 'background', hasBg, ...
+    'negLogLik', sum(filt.negLogLik), 'qScale', qs, 'qBlocks', blocks, ...
+    'qEstimate', qEst);
+end
+
+function [blocks, nB] = qBlocks(lab, K)
+% Block labels of the basis coefficients: 1..nB, every block used.
+if isempty(lab)
+    blocks = ones(K, 1);
+    nB = 1;
+    return
+end
+lab = lab(:);
+nB = max(lab);
+if numel(lab) ~= K || any(lab < 1 | lab ~= round(lab)) || ...
+        numel(unique(lab)) ~= nB
+    error('shLowLevel:regionalKalman:badQBlocks', ...
+        ['QBlocks must give one label 1..nB per basis coefficient (K = %d), ' ...
+         'every block used.'], K);
+end
+blocks = lab;
+end
+
+function Q = scaleQ(Q0, qs, blocks)
+% Q(alpha) = D Q0 D, D = diag(sqrt(alpha of each coefficient's block)).
+d = sqrt(qs(blocks));
+Q = d .* Q0 .* d.';
+Q = (Q + Q.') / 2;
+end
+
+function [qs, qEst] = estimateScales(model, Q0, blocks, qs0, obs, qEst)
+% Maximum likelihood of the innovations over log alpha, within a factor
+% 1e4 of the start: fminbnd for one block, fminsearch (through tanh, so
+% the search stays inside the limit) for several.
+lim = log(1e4);
+th0 = log(qs0);
+nB = numel(qs0);
+nEval = 0;
+    function v = nll(th)
+        nEval = nEval + 1;
+        m = model;
+        m.Q = scaleQ(Q0, exp(th), blocks);
+        f = shLowLevel.kalmanFilter(m, obs, StoreCov = "diag", ...
+            Contribution = false, Likelihood = true);
+        v = sum(f.negLogLik);
+        if ~isfinite(v), v = realmax; end
+    end
+if nB == 1
+    [th, ~, flag] = fminbnd(@nll, th0 - lim, th0 + lim, ...
+        optimset('TolX', 1e-6, 'Display', 'off'));
+else
+    phi2th = @(ph) th0 + lim * tanh(ph);
+    [ph, ~, flag] = fminsearch(@(ph) nll(phi2th(ph)), zeros(nB, 1), ...
+        optimset('TolX', 1e-6, 'TolFun', 1e-8, 'MaxFunEvals', 400 * nB, ...
+        'MaxIter', 400 * nB, 'Display', 'off'));
+    th = phi2th(ph);
+end
+qs = exp(th(:));
+qEst.evaluations = nEval;
+qEst.atBound = any(abs(th(:) - th0) > 0.99 * lim);
+qEst.exitFlag = flag;
 end
 
 % ---------------------------------------------------------------- local

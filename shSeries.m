@@ -2362,7 +2362,10 @@ methods
         %     Shrink (lane default)  diagonal loading
         %     Structure (lane default)  "full" | "diagonal"
         %     CondFun (lane default)  covariance conditioning
-        %     QScale (lane default)  Kurtenbach's alpha
+        %     QScale (lane default)  Kurtenbach's alpha, one per block
+        %     QBlocks (lane default)  block label of every basis coefficient
+        %     EstimateQScale (lane default)  estimate the alphas by maximum
+        %         likelihood of the innovations
         %     GroundNoise (lane default)  isotropic ground noise [m EWH]
         %     kn (lane default)  load Love numbers, for the EWH outputs
         %     Epochs (lane default)  target epoch grid
@@ -2381,6 +2384,8 @@ methods
         %     [tsK, out] = ts.regionalKalman(B, ModelSeries = tsm, kn = kn);
         %     [tsK, out] = ts.regionalKalman(B, ModelSeries = tsm, kn = kn, ...
         %         Background = tsHydrologyModel);
+        %     [tsK, out] = ts.regionalKalman(B, ModelSeries = tsm, ...
+        %         EstimateQScale = true);           % alpha from the data
         arguments
             obj
             B (1,1) struct
@@ -2390,6 +2395,8 @@ methods
             opts.Structure
             opts.CondFun
             opts.QScale
+            opts.QBlocks
+            opts.EstimateQScale
             opts.GroundNoise
             opts.kn
             opts.Epochs

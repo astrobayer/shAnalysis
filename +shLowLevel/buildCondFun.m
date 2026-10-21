@@ -52,13 +52,24 @@ function [f, info] = buildCondFun(idx, opts)
 %     GM (3.986004415e14)  (1 x 1) double  [m^3/s^2] (overridable)
 %     R (6378136.3)  (1 x 1) double  [m] reference radius; also
 %          converts Psi0Km to spherical distance (geocentric sphere)
+%     Basis ([])  (1 x 1) struct  a regional basis from
+%          shLowLevel.regionalBasis on IDX: f then conditions the K x K
+%          covariances of its coefficients, Sigma~ = Proj f_SH(T Sigma T')
+%          Proj' - the coefficients to SH, Kvas' conditioning there, and
+%          back with the basis projector. Proj T = I, so with Z = 1 and
+%          T = 1 it is the identity (to 1.1e-10, the projector's own
+%          tolerance), and congruence keeps it positive semidefinite
+%          (validate_regional_adaptive.py CLAIM 5). Pass it as
+%          regionalKalman(..., CondFun = f) or as regionalProcessModel's
+%          CondFun
 %     NLat ([])      (1 x 1) double  Gauss-Legendre rings (default
 %          Lmax+1, the exactness minimum)
 %     NLon ([])      (1 x 1) double  longitudes (default 2*Lmax+2)
 %
 %   Outputs
 %     f     function handle  Sigma~ = f(Sigma) for (P x P) covariances
-%           in IDX ordering - pass as estimateVAR(..., CondFun=f)
+%           in IDX ordering - pass as estimateVAR(..., CondFun=f); with
+%           Basis, for (K x K) covariances of the basis coefficients
 %     info  (1,1) struct  fields
 %           grid    (1,1) struct   the synthesisMatrix grid struct
 %           M       (1,1) double   number of grid points
@@ -88,9 +99,12 @@ function [f, info] = buildCondFun(idx, opts)
 %     shLowLevel:buildCondFun:zeroKernel
 %         the EWH kernel vanishes at some index entry (1 + kn = 0), so the
 %         conditioning function would divide by zero
+%     shLowLevel:buildCondFun:badBasis
+%         Basis is not a regional basis on IDX
 %
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5),
 %   2026-08-17, 21:30 UTC.
+%   Basis: Claude (Opus 5.5), 2026-10-21 (WP8 8i).
 
 arguments
     idx (1,1) struct
@@ -101,6 +115,17 @@ arguments
     opts.R (1,1) double = 6378136.3
     opts.NLat double = []
     opts.NLon double = []
+    opts.Basis = []
+end
+hasBasis = ~(isnumeric(opts.Basis) && isempty(opts.Basis));
+if hasBasis
+    Bs = opts.Basis;
+    if ~(isstruct(Bs) && isscalar(Bs) && all(isfield(Bs, {'T', 'Proj', 'idx'}))) ...
+            || Bs.idx.P ~= idx.P || Bs.idx.Lmax ~= idx.Lmax ...
+            || Bs.idx.minDegree ~= idx.minDegree
+        error('shLowLevel:buildCondFun:badBasis', ...
+            'Basis must be a basis from shLowLevel.regionalBasis on this index.');
+    end
 end
 
 % ---- exact synthesis/analysis pair on the Gauss-Legendre grid
@@ -150,11 +175,21 @@ if isfinite(opts.Psi0Km)
 end
 
 f = @(C) applyCond(C, G, Fq, W);
+if hasBasis
+    T = full(Bs.T);
+    Pj = full(Bs.Proj);
+    fSH = f;
+    f = @(C) symm(Pj * fSH(T * C * T.') * Pj.');
+end
 info = struct('grid', grd, 'M', M, 'region', region, 'W', W, ...
     'memGB', 8 * (2 * M * idx.P + M^2) / 1e9);
 end
 
 % ---------------------------------------------------------------- local
+function C = symm(C)
+C = (C + C.') / 2;
+end
+
 function Ct = applyCond(C, G, Fq, W)
 S  = W .* (G * C * G.');
 Ct = Fq * S * Fq.';

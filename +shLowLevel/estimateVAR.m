@@ -97,7 +97,9 @@ function model = estimateVAR(X, opts)
 %
 %   Reference: Kurtenbach, DGK C-683 (2012), Sec. 3.2; Kvas, TU Graz
 %   PhD thesis (2019), Secs. 2.3-2.4; Luetkepohl (2005).
-%   Numerics pre-validated in Python (tools/dev/validate_kalman.py).
+%   Numerics pre-validated in Python (tools/dev/validate_kalman.py);
+%   Order > 1 against validate_regional_adaptive.py CLAIM 4.
+%   Yule-Walker block order corrected: Claude (Opus 5.5), 2026-10-21 (A35).
 %
 %   Error identifiers
 %     shLowLevel:estimateVAR:badBlocks
@@ -199,7 +201,10 @@ for b = 1:numel(blocks)
     S = zeros(p * nb);
     for i = 1:p
         for j = 1:p
-            h = i - j;
+            % block (i, j) is E[x_(t-i) x_(t-j)'] = Sigma(j - i); before
+            % v5.20.0 this read Sigma(i - j), the blocks transposed, which
+            % is exact for Order 1 and for 1 x 1 blocks only (A35)
+            h = j - i;
             if h >= 0
                 blk = Sig{h+1}(ib, ib);
             else
