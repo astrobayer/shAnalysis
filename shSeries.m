@@ -69,7 +69,7 @@ methods
     function obj = shSeries(in, opts)
         %SHSERIES Construct from an shCoefficients array or raw stacks.
         %   ts = shSeries(objArray)
-        %   ts = shSeries(Cs, Epochs ([])=..., Ss ([])=...)  (raw-stack form via opts)
+        %   ts = shSeries(Cs, Epochs=..., Ss=...)  (raw-stack form via opts)
         %
         %   Inputs
         %     in  (nmax+1 x nmax+1 x T) double or (1,T) shCoefficients  coefficient stacks or object array
@@ -77,6 +77,9 @@ methods
         %     obj        (1 x 1) shSeries   epoch-sorted monthly stack with sigmas and history
         %
         %   Options
+        %     Ss ([])  sine stack of the raw-stack form, same size as Cs
+        %     Epochs ([])  (T x 1) decimal years of the raw-stack form, one
+        %         per layer
         %     GM (3.986004415e14)  gravitational constant times mass
         %         [m^3/s^2] of the series (overridable default)
         %     R (6378136.3)  reference radius [m] of the series
@@ -440,8 +443,8 @@ methods
 
     function [clim, resid] = climatology(obj, opts)
         %CLIMATOLOGY Bias/trend/annual/semi-annual (+extra periods) fit.
-        %   [CLIM, RESID] = ts.climatology(Robust=false, T0 (NaN)=mean(epochs),
-        %       Periods (double.empty(1,0))=[], Weights ([])=[])
+        %   [CLIM, RESID] = ts.climatology(Robust=false, T0=mean(epochs),
+        %       Periods=[], Weights=[])
         %   CLIM is an shClimatology; RESID the residual shSeries.
         %   Periods: extra periodic terms [years] - e.g. the GRACE tidal
         %   alias periods [161/365.25, 3.66, 7.48] (S2, K2, K1); without
@@ -455,8 +458,8 @@ methods
         %   Options
         %     Robust (false)    (1 x 1) logical Huber re-weighting
         %     T0 (NaN)          (1 x 1) reference epoch; NaN uses the mean
-        %     Periods ([])      (1 x K) extra harmonic periods [yr] beyond
-        %         the built-in annual + semiannual
+        %     Periods (double.empty(1,0))  (1 x K) extra harmonic periods
+        %         [yr] beyond the built-in annual + semiannual
         %     Weights ([])      (T x 1) epoch weights
         %     ARCorrect (false) (1 x 1) AR(1) correction of the sigmas
         %
@@ -517,8 +520,8 @@ methods
 
     function out = trendBreaks(obj, opts)
         %TRENDBREAKS Piecewise-linear trends with break significance.
-        %   OUT = ts.trendBreaks(Breaks=[2016.0], Periods (double.empty(1,0))=[], T0 (NaN)=,
-        %       ARCorrect (false)=false) fits the standard climatology design
+        %   OUT = ts.trendBreaks(Breaks=[2016.0], Periods=[], T0=,
+        %       ARCorrect=false) fits the standard climatology design
         %   PLUS hinge terms max(0, t - tb) per break epoch (continuous
         %   piecewise-linear trend) to every coefficient, and tests the
         %   break's significance with an F-test against the no-break
@@ -530,7 +533,7 @@ methods
         %   climatology schema stays fixed. See Outputs for the fields.
         %   Options
         %     Breaks (required) (1 x B) trend break epochs [decimal years]
-        %     Periods ([])      (1 x K) extra harmonic periods [yr]
+        %     Periods (double.empty(1,0))  (1 x K) extra harmonic periods [yr]
         %     T0 (NaN)          (1 x 1) reference epoch; NaN uses the mean
         %     ARCorrect (false) (1 x 1) AR(1) correction of the sigmas
         %
@@ -810,7 +813,7 @@ methods
 
     function [out, info] = removeGIA(obj, gia, opts)
         %REMOVEGIA Subtract a glacial isostatic adjustment model.
-        %   OUT = ts.removeGIA(GIA, T0 (NaN)=mean(epochs)) subtracts the linear
+        %   OUT = ts.removeGIA(GIA, T0=mean(epochs)) subtracts the linear
         %   GIA signal  giaRate * (t - T0)  from every epoch. GIA is an
         %   shCoefficients object holding RATE coefficients [1/yr] - read
         %   your model (ICE-6G_D, Caron et al., ...) from its gfc file
@@ -819,7 +822,7 @@ methods
         %   The GIA model is truncated to the series nmax; a model with
         %   smaller nmax is zero-padded with a note in history.
         %
-        %   [OUT, INFO] = ts.removeGIA(GIA, Sigma ([])=SIG) also PROPAGATES the
+        %   [OUT, INFO] = ts.removeGIA(GIA, Sigma=SIG) also PROPAGATES the
         %   model's own uncertainty (v5.2.0). Until v5.1.1 the model was
         %   treated as exact, which understated the trend error wherever
         %   GIA dominates it - Laurentia, Fennoscandia, Antarctica. SIG is
@@ -1305,25 +1308,25 @@ methods
     % ---------------------------------------------------------- tvANS chain
     function [out, op, info] = filter(obj, method, opts)
         %FILTER Optimal time-variable filtering of the series.
-        %   [TSF, OP, INFO] = ts.filter("tvANS", Constraints ([])=..., NoiseCov ([])=...,
-        %   SignalMode ("isotropic")="isotropic"|"inhomogeneous", NIterSignal (3)=3,
-        %   Robust (false)=false, Nmin (2)=2)
+        %   [TSF, OP, INFO] = ts.filter("tvANS", Constraints=..., NoiseCov=...,
+        %   SignalMode="isotropic"|"inhomogeneous", NIterSignal=3,
+        %   Robust=false, Nmin=2)
         %   runs the tvANS chain (see shLowLevel.tvANSFilter): deterministic-model
         %   separation, empirical or supplied noise covariance, monthly VCE
         %   scaling, data-driven signal covariance, per-month anisotropic
         %   Wiener filter, optional hard constraints. OP is the stored
         %   linear operator - required for basinAverage(...,
         %   Deconvolve=true) and shLowLevel.resolutionMap.
-        %   v2.1: Blocks ("auto")="auto"|"on"|"off" engages the block-diagonal
+        %   v2.1: Blocks="auto"|"on"|"off" engages the block-diagonal
         %   fast path (isotropic + empirical N + no constraints; identical
         %   results, tractable to Lmax ~ 120). The filtered series carries
         %   per-coefficient posterior 1-sigma stacks in OUT.sigmaCs/Ss
         %   (from info.sigmaXfres; degrees below Nmin are NaN).
         %   v3.1.1: the three noise-covariance tuning options of
         %   shLowLevel.tvANSFilter are forwarded, so the class method is the
-        %   full single point of access: Shrinkage ([])=empirical noise-
-        %   covariance shrinkage, VCEMinDegree ([])=first degree entering
-        %   the variance-component estimation, VCEBands ([])=order-band
+        %   full single point of access: Shrinkage=empirical noise-
+        %   covariance shrinkage, VCEMinDegree=first degree entering
+        %   the variance-component estimation, VCEBands=order-band
         %   edges for per-band monthly VCE factors (block path only).
         %   [] means "leave the shLowLevel.tvANSFilter default in place"
         %   (0.1, round(2/3*Lmax) and no banding respectively) - the
@@ -1442,7 +1445,7 @@ methods
         %   K x T, with B (P x K) basin kernels in shLowLevel.shIndex ordering
         %   (build from a grid mask via shLowLevel.synthesisMatrix:
         %   b = Y' * (w .* mask)).
-        %   [AVG, OUT] = ts.basinAverage(B, Deconvolve (false)=true, Op (struct())=op) removes
+        %   [AVG, OUT] = ts.basinAverage(B, Deconvolve=true, Op=op) removes
         %   filter attenuation and inter-basin leakage exactly using the
         %   stored operator from ts.filter (see shLowLevel.basinDeconvolve).
         %   OUT.sigma (K x T) is the 1-sigma noise uncertainty of AVG
@@ -1458,6 +1461,8 @@ methods
         %                c, attn, condA, avgNaive); empty otherwise
         %
         %   Options
+        %     Op (struct())  the filter operator from ts.filter("tvANS",
+        %         ...), required by Deconvolve = true
         %     Ridge (0)  Tikhonov ridge added to the deconvolution normal
         %         matrix; raise it when the kernel matrix is ill-conditioned
         %         (out.condA reports the condition number)
@@ -1498,8 +1503,8 @@ methods
 
     function b = toGrid(obj, latDeg, lonDeg, opts)
         %TOGRID Synthesize every epoch into one stack, with its metadata.
-        %   B = ts.toGrid(LAT, LON, Quantity ("ewh")=..., kn ([])=...,
-        %       LatType ("geodetic")=...) is shCoefficients.toGrid over a
+        %   B = ts.toGrid(LAT, LON, Quantity=..., kn=...,
+        %       LatType=...) is shCoefficients.toGrid over a
         %   whole series: B.Z is (nlat x nlon x nEpochs) and B.Epoch
         %   carries the decimal years, so an animation can label its own
         %   frames from the data rather than from a filename.
@@ -2612,12 +2617,17 @@ methods (Static)
     function obj = fromFolder(folder, opts)
         %FROMFOLDER Read every matching gfc file in a folder as a series.
         %   TS = shSeries.fromFolder(FOLDER)
-        %   TS = shSeries.fromFolder(dest, Pattern="*n96*.gfc*", Truncate (NaN)=60)
+        %   TS = shSeries.fromFolder(dest, Pattern="*n96*.gfc*", Truncate=60)
         %   Convenience wrapper around shSeries.read (sorted by epoch);
         %   pairs with shLowLevel.fetchITSG, which downloads ITSG monthly
         %   solutions into <dataFolder>/series/itsg/monthly on demand.
         %   Outputs
         %     obj        (1 x 1) shSeries   all gfc(.gz) files of a folder, epoch-sorted
+        %
+        %   Options
+        %     Pattern ("*.gfc*")  file pattern inside FOLDER
+        %     Truncate (NaN)  truncate every field to this degree; NaN
+        %         keeps the files' degree
         %
         %   Error identifiers
         %     shSeries:fromFolder:noFiles

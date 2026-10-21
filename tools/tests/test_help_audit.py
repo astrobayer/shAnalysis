@@ -318,6 +318,52 @@ class TestStructFields(unittest.TestCase):
         self.assertEqual(stats["listed"], 1)
 
 
+SCALE = [{"name": "Scale", "nv": True, "default": "1"}]
+
+
+class TestMisplacedDefaults(unittest.TestCase):
+    """v5.23.2: fix_help.py wrote ' (<default>)' after the first mention of
+    an option anywhere in the help; 125 such markers broke syntax lines and
+    prose and every gate passed them."""
+
+    def test_the_options_row_is_silent(self):
+        self.assertEqual(ha.misplaced_defaults(HEALTHY, SCALE, "foo"), [])
+
+    def test_a_marker_in_a_syntax_line_fires(self):
+        bad = HEALTHY.replace("OUT = FOO(A) does",
+                              "OUT = FOO(A, Scale (1)=2) does")
+        p = ha.misplaced_defaults(bad, SCALE, "foo")
+        self.assertEqual(len(p), 1, p)
+        self.assertIn("not MATLAB", p[0])
+        self.assertIn("Scale (1)", p[0])
+
+    def test_a_marker_in_prose_fires(self):
+        bad = HEALTHY.replace("does a thing.",
+                              "does a thing, times Scale (1).")
+        p = ha.misplaced_defaults(bad, SCALE, "foo")
+        self.assertEqual(len(p), 1, p)
+        self.assertNotIn("not MATLAB", p[0])
+
+    def test_an_opts_row_under_inputs_is_silent(self):
+        # blocks that list their options under Inputs, with the opts. prefix
+        ok = HEALTHY.replace("     a    (1,1) double  the thing",
+                             "     a    (1,1) double  the thing\n"
+                             "     opts.Scale (1)  (1,1) double  multiplier")
+        self.assertEqual(ha.misplaced_defaults(ok, SCALE, "foo"), [])
+
+    def test_a_row_start_that_is_call_syntax_still_fires(self):
+        # a wrapped syntax line can begin with the option name
+        bad = HEALTHY.replace("OUT = FOO(A) does a thing.",
+                              "OUT = FOO(A, ...\n     Scale (1)=2) does")
+        p = ha.misplaced_defaults(bad, SCALE, "foo")
+        self.assertEqual(len(p), 1, p)
+
+    def test_another_options_default_is_not_this_ones(self):
+        # only this option's own code default is a marker
+        ok = HEALTHY.replace("does a thing.", "does a thing (Scale (2)).")
+        self.assertEqual(ha.misplaced_defaults(ok, SCALE, "foo"), [])
+
+
 class TestIntegration(unittest.TestCase):
     def test_repository_help_blocks_are_structurally_clean(self):
         """the healthy tree stays silent - the other half of the injection"""

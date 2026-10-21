@@ -1,5 +1,51 @@
 # Changelog
 
+## [5.23.2] - 2026-10-21 - default markers back in their rows
+
+A PATCH release: help text, the help writer and one gate rule. No code
+path changes.
+
+### Fixed
+- **125 default markers removed from syntax lines and prose, in 32
+  files.** `tools/dev/fix_help.py` documented a missing default by writing
+  ` (<default>)` after the FIRST mention of the option anywhere in the
+  help, not in its Options row. Since v3.0.1 (2026-08-10, the
+  "328 findings to zero" sweep) that has left lines a user cannot paste:
+  `setup_shAnalysis(Permanent (false) = true)`,
+  `g.subtractNormalField(System ("WGS84")="GRS80")`,
+  `Quantity ("geoid")=...` in eleven class syntax lines; and prose such
+  as `Convert to another (GM (NaN), R (NaN)) reference`, the kernel
+  formula `R rho_ave (5517)/(3 rho_w)` and
+  `ordAmplitude = R (6378136.3) * ordRMS`. The generated pages copied
+  all of it into `html/ref/` (30 pages) and `apiReference.html`; the
+  hand-written pages and the guide were clean.
+- **41 options had no other record of their default**, so removing the
+  marker would have left them undocumented. Each now has a row in its
+  Options section, written from its arguments block; where the default
+  is a sentinel, the row says what it resolves to (`T0 (NaN)` ... `NaN
+  uses mean(tYears)`, `GM (NaN)` ... `NaN keeps obj.GM`). New Options
+  sections: `toReference`, `read` (shCoefficients), `fromFolder`,
+  `amplitudeMap`; the other rows went into existing sections (among
+  them `synthesis`, `subtractNormalField`, `deformation` and the two
+  constructors).
+
+### Gate
+- `help_audit.py` rejects a `<Opt> (<default>)` marker outside the
+  option's row (`misplaced_defaults`): a row of the Options section, or a
+  row that starts with the option (the blocks that list options under
+  Inputs or as `opts.<name>`). Followed by `=` it is call syntax and is
+  rejected everywhere. The old default check could not see the defect:
+  it asks only that the default appear on SOME line naming the option,
+  and the markers satisfied it. Six self-tests, both directions; and on
+  the real tree, re-adding the old `setup_shAnalysis` marker makes the
+  gate fail.
+- `fix_help.py` writes a default only into the option's own row, and
+  appends a row when there is none.
+
+### Verification
+Tier B: static gates and Python only. No MATLAB code changed; the A8 run
+on this pull request confirms the suite is untouched.
+
 ## [5.23.1] - 2026-10-21 - four defects found by a help-versus-code review
 
 A PATCH release. A static review of every help block against its code

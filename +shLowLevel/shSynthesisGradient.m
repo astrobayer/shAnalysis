@@ -2,7 +2,7 @@ function [dq, info] = shSynthesisGradient(C, S, GM, R, latDeg, lonDeg, opts)
 %SHSYNTHESISGRADIENT North/east/up gradient of any synthesized quantity.
 %
 %   [DQ, INFO] = shLowLevel.shSynthesisGradient(C, S, GM, R, LAT, LON,
-%       Quantity ("geoid")=..., Units ("perMeter")=..., Mode ("grid")=...)
+%       Quantity=..., Units=..., Mode=...)
 %   returns the spatial gradient of the field that
 %   shLowLevel.shSynthesis would produce from the SAME coefficients and
 %   the SAME options, resolved in the local north-east-up frame:

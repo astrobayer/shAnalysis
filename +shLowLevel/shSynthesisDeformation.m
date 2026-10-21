@@ -2,7 +2,7 @@ function [up, north, east] = shSynthesisDeformation(C, S, R, latDeg, lonDeg, opt
 %SHSYNTHESISDEFORMATION Elastic load deformation: up / north / east.
 %
 %   [UP, NORTH, EAST] = shLowLevel.shSynthesisDeformation(C, S, R, LAT, LON,
-%       kn ("")=..., hn ("")=..., ln ("")=...) synthesizes the three components of the
+%       kn=..., hn=..., ln=...) synthesizes the three components of the
 %   elastic surface deformation caused by the load expressed in the
 %   (residual) Stokes coefficients C, S (Wahr et al. 1998; Kusche &
 %   Schrama 2005 - the GRACE <-> GNSS loading comparison):

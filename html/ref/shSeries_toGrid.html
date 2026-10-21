@@ -14,7 +14,7 @@
 <h2>Syntax</h2>
 <div class="syntax"><code>b = shSeries.toGrid(obj, latDeg, lonDeg)</code><code>b = shSeries.toGrid(obj, latDeg, lonDeg, Quantity=&quot;ewh&quot;, kn=[], hn=[], ...)</code></div>
 <h2>Description</h2>
-<p>B = ts.toGrid(LAT, LON, Quantity (&quot;ewh&quot;)=..., kn ([])=..., LatType (&quot;geodetic&quot;)=...) is <a href="shCoefficients_toGrid.html"><code>shCoefficients.toGrid</code></a> over a whole series: B.Z is (nlat x nlon x nEpochs) and B.Epoch carries the decimal years, so an animation can label its own frames from the data rather than from a filename.</p>
+<p>B = ts.toGrid(LAT, LON, Quantity=..., kn=..., LatType=...) is <a href="shCoefficients_toGrid.html"><code>shCoefficients.toGrid</code></a> over a whole series: B.Z is (nlat x nlon x nEpochs) and B.Epoch carries the decimal years, so an animation can label its own frames from the data rather than from a filename.</p>
 <h2>Examples</h2>
 <details class="example"><summary>From the help block</summary><div><pre><code>    b = ts.toGrid(-89.5:89.5, 0.5:359.5, Quantity = &quot;ewh&quot;, kn = kn);
     size(b.Z)        % [180 360 nEpochs]</code></pre></div></details>
@@ -30,7 +30,7 @@
 <p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
 <h2>See Also</h2>
 <ul class="seealso"><li><a href="shCoefficients_toGrid.html"><code>shCoefficients.toGrid</code></a></li></ul>
-<p class="prov">shAnalysis v5.23.1 (21-Oct-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+<p class="prov">shAnalysis v5.23.2 (21-Oct-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
 </div>
 </body>
 </html>

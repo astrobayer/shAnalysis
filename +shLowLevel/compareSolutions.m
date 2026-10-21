@@ -15,7 +15,7 @@ function [rep, h] = compareSolutions(g1, g2, opts)
 %     errors:   chi^2/dof of the coefficient differences against the
 %               combined formal sigmas, when both carry sigmas - this
 %               tests error REALISM, a separate question from agreement
-%   [REP, H] = shLowLevel.compareSolutions(..., Plot (false) = true) adds a 4-panel
+%   [REP, H] = shLowLevel.compareSolutions(..., Plot = true) adds a 4-panel
 %   figure: spectra, degree correlation, difference map, and the order
 %   RMS of the difference (stripe and alias differences live at
 %   specific orders).

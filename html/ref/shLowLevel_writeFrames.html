@@ -14,7 +14,7 @@
 <h2>Syntax</h2>
 <div class="syntax"><code>shLowLevel.writeFrames(frames, filename)</code><code>shLowLevel.writeFrames(frames, filename, FrameRate=4, Sidecar=true, SidecarExtra=struct())</code></div>
 <h2>Description</h2>
-<p>shLowLevel.writeFrames(FRAMES, &#x27;out.avi&#x27;, FrameRate (4)=..., ...) writes an (H x W x 3 x T) uint8 stack to an MPEG-4 or Motion-JPEG AVI file and, by default, a provenance sidecar beside it.</p>
+<p>shLowLevel.writeFrames(FRAMES, &#x27;out.avi&#x27;, FrameRate=..., ...) writes an (H x W x 3 x T) uint8 stack to an MPEG-4 or Motion-JPEG AVI file and, by default, a provenance sidecar beside it.</p>
 <h2>Examples</h2>
 <details class="example"><summary>From the help block</summary><div><pre><code>    F = uint8(zeros(120, 240, 3, 5));
     shLowLevel.writeFrames(F, fullfile(tempdir, &#x27;demo.avi&#x27;), FrameRate = 2);
@@ -32,7 +32,7 @@
 <p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
 <h2>See Also</h2>
 <ul class="seealso"><li><a href="shLowLevel_writeAnimation.html"><code>shLowLevel.writeAnimation</code></a></li></ul>
-<p class="prov">shAnalysis v5.23.1 (21-Oct-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+<p class="prov">shAnalysis v5.23.2 (21-Oct-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
 </div>
 </body>
 </html>

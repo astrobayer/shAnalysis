@@ -3,8 +3,8 @@ function [Cn, info] = normalFieldCS(nmax, opts)
 %
 %   [CN, INFO] = shLowLevel.normalFieldCS(NMAX, System="WGS84") returns the
 %   fully normalized even zonal coefficients Cbar_{2n,0} of the normal
-%   gravity field, COMPUTED from the defining constants (GM (NaN), a (NaN), f (NaN),
-%   omega (NaN)) via the closed-form theory (Heiskanen & Moritz 1967,
+%   gravity field, COMPUTED from the defining constants (GM, a, f,
+%   omega) via the closed-form theory (Heiskanen & Moritz 1967,
 %   sect. 2-9) - no coefficient tables anywhere:
 %
 %     e^2 = f(2-f),  e' = e/sqrt(1-e^2),  m = w^2 a^2 b / GM
@@ -21,7 +21,9 @@ function [Cn, info] = normalFieldCS(nmax, opts)
 %   Options
 %     System ("WGS84")  "WGS84" | "GRS80": presets for the DEFINING
 %                       constants below (citable definitions, not data)
-%     GM, a, f, omega   override any defining constant. GRS80 defines
+%     GM (NaN), a (NaN), f (NaN), omega (NaN)
+%                       override any defining constant (NaN keeps the
+%                       System's value). GRS80 defines
 %                       J2 rather than f; the preset carries the
 %                       standard derived 1/f = 298.257222101 (Moritz
 %                       2000) so one code path serves both.

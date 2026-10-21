@@ -15,8 +15,9 @@ function writeGFC(filename, C, S, GM, R, opts)
 %     opts.ModelName ("shAnalysis_export")   string   default "shAnalysis_export"
 %     opts.TideSystem ("unknown")  string   default "unknown"
 %     opts.Comment     string   extra header comment lines ("" = none)
+%     opts.Sidecar (true)  logical  write <file>.provenance.json beside it
 %   Outputs: none (file on disk; plus <file>.provenance.json sidecar
-%   with tool version/MATLAB/metadata unless Sidecar (true) = false, v2.7.0)
+%   with tool version/MATLAB/metadata unless Sidecar = false, v2.7.0)
 %
 %   Error identifiers
 %     shLowLevel:writeGFC:badInput

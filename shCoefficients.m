@@ -76,12 +76,15 @@ methods
         %     S  (nmax+1 x nmax+1) double  sine coefficients, same layout (S(:,1) = 0)
         %     C  (nmax+1 x nmax+1) double  cosine coefficients, C(n+1, m+1) layout
         %   Outputs
-        %     obj        (1 x 1) shCoefficients   immutable coefficient set with GM (3.986004415e14), R (6378136.3), epoch, sigmas, history
+        %     obj        (1 x 1) shCoefficients   immutable coefficient set with GM, R, epoch, sigmas, history
         %
         %   Options
         %     SigmaC ([])  formal 1-sigma of the cosine coefficients, same
         %         layout as C ([]: none attached)
         %     SigmaS ([])  formal 1-sigma of the sine coefficients
+        %     GM (3.986004415e14)  gravitational constant times mass
+        %         [m^3/s^2] the coefficients refer to (overridable default)
+        %     R (6378136.3)  reference radius [m] the coefficients refer to
         %     Epoch (NaN)  decimal year of the solution; required by every
         %         epoch-matched operation (applyTN14, addDegree1, restore)
         %     ProductType ("unknown")  provider product code, e.g. "GSM",
@@ -437,7 +440,7 @@ methods
         %ADDDEGREE1 Insert TN-13 geocenter (degree-1) coefficients.
         %   OUT = obj.addDegree1(TN) with TN from shLowLevel.readTN13 (or a
         %   filename) sets C10, C11, S11 (with their sigmas) from the
-        %   TN-13 record nearest to obj.epoch (within opts.Tolerance (0.05),
+        %   TN-13 record nearest to obj.epoch (within opts.Tolerance,
         %   default 0.05 yr). Without degree 1, EWH/mass grids are
         %   systematically biased - this completes the standard
         %   GSM + TN-14 + TN-13 processing chain.
@@ -610,8 +613,8 @@ methods
     % ------------------------------------------------------------ spatial
     function [grid, lat, lon] = synthesis(obj, latVec, lonVec, opts)
         %SYNTHESIS Spatial synthesis (geoid, gravity, potential, EWH).
-        %   [GRID, LAT, LON] = obj.synthesis(LATVEC, LONVEC, Quantity ("geoid")=...,
-        %   kn ([])=..., Nmin (0)=..., Nmax (NaN)=..., UseCache (true)=true).
+        %   [GRID, LAT, LON] = obj.synthesis(LATVEC, LONVEC, Quantity=...,
+        %   kn=..., Nmin=..., Nmax=..., UseCache=true).
         %   The Legendre functions are served from a verified process-wide
         %   cache (shLowLevel.legendreCached), so monthly time series on a fixed
         %   grid pay the recursion only once - no manual 'P' passing.
@@ -625,6 +628,10 @@ methods
         %     lon        (1 x nlon) double   longitudes
         %
         %   Options
+        %     Quantity ("geoid")  the quantity synthesized; the full list
+        %         and units are in shLowLevel.kernelFactors
+        %     kn ([])  load Love numbers, degrees 0..nmax (user-supplied;
+        %         required by the mass quantities such as "ewh")
         %     hn ([])  vertical-deformation Love numbers, degrees 0..nmax (user-supplied)
         %     Height (0)  evaluation height [m] above the evaluation
         %         surface; applies the upward continuation (R/r)^p_n
@@ -633,6 +640,10 @@ methods
         %         shLowLevel.shSynthesis. It is the SAME ellipsoid the
         %         Flattening option describes for LatType
         %     SemiMajorAxis (6378137)  ellipsoid semi-major axis [m], WGS84
+        %     Nmin (0)  lowest degree synthesized
+        %     Nmax (NaN)  highest degree synthesized; NaN uses obj.nmax
+        %     UseCache (true)  serve the Legendre functions from
+        %         shLowLevel.legendreCached
         %     rho_ave (5517)  mean Earth density [kg/m^3] in the EWH kernel
         %     rho_water (1000)  water density [kg/m^3] in the EWH kernel
         %     Method ("auto")  "auto" | "direct" | "fft": FFT along
@@ -705,13 +716,18 @@ methods
     end
 
     function out = toReference(obj, opts)
-        %TOREFERENCE Convert to another (GM (NaN), R (NaN)) reference (exact).
+        %TOREFERENCE Convert to another (GM, R) reference (exact).
         %   OUT = g.toReference(GM=3.986004418e14, R=6378137.0)
         %   re-expresses the coefficients via shLowLevel.rescaleGMR; the
         %   physical field is invariant (Python-validated). Sigmas
         %   rescale identically; GM/R properties are updated.
         %   Outputs
         %     out        (1 x 1) shCoefficients   rescaled to the given GM/R
+        %
+        %   Options
+        %     GM (NaN)  target gravitational constant [m^3/s^2]; NaN keeps
+        %         obj.GM
+        %     R (NaN)  target reference radius [m]; NaN keeps obj.R
         %
         arguments
             obj
@@ -732,11 +748,11 @@ methods
     function out = subtractNormalField(obj, opts)
         %SUBTRACTNORMALFIELD Remove the ellipsoidal normal field.
         %   OUT = g.subtractNormalField()            % WGS84
-        %   OUT = g.subtractNormalField(System ("WGS84")="GRS80")
+        %   OUT = g.subtractNormalField(System="GRS80")
         %   Computes the even zonals from the DEFINING constants
         %   (shLowLevel.normalFieldCS, Heiskanen-Moritz closed form; validated
         %   against NIMA TR8350.2 to all published digits), rescales
-        %   them from the ellipsoid's own (GM (NaN), a (NaN)) to the object's
+        %   them from the ellipsoid's own (GM, a) to the object's
         %   (GM, R) - the WGS84 GM and a DIFFER from the ICGEM values,
         %   skipping this step costs millimetres - and subtracts them
         %   including the degree-0 GM ratio term. The result is the
@@ -751,6 +767,11 @@ methods
         %     out        (1 x 1) shCoefficients   disturbing field (even zonals of the normal field removed)
         %
         %   Options
+        %     System ("WGS84")  "WGS84" | "GRS80": the defining constants
+        %     GM (NaN)  GM of the normal field [m^3/s^2] (NaN: the System
+        %         default)
+        %     a (NaN)  semi-major axis [m] of the normal field (NaN: the
+        %         System default)
         %     f (NaN)  flattening of the normal field (NaN: the System
         %         default; give GM, a, f and omega together to define your own)
         %     omega (NaN)  angular velocity [rad/s] of the normal field
@@ -782,7 +803,7 @@ methods
 
     function H = map(obj, latDeg, lonDeg, opts)
         %MAP Synthesize and draw in one call, through geoMap.
-        %   H = g.map(-89:89, 0:359, Quantity ("ewh")=..., kn ([])=...)
+        %   H = g.map(-89:89, 0:359, Quantity=..., kn=...)
         %   builds the handover struct with g.toGrid and hands it to
         %   geo.map. It draws NOTHING itself.
         %
@@ -911,7 +932,7 @@ methods
     function [up, north, east] = deformation(obj, latDeg, lonDeg, opts)
         %DEFORMATION Elastic load deformation up/north/east [m].
         %   [UP, NORTH, EAST] = g.deformation(LAT, LON, kn=, hn=, ln=,
-        %       Mode ("grid")="grid"|"points", Nmin (1)=1, LatType ("geocentric")="geocentric")
+        %       Mode="grid"|"points", Nmin=1, LatType="geocentric")
         %   from the object's (residual!) coefficients - remove a mean
         %   field first. Love numbers are always user-supplied; see
         %   shLowLevel.shSynthesisDeformation for formulas and validation.
@@ -925,6 +946,11 @@ methods
         %     east       same size   east component [m]
         %
         %   Options
+        %     Mode ("grid")  "grid" | "points": LAT x LON grid, or one
+        %         station per (LAT(k), LON(k)) pair
+        %     Nmin (1)  lowest degree synthesized
+        %     LatType ("geocentric")  "geocentric" | "geodetic": how LAT
+        %         is read; geodetic values are converted with Flattening
         %     Flattening (1/298.257223563)  ellipsoid flattening for the
         %         geodetic/geocentric conversion of the station latitudes
         arguments
@@ -952,8 +978,8 @@ methods
 
     function [dq, info] = gradient(obj, latDeg, lonDeg, opts)
         %GRADIENT North/east/up gradient of a synthesized quantity.
-        %   [DQ, INFO] = g.gradient(LAT, LON, Quantity ("geoid")=...,
-        %       Units ("perMeter")=..., Mode ("grid")=...) is the exact
+        %   [DQ, INFO] = g.gradient(LAT, LON, Quantity=...,
+        %       Units=..., Mode=...) is the exact
         %   spatial derivative of what g.synthesis would return under the
         %   SAME options - the vector field to draw over a scalar map, or
         %   to advect tracers through. DQ.up is EMPTY for surface
@@ -1058,8 +1084,8 @@ methods
 
     function b = toGrid(obj, latDeg, lonDeg, opts)
         %TOGRID Synthesized field plus the metadata a map needs to draw it.
-        %   B = g.toGrid(LAT, LON, Quantity ("ewh")=..., kn ([])=...,
-        %       LatType ("geodetic")=...) synthesizes exactly as
+        %   B = g.toGrid(LAT, LON, Quantity=..., kn=...,
+        %       LatType=...) synthesizes exactly as
         %   g.synthesis does and returns the values TOGETHER WITH what
         %   they are: units, latitude convention, product type, epoch,
         %   provenance, and whether the field is a full field or an
@@ -1743,12 +1769,17 @@ methods (Static)
         %READ Read an ICGEM .gfc/.gfct/.gfc.gz file into an shCoefficients.
         %   G = shCoefficients.read(FILE) parses product type and mid-epoch
         %   from standard GRACE L2 filenames (GSM/GAA/GAB/GAC/GAD-2_...);
-        %   override with Epoch (NaN)=..., ProductType ("")=... when needed.
+        %   override with Epoch=..., ProductType=... when needed.
         %
         %   Inputs
         %     filename  char/string  path of the file to read/write (gzipped .gz accepted where documented)
         %   Outputs
         %     obj        (1 x 1) shCoefficients   parsed gfc/gfct(.gz) with GM, R, sigmas, variable terms, Epoch= as given
+        %
+        %   Options
+        %     Epoch (NaN)  decimal year; NaN takes it from the file name
+        %     ProductType ("")  product code; "" takes it from the file
+        %         name ("static" for a file without epoch or time terms)
         %
         arguments
             filename {mustBeTextScalar}
@@ -1811,14 +1842,14 @@ methods (Static)
         %   Stokes coefficients (the inverse of synthesis).
         %
         %   [OBJ, INFO] = shCoefficients.analysis(GRID, LAT, LON, NMAX,
-        %       Quantity ("geoid")=..., Method ("auto")=..., Weights ("none")=..., Kaula (0)=..., ...)
+        %       Quantity=..., Method=..., Weights=..., Kaula=..., ...)
         %   estimates an shCoefficients object from a ring grid
         %   (GRID nlat x nlon, uniform full-circle LON: exact fast
         %   per-order solver) or from scattered points (equal-length
         %   GRID/LAT/LON vectors: full least squares). See
         %   shLowLevel.shAnalysisGrid for the estimation options, the Kaula
         %   regularization needed for under-determined sampling, and the
-        %   exactness guarantees. GM (3.986004415e14)/R (6378136.3)/Epoch (NaN)/Name ("analysis") flow into the object.
+        %   exactness guarantees. GM/R/Epoch/Name flow into the object.
         %
         %   Inputs   grid (nlat,nlon) or (Np,1) double, lat/lon [deg]
         %     lonVec  (P,1) double  observation longitudes [deg]

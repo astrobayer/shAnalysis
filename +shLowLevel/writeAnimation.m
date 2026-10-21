@@ -1,8 +1,8 @@
 function writeAnimation(ts, filename, opts)
 %WRITEANIMATION Export a series as a map animation, drawn by geoMap.
 %
-%   shLowLevel.writeAnimation(TS, 'ewh.avi', Quantity ("ewh")=...,
-%       kn ([])=...) synthesizes every epoch of TS onto one grid, draws
+%   shLowLevel.writeAnimation(TS, 'ewh.avi', Quantity=...,
+%       kn=...) synthesizes every epoch of TS onto one grid, draws
 %   each frame with geo.map, and writes them to a video container with a
 %   provenance sidecar.
 %

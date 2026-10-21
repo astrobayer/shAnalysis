@@ -13,7 +13,7 @@ function [LN, info] = readLoveNumbers(filename, opts)
 %     3+ columns w/ header: mapped by the header tokens n, k(n)('), 
 %                           h(n)('), l(n)(')
 %     3+ columns w/o header: AMBIGUOUS (classic Farrell tables order
-%                           h l k, others k h l) - pass Columns ("auto")=
+%                           h l k, others k h l) - pass Columns=
 %                           explicitly, e.g. Columns="n h l k".
 %
 %

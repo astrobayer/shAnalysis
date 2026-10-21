@@ -14,7 +14,7 @@
 <h2>Syntax</h2>
 <div class="syntax"><code>[sig, latDeg, lonDeg] = shLowLevel.errorMap(M, idx, latDeg, lonDeg)</code><code>[sig, latDeg, lonDeg] = shLowLevel.errorMap(M, idx, latDeg, lonDeg, Quantity=&quot;geoid&quot;, kn=[], hn=[], ...)</code></div>
 <h2>Description</h2>
-<p>[SIG, LAT, LON] = shLowLevel.errorMap(M, IDX, LAT, LON, Quantity (&quot;geoid&quot;)=&quot;ewh&quot;, kn ([])=kn) computes the pointwise 1-sigma of a synthesized field from a full P x P covariance (e.g. <a href="shLowLevel_readSINEX.html"><code>shLowLevel.readSINEX</code></a>(..., Output=&quot;covariance&quot;).M, reordered via Index=idx).</p>
+<p>[SIG, LAT, LON] = shLowLevel.errorMap(M, IDX, LAT, LON, Quantity=&quot;ewh&quot;, kn=kn) computes the pointwise 1-sigma of a synthesized field from a full P x P covariance (e.g. <a href="shLowLevel_readSINEX.html"><code>shLowLevel.readSINEX</code></a>(..., Output=&quot;covariance&quot;).M, reordered via Index=idx).</p>
 <h2>Examples</h2>
 <details class="example"><summary>Runnable (docs/apiExamples.json)</summary><div><pre><code>sig = shLowLevel.errorMap(M, idx, -89:4:89, 0:4:356, Quantity = &quot;ewh&quot;, kn = kn);</code></pre></div></details>
 <h2>Input Arguments</h2>
@@ -29,7 +29,7 @@
 <p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
 <h2>See Also</h2>
 <ul class="seealso"><li><a href="shLowLevel_readSINEX.html"><code>shLowLevel.readSINEX</code></a></li></ul>
-<p class="prov">shAnalysis v5.23.1 (21-Oct-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+<p class="prov">shAnalysis v5.23.2 (21-Oct-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
 </div>
 </body>
 </html>

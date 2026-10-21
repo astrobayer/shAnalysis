@@ -173,6 +173,56 @@ def structure(help_text, label):
                          (label, name))
     return probs
 
+# --- default markers outside the Options section (v5.23.2) ----------------
+# fix_help.py documented a missing default by writing " (<default>)" after
+# the FIRST mention of the option anywhere in the help, not in its Options
+# row. From v3.0.1 to v5.23.1 that left 125 markers in syntax lines and
+# prose: `setup_shAnalysis(Permanent (false) = true)` is not a MATLAB call,
+# and `Convert to another (GM (NaN), R (NaN)) reference` is not a sentence.
+# The default check below was satisfied by them, since it only asks that
+# the default appear on SOME line naming the option. The marker belongs to
+# the option's own row: a row of the Options section, or - for the blocks
+# that list options under Inputs or with an `opts.` prefix - a row that
+# STARTS with the option. `Name (default)` followed by `=` is call syntax
+# and is wrong everywhere.
+def options_rows(help_lines):
+    """indices of the help lines inside an Options section"""
+    rows, cur = set(), None
+    for k, L in enumerate(help_lines):
+        if PROV_RE.match(L):
+            cur = None
+        m = HEAD_RE.match(L.rstrip())
+        if m and m.group(1).strip() in SECTIONS:
+            cur = m.group(1).strip()
+        elif cur == "Options":
+            rows.add(k)
+    return rows
+
+
+def misplaced_defaults(help_text, args, label):
+    """'<Opt> (<default>)' written into a syntax line or into prose"""
+    probs = []
+    H = help_text.split("\n")
+    inopt = options_rows(H)
+    for a in args:
+        if not a["nv"]:
+            continue
+        tok = a["name"] + " (" + (a["default"] or '""') + ")"
+        for k, L in enumerate(H):
+            if tok not in L:
+                continue
+            call = re.search(re.escape(tok) + r"\s*=", L)
+            row = k in inopt or re.match(
+                r"^\s*(opts\.)?" + re.escape(tok), L)
+            if call or not row:
+                probs.append("%s: help line %d carries the default marker "
+                             "'%s' outside the option's row%s" % (
+                                 label, k + 1, tok,
+                                 " - as call syntax it is not MATLAB"
+                                 if call else ""))
+    return probs
+
+
 # --- struct output fields (A12) -------------------------------------------
 # help_audit checked that every OUTPUT VARIABLE appears in the Outputs
 # section. It never checked the FIELDS a struct output promises, so
@@ -427,6 +477,7 @@ def audit(entry, label, examples):
     if not H.strip():
         return [label + ": no help text"]
     probs += structure(H, label)
+    probs += misplaced_defaults(H, entry["args"], label)
     if entry.get("src"):
         probs += struct_fields(H, entry["src"], label, set(entry["outs"]),
                                STRUCT_STATS)
