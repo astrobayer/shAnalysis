@@ -6255,3 +6255,123 @@ verifyEqual(testCase, size(St), [B.K B.K]);
 verifyTrue(testCase, issymmetric(St));
 verifyGreaterThan(testCase, min(eig(St)), -1e-12 * max(eig(St)));
 end
+
+% ------------------------------------------- A33: one GeoJSON reader
+function testGravisChainMasksAreReadBasinRegions(testCase)
+%TESTGRAVISCHAINMASKSAREREADBASINREGIONS A33: twsChain and
+%   gravisRegionChain now take their basin masks from readBasin instead of
+%   converting the GeoJSON rings themselves. The chains' old rule is kept
+%   below as the captured reference (the masks are the only thing the
+%   chains take from the GeoJSON, so equal masks mean equal outputs). On
+%   the chains' grids - gravisRegionChain's 1-degree global grid for all
+%   132 basins of the three shipped files, twsChain's per-basin boxes for
+%   the 100 river basins - the two rules agree at every point that is not
+%   on a ring edge (a point within 1e-6 deg of an edge may change side,
+%   because the two rules shift longitudes differently before inpolygon,
+%   which counts edge points as inside). The one exception is the polar
+%   ring of Antarctic basin 302: the old rule never closed it through the
+%   pole and left out the cap south of the ring, which readBasin includes
+%   (validate_regional_basis.py CLAIM 5d checks that closure) - there the
+%   cap must be inside, and south of 85 S the old rule is no reference.
+step = 1;
+lat = (-90 + step/2 : step : 90)';
+lon = (step/2 : step : 360)';
+[LO, LA] = meshgrid(lon, lat);
+root = fileparts(fileparts(mfilename('fullpath')));
+files = ["basins_rivbas.json", "basins_GIS.json", "basins_AIS.json"];
+nPolar = 0;
+for f = files
+    feats = jsonFeatures(fullfile(root, 'data', 'gravis', f));
+    [regs, binfo] = shLowLevel.readBasin(string.empty, File = f);
+    verifyEqual(testCase, numel(regs), numel(feats), f);
+    for k = 1:numel(regs)
+        parts = oldParts(feats{k}.geometry);
+        old = oldGravisMask(parts, LA, LO);
+        new = regs{k}(LA, LO) > 0;
+        d = old ~= new;
+        if any(binfo(k).polar)
+            nPolar = nPolar + 1;
+            ringLat = vertcat(binfo(k).rings{:});
+            south = LA < min(ringLat(:, 1));
+            verifyTrue(testCase, all(new(south)), ...
+                sprintf('%s %s: the polar cap is not inside', f, binfo(k).name));
+            d = d & ~(LA < -85);     % the old rule's polar artefacts
+        end
+        dist = edgeDistance(parts, LA(d), LO(d));
+        verifyLessThan(testCase, max([dist; 0]), 1e-6, ...
+            sprintf('%s %s: %d points off the edges changed side', f, ...
+            binfo(k).name, nnz(dist >= 1e-6)));
+    end
+end
+verifyEqual(testCase, nPolar, 1, 'basin 302 is the one polar ring');
+% twsChain's per-basin box: the old rule against readBasin on the same box
+feats = jsonFeatures(fullfile(root, 'data', 'gravis', files(1)));
+[regs, binfo] = shLowLevel.readBasin(string.empty, File = files(1));
+for k = 1:numel(regs)
+    parts = oldParts(feats{k}.geometry);
+    Pall = vertcat(parts{:});
+    latB = (floor(min(Pall(:,2))) - 1 + 0.5 : 1 : ceil(max(Pall(:,2))) + 1)';
+    c0 = atan2d(mean(sind(Pall(:,1))), mean(cosd(Pall(:,1))));
+    lw = mod(Pall(:,1) - c0 + 180, 360) - 180;
+    off = (floor(min(lw)) - 1 + 0.5 : 1 : ceil(max(lw)) + 1)';
+    [LOc, LAb] = meshgrid(off, latB);
+    old = false(size(LAb));
+    for q = 1:numel(parts)
+        Pq = parts{q};
+        old = old | inpolygon(LOc, LAb, mod(Pq(:,1) - c0 + 180, 360) - 180, Pq(:,2));
+    end
+    new = regs{k}(LAb, c0 + LOc) > 0;
+    d = old ~= new;
+    dist = edgeDistance(parts, LAb(d), c0 + LOc(d));
+    verifyLessThan(testCase, max([dist; 0]), 1e-6, ...
+        sprintf('twsChain box %s: points off the edges changed side', binfo(k).name));
+end
+end
+
+function feats = jsonFeatures(file)
+% The GeoJSON features as a cell, whatever jsondecode made of them.
+J = jsondecode(fileread(file));
+feats = J.features;
+if ~iscell(feats), feats = num2cell(feats); end
+end
+
+function parts = oldParts(g)
+% The chains' old ring extraction, verbatim: the first ring of each
+% polygon, [lon lat].
+if strcmp(g.type, 'Polygon'), parts = {squeeze(g.coordinates(1,:,:))};
+else, parts = cellfun(@(c) squeeze(c(1,:,:)), g.coordinates, 'uni', 0);
+end
+end
+
+function mk = oldGravisMask(parts, LA, LO)
+% gravisRegionChain's old mask rule, verbatim (v5.20.0 and before).
+lonW = mod(LO + 180, 360) - 180;
+mk = false(size(LA));
+for q = 1:numel(parts)
+    Pq = parts{q};
+    c = atan2d(mean(sind(Pq(:,1))), mean(cosd(Pq(:,1))));
+    px = mod(Pq(:,1) - c + 180, 360) - 180;
+    gx = mod(lonW - c + 180, 360) - 180;
+    mk = mk | inpolygon(gx, LA, px, Pq(:,2));
+end
+end
+
+function dist = edgeDistance(parts, la, lo)
+% Planar distance [deg] of points to the nearest ring edge, each part in
+% the frame centred on its own mean longitude (the old rule's frame).
+dist = inf(numel(la), 1);
+for q = 1:numel(parts)
+    Pq = parts{q};
+    c = atan2d(mean(sind(Pq(:,1))), mean(cosd(Pq(:,1))));
+    px = mod(Pq(:,1) - c + 180, 360) - 180;
+    py = Pq(:,2);
+    gx = mod(lo(:) - c + 180, 360) - 180;
+    ax = px(1:end-1); ay = py(1:end-1);
+    bx = px(2:end) - ax; by = py(2:end) - ay;
+    L2 = max(bx.^2 + by.^2, realmin);
+    for i = 1:numel(la)
+        t = min(max(((gx(i) - ax) .* bx + (la(i) - ay) .* by) ./ L2, 0), 1);
+        dist(i) = min(dist(i), min(hypot(ax + t .* bx - gx(i), ay + t .* by - la(i))));
+    end
+end
+end

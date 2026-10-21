@@ -80,7 +80,7 @@ end
 steps = strings(1, 0);
 say = @(s) fprintf('  %s\n', s);
 if opts.Quiet, say = @(s) []; end
-% ---- basin polygons ([lon lat] GeoJSON -> masks)
+% ---- basin polygons (GeoJSON -> readBasin regions -> masks, A33)
 if strlength(gravisFolder) == 0
     gravisFolder = shLowLevel.gravisDataFolder();
 end
@@ -91,7 +91,7 @@ if ~isfile(bf)
         ['Basin GeoJSON not found: %s. Fetch it from ' ...
          'https://gravis.gfz.de/basins/GIS or /basins/AIS.'], opts.BasinFile);
 end
-J = jsondecode(fileread(bf));
+[regs, binfo] = shLowLevel.readBasin(string.empty, File = string(bf));
 % ---- trend grid: compute or reuse
 if ~isempty(opts.TrendGrid)
     S = opts.TrendGrid;
@@ -147,27 +147,14 @@ else
     steps(end+1) = sprintf("pixel fit: sigma_mon %.4g m -> sigma_trend %.3g m/yr", ...
         sigMon, S.sigTrend);
 end
-% ---- masks
+% ---- masks (readBasin's wrap-safe regions, A33: a ring around the pole
+% is closed through it, holes are holes)
 [LO, LA] = meshgrid(lon, lat);
-lonW = mod(LO + 180, 360) - 180;
-mask = false(size(LA)); cLon = zeros(numel(J.features), 1);
-basinMasks = cell(numel(J.features), 1);
-for k = 1:numel(J.features)
-    g = J.features(k).geometry;
-    if strcmp(g.type, 'Polygon'), parts = {squeeze(g.coordinates(1,:,:))};
-    else, parts = cellfun(@(c) squeeze(c(1,:,:)), g.coordinates, 'uni', 0);
-    end
-    mk = false(size(LA)); allx = [];
-    for q = 1:numel(parts)
-        Pq = parts{q};
-        c = atan2d(mean(sind(Pq(:,1))), mean(cosd(Pq(:,1))));
-        px = mod(Pq(:,1) - c + 180, 360) - 180;
-        gx = mod(lonW - c + 180, 360) - 180;
-        mk = mk | inpolygon(gx, LA, px, Pq(:,2));
-        allx = [allx; Pq(:,1)]; %#ok<AGROW>
-    end
+mask = false(size(LA));
+basinMasks = cell(numel(regs), 1);
+for k = 1:numel(regs)
+    mk = regs{k}(LA, LO) > 0;
     basinMasks{k} = mk; mask = mask | mk;
-    cLon(k) = atan2d(mean(sind(allx)), mean(cosd(allx)));
 end
 unionMask = mask;
 for b = 1:size(opts.NeighbourBoxes, 1)
@@ -198,7 +185,7 @@ if region == "antarctica"
     K = numel(basinMasks);
     nm = strings(K,1); gtb = zeros(K,1);
     for k = 1:K
-        nm(k) = string(J.features(k).properties.name);
+        nm(k) = binfo(k).name;
         gtb(k) = local_mass(m, lat, lon, basinMasks{k});
     end
     rep.basins = table(nm, gtb, 'VariableNames', {'name', 'gt'});

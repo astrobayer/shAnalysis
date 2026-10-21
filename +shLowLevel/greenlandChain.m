@@ -23,7 +23,7 @@ function [gt, rep] = greenlandChain(folder, gravisFolder, opts)
 %                   vector - REQUIRED, the empty default errors: no
 %                   frame is assumed for you
 %     BasinFile     ("basins_GIS.json")  GravIS GeoJSON of the target
-%                   basins ([lon lat] rings; converted internally - see
+%                   basins ([lon lat] rings, read by shLowLevel.readBasin - see
 %                   https://gravis.gfz.de/basins/GIS)
 %     NeighbourBoxes ([60 84 232 300; 63 67 335 347; 76 81 10 34])
 %                   the guide-V2 Canadian Arctic, Iceland and Svalbard

@@ -9,7 +9,12 @@ function [region, info] = readBasin(name, opts)
 %   basinKernel, slepianBasis, regionalBasis). The match is exact first,
 %   then case-insensitive, then a case-insensitive substring that only
 %   ONE basin contains - so "Elbe" finds "Elbe River" - and INFO.name
-%   says which basin was taken. A substring two basins contain is
+%   says which basin was taken. NAME may also be a string array: then
+%   REGION is a (1,N) cell of handles and INFO a (1,N) struct array, all
+%   from one read of the file; an empty NAME (string.empty) takes every
+%   basin of the file, in file order - the form the GravIS chains use
+%   (twsChain, gravisRegionChain), so the toolbox converts GeoJSON rings
+%   in one place (A33). A substring two basins contain is
 %   refused rather than resolved.
 %
 %   The handle is wrap-safe, which a [lat lon] polygon in [0, 360) is
@@ -27,7 +32,8 @@ function [region, info] = readBasin(name, opts)
 %   Issyk-kul; Elbe 1.5e-6).
 %
 %   Inputs
-%     name  (1,1) string  basin name, or a unique part of one ("Elbe")
+%     name  (1,1) string  basin name, or a unique part of one ("Elbe");
+%           a (1,N) string array for several, string.empty for all
 %
 %   Options
 %     File ("basins_rivbas.json")  (1,1) string  a GeoJSON file: a path,
@@ -38,7 +44,8 @@ function [region, info] = readBasin(name, opts)
 %   Outputs
 %     region  function handle  m = region(latDeg, lonDeg): equal-size
 %             double arrays in, a double array of 0/1 of the same size
-%             out; lon may be in any range
+%             out; lon may be in any range. A (1,N) cell of them for a
+%             string-array or empty NAME
 %     info    (1,1) struct  fields
 %             name       (1,1) string  the basin actually taken
 %             file       (1,1) string  the file it was read from
@@ -66,11 +73,13 @@ function [region, info] = readBasin(name, opts)
 %         the feature is not a Polygon or MultiPolygon with [lon lat] rings
 %
 %   Developed by Matthias Weigelt with the help of Claude (Opus 5.5),
-%   2026-10-20.
+%   2026-10-20 (several names and the whole file: 2026-10-21, A33).
 arguments
-    name (1,1) string
+    name string
     opts.File (1,1) string = "basins_rivbas.json"
 end
+many = ~isscalar(name);
+name = name(:).';
 file = opts.File;
 if ~isfile(file)
     root = fileparts(fileparts(mfilename('fullpath')));
@@ -91,6 +100,25 @@ names = strings(numel(feats), 1);
 for k = 1:numel(feats)
     names(k) = string(feats{k}.properties.name);
 end
+if isempty(name)
+    hits = 1:numel(names);
+else
+    hits = arrayfun(@(nm) lookUp(nm, names, file), name);
+end
+region = cell(1, numel(hits));
+info = repmat(struct('name', "", 'file', "", 'names', strings(0, 1), ...
+    'rings', {{}}, 'hole', false(1, 0), 'polar', false(1, 0), ...
+    'polygon', zeros(1, 0), 'properties', struct()), 1, numel(hits));
+for k = 1:numel(hits)
+    [region{k}, info(k)] = basinOf(feats{hits(k)}, names(hits(k)), names, file);
+end
+if ~many
+    region = region{1};
+end
+end
+
+function hit = lookUp(name, names, file)
+% Exact, then case-insensitive, then a unique case-insensitive substring.
 hit = find(names == name);
 if isempty(hit), hit = find(strcmpi(names, name)); end
 if isempty(hit), hit = find(contains(lower(names), lower(name))); end
@@ -104,7 +132,10 @@ elseif numel(hit) > 1
         '"%s" matches %d basins in %s: %s. Give more of the name.', ...
         name, numel(hit), file, strjoin(names(hit), ', '));
 end
-f = feats{hit};
+end
+
+function [region, info] = basinOf(f, bname, names, file)
+% One feature as a wrap-safe region handle and its info.
 g = f.geometry;
 switch string(g.type)
     case "Polygon"
@@ -123,7 +154,7 @@ switch string(g.type)
     otherwise
         error('shLowLevel:readBasin:badGeometry', ...
             'Basin "%s" has geometry %s; only Polygon and MultiPolygon are read.', ...
-            names(hit), g.type);
+            bname, g.type);
 end
 rings = {}; hole = false(1, 0); poly = zeros(1, 0);
 for p = 1:numel(polys)
@@ -135,12 +166,12 @@ for p = 1:numel(polys)
 end
 if isempty(rings)
     error('shLowLevel:readBasin:badGeometry', ...
-        'Basin "%s" has no rings.', names(hit));
+        'Basin "%s" has no rings.', bname);
 end
 U = cellfun(@unwrapRing, rings, 'UniformOutput', false);
 polar = cellfun(@(u) u.polar, U);
 region = @(lat, lon) inside(lat, lon, U, poly);
-info = struct('name', names(hit), 'file', string(file), 'names', names, ...
+info = struct('name', bname, 'file', string(file), 'names', names, ...
     'rings', {rings}, 'hole', hole, 'polar', polar, 'polygon', poly, ...
     'properties', f.properties);
 end
