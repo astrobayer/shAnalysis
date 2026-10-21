@@ -4,10 +4,12 @@ function d = testDataDir()
 %   D = shLowLevel.testDataDir() returns, in order of precedence:
 %     1. getenv('SHX_TESTDATA_FOLDER')          if set and a folder
 %     2. getpref('shAnalysis','TestDataFolder') if set and a folder
-%     3. <toolbox>/tests/test_data              the in-repo default
+%     3. <toolbox>/tests/test_data              the fallback location;
+%        it is NOT tracked in the repository - CI checks the fixtures out
+%        of the fixtures tag into it, and a plain clone has none
 %   Same contract as tests/shxTestDataDir (which the test suites use);
 %   this packaged twin exists because TOOLBOX code also consults the
-%   shipped samples - readDDK's "DDK3" name form and the demos - and
+%   fixture folder - readDDK's "DDK<n>" name form and the demos - and
 %   must not depend on the tests folder being on the path. The v3.25
 %   relocation missed exactly that: with the fixtures moved to a data
 %   drive, readDDK("DDK3") failed on the acceptance machine while all
@@ -19,7 +21,7 @@ function d = testDataDir()
 %        fallback - callers keep their own diagnostics)
 %
 %   Example
-%     W = shLowLevel.readDDK("DDK3");   % resolves the shipped sample
+%     W = shLowLevel.readDDK("DDK3");   % <dataFolder>/DDK, then here
 %     f = fullfile(shLowLevel.testDataDir(), 'test_static.gfc');
 %
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5),

@@ -1,7 +1,7 @@
 function h = plotSHCoeffTriangle(C, S, opts)
 %PLOTSHCOEFFTRIANGLE Coefficient-triangle diagnostic plot.
 %
-%   PLOTSHCOEFFTRIANGLE(C, S) shows |Cnm| (left half) and |Snm| (right
+%   PLOTSHCOEFFTRIANGLE(C, S) shows |Snm| (left half) and |Cnm| (right
 %   half) as a single degree/order "butterfly" triangle image on a log
 %   color scale -- the standard first diagnostic for spotting striping,
 %   leakage, or bad coefficients before spectral/spatial analysis.
@@ -13,7 +13,9 @@ function h = plotSHCoeffTriangle(C, S, opts)
 %
 %   Options
 %     Nmax (size(C,1)-1)  max degree to display
-%     CLim ([])   [min max] log10(|value|) colour limits; empty is auto
+%     CLim ([])   [min max] colour limits; empty is auto. In log10(|value|)
+%               units, or in coefficient units with RefC/RefS, where
+%               it replaces the symmetric [-a a] limits
 %     Ax ([])     axes handle to plot into; empty uses the current axes
 %     RefC ([]), RefS ([])  reference coefficients: plot the SIGNED
 %               difference C-RefC / S-RefS on a linear divergent scale,

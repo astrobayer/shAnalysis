@@ -83,6 +83,7 @@ function [k, info] = sensitivityKernel(idx, region, opts)
 %
 %   Example
 %     idx = shLowLevel.shIndex(60);
+%     s = [];                                     % grows into a struct array
 %     for a = logspace(-2, 4, 20)                 % sweep, then choose
 %         [~, s(end+1)] = shLowLevel.sensitivityKernel(idx, basin, ...
 %             Alpha = a, Noise = sigmaVec);

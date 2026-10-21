@@ -24,7 +24,10 @@ function [rec, info] = regionalNEQ(B, kind, opts)
 %                 N and b (and optionally ltpl, nobs) - or a
 %                 shLowLevel.readSINEX result of kind 'NEQ' read with
 %                 Index = B.idx (fields M, x, stats: N = M, b = M x,
-%                 ltpl and nobs from the STATISTICS block). ltpl passes
+%                 ltpl and nobs from the STATISTICS block). M is taken
+%                 as the normal matrix whatever the result's kind: a
+%                 covariance (kind 'COVA', or Output = "covariance") is
+%                 NOT converted, so pass a normal matrix. ltpl passes
 %                 through unchanged: the basis does not change the data,
 %                 only the parameters. GNSS loading and other groups built
 %                 OUTSIDE shAnalysis enter here (CLAUDE.md WP8).

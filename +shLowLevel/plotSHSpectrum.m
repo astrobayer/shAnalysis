@@ -1,8 +1,9 @@
 function h = plotSHSpectrum(specs, opts)
-%PLOTSHSPECTRUM Log-log degree-amplitude spectrum plot.
+%PLOTSHSPECTRUM Degree-amplitude spectrum plot (linear x, log y).
 %
 %   PLOTSHSPECTRUM(SPEC) plots SPEC.degree vs SPEC.degAmplitude (from
-%   SHDEGREERMS) on a log-log scale, in mm geoid-height-equivalent.
+%   SHDEGREERMS) on a log y-axis over a linear degree axis, in mm
+%   geoid-height-equivalent.
 %
 %   PLOTSHSPECTRUM({SPEC1, SPEC2, ...}, 'names', {'name1','name2',...})
 %   overlays multiple spectra for comparison (e.g. successive GRACE months,
@@ -25,7 +26,7 @@ function h = plotSHSpectrum(specs, opts)
 %               in one call errors. X-axis is LINEAR since v2.4.1.
 %     Kaula ([])     scalar K: overlay the Kaula-rule reference degree
 %               amplitude R*sqrt(2n+1)*K/n^2 (typical K ~ 1e-5) as a
-%               dashed grey line - the sanity yardstick for signal decay
+%               dotted grey line - the sanity yardstick for signal decay
 %     MarkCrossover (false)  with exactly TWO spectra, mark the
 %               signal/error crossover degree found by
 %               shLowLevel.shSpectralCrossover with a vertical line
@@ -34,9 +35,10 @@ function h = plotSHSpectrum(specs, opts)
 %   2026-08-07 (Kaula + crossover overlays v2.4).
 %
 %   Inputs
-%     specs  struct or struct array  spectrum struct(s) from shLowLevel.shDegreeRMS (overlaid when several)
+%     specs  struct or cell array of structs  spectrum struct(s) from
+%            shLowLevel.shDegreeRMS; a cell array is overlaid
 %   Outputs
-%     h          (1 x 1) graphics handle   log-log spectrum axes
+%     h          (1 x 1) graphics handle   spectrum axes (log y)
 %
 %   Error identifiers
 %     shLowLevel:plotSHSpectrum:badQuantity

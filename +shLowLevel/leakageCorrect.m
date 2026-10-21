@@ -115,17 +115,23 @@ function [mCorr, info] = leakageCorrect(grid, latDeg, lonDeg, opts)
 %                units and grid as GRID
 %     info  (1,1) struct  fields
 %           iterations   (1,1) double  iterations actually run
-%           residual     (1,1) double  final relative residual; with a
-%                        mask this floors above Tol, and that is correct
-%           history      (1,K) double  the residual per iteration - plot
+%           residual     (1,1) double  history(end): max|r| / max|GRID|
+%                        of the residual r of the iterate BEFORE the last
+%                        update (residualRMS is on the returned field);
+%                        with a mask this floors above Tol, and that is
+%                        correct
+%           history      (1,K) double  that relative max-abs residual per
+%                        iteration - plot
 %                        it, a rising curve means Gain is too large
 %           step         (1,K) double  the relative change of the
 %                        solution per iteration; this is what Tol tests
 %           stoppedBy    (1,1) string  "discrepancy" | "step" |
 %                        "maxIter" | "zeroField". ALWAYS check this: it
 %                        says whether the result was regularised
-%           residualRMS  (1,1) double  over ResidualRegion
-%           residualRMSGlobal  (1,1) double  over the whole grid; a large
+%           residualRMS  (1,1) double  RMS over ResidualRegion of the
+%                        residual of the returned field mCorr
+%           residualRMSGlobal  (1,1) double  the same over the whole
+%                        grid; a large
 %                        gap between the two means unmodelled signal
 %                        elsewhere
 %           noiseLevel   (1,1) double  as given

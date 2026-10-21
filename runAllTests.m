@@ -1,17 +1,15 @@
 function results = runAllTests(opts)
-%RUNALLTESTS Run the complete shAnalysis v2 validation suite.
+%RUNALLTESTS Run the complete shAnalysis validation suite.
 %
 %   RESULTS = RUNALLTESTS runs, in order:
 %     tests/testCorrectness.m   numerics vs. golden/legacy/analytic values
+%     tests/testContract.m      error IDs, immutability, dimensions
+%     tests/testRobustness.m    edge cases, degenerate inputs, file I/O
 %     tests/testScience.m       regression against PUBLISHED values
 %                               (defining constants, load Love numbers,
 %                               the closed-form EWH kernel, geocenter
 %                               amplitudes) - so a consistently wrong
 %                               formula has somewhere to show up
-%     tests/testContract.m      error IDs, immutability, dimensions
-%     tests/testRobustness.m    edge cases, degenerate inputs, file I/O
-%                               documented patch: kernel-ratio test masks
-%                               exact-zero symmetry points, see comment there)
 %     tests/testPerformance.m   benchmarks incl. Legendre-cache assertion
 %
 %   RESULTS = RUNALLTESTS(SkipPerformance=true) omits the (slow)

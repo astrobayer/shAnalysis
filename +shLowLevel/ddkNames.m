@@ -4,7 +4,7 @@ function names = ddkNames()
 %   (verified against the strawpants/GRACE-filter repository listing).
 %   Claude (Fable 5), 2026-08-07 (v2.4.1).
 %   Outputs
-%     names      (1 x 8) string   Wbd file names for DDK1..DDK8
+%     names      (8 x 1) string   Wbd file names for DDK1..DDK8
 %
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 names = [ ...

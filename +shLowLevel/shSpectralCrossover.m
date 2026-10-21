@@ -12,11 +12,13 @@ function [nCrossover, degreeInterp] = shSpectralCrossover(spec)
 %   useful for choosing a smooth filter radius than the integer value).
 %
 %   Returns NaN for both outputs if the error spectrum never exceeds the
-%   signal spectrum over the available degree range.
+%   signal spectrum over the available degree range, and also if it
+%   already exceeds it at the first degree (no crossing to interpolate).
 %
 %   Claude (Sonnet 4.6), 2026-07-11; merged into +shLowLevel: Claude (Fable 5), 2026-08-07.
 %   Outputs
-%     nCrossover    (1,1) double  first degree with err >= signal (NaN if none)
+%     nCrossover    (1,1) double  first degree with err > signal (NaN if
+%                   none, or if it is the first degree)
 %     degreeInterp  (1,1) double  linearly interpolated crossing degree
 %
 %   Error identifiers

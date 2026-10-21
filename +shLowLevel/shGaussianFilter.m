@@ -8,8 +8,10 @@ function [Cf, Sf, Wn] = shGaussianFilter(C, S, radius_km, varargin)
 %
 %   [CF, SF, WN] = ... also returns the weight vector used.
 %
-%   Name/value options: 'R' (sphere radius km, default 6378.1363),
-%   passed through to SHGAUSSIANWEIGHTS.
+%   Options
+%     R (6378.1363)  (1,1) double  sphere radius [km], passed through to
+%                    shLowLevel.shGaussianWeights (whose arguments block
+%                    holds the default)
 %
 %   Claude (Sonnet 4.6), 2026-07-11; merged into +shLowLevel: Claude (Fable 5), 2026-08-07.
 %   Outputs

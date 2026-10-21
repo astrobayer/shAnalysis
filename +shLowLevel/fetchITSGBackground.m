@@ -31,15 +31,18 @@ function [files, info] = fetchITSGBackground(months, opts)
 %                        oceanBottomPressure and provides c20,
 %                        degree1, glacialIsostaticAdjustment,
 %                        hydrology. A product absent in an era 404s
-%                        and lands in info.missing - loudly, never
-%                        silently
+%                        and counts in that product's nFailed; it
+%                        reaches info.missing only when NO selected
+%                        product has the month (see Outputs)
 %     Dest ("")          destination folder; "" =
 %                        dataFolder/series/itsg/background (v3.16)
 %     Release ("")       "" routes by month; a release name pins it
 %     Update (false)     re-download files that already exist
 %     MaxFiles (Inf)     downloads cap per product
 %     BudgetSec (Inf)    wall-clock cap with clean partial stop
-%     MaxFailures (5)    consecutive-failure cap, stops loudly
+%     MaxFailures (5)    failure cap per product (failures are
+%                        counted in total, not reset by a success);
+%                        stops that product with a warning
 %     PauseSec (1.5)     polite pause between downloads [s]
 %     RetryAfterCap (30) single capped retry wait on HTTP 429 [s]
 %     Downloader ("websave") "websave" | "httpFetch"
@@ -50,9 +53,15 @@ function [files, info] = fetchITSGBackground(months, opts)
 %     files (n x 1) string  local .gfc paths (downloaded or present)
 %     info  (1,1) struct  fields
 %           products  (1 x nProducts) struct array, one per product, with
-%                     nListed, nDownloaded, nSkipped, nFailed, nRemaining
-%           missing   (1,:) string  months the server did not offer
-%           releases  (1,:) string  releases actually used
+%                     product, nListed, nDownloaded, nSkipped, nFailed,
+%                     nRemaining
+%           missing   (k,1) string  months for which no file of ANY
+%                     selected product is present - absent on the server,
+%                     failed, or cut by MaxFiles/BudgetSec/MaxFailures. A
+%                     month missing from one product while another has it
+%                     is not listed; read products(i).nFailed and
+%                     nRemaining for that
+%           releases  (r,1) string  releases actually used
 %
 %   Example
 %     f = shLowLevel.fetchITSGBackground(["2018-06", "2018-07"]);

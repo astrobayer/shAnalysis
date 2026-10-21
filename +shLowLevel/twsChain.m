@@ -22,8 +22,10 @@ function [out, rep] = twsChain(folder, gravisFolder, opts)
 %                   filter, the DDK binary unless full paths are given
 %
 %   Options
-%     kn         ([])  load Love numbers (degree,kn) - REQUIRED,
-%                the empty default errors: no frame is assumed
+%     kn         ([])  load Love numbers k'_n, one column for degrees
+%                0..nmax (kn(1) is degree 0), passed to
+%                shLowLevel.kernelFactors - REQUIRED, the empty default
+%                errors: no frame is assumed
 %     BasinFile  ("basins_rivbas.json")  GravIS GeoJSON of the target
 %                basins ([lon lat] rings, read by shLowLevel.readBasin;
 %                https://gravis.gfz.de/basins/rivbas)
@@ -32,8 +34,10 @@ function [out, rep] = twsChain(folder, gravisFolder, opts)
 %     Filter     ("DDK3")  "none" | "gaussN" | "DDKn" (n = 1..8) | a W
 %                struct from shLowLevel.readDDK
 %     DDKFolder  ("")  folder holding the Wbd_2-120.a_* binaries for
-%                the "DDKn" shorthand (default: GRAVISFOLDER, then
-%                <dataFolder>/DDK, where shLowLevel.fetchDDK stores them)
+%                the "DDKn" shorthand, searched first; the empty
+%                default makes that first candidate the bare file name,
+%                i.e. the current folder. Then GRAVISFOLDER, then
+%                <dataFolder>/DDK, where shLowLevel.fetchDDK stores them
 %     GIAFile    ("GRAVIS-2B_COSTG_0200_GIA_ICE-6G_D_VM5a_0001.gz")
 %                "" disables the GIA step - and reproduces the 7x
 %                larger trend RMS documented in V8
@@ -54,7 +58,7 @@ function [out, rep] = twsChain(folder, gravisFolder, opts)
 %          steps    (1,K) string  the stages applied, with parameters
 %          filter   (1,1) string  the filter actually used
 %          l2b      (1,1) struct  the shLowLevel.gravisL2B report
-%          version  (1,1) string  shLowLevel.version at run time
+%          version  (1,1) struct  shLowLevel.version() at run time
 %          created  (1,1) string  when the run happened
 %
 %   Example

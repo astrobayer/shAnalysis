@@ -23,8 +23,13 @@ function [gt, rep] = gravisRegionChain(region, folder, gravisFolder, opts)
 %     rep  (1,1) struct  fields
 %          trendGrid   (nlat x nlon) double  the trend field [cm/yr EWH]
 %          lat, lon    (1,:) double  the grid it is on [deg]
-%          sigTrend    (nlat x nlon) double  its 1-sigma
-%          residRMS    (1,1) double  RMS of the post-fit residual
+%          sigTrend    (1,1) double  1-sigma of the trend [m/yr]:
+%                      sigma_monthly / sqrt(Sxx), sigma_monthly the
+%                      open-ocean RMS (a scalar, oceanRMS); NaN when no
+%                      OceanMask was given (NoiseLevel used instead)
+%          residRMS    (nlat x nlon) double  per-pixel RMS of the
+%                      post-fit residual; absent when TrendGrid= was
+%                      given
 %          mask        (nlat x nlon) logical  the region
 %          unionMask   (nlat x nlon) logical  region plus the buffer the
 %                      leakage step needed
@@ -32,11 +37,14 @@ function [gt, rep] = gravisRegionChain(region, folder, gravisFolder, opts)
 %                      corrected) map
 %          iterations  (1,1) double  leakage iterations run
 %          stoppedBy   (1,1) string  why the iteration stopped
-%          basins      table  per-polygon integrals; filled for
-%                      antarctica, empty otherwise
+%          basins      table  per-polygon integrals (name, gt);
+%                      present for antarctica only - for greenland the
+%                      field does not exist
 %          steps       (1,K) string  the stages applied, with parameters
-%          l2b         (1,1) struct  the shLowLevel.gravisL2B report
-%          version     (1,1) string  shLowLevel.version at run time
+%          l2b         (1,1) struct  the shLowLevel.gravisL2B report;
+%                      absent when TrendGrid= was given
+%          version     (1,1) struct  shLowLevel.version() at run time
+%                      (Name, Version, Date, Root, Provenance)
 %          created     (1,1) string  when the run happened
 %
 %   Example

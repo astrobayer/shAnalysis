@@ -47,8 +47,9 @@ function [S, grid, info] = seaLevelFingerprint(loadRegion, ocean, idx, opts)
 %           massResidual      (1,1) double   [kg/m^2 sphere mean] - the
 %                             conservation check
 %           eustatic          (1,1) double   uniform equivalent rise [m]
-%           kappa             (1,1) double   the rotational feedback
-%                             factor applied
+%           kappa             (1,1) double   [m] the uniform constant
+%                             of the last iteration that enforces mass
+%                             conservation (no rotational feedback)
 %           areaFractionOcean (1,1) double   ocean area / sphere area
 %           S2D               (nlat x nlon) double  the sea-level change
 %                             field

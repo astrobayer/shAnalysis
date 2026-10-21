@@ -1,7 +1,7 @@
 function [model, Xres, coef, A, coefSigma, resVar, ar1] = fitDeterministicModel(X, tYears, opts)
 %FITDETERMINISTICMODEL Bias/trend/(semi-)annual (+extra periods) per SH coefficient.
 %
-%   [MODEL, XRES, COEF, A, COEFSIGMA, RESVAR] =
+%   [MODEL, XRES, COEF, A, COEFSIGMA, RESVAR, AR1] =
 %       shLowLevel.fitDeterministicModel(X, TYEARS, ...) fits, for each
 %   coefficient time series (rows of X, P x T), the model
 %       x(t) = a + b*tc + c*cos(2*pi*tc) + d*sin(2*pi*tc)
@@ -34,7 +34,8 @@ function [model, Xres, coef, A, coefSigma, resVar, ar1] = fitDeterministicModel(
 %     model      P x T          fitted deterministic part
 %     Xres       P x T          X - model
 %     coef       ncol x P       [bias; trend; cosA; sinA; cosSA; sinSA;
-%                                cosP1; sinP1; ...], ncol = 6 + 2*numel(Periods)
+%                                cosP1; sinP1; ...; hinge1; ...],
+%                                ncol = 6 + 2*numel(Periods) + numel(Breaks)
 %     A          T x ncol       design matrix (unweighted)
 %     coefSigma  ncol x P       1-sigma per coefficient: sqrt(resVar_p *
 %                               diag(inv(A'WA))); OLS formula, validated by
@@ -44,7 +45,8 @@ function [model, Xres, coef, A, coefSigma, resVar, ar1] = fitDeterministicModel(
 %     resVar     1 x P          residual variance rss/(T - ncol)
 %     ar1        1 x P          bias-corrected lag-1 residual auto-
 %                               correlation actually applied (clamped to
-%                               [0, 0.99]; 0 when ARCorrect=false)
+%                               [0, 0.99]; 0 when ARCorrect=false or
+%                               T <= ncol + 2)
 %
 %   Error identifiers
 %     shLowLevel:fitDeterministicModel:fewEpochs

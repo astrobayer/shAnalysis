@@ -50,8 +50,9 @@ function [kernel, radialExp, units] = kernelFactors(quantity, nmax, GM, R, opts)
 %                    continued potential (2e-10 / 7e-7 = check's own
 %                    truncation). Surface quantities (ewh,
 %                    surface_density, bottom_pressure, deformation_up,
-%                    geoid) reject Height (shLowLevel:kernelFactors:heightInvalid) -
-%                    they are surface concepts.
+%                    geoid) and the passthrough 'none' reject Height
+%                    (shLowLevel:kernelFactors:heightInvalid) - they
+%                    have no radial law.
 %   Outputs
 %     kernel    (nmax+1,1) double  (zeros where the quantity carries no
 %               information, e.g. n=1 for gravity_anomaly)

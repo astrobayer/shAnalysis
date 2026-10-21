@@ -12,7 +12,9 @@ function out = effectiveCorr(x, y)
 %   no Statistics Toolbox required.
 %
 %   Inputs
-%     y               series the lag-1 autocorrelation is estimated from
+%     x               (T,1) double  first series (NaN pairs are dropped)
+%     y               (T,1) double  second series, same length; the lag-1
+%                     autocorrelations r1, r2 are estimated from x and y
 %
 %   Outputs
 %     out        (1,1) struct  fields:

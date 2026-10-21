@@ -2,9 +2,10 @@ function [file, info] = fetchICGEM(model, opts)
 %FETCHICGEM Download a static gravity field model from ICGEM.
 %
 %   FILE = shLowLevel.fetchICGEM("EGM2008") resolves the model name against
-%   shLowLevel.listICGEM (case-insensitive exact match, else unique prefix)
-%   and downloads the .gfc into <dataFolder>/static. Existing files are
-%   skipped. Load with shCoefficients.read(FILE).
+%   shLowLevel.listICGEM (case-insensitive exact match, else unique prefix;
+%   a temporal catalogue matches the series name exactly, else by unique
+%   substring) and downloads the .gfc into <dataFolder>/static. Existing
+%   files are skipped. Load with shCoefficients.read(FILE).
 %
 %   FILE = shLowLevel.fetchICGEM(row) with a row of the listICGEM table skips
 %   the listing round-trip.
@@ -47,11 +48,13 @@ function [file, info] = fetchICGEM(model, opts)
 %                    default is the only one. The Proxy path makes one
 %                    attempt
 %     BaseDelay (httpFetch's, 2)  (1,1) double  [s] first backoff wait;
-%                    attempt k waits BaseDelay 2^(k-1) plus up to 25%
-%                    jitter. A failing download costs about
-%                    BaseDelay (2^MaxTries - 1) seconds of waiting -
-%                    15 s at the defaults, which is what offline tests
-%                    pay unless they pass MaxTries = 1
+%                    after failed attempt k (k < MaxTries) httpFetch
+%                    waits BaseDelay 2^(k-1) plus up to 25% jitter, and
+%                    none after the last. A failing download costs about
+%                    BaseDelay (2^(MaxTries-1) - 1) seconds of waiting -
+%                    14 s at the defaults (up to 17.5 s with jitter),
+%                    which is what offline tests pay unless they pass
+%                    MaxTries = 1
 %     Update (false)  refresh existing files (safe swap: verified before replacing)
 %   TIME SERIES (temporal catalogue): a catalogue row carrying the
 %   'zip' column fetches a whole monthly series into
@@ -67,10 +70,12 @@ function [file, info] = fetchICGEM(model, opts)
 %   Outputs
 %     file  string   local path(s): one per model, or every file of the
 %              series in temporal mode (bulk selections are concatenated)
-%     info  (1,1) struct  fields
+%     info  (1,1) struct  fields (a 1 x K struct array, one per
+%           selection, in bulk mode)
 %           url      (1,:) string   the URL(s) used
 %           skipped  (1,1) logical  the file was already present
-%           updated  (1,:) string   files replaced by a newer copy
+%           updated  (1,1) logical  an existing file was replaced by a
+%                    newer copy
 %           failed   (1,1) logical  the download did not complete
 %           mode     (1,1) string   which path actually ran: "model"
 %                    (single static model) | "archive" (whole series as

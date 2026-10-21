@@ -5,7 +5,8 @@ function [rep, h] = compareSeries(tsList, opts)
 %   against the FIRST (the reference) on a COMMON BASIS: epochs are
 %   matched to the reference within MatchTolerance (unmatched epochs
 %   are dropped and reported - never interpolated across gaps), all
-%   series are truncated to the smallest nmax, and GM/R are unified.
+%   series are truncated to the smallest nmax. GM/R are NOT unified:
+%   each series keeps its own constants, so pass series that share them.
 %   Per solution k >= 2 the standard temporal metric set is computed on
 %   a scalar comparison series y_k(t) - a basin average when Basin= is
 %   given (recommended for hydrology; below the filter resolution,

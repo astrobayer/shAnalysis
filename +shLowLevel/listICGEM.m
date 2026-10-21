@@ -37,12 +37,14 @@ function [T, info] = listICGEM(opts)
 %                       (offline/testing; the parsers are fixture-tested)
 %     Timeout (60)
 %   Outputs
-%     T     table:  static:          name, year, degree, data, url
-%                   temporal:        group, center, series, path, url, zip
-%                   temporal+Series: name, url
+%     T     table:  static:          idx, name, year, degree, data, url
+%                   temporal:        idx, group, center, series, path,
+%                                    url, zip
+%                   temporal+Series: idx, name, url
+%                   (idx is the row number, 1..height(T))
 %     info  (1,1) struct  fields
 %           source     (1,1) string  where the catalogue came from
-%           retrieved  (1,1) string  when it was read
+%           retrieved  (1,1) datetime  when it was read
 %           note       (1,1) string  what the listing covers
 %
 %   v2.4.2: the temporal branch previously matched only "getseries" links

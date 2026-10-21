@@ -1,9 +1,10 @@
 function out = makeTutorials(opts)
 %MAKETUTORIALS Generate Live Script tutorials from the demo registry.
 %
-%   FILES = shLowLevel.makeTutorials() writes one tutorial per demo case
+%   OUT = shLowLevel.makeTutorials() writes one tutorial per demo case
 %   into tutorials/ as a plain .m script with Live Editor section
 %   markers, and converts each to .mlx when the converter is available.
+%   OUT.files lists the .m files written.
 %
 %   The tutorials are GENERATED, not hand-written. demo_shAnalysis is
 %   the single source of truth for what the toolbox demonstrates; a

@@ -2,11 +2,12 @@ function writeGrid(filename, grid, latDeg, lonDeg, opts)
 %WRITEGRID Export gridded fields to CF-style netCDF (base MATLAB).
 %
 %   shLowLevel.writeGrid('ewh.nc', GRID, LAT, LON, Name="lwe_thickness",
-%       Units="m", Epoch=2010.29) writes a 2-D field or a 3-D stack
-%   (nlat x nlon x T with Epochs=) using nccreate/ncwrite - directly
-%   readable back by shLowLevel.readMascon (roundtrip-tested), by GMT, panoply,
+%       Units="m") writes a 2-D field or a 3-D stack (nlat x nlon x T
+%   with Epochs=) using nccreate/ncwrite - a stack is directly readable
+%   back by shLowLevel.readMascon (roundtrip-tested), by GMT, panoply,
 %   xarray, etc. Time is stored as "days since 2002-01-01" like the
-%   mascon products.
+%   mascon products. A 2-D field (T = 1) gets NO time variable: Epochs
+%   is ignored there.
 %
 %   Inputs
 %     filename  char/string  .nc target (existing file is replaced;
@@ -17,7 +18,8 @@ function writeGrid(filename, grid, latDeg, lonDeg, opts)
 %     lonDeg    (nlon,1) double [deg, 0..360)
 %   Options
 %     Name ("field"), Units (""),
-%     Epochs ([])  (T,1) decimal years, one per layer of a 3-D grid,
+%     Epochs ([])  (T,1) decimal years, one per layer of a 3-D grid
+%                  (required when T > 1, not written when T = 1),
 %     LatType ("geocentric"), Description ("")
 %     Sidecar (true)  write <file>.provenance.json alongside the output
 %

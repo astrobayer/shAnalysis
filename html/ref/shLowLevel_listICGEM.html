@@ -22,14 +22,14 @@
 <h2>Name-Value Arguments</h2>
 <table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>Type</code></td><td>1 x 1</td><td>string</td><td><code>&quot;static&quot;</code></td><td class="desc">&quot;static&quot; | &quot;temporal&quot;</td></tr><tr><td><code>Series</code></td><td>1 x 1</td><td>string</td><td><code>&quot;&quot;</code></td><td class="desc">temporal only: catalogue path of one series to list its individual files (see above)</td></tr><tr><td><code>Source</code></td><td>1 x 1</td><td>string</td><td><code>&quot;&quot;</code></td><td class="desc">local HTML file instead of the live page (offline/testing; the parsers are fixture-tested)</td></tr><tr><td><code>Timeout</code></td><td>1 x 1</td><td>double</td><td><code>60</code></td><td class="desc">per-request timeout [s]</td></tr></table>
 <h2>Output Arguments</h2>
-<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>T</code></td><td class="desc">table:  static:          name, year, degree, data, url temporal:        group, center, series, path, url, zip temporal+Series: name, url</td></tr><tr><td><code>info</code></td><td class="desc">(1,1) struct  fields source     (1,1) string  where the catalogue came from retrieved  (1,1) string  when it was read note       (1,1) string  what the listing covers</td></tr></table>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>T</code></td><td class="desc">table:  static:          idx, name, year, degree, data, url temporal:        idx, group, center, series, path, url, zip temporal+Series: idx, name, url (idx is the row number, 1..height(T))</td></tr><tr><td><code>info</code></td><td class="desc">(1,1) struct  fields source     (1,1) string  where the catalogue came from retrieved  (1,1) datetime  when it was read note       (1,1) string  what the listing covers</td></tr></table>
 <h2>Error Identifiers</h2>
 <table><tr><th>Identifier</th><th>Raised when</th></tr><tr><td><code>shLowLevel:listICGEM:noFiles</code></td><td class="desc">no file parsed for that Series - check the path against the catalogue</td></tr><tr><td><code>shLowLevel:listICGEM:parseFailed</code></td><td class="desc">no model or series parsed from the page - the ICGEM layout may have changed</td></tr><tr><td><code>shLowLevel:listICGEM:seriesNeedsTemporal</code></td><td class="desc">Series= was given with a Type other than &quot;temporal&quot;</td></tr></table>
 <h2>Version History</h2>
 <p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
 <h2>See Also</h2>
 <ul class="seealso"><li><a href="shLowLevel_fetchICGEM.html"><code>shLowLevel.fetchICGEM</code></a></li></ul>
-<p class="prov">shAnalysis v5.23.2 (21-Oct-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+<p class="prov">shAnalysis v5.23.3 (21-Oct-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
 </div>
 </body>
 </html>

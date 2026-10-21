@@ -2,18 +2,16 @@ function [Ct, St] = shEvalGFCT(model, epoch)
 %SHEVALGFCT Evaluate time-variable Stokes coefficients at a given epoch.
 %
 %   [CT, ST] = SHEVALGFCT(MODEL, EPOCH) reconstructs
-%       C(t) = C0 + trnd*(t-t0) + sum_k [acos_k*cos(2*pi*(t-t0)) ...
-%                                         + asin_k*sin(2*pi*(t-t0))]
+%       C(t) = C0 + trnd*(t-t0) + sum_k [acos_k*cos(2*pi*(t-t0)/p_k) ...
+%                                         + asin_k*sin(2*pi*(t-t0)/p_k)]
 %   (and analogously for S) from MODEL.C / MODEL.S (constant part) and
 %   MODEL.variableTerms (from SHREADGFC), at EPOCH (same units/convention
 %   as the t0 values in the file -- typically decimal years).
 %
-%   ASSUMPTION: 'acos'/'asin' terms are treated as ANNUAL (period = 1,
-%   same units as t0/epoch). This matches the common ICGEM gfct
-%   convention, but some models encode additional sub-annual terms
-%   (semi-annual etc.) under different tags -- inspect
-%   MODEL.variableTerms(:).type and extend the switch below if your
-%   specific model uses other tags. Verify against the model's own
+%   PERIODS: each 'acos'/'asin' term uses its own period p_k
+%   (MODEL.variableTerms(k).period, same units as t0/epoch); a term the
+%   file gives no period for is treated as ANNUAL (p_k = 1). Terms under
+%   any other tag are skipped with an unknownType warning. Verify against the model's own
 %   documentation before using for production results.
 %
 %   If MODEL.variableTerms is empty (static gfc file), returns MODEL.C,

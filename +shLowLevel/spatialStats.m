@@ -6,8 +6,9 @@ function stats = spatialStats(A, B, latDeg, lonDeg, opts)
 %   unweighted RMS on a lat/lon grid over-counts the poles and is
 %   simply wrong. Returns bias, RMSD, the CENTERED pattern statistics
 %   (centered RMSD, weighted correlation, standard deviations) that
-%   feed a Taylor diagram, and verifies the Taylor identity
-%   crmsd^2 = stdA^2 + stdB^2 - 2 stdA stdB corr internally.
+%   feed a Taylor diagram. All use one set of weights, so the Taylor
+%   identity crmsd^2 = stdA^2 + stdB^2 - 2 stdA stdB corr holds by
+%   construction (to rounding); it is not checked at run time.
 %
 %   Options
 %     Mask ([])     nlat x nlon logical: restrict to a region (e.g.

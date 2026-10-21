@@ -14,7 +14,7 @@
 <h2>Syntax</h2>
 <div class="syntax"><code>[W, info] = shLowLevel.designFilter(SigmaC, SigmaS)</code><code>[W, info] = shLowLevel.designFilter(SigmaC, SigmaS, Alpha=1, Kaula=1e-5, DegVar=[], ...)</code></div>
 <h2>Description</h2>
-<p>W = shLowLevel.designFilter(SIGMAC, SIGMAS) constructs the Wiener- type decorrelation filter W = (N + Alpha * inv(S))^-1 * N per order/parity block - the same construction as the published DDK filters, but matched to YOUR solution&#x27;s error information instead of a fixed release. N is the normal (inverse noise covariance) matrix built from the formal sigmas (diagonal) or from a full covariance (Noise=); S is the signal covariance from a Kaula-type degree rule or your own model (Signal= / DegVar=). The result uses the exact block format of <a href="shLowLevel_readDDK.html"><code>shLowLevel.readDDK</code></a>, so it drops into applyDDK, g.filter/ts.filter(&quot;ddk&quot;, W = ...) and every downstream tool unchanged. Python-validated: block eigenvalues in (0, 1) for SPD inputs, identity limit for Alpha -&gt; 0, pinned 2 x 2 reference.</p>
+<p>W = shLowLevel.designFilter(SIGMAC, SIGMAS) constructs the Wiener- type decorrelation filter W = (N + Alpha * inv(S))^-1 * N per (order, C/S) block, both degree parities in one block - the same construction as the published DDK filters, but matched to YOUR solution&#x27;s error information instead of a fixed release. N is the normal (inverse noise covariance) matrix built from the formal sigmas (diagonal) or from a full covariance (Noise=); S is the signal covariance from a Kaula-type degree rule or your own model (Signal= / DegVar=). The result uses the exact block format of <a href="shLowLevel_readDDK.html"><code>shLowLevel.readDDK</code></a>, so it drops into applyDDK, g.filter/ts.filter(&quot;ddk&quot;, W = ...) and every downstream tool unchanged. Python-validated: block eigenvalues in (0, 1) for SPD inputs, identity limit for Alpha -&gt; 0, pinned 2 x 2 reference.</p>
 <h2>Examples</h2>
 <details class="example"><summary>From the help block</summary><div><pre><code>    W = shLowLevel.designFilter(g.sigmaC, g.sigmaS, Alpha = 1);
     gF = g.applyDDK(W);                % apply like any DDK</code></pre></div></details>
@@ -30,7 +30,7 @@
 <p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
 <h2>See Also</h2>
 <ul class="seealso"><li><a href="shLowLevel_readDDK.html"><code>shLowLevel.readDDK</code></a></li></ul>
-<p class="prov">shAnalysis v5.23.2 (21-Oct-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+<p class="prov">shAnalysis v5.23.3 (21-Oct-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
 </div>
 </body>
 </html>

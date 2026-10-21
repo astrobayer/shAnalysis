@@ -7,7 +7,8 @@ function res = resolutionMap(op, t, latDeg, lonDeg, opts)
 %   and finds the great-circle distance psi_1/2 at which the kernel drops
 %   to half its peak, along NAz azimuths. Replaces the single "equivalent
 %   Gaussian radius" with a spatially and azimuthally resolved resolution
-%   product (N-S vs E-W half-width ratio = striping fingerprint).
+%   product (largest over smallest half-width across the NAz azimuths =
+%   striping fingerprint).
 %   All transect evaluations per query point run through ONE vectorized
 %   shLowLevel.ylm call.
 %
@@ -29,12 +30,16 @@ function res = resolutionMap(op, t, latDeg, lonDeg, opts)
 %                 constant is a choice, not a hidden assumption.
 %   Outputs
 %     res  (1,1) struct  one row per query point (nPts rows), fields
-%          psiHalfDeg  (nPts x NAz) double  half-width per azimuth [deg]
+%          psiHalfDeg  (nPts x NAz) double  half-width per azimuth [deg];
+%                      NaN where the kernel does not fall to half its
+%                      peak within the PsiMax search range; kmMean,
+%                      kmMin and kmMax omit those azimuths
 %          azDeg       (1 x NAz) double     azimuths evaluated [deg]
 %          kmMean, kmMin, kmMax (nPts x 1) double  half-width across the
 %                      azimuths [km]
 %          anisotropy  (nPts x 1) double    kmMax ./ kmMin, the striping
-%                      fingerprint (1 = isotropic kernel)
+%                      fingerprint over all NAz azimuths (1 =
+%                      isotropic kernel)
 %
 %   Claude (Fable 5), 2026-08-07.
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).

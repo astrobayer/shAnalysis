@@ -31,7 +31,9 @@ function [files, info] = fetchITSG(months, opts)
 %
 %   Inputs
 %     months   numeric years (each expands to 12 months) OR string
-%              array "YYYY-MM"
+%              array "YYYY-MM" OR "all": every monthly .gfc the server
+%              folder of each release (or of Release, when given) lists
+%              at Nmax (monthly only; daily refuses "all")
 %   Options
 %     Product ("monthly")  "monthly" | "daily": the ITSG solution kind
 %     Dest (fullfile(shLowLevel.dataFolder(), "series", "itsg", "monthly"))  target folder
@@ -44,17 +46,24 @@ function [files, info] = fetchITSG(months, opts)
 %     Update (false)  re-download files that are already present
 %     Proxy ("")  per-call proxy URL, e.g. "http://proxy:8080" (empty: MATLAB Web Preferences)
 %     BaseURL ("https://ftp.tugraz.at/pub/ITSG/GRACE")  server base URL, or a local mirror folder for offline use
+%     Release ("")  "" routes each month by the rule below; a release
+%                   name ("ITSG-Grace2018" | "ITSG-Grace_operational")
+%                   pins every file to that release folder
 %     Catalog ([])  row numbers of the shLowLevel.listITSG catalogue to fetch completely
 %   Outputs
 %     files  (1,:) string   paths of all present files (new + existing)
 %     info   (1,1) struct  fields
-%            fetched  (1,:) string  files downloaded now
-%            updated  (1,:) string  files replaced by a newer copy
-%            skipped  (1,:) string  files already present
-%            missing  (1,:) string  months the server did not offer
+%            fetched  (1,:) string  paths downloaded now
+%            updated  (1,:) string  paths replaced by a newer copy
+%            skipped  (1,:) string  paths already present
+%            missing  (1,:) string  months (daily: days) the server did
+%                     not offer
 %            dest     (1,1) string  target folder
 %            base     (1,1) string  server base URL
 %            product  (1,1) string  the ITSG product actually requested
+%
+%   With Catalog=, INFO carries fetched, updated, skipped and missing
+%   only (concatenated over the rows): dest, base and product are absent.
 %
 %   Load the result with ts = shSeries.fromFolder(dest). Source:
 %   ftp.tugraz.at/pub/ITSG/GRACE (Mayer-Guerr et al.); cite the ITSG

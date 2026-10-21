@@ -14,7 +14,7 @@
 <h2>Syntax</h2>
 <div class="syntax"><code>shLowLevel.writeGFC(filename, C, S, GM, R)</code><code>shLowLevel.writeGFC(filename, C, S, GM, R, SigmaC=[], SigmaS=[], ModelName=&quot;shAnalysis_export&quot;, ...)</code></div>
 <h2>Description</h2>
-<p>shLowLevel.writeGFC(FILENAME, C, S, GM, R) writes a static ICGEM-format gravity field file readable by <a href="shLowLevel_shReadGFC.html"><code>shLowLevel.shReadGFC</code></a> (round-trip tested to full double precision: coefficients are written with %22.14e).</p>
+<p>shLowLevel.writeGFC(FILENAME, C, S, GM, R) writes a static ICGEM-format gravity field file readable by <a href="shLowLevel_shReadGFC.html"><code>shLowLevel.shReadGFC</code></a> (round-trip tested). Coefficients are written with %22.14e, 15 significant digits - one or two short of full double precision - and sigmas with %12.4e, 5 significant digits.</p>
 <h2>Examples</h2>
 <details class="example"><summary>Runnable (docs/apiExamples.json)</summary><div><pre><code>shLowLevel.writeGFC(&quot;out.gfc&quot;, g.C, g.S, g.GM, g.R, Comment = &quot;DDK3 filtered&quot;);</code></pre></div></details>
 <h2>Input Arguments</h2>
@@ -29,7 +29,7 @@
 <p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
 <h2>See Also</h2>
 <ul class="seealso"><li><a href="shLowLevel_shReadGFC.html"><code>shLowLevel.shReadGFC</code></a></li></ul>
-<p class="prov">shAnalysis v5.23.2 (21-Oct-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+<p class="prov">shAnalysis v5.23.3 (21-Oct-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
 </div>
 </body>
 </html>

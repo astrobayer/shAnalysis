@@ -27,7 +27,7 @@ classdef shSeries
 %     sigmaCs/Ss    same or []                    formal error stacks
 %     epochs        (T,1) double  decimal years
 %     GM, R         (1,1) double
-%     Nmax, nEpochs (dependent)
+%     nmax, nEpochs (dependent)
 %     productType   (1,1) string
 %     names         (T,1) string
 %     history       string column
@@ -191,7 +191,7 @@ methods
     function g = at(obj, k)
         %AT Extract epoch k as an shCoefficients.
         %   Inputs
-        %     k  epoch index (1-based) or decimal year (nearest match)
+        %     k  (1 x 1) positive integer   epoch index, 1-based
         %
         %   Outputs
         %     g          (1 x 1) shCoefficients   month k with epoch and sigmas
@@ -532,7 +532,9 @@ methods
         %   Returns a plain struct, not an shClimatology - the
         %   climatology schema stays fixed. See Outputs for the fields.
         %   Options
-        %     Breaks (required) (1 x B) trend break epochs [decimal years]
+        %     Breaks (required) (1 x B) trend break epochs [decimal years];
+        %         omitting it is MATLAB's own missing-argument error, an
+        %         empty one raises noBreaks
         %     Periods (double.empty(1,0))  (1 x K) extra harmonic periods [yr]
         %     T0 (NaN)          (1 x 1) reference epoch; NaN uses the mean
         %     ARCorrect (false) (1 x 1) AR(1) correction of the sigmas
@@ -849,8 +851,8 @@ methods
         %     full formal errors.
         %
         %   Inputs
-        %     gia  GIA rate field: shCoefficients, coefficient struct or
-        %          .gz/.gfc file path (subtracted as rate times (t - Epoch))
+        %     gia  (1 x 1) shCoefficients  GIA rate field [1/yr], subtracted
+        %          as rate times (t - T0); its own epoch is not used
         %
         %   Options
         %     T0 (NaN)      reference epoch of the linear model; the series
@@ -859,7 +861,8 @@ methods
         %          uncertainties [1/yr]; defaults to gia's own sigmaC/sigmaS
         %
         %   Outputs
-        %     out        (1 x 1) shSeries   GIA trend removed about the series mean epoch
+        %     out        (1 x 1) shSeries   GIA trend removed about T0 (the
+        %                series mean epoch unless T0 is given)
         %     info       (1 x 1) struct   what was propagated, fields
         %                t0            (1,1) double  reference epoch used
         %                rateSigmaC    (n1 x n1) double  rate 1-sigma, cosine
@@ -1009,8 +1012,8 @@ methods
         %   Tolerance [yr]. Missing matches error (or, with
         %   AllowMissing=true, leave those epochs unchanged with a note).
         %   Inputs
-        %     gax  GAX product to add back: shSeries, folder of monthly
-        %          .gfc, or file list (epoch-matched)
+        %     gax  (1 x 1) shSeries  GAX product to add back, epoch-matched;
+        %          read a folder or file list with shSeries.read first
         %
         %   Outputs
         %     out        (1 x 1) shSeries   background model added back epoch-matched (e.g. GSM + GAD)
@@ -1108,9 +1111,11 @@ methods
         %     PolyOrder (3)  order of the polynomial fitted and removed
         %         per order/parity sequence
         %     WindowLength ([])  [] fits ONE polynomial over the whole
-        %         sequence; an odd integer >= polyOrder+2 uses a centered
-        %         moving window instead (WindowLength=6 with PolyOrder=3 is
-        %         the common "P3M6" variant)
+        %         sequence; a number L uses a centered moving window of
+        %         2*floor(L/2)+1 degrees instead (so 6 and 7 both span 7),
+        %         widened near the ends to at least PolyOrder+1 points; L is
+        %         not validated (WindowLength=6 with PolyOrder=3 is the
+        %         common "P3M6" variant)
         %
         %   Error identifiers
         %     shSeries:stack:nanInSeries
@@ -1337,10 +1342,11 @@ methods
         %             (the simple filters are their own methods:
         %             gaussian / fan / destripe / applyDDK)
         %   Options
-        %     Constraints ([])   (P x P | struct) prior constraint matrix or
-        %         a designFilter constraint struct added to the normals
-        %     NoiseCov ([])      (P x P | struct) noise covariance from
-        %         shLowLevel.buildNoiseCov; [] uses a scaled identity
+        %     Constraints ([])   (P x q) double  hard linear constraint
+        %         kernels, one column per constraint; [] none
+        %     NoiseCov ([])      (P x P) double  full noise covariance (e.g.
+        %         a released one); [] uses the empirical per-order/parity
+        %         covariance
         %     SignalMode ("isotropic")  "isotropic" | "inhomogeneous" signal
         %         covariance model (see shLowLevel.buildSignalCov)
         %     NIterSignal (3)    (1 x 1) signal-covariance re-estimation
@@ -1350,12 +1356,12 @@ methods
         %     Nmin (2)      (1 x 1) lowest degree entering the filter
         %     Blocks ("auto")    ("auto" | "on" | "off") order-block usage in
         %         the normal matrix
-        %     Shrinkage ([])     (1 x 1) shrink the empirical signal
-        %         covariance toward its diagonal, 0..1; [] auto-selects
-        %     VCEMinDegree ([])  (1 x 1) lowest degree in the VCE bands;
-        %         [] follows Nmin
-        %     VCEBands ([])      (1 x B) variance-component band edges;
-        %         [] uses the built-in banding
+        %     Shrinkage ([])     (1 x 1) shrinkage of the empirical NOISE
+        %         covariance; [] keeps the tvANSFilter default, 0.1
+        %     VCEMinDegree ([])  (1 x 1) first degree entering the VCE;
+        %         [] keeps the tvANSFilter default, round(2/3*Lmax)
+        %     VCEBands ([])      (1 x B) order-band edges for per-band
+        %         monthly VCE factors (block path only); [] no banding
         %
         %   Outputs
         %     out        (1 x 1) shSeries   tvANS-filtered series with sigmaCs/Ss posterior stacks (exact incl. constraints, v2.5)
@@ -1458,7 +1464,8 @@ methods
         %     avg        (K x T) double   basin averages (deconvolved when Deconvolve=true)
         %     out        (1,1) struct   on the deconvolution path, as
         %                returned by shLowLevel.basinDeconvolve (sigma,
-        %                c, attn, condA, avgNaive); empty otherwise
+        %                c, attn, condA, avgNaive); otherwise struct(),
+        %                a 1 x 1 struct with no fields
         %
         %   Options
         %     Op (struct())  the filter operator from ts.filter("tvANS",
@@ -1727,10 +1734,11 @@ methods
         %   A .gfc file has no epoch field. shSeries.read takes the epoch
         %   back from the file NAME, through shLowLevel.parseGraceFilename
         %   (the GRACE form PPP-2_YYYYDDD-YYYYDDD_*, or a name ending in
-        %   _YYYY-MM or _YYYY-MM-DD). So write checks every name BEFORE it
-        %   writes anything, and warns once, naming the first epoch whose
-        %   file name would not bring it back. Pass FileNames in one of
-        %   those forms when the folder must read back as this series.
+        %   _YYYY-MM, _YYYY-MM-DD or _YYYY_MM). So write checks every name
+        %   BEFORE it writes anything, and warns once, naming the first
+        %   epoch whose file name would not bring it back. Pass FileNames
+        %   in one of those forms when the folder must read back as this
+        %   series.
         %
         %   Inputs
         %     folder  (1,1) string  existing folder to write into
@@ -2538,7 +2546,7 @@ methods
     end
 
     function disp(obj)
-        %DISP Compact display: months, span, gaps, processing history.
+        %DISP Compact display: product, epochs, nmax, span, history.
         %   disp(TS) prints the product type, the number of epochs, the
         %   maximum degree and the covered epoch range, followed by the
         %   processing history. Called automatically when an shSeries
@@ -2567,7 +2575,8 @@ methods (Static)
         %READ Read a series of gfc files (pattern or list), sorted by epoch.
         %   TS = shSeries.read("GSM-2_*.gfc") or shSeries.read(fileList).
         %   Inputs
-        %     files  folder, file list or glob of monthly .gfc solutions
+        %     files  glob pattern (containing * or ?) or string array of
+        %            .gfc file paths; for a folder use shSeries.fromFolder
         %
         %   Outputs
         %     obj        (1 x 1) shSeries   wildcard-read, epoch-sorted stack

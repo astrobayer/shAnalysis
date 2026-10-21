@@ -37,7 +37,9 @@ function [tsComb, info] = combineCenters(tsCell, opts)
 %   Outputs
 %     tsComb  shSeries  combined stacks on the reference epochs (first
 %             center), sigmaCs/Ss = posterior sqrt(diag(H)) per month,
-%             provenance in history
+%             provenance in history; built with ProductType "GSM" and
+%             shSeries' default GM/R (the inputs' constants are not
+%             carried over)
 %     info  (1,1) struct  fields
 %           s2         (C x T) double   variance factors per centre and
 %                      month, NaN where that centre has no solution
@@ -49,9 +51,9 @@ function [tsComb, info] = combineCenters(tsCell, opts)
 %                      background models
 %           nIter      (1,1) double   VCE iterations used
 %           epochs     (T x 1) double   the combined epoch grid
-%           centers    (C x 1) string   centre labels, in the row order
-%                      of s2/weights/redundancy
-%           note       (1,1) string   what the combination actually did
+%           centers    (1 x C) string   each input series' productType,
+%                      in the row order of s2/weights/redundancy
+%           note       (1,:) char     what the combination actually did
 %
 %   Combine on GSM level BEFORE TN-14/TN-13 replacements (identical for
 %   all centers - apply once afterwards). Common-mode errors (shared

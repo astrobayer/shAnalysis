@@ -27,7 +27,7 @@ classdef shCoefficients
 %     sigmaC, sigmaS same layout or []          formal errors
 %     GM             (1,1) double  [m^3/s^2]
 %     R              (1,1) double  [m]
-%     Nmax           (1,1) double  (dependent, from size(C))
+%     nmax           (1,1) double  (dependent, from size(C))
 %     epoch          (1,1) double  decimal years, NaN if unknown/mixed
 %     productType    (1,1) string  "GSM"|"GAA".."GAD"|"static"|"difference"|...
 %     tideSystem     (1,1) string  from the file header, "unknown" otherwise
@@ -157,7 +157,9 @@ methods
         %     b  (1,1) shCoefficients  right operand (same nmax and GM/R)
         %     a  (1,1) shCoefficients  left operand
         %   Outputs
-        %     out        (1 x 1) shCoefficients   sum; sigmas RSS; epochs must match
+        %     out        (1 x 1) shCoefficients   sum; epochs must match;
+        %                sigmas RSS when BOTH operands carry them, [] when
+        %                either has none
         %
         %   Error identifiers
         %     shCoefficients:operands:badInput
@@ -188,6 +190,8 @@ methods
         %     a  (1,1) shCoefficients  left operand
         %   Outputs
         %     out        (1 x 1) shCoefficients   difference; sigmas RSS
+        %                when BOTH operands carry them, [] when either
+        %                has none
         %
         %   Error identifiers
         %     shCoefficients:operands:badInput
@@ -386,7 +390,9 @@ methods
         %   within opts.Tolerance (default 0.05 yr) is used.
         %   Options
         %     ReplaceC30 ("auto")  "auto" replaces C30 when the table
-        %                 carries it, "always"/"never" force the choice
+        %                 carries it, "always"/"never" force the choice;
+        %                 with obj.nmax < 3 the C30 step is skipped
+        %                 silently, whatever the choice
         %   opts.ReplaceC30: "auto" (default: replace when the table has a
         %   non-NaN C30 for that month), "never", "always".
         %   Outputs
@@ -498,8 +504,11 @@ methods
         %   Options
         %     MinOrder (6)       lowest order the decorrelation touches
         %     PolyOrder (3)      order of the fitted/removed polynomial
-        %     WindowLength ([])  sliding-window length; [] uses the
-        %                        Swenson-Wahr degree-dependent width
+        %     WindowLength ([])  sliding-window length; [] fits one
+        %                        polynomial over the full degree range
+        %                        per order and parity (the original
+        %                        Swenson-Wahr form); a value selects the
+        %                        moving-window variant (shLowLevel.shDestripe)
         %
         %   Outputs
         %     out        (1 x 1) shCoefficients   Swenson-Wahr decorrelated
@@ -647,8 +656,10 @@ methods
         %     rho_ave (5517)  mean Earth density [kg/m^3] in the EWH kernel
         %     rho_water (1000)  water density [kg/m^3] in the EWH kernel
         %     Method ("auto")  "auto" | "direct" | "fft": FFT along
-        %         longitude is much faster on uniform full-circle longitude
-        %         vectors; "auto" uses it whenever it is applicable
+        %         longitude applies to uniform full-circle longitude
+        %         vectors and "auto" uses it whenever it is applicable;
+        %         neither path is faster on every machine - see the
+        %         measurements in shLowLevel.shSynthesis's Method row
         %     LatType ("geocentric")  "geocentric" | "geodetic": how the
         %         latitude inputs are interpreted; geodetic values are
         %         converted with Flattening before evaluation
@@ -850,8 +861,10 @@ methods
         %         for LatType and for Surface = "ellipsoid"
         %     CRS ("equirectangular")  projection, forwarded to geo.map
         %     Basemap (struct())  forwarded to geo.map's Basemap element;
-        %         a robust symmetric CLim and the Divergent flag are
-        %         inserted unless you set them yourself
+        %         unless you set them yourself, CLim is inserted - the
+        %         symmetric 98th percentile of |Z| for FieldKind "anomaly",
+        %         [Zmin, Zmax] otherwise - and Divergent is set true for
+        %         "anomaly" only
         %     GeoArgs ({})  name-value pairs forwarded to geo.map verbatim
         %
         %   Example
@@ -939,7 +952,8 @@ methods
         %
         %   Inputs
         %     lonDeg  (1,:) double  longitudes [deg]
-        %     latDeg  (1,:) double  latitudes [deg, geocentric]
+        %     latDeg  (1,:) double  latitudes [deg], in the convention
+        %             LatType names
         %   Outputs
         %     up         (nlat x nlon | npts) double   vertical deformation [m]
         %     north      same size   north component [m]
@@ -1447,8 +1461,9 @@ methods
 
     function out = applyDDK(obj, W)
         %APPLYDDK Apply a DDK (order-block-diagonal) decorrelation filter.
-        %   OUT = obj.applyDDK(W) with W from shLowLevel.readDDK (struct, .mat,
-        %   or documented ASCII exchange format). Degrees not covered by
+        %   OUT = obj.applyDDK(W) with W anything shLowLevel.readDDK reads
+        %   (a released binary Wbd filter file, a struct, a .mat file, or
+        %   the documented ASCII exchange format). Degrees not covered by
         %   the filter pass through unchanged; sigmas are NOT propagated
         %   through the filter (set to NaN - use shLowLevel.mcPropagate for
         %   filtered uncertainties).
@@ -1471,7 +1486,10 @@ methods
     function out = evalAt(obj, epoch)
         %EVALAT Evaluate gfct time-variable terms at an epoch.
         %   Outputs
-        %     out        (1 x 1) shCoefficients   gfct variable terms evaluated at the epoch; static models pass through unchanged
+        %     out        (1 x 1) shCoefficients   gfct variable terms evaluated at the epoch;
+        %                a static model (no variable terms) keeps its C, S,
+        %                with warning shLowLevel:shEvalGFCT:staticModel;
+        %                out.epoch is set to EPOCH in both cases
         %
         arguments
             obj
@@ -1823,7 +1841,11 @@ methods (Static)
         %     like  template shCoefficients supplying GM, R and metadata
         %
         %   Outputs
-        %     obj        (1 x 1) shCoefficients   rebuilt from x with sizes/GM/R/epoch of the template
+        %     obj        (1 x 1) shCoefficients   rebuilt from x; the size comes from
+        %                IDX; GM, R, epoch, productType, tideSystem, name
+        %                (+ "_fromVec") and history come from LIKE; its
+        %                sigmas, header and
+        %                variableTerms are NOT copied
         %
         arguments
             x (:,1) double

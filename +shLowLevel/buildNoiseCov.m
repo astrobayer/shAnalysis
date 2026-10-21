@@ -48,8 +48,10 @@ function [N, info] = buildNoiseCov(Xres, idx, opts)
 %         every coefficient residual series is exactly constant - there is
 %         no noise to estimate
 %     shLowLevel:buildNoiseCov:notBlockDiagonal
-%         the supplied NoiseCov is not block-diagonal in the (order, C/S,
-%         parity) partition the fast path assumes
+%         Mode = 'full' with Assemble = 'blocks': FullCov is not
+%         block-diagonal in the (order, C/S, parity) partition the fast
+%         path assumes (the message names tvANSFilter's NoiseCov and
+%         Blocks="off"; here, use Assemble = 'full')
 %
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 

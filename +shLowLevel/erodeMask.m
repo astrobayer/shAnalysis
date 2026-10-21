@@ -8,12 +8,14 @@ function [mk2, dmin] = erodeMask(mk, lat, lon, bufferKm)
 %   Inputs
 %     mk       (nLat x nLon) logical  region mask (true = keep)
 %     lat, lon (nLat x 1), (nLon x 1) grid vectors [deg]
-%     bufferKm (1 x 1) double  buffer distance [km]; 0 returns mk
+%     bufferKm (1 x 1) double  buffer distance [km]; <= 0 returns mk
+%              unchanged (and dmin = [])
 %
 %   Outputs
 %     mk2   (nLat x nLon) logical  eroded mask
 %     dmin  (nLat x nLon) double   distance to the nearest outside
-%           coast pixel [km] (Inf where no outside pixel exists)
+%           coast pixel [km] (Inf where no outside pixel exists);
+%           [] when bufferKm <= 0
 %
 %   Example
 %     oc = abs(LA) <= 66 & ~landBoxes;              % crude ocean mask

@@ -36,7 +36,8 @@ function [rmsVal, info] = oceanRMS(grid, latDeg, lonDeg, ocean, opts)
 %             over-counts the polar rows. On white noise the two agree,
 %             which is exactly why the difference is easy to miss until
 %             the field has structure
-%     Subsample (1)  use every n-th boundary point for the distance
+%     Subsample (1)  use every n-th non-ocean point (all of them, not
+%             only the coast; column-major order) for the distance
 %             computation. The erosion costs O(nOcean x nLand); on fine
 %             grids raise this, at the cost of a distance error of order
 %             n grid steps

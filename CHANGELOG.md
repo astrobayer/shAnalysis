@@ -1,5 +1,80 @@
 # Changelog
 
+## [5.23.3] - 2026-10-21 - help text that says what the code does
+
+A PATCH release: help text in 69 files and one README line. Not one
+executable line changed (checked on the diff: every changed `.m` line is
+a comment). The help-versus-code review of 5.23.1 listed about 80
+places where a help block contradicted its code; each was checked
+against the source again before it was corrected, and the code was
+taken as the authority.
+
+### Fixed, the ones a user would trip over
+- `gravisRegionChain` (and so the Greenland and Antarctica chains):
+  `sigTrend` is a scalar and `residRMS` the per-pixel grid - the help
+  had the two shapes the wrong way round. `basins` exists for Antarctica
+  only.
+- `shClimatology.periodic(k)`: k indexes the EXTRA periods, not
+  "1 = annual, 2 = semiannual".
+- Class help of `shCoefficients` and `shSeries` named the property
+  `Nmax`; it is `nmax`.
+- `ts.filter("tvANS", ...)`: five option rows contradicted the lane and
+  the method's own prose (Constraints and NoiseCov are doubles, [] for
+  NoiseCov is the empirical covariance, Shrinkage acts on the NOISE
+  covariance with the lane's 0.1, VCEMinDegree's [] is round(2/3 Lmax),
+  VCEBands' [] is no banding).
+- Inputs the help accepted and the code refuses: `ts.at(decimalYear)`,
+  `removeGIA` with a struct or a file, `ts.restore` with a folder,
+  `shSeries.read` with a bare folder, `readDDK` with a folder.
+- `plotSHCoeffTriangle`: S is on the left, C on the right.
+- `seaLevelFingerprint`: `info.kappa` is the mass-conservation constant,
+  not a rotational feedback factor.
+- `fitDeterministicModel`: the Breaks hinge columns are in `coef`, and
+  the syntax line now shows all seven outputs.
+- `compareSeries` does not unify GM/R; `estimateDegree1`'s
+  `residualRMS` is cos-weighted; the `version` field of `gravisL2B`,
+  `gravisRegionChain`, `oceanChain` and `twsChain` is a struct.
+- Stale "ships as a test fixture / orphan branch testdata" claims in
+  `fetchTN`, `fetchDDK` and `testDataDir` (A32's leftovers); the retry
+  cost formula of `fetchTN`/`fetchICGEM` (BaseDelay (2^(MaxTries-1) - 1),
+  14 s at the defaults).
+- About sixty smaller ones: field types and shapes, units, the doubled
+  `%%` printed by `mcPropagate` and `tvANSFilter`, `runAllTests`' suite
+  order, a `sensitivityKernel` example that could not run, two Inputs
+  sections in `icgemDate2Year`, and similar.
+
+### Found and NOT fixed - code defects, recorded for a decision
+Each is described in the help as the code behaves now.
+- `twsChain`: the DDK candidate paths are joined with char vertical
+  concatenation of rows of different length, a dimension error in
+  MATLAB, on the default `Filter = "DDK3"` path (read, not run).
+- `standardChain(OnMissing = "drop")` drops only epochs outside the
+  table's overall range; an interior gap stops the chain with
+  `epochNotInTable`. `rep.files` is not pruned of dropped epochs.
+- `obpChain`/`oceanChain` do not forward `Quiet` to `gravisL2B`.
+- `gravisRegionChain` assigns `rep.basins` for Antarctica only.
+- `combineCenters` drops the inputs' GM/R and fixes ProductType "GSM";
+  `estimateDegree1` hardcodes R = 6378136.3 in its basis.
+- `fetchICGEM`: an unmatched name on a temporal catalogue raises a
+  table error instead of `notFound`; `fetchITSGBackground`'s `missing`
+  is blind to a month one of several products lacks; `fetchITSG`
+  cannot fetch a daily catalogue row (always `allDaily`);
+  `fetchLoveNumbers` verifies deformation files with a one-column
+  parser (inferred); MaxFailures counts in total, not consecutively.
+- `readSINEX` misreads an estimate line without a std field;
+  `shSynthesis` does not validate `Method`; `writeGrid` drops the epoch
+  of a 2-D field; `plotSHSpectrum` does not split a struct array.
+- `demo_shAnalysis(OutDir = "")` writes into the current folder; two
+  opt-in tests read only the environment variable, not the preference
+  `setup_shAnalysis` stores; `buildNoiseCov`'s `notBlockDiagonal`
+  message names tvANSFilter's options.
+- Unsettled: `synthesisPoints` quotes 2.0x/34x where CLAUDE.md A22
+  says 2.3x/37x; left as is until a run settles it.
+
+### Verification
+Tier B: static gates and Python only; comment-only, so the A8 run on
+the pull request confirms an untouched suite (435 runs).
+
 ## [5.23.2] - 2026-10-21 - default markers back in their rows
 
 A PATCH release: help text, the help writer and one gate rule. No code

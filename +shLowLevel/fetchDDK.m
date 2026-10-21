@@ -7,9 +7,9 @@ function [files, info] = fetchDDK(which, opts)
 %   repository into <dataFolder>/DDK. Existing files are skipped unless
 %   Update=true, which re-downloads them with a safe swap (the fresh
 %   file is parse-verified by shLowLevel.readDDK before replacing the old one).
-%   DDK3 additionally ships as a toolbox sample (resolved via
-%   shLowLevel.testDataDir; CI pulls it from the orphan branch
-%   testdata) and never needs fetching.
+%   No Wbd file is tracked in the repository: CI checks a DDK3 copy out
+%   of the fixtures tag into tests/test_data (see shLowLevel.testDataDir);
+%   without that checkout DDK3 is fetched like the others.
 %
 %   Ordering strong -> weak smoothing, regularization a*l^4:
 %     DDK1 1e14   DDK2 1e13   DDK3 1e12   DDK4 5e11
@@ -24,16 +24,20 @@ function [files, info] = fetchDDK(which, opts)
 %   Outputs
 %     files  (1,:) string  present file paths (new + existing)
 %     info   (1,1) struct  fields
-%            fetched  (1,:) string  files downloaded now
-%            updated  (1,:) string  files replaced by a newer copy
-%            skipped  (1,:) string  files already present
-%            names    (1,:) string  the DDK names resolved
+%            fetched  (1,:) string  paths downloaded now
+%            updated  (1,:) string  paths replaced by a newer copy
+%            skipped  (1,:) string  paths already present (or kept after
+%                     a failed refresh)
+%            names    (K,1) string  the Wbd file names of the requested
+%                     DDK levels, one per unique entry of which
 %            url      (1,1) string  server base URL used
 %            dest     (1,1) string  folder the files were resolved
 %                     against
 %
-%   Load with W = shLowLevel.readDDK("DDK5") (resolves against Dest) or with
-%   the explicit path. Cite Kusche et al. when publishing.
+%   Load with W = shLowLevel.readDDK("DDK5") (resolves against
+%   <dataFolder>/DDK, the default Dest, then shLowLevel.testDataDir - a
+%   file fetched to a custom Dest is not found that way) or with the
+%   explicit path. Cite Kusche et al. when publishing.
 %
 %   Error identifiers
 %     shLowLevel:fetchDDK:updateFailed

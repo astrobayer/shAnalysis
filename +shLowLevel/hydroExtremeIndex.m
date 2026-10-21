@@ -71,11 +71,15 @@ function [Z, info] = hydroExtremeIndex(X, epochs, opts)
 %   Outputs
 %     Z    same shape as X  the index (DSI/WSDI z-scores; Sdef in the
 %          unit of X; FPI dimensionless in [-inf, 1] when PrecipGrid)
-%     info (1 x 1) struct  mode, detrended, clim (12 x cells, DSI),
-%          sigma, trendPerYr, category (same shape as Z, double
-%          -5..+5, NaN where Z is NaN; DSI only; edges
-%          [-2 -1.6 -1.3 -0.8 -0.5 .5 .8 1.3 1.6 2]),
+%     info (1 x 1) struct  mode, detrended, clim (cells x 12, or
+%          cells x 365 in DOY mode; DSI/WSDI), sigma (same shape as
+%          clim), trendPerYr, category (same shape as Z, double
+%          -5..+5, NaN where Z is NaN; DSI and WSDI, from their own Z;
+%          edges [-2 -1.6 -1.3 -0.8 -0.5 .5 .8 1.3 1.6 2]),
 %          categoryNames (11 x 1 string, "D4".."W4"), nPerMonth
+%          (12 x 1, or 365 x 1 in DOY mode). StorageDeficit returns
+%          mode ("StorageDeficit" or "FPI"), detrended, trendPerYr
+%          and note only
 %
 %   Example
 %     B = ts.toGrid(-89.5:89.5, 0.5:359.5, Quantity = "ewh", kn = kn);
