@@ -5899,9 +5899,15 @@ end
 
 function testRegionalNEQLgdOperatorAndMask(testCase)
 %TESTREGIONALNEQLGDOPERATORANDMASK Kind "lgd" is kind "points" with the
-%   line of sight as Direction at both satellites and Combine = [-I, I]
-%   (two nonzero terms per row, so equal to rounding of one subtraction:
-%   bound 2 eps of the largest entry). The operator is applied once to
+%   line of sight as Direction at both satellites and Combine = [-I, I].
+%   Compared on the SH basis: there B.T is the sparse identity and every
+%   step per point is elementwise, so both routes form the same two rows
+%   and differ at most by the rounding of their one subtraction - bound
+%   2 eps of the largest per-satellite entry. (On an RBF basis the dense
+%   product with B.T rounds differently for M and 2M rows, and the LGD's
+%   cancellation turns that into a few eps of the difference: 3.7 eps on
+%   A8 at 5634698 - a property of GEMM, not of the design.) The operator
+%   is applied once to
 %   [Values, A]: a band-pass as a matrix and as a handle give identical
 %   records, and noise-free data stay on the design, W y = (W A) a
 %   (validate_regional_lgd.py CLAIM 4: 5.5e-16; bound 1e-13 relative).
@@ -5927,11 +5933,16 @@ A = i0.A;
 e = (rB - rA) ./ vecnorm(rB - rA, 2, 2);
 X = [rA; rB];
 rr = vecnorm(X, 2, 2);
-[~, ip] = shLowLevel.regionalNEQ(B, "points", Values = zeros(M, 1), ...
-    LatDeg = asind(X(:, 3) ./ rr), LonDeg = atan2d(X(:, 2), X(:, 1)), ...
-    Height = rr - R, Quantity = "potential", Direction = [e; e], ...
-    Combine = [-eye(M), eye(M)], Cov = 1);
-verifyLessThan(testCase, max(abs(A - ip.A), [], 'all'), 2 * eps * max(abs(A), [], 'all'));
+Bsh = shLowLevel.regionalBasis(idx, [], Type = "sh");
+[~, is] = shLowLevel.regionalNEQ(Bsh, "lgd", Values = zeros(M, 1), ...
+    PositionA = rA, PositionB = rB, Cov = 1);
+pts = {"LatDeg", asind(X(:, 3) ./ rr), "LonDeg", atan2d(X(:, 2), X(:, 1)), ...
+    "Height", rr - R, "Quantity", "potential", "Direction", [e; e], "Cov", 1};
+[~, ip] = shLowLevel.regionalNEQ(Bsh, "points", pts{:}, Values = zeros(M, 1), ...
+    Combine = [-eye(M), eye(M)]);
+[~, i2] = shLowLevel.regionalNEQ(Bsh, "points", pts{:}, Values = zeros(2 * M, 1));
+verifyLessThan(testCase, max(abs(is.A - ip.A), [], 'all'), ...
+    2 * eps * max(abs(i2.A), [], 'all'));
 y = A * a0;
 f = min(0:M - 1, M - (0:M - 1))' / (M * 5);
 w = double(f > 1e-3 & f < 2e-2);

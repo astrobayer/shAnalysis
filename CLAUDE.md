@@ -1772,6 +1772,13 @@ confirmation that the counter is right about a real run and not only
 about the source.
 
 ### 6.3 What the next session could be wrong for not reading
+- **A dense product rounds differently for a different row count.** The
+  first 8h run compared kind "lgd" (M rows times B.T) with kind "points"
+  (2M rows times B.T, then Combine) at 2 eps and failed at 3.7 eps: GEMM
+  blocks by size, and the LGD's subtraction of two near-equal rows turns
+  an eps of each into several eps of the difference. Compare such routes
+  where the product is exact (the SH basis, B.T the sparse identity), or
+  bound by the per-row magnitude before the cancellation.
 - **A Python heredoc that writes LaTeX must use raw strings all the
   way down.** `\right` inside a plain string became a carriage return;
   text-mode reading then split the line there, and an index-based repair
