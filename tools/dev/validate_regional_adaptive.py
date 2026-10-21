@@ -33,8 +33,8 @@ likelihood of one epoch is, up to log|R| + l'R^-1 l (free of alpha),
            likelihood than the order-1 model in every seed, and for VAR(2)
            the information-form filter equals the gain form (kalmanChain's)
            in companion space to rounding.
-  CLAIM 4b the same identity in the MATLAB test's configuration: four
-           coefficients, a 3000-epoch model series, direct observations
+  CLAIM 4b the same identity in the MATLAB test's configuration: the five
+           degree-2 coefficients, a 3000-epoch model series, direct observations
            with gaps, kalmanFilter's own update formulas and the RTS
            smoother - the numbers the VAR(2) test's bounds come from.
   CLAIM 5  space-domain conditioning in a basis: a conditioner cf of SH
@@ -375,7 +375,8 @@ claim(wins == 10 and worst < 1e-11 and worstP < 1e-11,
 
 # ---------------------------------------------------------- CLAIM 4b
 # The MATLAB test's configuration (testRegionalKalmanOrderTwoOnTheSHBasis-
-# IsKalmanChain): four coefficients (nmax 1), a stationary VAR(2) truth, a
+# IsKalmanChain): the five coefficients of degree 2 (nmax 2, shIndex's
+# default Nmin = 2), a stationary VAR(2) truth, a
 # 3000-epoch model series for the Yule-Walker estimate, 30 monthly epochs
 # observed directly (H = I, diagonal sigmas, every fourth missing), and the
 # SMOOTHED output the chains return. The information form against the gain
@@ -400,7 +401,7 @@ def rts(B, out, x0, P0):
 worst4b = worstP4b = 0.0
 for seed in range(40):
     r = np.random.default_rng(4000 + seed)
-    K = 4
+    K = 5
     P1 = 0.9 * np.eye(K) + 0.05 * r.standard_normal((K, K))
     P2 = -0.5 * np.eye(K) + 0.05 * r.standard_normal((K, K))
     Bc = np.block([[P1, P2], [np.eye(K), np.zeros((K, K))]])
@@ -440,8 +441,9 @@ for seed in range(40):
             if y is None:
                 xp, Pp = m, Pm
             elif form == "info":
-                N = np.zeros((2 * K, 2 * K)); N[:K, :K] = np.diag(1 / sig ** 2)
-                b = np.zeros(2 * K); b[:K] = y / sig ** 2
+                w = 1 / np.sqrt(sig ** 2)            # regionalNEQ: L \ A, L \ y
+                N = np.zeros((2 * K, 2 * K)); N[:K, :K] = np.diag(w * w)
+                b = np.zeros(2 * K); b[:K] = w * (w * y)
                 Jm = np.linalg.inv(Pm)               # kalmanFilter's neq form
                 Pp = np.linalg.inv(Jm + N)
                 xp = Pp @ (Jm @ m + b)

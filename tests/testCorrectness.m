@@ -6139,11 +6139,11 @@ function testRegionalKalmanOrderTwoOnTheSHBasisIsKalmanChain(testCase)
 %   regional chain: on the SH basis it is kalmanChain at Order 2 - the same
 %   process model bit for bit, and the information-form update against
 %   kalmanChain's gain form in companion space. The fixture is
-%   validate_regional_adaptive.py CLAIM 4b's: four coefficients, a
-%   stationary VAR(2) truth behind a 3000-epoch model series, 30 observed
-%   epochs of which every fourth is missing. There the two forms agree to
-%   1.32e-15 in the smoothed states and 1.11e-15 in the sigmas over 40
-%   seeds; the bounds are 3x those. (The first fixture, nmax 6 with 240
+%   validate_regional_adaptive.py CLAIM 4b's: the five degree-2
+%   coefficients, a stationary VAR(2) truth behind a 3000-epoch model
+%   series, 30 observed epochs of which every fourth is missing. There the
+%   two forms agree to 9.45e-16 in the smoothed states and 1.11e-15 in the
+%   sigmas over 40 seeds; the bounds are 3x those. (The first fixture, nmax 6 with 240
 %   model epochs, asked 2 x 45^2 VAR parameters of 240 epochs; the estimate
 %   was explosive - companion radius 6.8 - and the two rounding paths grew
 %   apart, 8.6e-12 in the states on A8.)
@@ -6159,18 +6159,19 @@ verifyLessThan(testCase, outR.model.specRadius, 1, 'the fixture is not stationar
 [xR, sR] = seriesVectors(tsR, idx);
 [xC, sC] = seriesVectors(tsC, idx);
 verifyLessThan(testCase, max(abs(xR - xC), [], 'all') / max(abs(xC), [], 'all'), ...
-    3 * 1.32e-15);
+    3 * 9.45e-16);
 verifyLessThan(testCase, max(abs(sR ./ sC - 1), [], 'all'), 3 * 1.11e-15);
 end
 
 function [tsm, tsObs, ep, idx] = var2Fixture(seed)
-%VAR2FIXTURE validate_regional_adaptive.py CLAIM 4b: nmax 1 (P = 4), a
+%VAR2FIXTURE validate_regional_adaptive.py CLAIM 4b: nmax 2 with shIndex's
+%   default Nmin = 2 (P = 5, the degree-2 coefficients), a
 %   VAR(2) with Phi1 = 0.9 I + noise and Phi2 = -0.5 I + noise (companion
 %   radius about 0.7, capped at 0.97), a 3000-epoch model series and 30
 %   monthly epochs observed directly with sigmas of 0.5-1 signal standard
 %   deviations, every fourth missing.
 rng(seed);
-idx = shLowLevel.shIndex(1);
+idx = shLowLevel.shIndex(2);
 K = idx.P;
 Bc = [0.9 * eye(K) + 0.05 * randn(K), -0.5 * eye(K) + 0.05 * randn(K); ...
       eye(K), zeros(K)];

@@ -48,9 +48,10 @@ identifier changes; without the new options every result is v5.19.0's.
   - CLAIM 4: with a VAR(2) truth Order 2 has the lower -2 log L in 10 of
     10 seeds; information and gain form agree in companion space (states
     6.8e-15, sigmas 7.5e-15); CLAIM 4b repeats it in the MATLAB test's
-    configuration (four coefficients, a 3000-epoch model series, direct
-    observations, smoothed output, kalmanFilter's own update formulas):
-    1.32e-15 in the states, 1.11e-15 in the sigmas over 40 seeds. The
+    configuration (the five degree-2 coefficients, a 3000-epoch model
+    series, direct observations, smoothed output, kalmanFilter's and
+    regionalNEQ's own formulas): 9.45e-16 in the states, 1.11e-15 in the
+    sigmas over 40 seeds. The
     first A8 run of this release failed that test at 8.6e-12: its fixture
     (nmax 6, 240 model epochs) asked 2 x 45^2 VAR parameters of 240
     epochs, the estimate was explosive (companion radius 6.8), and two
