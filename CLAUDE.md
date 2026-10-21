@@ -1772,7 +1772,7 @@ shAnalysis, the basin is selectable, and otherwise a test area.
 | v5.17.0 (WP8 8d: `regionalKalman`, `ts.regionalKalman`, `rtsSmoother` `Functionals`, `B.region.core`) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally** (the bridge's device offline). ☑ **CI self-hosted (A8) at `9503ec3` via PR #123, green — 412 runs, 405 passed, 0 failed, 7 filtered** (the optional real-data fixtures); the count prediction matched EXACTLY, per class as well as in total (Contract 116, Correctness 201, Performance 27, Robustness 59, Science 9). All six new tests passed on their first run - no red round | ☑ PR #123 | ◐ pending |
 | v5.18.0 (WP8 8e: `regionalKalman` `Background`, remove-compute-restore; A34 opened) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally** (the bridge's device offline). ☑ **CI self-hosted (A8) at `f4d69a5` via PR #124, green — 416 runs, 409 passed, 0 failed, 7 filtered** (the optional real-data fixtures); the count prediction matched EXACTLY, per class as well as in total (Contract 117, Correctness 203, Performance 27, Robustness 60, Science 9). All four new tests passed on their first run - no red round | ☑ PR #124 | ◐ pending |
 | v5.19.0 (WP8 8h: `regionalNEQ` kind "lgd") | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally** (no bridge). ☑ **CI self-hosted (A8) at `bf90359` via PR #126, green — 419 runs, 412 passed, 0 failed, 7 filtered** (the optional real-data fixtures); the count prediction matched EXACTLY, per class as well as in total (Contract 118, Correctness 205, Performance 27, Robustness 60, Science 9). One red round first, at `5634698`: a test bound of mine - GEMM rounds M and 2M rows differently, and the LGD's cancellation amplified it (6.3) | ☑ PR #126 | ◐ pending |
-| v5.20.0 (WP8 8i: process-noise scales, `kalmanFilter` `Likelihood`, `buildCondFun` `Basis`, VAR(2)) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally** (no bridge). CI on A8 pending; predicted 425 runs (Contract 119, Correctness 210, Performance 27, Robustness 60, Science 9), 7 filtered | ◐ pending | ◐ pending |
+| v5.20.0 (WP8 8i: process-noise scales, `kalmanFilter` `Likelihood`, `buildCondFun` `Basis`, VAR(2)) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally** (no bridge). First A8 run at `26584ca`: 425 runs, the count exact, 1 failed - the VAR(2) identity test, on an explosive fixture of mine (6.3); refixtured from the new oracle CLAIM 4b. Second run pending; predicted 425 runs (Contract 119, Correctness 210, Performance 27, Robustness 60, Science 9), 7 filtered | ◐ pending | ◐ pending |
 | v5.0.3 (WP2 step 1 baselines) | ☑ 14 gates + mlint + make_demos + 13 self-test suites, 0 findings; `NO_BASELINE` empty | ☑ **CI self-hosted (A8) at `b70c947`, green — 315 runs, 311 passed, 0 failed, 4 filtered**; the EIGHTH exact count prediction running, per class as well as in total. All ten budgets PASSED (they filtered at `f6d5529`), and the only filtered are the four real-data fixtures. Triggered by `workflow_dispatch`, not a PR — #99 merged mid-session and `ci.yml` runs only on push-to-main, pull_request and workflow_dispatch. | ☐ no PR (#99 merged; not asked) | ☐ |
 
 **Tier A debt: DISCHARGED for all nine releases.** The local MATLAB
@@ -1797,6 +1797,14 @@ confirmation that the counter is right about a real run and not only
 about the source.
 
 ### 6.3 What the next session could be wrong for not reading
+- **Two rounding paths through an explosive model are not an identity
+  test.** v5.20.0's first VAR(2) test estimated 2 x 45^2 parameters from
+  240 model epochs; the estimate's companion radius was 6.8, and the
+  information and gain forms, equal in exact arithmetic, drifted to
+  8.6e-12 on A8. An identity comparison needs a fixture whose model is
+  identifiable and stationary - and the test should assert it, as the
+  fixed one now does (`specRadius < 1`). The estimateVAR warning was in
+  the log; read warnings in a failing run before reading the numbers.
 - **A dense product rounds differently for a different row count.** The
   first 8h run compared kind "lgd" (M rows times B.T) with kind "points"
   (2M rows times B.T, then Combine) at 2 eps and failed at 3.7 eps: GEMM

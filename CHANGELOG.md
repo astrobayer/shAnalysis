@@ -47,7 +47,16 @@ identifier changes; without the new options every result is v5.19.0's.
     and lower the state error against alpha = 1 in 30 of 30 seeds;
   - CLAIM 4: with a VAR(2) truth Order 2 has the lower -2 log L in 10 of
     10 seeds; information and gain form agree in companion space (states
-    6.8e-15, sigmas 7.5e-15);
+    6.8e-15, sigmas 7.5e-15); CLAIM 4b repeats it in the MATLAB test's
+    configuration (four coefficients, a 3000-epoch model series, direct
+    observations, smoothed output, kalmanFilter's own update formulas):
+    1.32e-15 in the states, 1.11e-15 in the sigmas over 40 seeds. The
+    first A8 run of this release failed that test at 8.6e-12: its fixture
+    (nmax 6, 240 model epochs) asked 2 x 45^2 VAR parameters of 240
+    epochs, the estimate was explosive (companion radius 6.8), and two
+    rounding paths through an explosive model grow apart. A test fixture
+    defect, not a filter one; the test now also asserts the model it
+    compares is stationary;
   - CLAIM 5: the basis conditioner is the identity to 1.1e-10 and stays
     positive semidefinite with a taper.
 

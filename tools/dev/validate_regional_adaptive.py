@@ -33,6 +33,10 @@ likelihood of one epoch is, up to log|R| + l'R^-1 l (free of alpha),
            likelihood than the order-1 model in every seed, and for VAR(2)
            the information-form filter equals the gain form (kalmanChain's)
            in companion space to rounding.
+  CLAIM 4b the same identity in the MATLAB test's configuration: four
+           coefficients, a 3000-epoch model series, direct observations
+           with gaps, kalmanFilter's own update formulas and the RTS
+           smoother - the numbers the VAR(2) test's bounds come from.
   CLAIM 5  space-domain conditioning in a basis: a conditioner cf of SH
            covariances becomes one of basis covariances as
            Proj cf(T S T') Proj'; Proj T = I makes it the identity when cf
@@ -368,6 +372,97 @@ claim(wins == 10 and worst < 1e-11 and worstP < 1e-11,
       "CLAIM 4  VAR(2) truth: order 2 has the lower -2 log likelihood in %d of 10 "
       "seeds; information = gain form in companion space, states %.1e, filtered "
       "sigmas %.1e" % (wins, worst, worstP))
+
+# ---------------------------------------------------------- CLAIM 4b
+# The MATLAB test's configuration (testRegionalKalmanOrderTwoOnTheSHBasis-
+# IsKalmanChain): four coefficients (nmax 1), a stationary VAR(2) truth, a
+# 3000-epoch model series for the Yule-Walker estimate, 30 monthly epochs
+# observed directly (H = I, diagonal sigmas, every fourth missing), and the
+# SMOOTHED output the chains return. The information form against the gain
+# form, then the same RTS pass over each.
+
+
+def rts(B, out, x0, P0):
+    T = len(out)
+    xs, ps = [None] * T, [None] * T
+    xs[-1], Pn = out[-1][2], out[-1][3]
+    ps[-1] = np.diag(Pn).copy()
+    for t in range(T - 2, -1, -1):
+        xf, Pf = out[t][2], out[t][3]
+        m, Pm = out[t + 1][0], out[t + 1][1]
+        G = Pf @ B.T @ np.linalg.inv(Pm)
+        xs[t] = xf + G @ (xs[t + 1] - m)
+        Pn = Pf + G @ (Pn - Pm) @ G.T
+        ps[t] = np.diag(Pn).copy()
+    return np.array(xs), np.array(ps)
+
+
+worst4b = worstP4b = 0.0
+for seed in range(40):
+    r = np.random.default_rng(4000 + seed)
+    K = 4
+    P1 = 0.9 * np.eye(K) + 0.05 * r.standard_normal((K, K))
+    P2 = -0.5 * np.eye(K) + 0.05 * r.standard_normal((K, K))
+    Bc = np.block([[P1, P2], [np.eye(K), np.zeros((K, K))]])
+    rho = max(abs(np.linalg.eigvals(Bc)))
+    if rho > 0.97:
+        Bc[:K] *= 0.97 / rho
+    L = r.standard_normal((K, K))
+    cQ = np.linalg.cholesky(L @ L.T / K + 0.3 * np.eye(K))
+    z = np.zeros(2 * K)
+    Z = np.zeros((K, 3030))
+    for t in range(3230):
+        z = Bc @ z
+        z[:K] += cQ @ r.standard_normal(K)
+        if t >= 200:
+            Z[:, t - 200] = z[:K]
+    Xm, Xo = Z[:, :3000], Z[:, 3000:]
+    T = Xm.shape[1]
+    G = [Xm[:, k:] @ Xm[:, :T - k].T / (T - k) for k in range(3)]
+    G0 = (G[0] + G[0].T) / 2
+    Big = np.block([[G0, G[1]], [G[1].T, G0]])
+    Ph = np.hstack([G[1], G[2]]) @ np.linalg.inv(Big)
+    Q2 = G0 - Ph @ np.hstack([G[1], G[2]]).T
+    B2 = np.block([[Ph], [np.eye(K), np.zeros((K, K))]])
+    Q2c = np.zeros((2 * K, 2 * K)); Q2c[:K, :K] = (Q2 + Q2.T) / 2
+    S0 = (Big + Big.T) / 2
+    sig = 0.5 * np.sqrt(np.diag(G0)) * (1 + r.random(K))
+    obs = [None if t % 4 == 3 else Xo[:, t] + sig * r.standard_normal(K)
+           for t in range(30)]
+    outs = {}
+    for form in ("info", "gain"):
+        x, P = np.zeros(2 * K), S0.copy()
+        out = []
+        for y in obs:
+            m = B2 @ x
+            Pm = B2 @ P @ B2.T + Q2c
+            Pm = (Pm + Pm.T) / 2
+            if y is None:
+                xp, Pp = m, Pm
+            elif form == "info":
+                N = np.zeros((2 * K, 2 * K)); N[:K, :K] = np.diag(1 / sig ** 2)
+                b = np.zeros(2 * K); b[:K] = y / sig ** 2
+                Jm = np.linalg.inv(Pm)               # kalmanFilter's neq form
+                Pp = np.linalg.inv(Jm + N)
+                xp = Pp @ (Jm @ m + b)
+            else:
+                Rl = np.diag(sig ** 2)               # its gain form, Joseph
+                Kg = np.linalg.solve((Pm[:K, :K] + Rl), Pm[:, :K].T).T
+                xp = m + Kg @ (y - m[:K])
+                IKH = np.eye(2 * K); IKH[:, :K] -= Kg
+                Pp = IKH @ Pm @ IKH.T + Kg @ Rl @ Kg.T
+            Pp = (Pp + Pp.T) / 2
+            out.append((m, Pm, xp, Pp))
+            x, P = xp, Pp
+        outs[form] = rts(B2, out, np.zeros(2 * K), S0)
+    xi, pi_ = outs["info"]
+    xg, pg = outs["gain"]
+    worst4b = max(worst4b, np.abs(xi[:, :K] - xg[:, :K]).max() / np.abs(xg[:, :K]).max())
+    worstP4b = max(worstP4b, np.abs(np.sqrt(pi_[:, :K] / pg[:, :K]) - 1).max())
+claim(worst4b < 1e-11 and worstP4b < 1e-11,
+      "CLAIM 4b VAR(2), the MATLAB test's configuration, smoothed: information = "
+      "gain form to %.2e in the states and %.2e in the sigmas over 40 seeds"
+      % (worst4b, worstP4b))
 
 # ---------------------------------------------------------- CLAIM 5
 idx, T, Proj, rank, Y, W, mask = rbf_basis(16, 50, 600)

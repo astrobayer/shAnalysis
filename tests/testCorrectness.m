@@ -6138,21 +6138,63 @@ function testRegionalKalmanOrderTwoOnTheSHBasisIsKalmanChain(testCase)
 %TESTREGIONALKALMANORDERTWOONTHESHBASISISKALMANCHAIN VAR(2) through the
 %   regional chain: on the SH basis it is kalmanChain at Order 2 - the same
 %   process model bit for bit, and the information-form update against
-%   kalmanChain's gain form in companion space, which agree to 6.8e-15 in
-%   the states and 7.5e-15 in the filtered sigmas (validate_regional_
-%   adaptive.py CLAIM 4); the bounds are 3x those.
-[tsm, tsObs, ep, idx] = kalmanSHFixture(64);
+%   kalmanChain's gain form in companion space. The fixture is
+%   validate_regional_adaptive.py CLAIM 4b's: four coefficients, a
+%   stationary VAR(2) truth behind a 3000-epoch model series, 30 observed
+%   epochs of which every fourth is missing. There the two forms agree to
+%   1.32e-15 in the smoothed states and 1.11e-15 in the sigmas over 40
+%   seeds; the bounds are 3x those. (The first fixture, nmax 6 with 240
+%   model epochs, asked 2 x 45^2 VAR parameters of 240 epochs; the estimate
+%   was explosive - companion radius 6.8 - and the two rounding paths grew
+%   apart, 8.6e-12 in the states on A8.)
+[tsm, tsObs, ep, idx] = var2Fixture(64);
 B = shLowLevel.regionalBasis(idx, [], Type = "sh");
 [tsR, outR] = shLowLevel.regionalKalman(tsObs, B, ModelSeries = tsm, ...
-    Epochs = ep, Order = 2);
-[tsC, repC] = shLowLevel.kalmanChain(tsObs, ModelSeries = tsm, Epochs = ep, Order = 2);
+    Epochs = ep, Order = 2, Climatology = false);
+[tsC, repC] = shLowLevel.kalmanChain(tsObs, ModelSeries = tsm, Epochs = ep, ...
+    Order = 2, Climatology = false);
 verifyTrue(testCase, isequaln(outR.model, repC.model), 'the VAR(2) model differs');
 verifyEqual(testCase, outR.order, 2);
+verifyLessThan(testCase, outR.model.specRadius, 1, 'the fixture is not stationary');
 [xR, sR] = seriesVectors(tsR, idx);
 [xC, sC] = seriesVectors(tsC, idx);
 verifyLessThan(testCase, max(abs(xR - xC), [], 'all') / max(abs(xC), [], 'all'), ...
-    3 * 6.8e-15);
-verifyLessThan(testCase, max(abs(sR ./ sC - 1), [], 'all'), 3 * 7.5e-15);
+    3 * 1.32e-15);
+verifyLessThan(testCase, max(abs(sR ./ sC - 1), [], 'all'), 3 * 1.11e-15);
+end
+
+function [tsm, tsObs, ep, idx] = var2Fixture(seed)
+%VAR2FIXTURE validate_regional_adaptive.py CLAIM 4b: nmax 1 (P = 4), a
+%   VAR(2) with Phi1 = 0.9 I + noise and Phi2 = -0.5 I + noise (companion
+%   radius about 0.7, capped at 0.97), a 3000-epoch model series and 30
+%   monthly epochs observed directly with sigmas of 0.5-1 signal standard
+%   deviations, every fourth missing.
+rng(seed);
+idx = shLowLevel.shIndex(1);
+K = idx.P;
+Bc = [0.9 * eye(K) + 0.05 * randn(K), -0.5 * eye(K) + 0.05 * randn(K); ...
+      eye(K), zeros(K)];
+rho = max(abs(eig(Bc)));
+if rho > 0.97
+    Bc(1:K, :) = Bc(1:K, :) * (0.97 / rho);
+end
+L = randn(K);
+cQ = chol((L * L.' / K + 0.3 * eye(K)) * 1e-18, 'lower');
+z = zeros(2 * K, 1);
+X = zeros(K, 3030);
+for t = 1:3230
+    z = Bc * z;
+    z(1:K) = z(1:K) + cQ * randn(K, 1);
+    if t > 200
+        X(:, t - 200) = z(1:K);
+    end
+end
+sig = 0.5 * std(X(:, 1:3000), 0, 2) .* (1 + rand(K, 1));
+tsm = vecSeries(X(:, 1:3000), 1750 + ((1:3000)' - 0.5) / 12, idx, []);
+ep = 2003 + ((1:30)' - 0.5) / 12;
+keep = mod(0:29, 4) ~= 3;
+Lobs = X(:, 3001:3030) + sig .* randn(K, 30);
+tsObs = vecSeries(Lobs(:, keep), ep(keep), idx, sig);
 end
 
 function testBuildCondFunInABasis(testCase)
