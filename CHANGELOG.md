@@ -4,7 +4,22 @@
 
 A MINOR release: options on `regionalKalman`, `kalmanFilter` and
 `buildCondFun`, and the seventh row of WP8. No documented call or error
-identifier changes; without the new options every result is v5.19.0's.
+identifier changes; without the new options every result is v5.19.0's,
+except a VAR of `Order` >= 2, which was wrong until now (Fixed, below).
+
+### Fixed
+- **`estimateVAR` with `Order` >= 2 solved the wrong Yule-Walker
+  system** (A35, since the function was written). Block (i, j) of the
+  system matrix must be E[x_(t-i) x_(t-j)'] = Sigma(j - i); the code
+  held Sigma(i - j), each block transposed. That is exact for `Order = 1`
+  and for 1 x 1 blocks (`Structure = "diagonal"`), so every default call
+  and every earlier test was unaffected; a multivariate VAR(2) came back
+  wrong - from a stationary truth with companion radius 0.76, a model
+  with radius 1.45, missing the Yule-Walker equations by 0.30 of |Sigma(0)|
+  against 1e-16 now. `kalmanChain(..., Order >= 2)` and
+  `regionalKalman(..., Order >= 2)` inherited it. Found by this release's
+  VAR(2) test on A8, after its first two fixtures failed for reasons of
+  their own (below); pinned by `testEstimateVAROrderTwoSolvesTheYuleWalkerEquations`.
 
 ### Added
 - `regionalKalman(..., QBlocks = lab, QScale = alpha)`: one process-noise

@@ -6163,6 +6163,33 @@ verifyLessThan(testCase, max(abs(xR - xC), [], 'all') / max(abs(xC), [], 'all'),
 verifyLessThan(testCase, max(abs(sR ./ sC - 1), [], 'all'), 3 * 1.11e-15);
 end
 
+function testEstimateVAROrderTwoSolvesTheYuleWalkerEquations(testCase)
+%TESTESTIMATEVARORDERTWOSOLVESTHEYULEWALKEREQUATIONS A35: for Order 2 the
+%   estimate satisfies the Yule-Walker equations of the series' own sample
+%   covariances G(h) = E[x_(t+h) x_t'],
+%     G(1) = Phi1 G(0) + Phi2 G(1)',   G(2) = Phi1 G(1) + Phi2 G(0),
+%   to rounding (9.8e-17 of |G| in numpy on this configuration; bound
+%   1e-13, for the conditioning of a 10 x 10 solve - the defect it guards
+%   against misses by 0.30), and
+%   recovers a stationary truth (companion radius about 0.7) as a
+%   stationary model. Before v5.20.0 the block matrix held G(i - j) where
+%   E[x_(t-i) x_(t-j)'] = G(j - i) belongs, which missed the first
+%   equation by O(|G|) and put the companion radius at 1.45
+%   (validate_regional_adaptive.py's Yule-Walker, and this fixture).
+[tsm, ~, ~, idx] = var2Fixture(64);
+X = seriesVectors(tsm, idx);
+model = shLowLevel.estimateVAR(X, Order = 2);
+T = size(X, 2);
+G0 = X * X.' / T;
+G1 = X(:, 2:end) * X(:, 1:end-1).' / (T - 1);
+G2 = X(:, 3:end) * X(:, 1:end-2).' / (T - 2);
+[P1, P2] = deal(model.Phi{1}, model.Phi{2});
+sc = max(abs(G0), [], 'all');
+verifyLessThan(testCase, max(abs(P1 * G0 + P2 * G1.' - G1), [], 'all') / sc, 1e-13);
+verifyLessThan(testCase, max(abs(P1 * G1 + P2 * G0 - G2), [], 'all') / sc, 1e-13);
+verifyLessThan(testCase, model.specRadius, 0.95);
+end
+
 function [tsm, tsObs, ep, idx] = var2Fixture(seed)
 %VAR2FIXTURE validate_regional_adaptive.py CLAIM 4b: nmax 2 with shIndex's
 %   default Nmin = 2 (P = 5, the degree-2 coefficients), a
