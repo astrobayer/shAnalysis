@@ -184,7 +184,11 @@ X = reshape(G, [], T);
 omOBP = (wA' * X(mk(:), :))' / sum(wA);
 out = struct('grid', G, 'lat', lat, 'lon', lon, 'epochs', ep, ...
     'refMean', refMean, 'oceanMeanOBP', omOBP);
-rep = struct('steps', steps(:), 'version', shLowLevel.shxVersion(), ...
+% v5.23.1: was shLowLevel.shxVersion(), a name gone since v3.0.0, so
+% every run that got this far failed here; the string form is
+% standardChain's and the one this help documents
+v = shLowLevel.version();
+rep = struct('steps', steps(:), 'version', string(v.Name + " " + v.Version), ...
     'nEpochs', T, 'nGadRestored', nGad, 'nRefEpochs', nnz(inRef));
 if ~opts.Quiet, fprintf('%s\n', steps); end
 end

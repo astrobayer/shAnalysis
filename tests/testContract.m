@@ -3395,3 +3395,13 @@ verifyError(testCase, @() shLowLevel.buildCondFun(shLowLevel.shIndex(5), kn = kn
 verifyError(testCase, @() shLowLevel.buildCondFun(shLowLevel.shIndex(6), kn = kn, ...
     Basis = struct('T', 1)), 'shLowLevel:buildCondFun:badBasis');
 end
+
+function testApplyDDKRefusesAnUnknownBlockType(testCase)
+%TESTAPPLYDDKREFUSESANUNKNOWNBLOCKTYPE v5.23.1: a block whose cs is not
+%   0 or 1 is refused. A W saved from designFilter before v5.23.1 carries
+%   'c'/'s', which used to send every block down the S branch silently.
+W = struct('nmax', 2, 'name', 'old', 'blocks', ...
+    struct('m', 0, 'cs', 'c', 'n', 2, 'M', 0.5));
+verifyError(testCase, @() shLowLevel.applyDDK(zeros(3), zeros(3), W), ...
+    'shLowLevel:applyDDK:badBlock');
+end

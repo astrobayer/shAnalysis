@@ -55,8 +55,9 @@ function W = readDDK(source, opts)
 %        nmax    (1,1) double  maximum degree the filter covers
 %        name    (1,1) string  the DDK label, e.g. "DDK3"
 %        blocks  (1 x 241) struct array  one per (order, cs) block, each
-%                with m (1,1 double), cs ('c'|'s'), n (1,B double, the
-%                degrees) and M (B x B double, the square block matrix)
+%                with m (1,1 double), cs (1,1 double, 0 for C and 1
+%                for S), n (1,B double, the degrees) and M (B x B
+%                double, the square block matrix)
 %
 %   Error identifiers
 %     shLowLevel:readDDK:badBinary

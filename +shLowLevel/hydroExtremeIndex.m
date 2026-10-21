@@ -72,13 +72,14 @@ function [Z, info] = hydroExtremeIndex(X, epochs, opts)
 %     Z    same shape as X  the index (DSI/WSDI z-scores; Sdef in the
 %          unit of X; FPI dimensionless in [-inf, 1] when PrecipGrid)
 %     info (1 x 1) struct  mode, detrended, clim (12 x cells, DSI),
-%          sigma, trendPerYr, category (same shape as Z, int8 -5..+5,
-%          DSI only; edges [-2 -1.6 -1.3 -0.8 -0.5 .5 .8 1.3 1.6 2]),
+%          sigma, trendPerYr, category (same shape as Z, double
+%          -5..+5, NaN where Z is NaN; DSI only; edges
+%          [-2 -1.6 -1.3 -0.8 -0.5 .5 .8 1.3 1.6 2]),
 %          categoryNames (11 x 1 string, "D4".."W4"), nPerMonth
 %
 %   Example
-%     [tws, rep] = shLowLevel.twsChain(ser, kn = kn);       % fields
-%     [Z, inf1] = shLowLevel.hydroExtremeIndex(tws.grid, tws.epochs);
+%     B = ts.toGrid(-89.5:89.5, 0.5:359.5, Quantity = "ewh", kn = kn);
+%     [Z, inf1] = shLowLevel.hydroExtremeIndex(B.Z, ts.epochs);
 %     imagesc(inf1.category(:, :, end))    % current drought map
 %
 %   Error identifiers
@@ -196,7 +197,10 @@ switch opts.Mode
         end
         Z = reshape(Za, sz);
         edges = [-inf -2 -1.6 -1.3 -0.8 -0.5 0.5 0.8 1.3 1.6 2 inf];
-        cat = int8(discretize(Za, edges)) - 6;         % -5..+5
+        % -5..+5, NaN where Z is NaN (a calendar month below MinYears):
+        % before v5.23.1 this was int8, which turned discretize's NaN
+        % into 0 and the category into -6, outside every class
+        cat = discretize(Za, edges) - 6;
         info = struct('mode', opts.Mode, 'detrended', opts.Detrend, ...
             'clim', clim, 'sigma', sig, 'trendPerYr', trendPerYr, ...
             'category', reshape(cat, sz), ...
