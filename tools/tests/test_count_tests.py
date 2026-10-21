@@ -109,7 +109,7 @@ class TestCounting(unittest.TestCase):
         self.assertEqual(c["runs"], c["methods"])
 
 
-EXPECTED_RUNS = 426          # v5.20.0: 419 + seven WP8 8i tests (process-noise scales, Likelihood, VAR(2), basis CondFun, the A35 Yule-Walker identity)
+EXPECTED_RUNS = 427          # v5.21.0: 426 + the A33 mask-equivalence test
                              # (5 correctness, 4 contract, 2 robustness)
 
 

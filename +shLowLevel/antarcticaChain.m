@@ -22,7 +22,8 @@ function [gt, rep] = antarcticaChain(folder, gravisFolder, opts)
 %                   the empty default errors: no frame is assumed
 %     BasinFile     ("basins_AIS.json")  GravIS AIS GeoJSON
 %                   (https://gravis.gfz.de/basins/AIS; [lon lat] rings,
-%                   converted and dateline-recentred internally)
+%                   read by shLowLevel.readBasin, which closes the polar
+%                   ring of basin 302 through the pole since v5.21.0)
 %     NeighbourBoxes ([])         Antarctica has no land neighbours
 %     GIAFile       ("GRAVIS-2B_COSTG_0200_GIA_ICE-6G_D_VM5a_0001.gz")
 %     Filter        ("gauss445")  as in greenlandChain

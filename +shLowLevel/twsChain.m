@@ -25,7 +25,7 @@ function [out, rep] = twsChain(folder, gravisFolder, opts)
 %     kn         ([])  load Love numbers (degree,kn) - REQUIRED,
 %                the empty default errors: no frame is assumed
 %     BasinFile  ("basins_rivbas.json")  GravIS GeoJSON of the target
-%                basins ([lon lat] rings, converted internally;
+%                basins ([lon lat] rings, read by shLowLevel.readBasin;
 %                https://gravis.gfz.de/basins/rivbas)
 %     Basins     (strings(0,1))  feature names to process; the empty
 %                default processes every feature in BasinFile
@@ -162,8 +162,8 @@ if ~isfile(bf)
         ['Basin GeoJSON not found: %s. Fetch it from ' ...
          'https://gravis.gfz.de/basins/rivbas.'], opts.BasinFile);
 end
-J = jsondecode(fileread(bf));
-allN = arrayfun(@(f) string(f.properties.name), J.features);
+[regs, binfo] = shLowLevel.readBasin(string.empty, File = string(bf));
+allN = [binfo.name].';
 want = opts.Basins;
 if isempty(want), want = allN; end
 miss = setdiff(want, allN);
@@ -175,25 +175,20 @@ K = numel(want);
 % ---- per-basin box synthesis (Legendre recycled across epochs)
 series = zeros(K, T);
 for k = 1:K
-    g = J.features(find(allN == want(k), 1)).geometry;
-    if strcmp(g.type, 'Polygon'), parts = {squeeze(g.coordinates(1,:,:))};
-    else, parts = cellfun(@(c) squeeze(c(1,:,:)), g.coordinates, 'uni', 0);
-    end
-    Pall = vertcat(parts{:});
-    la1 = floor(min(Pall(:,2))) - 1; la2 = ceil(max(Pall(:,2))) + 1;
+    % the basin box from its outer rings ([lat lon], as the GeoJSON has
+    % them), the mask from readBasin's wrap-safe region (A33)
+    kb = find(allN == want(k), 1);
+    bi = binfo(kb);
+    Pall = vertcat(bi.rings{~bi.hole});
+    la1 = floor(min(Pall(:,1))) - 1; la2 = ceil(max(Pall(:,1))) + 1;
     latB = (la1 + opts.GridStep/2 : opts.GridStep : la2)';
-    c0 = atan2d(mean(sind(Pall(:,1))), mean(cosd(Pall(:,1))));
-    lw = mod(Pall(:,1) - c0 + 180, 360) - 180;
+    c0 = atan2d(mean(sind(Pall(:,2))), mean(cosd(Pall(:,2))));
+    lw = mod(Pall(:,2) - c0 + 180, 360) - 180;
     lo1 = floor(min(lw)) - 1; lo2 = ceil(max(lw)) + 1;
     off = (lo1 + opts.GridStep/2 : opts.GridStep : lo2)';
     lonB = mod(c0 + off, 360);
     [LOc, LAb] = meshgrid(off, latB);
-    mkB = false(size(LAb));
-    for q = 1:numel(parts)
-        Pq = parts{q};
-        pl = mod(Pq(:,1) - c0 + 180, 360) - 180;
-        mkB = mkB | inpolygon(LOc, LAb, pl, Pq(:,2));
-    end
+    mkB = regs{kb}(LAb, c0 + LOc) > 0;
     if ~any(mkB(:))
         error('shLowLevel:twsChain:emptyBasin', ...
             'Basin %s covers no grid point at GridStep %g.', want(k), opts.GridStep);

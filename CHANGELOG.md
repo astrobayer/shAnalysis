@@ -1,5 +1,60 @@
 # Changelog
 
+## [5.21.0] - 2026-10-21 - A33: one GeoJSON reader for every GravIS chain
+
+A MINOR release: `readBasin` takes several names, or none for the whole
+file, and the GravIS chains build their basin masks with it. No
+documented call or error identifier changes. One number moves, and it
+is a fix: the Antarctic basin 302, whose ring encircles the pole.
+
+### Added
+- `shLowLevel.readBasin(names)` with a string array returns a cell of
+  region handles and a struct array of their metadata;
+  `readBasin(string.empty, File = f)` returns every basin of the file.
+  A scalar name returns what it returned in v5.14.0.
+
+### Changed
+- `twsChain` and `gravisRegionChain` (and through it `greenlandChain`
+  and `antarcticaChain`) no longer parse GeoJSON themselves: their masks
+  are `readBasin` regions evaluated on the grid. `jsondecode` now
+  appears in `readBasin` only. `twsChain`'s window box is built from the
+  same rings.
+
+### Fixed
+- Antarctic basin 302 now includes the polar cap south of its ring. Its
+  ring winds once around the pole (360 degrees, southernmost point
+  -88.54), and the chains' own planar test, recentred at the ring's
+  mean longitude, left the cap outside; `readBasin` closes such a ring
+  through the pole. Measured on the 1-degree global grid against the old
+  rule (`tests/testCorrectness.m` re-implements it): 686 cells differ -
+  675 gained, the cap at -89.5 and -88.5 degrees, and 11 lost, in the
+  -88.5 row the ring itself crosses - net 137,000 km2
+  or 1.2 percent of the Antarctic total (11.72e6 km2 before, 11.86e6
+  km2 now). An Antarctic mass series from `antarcticaChain` changes by
+  the signal of that cap.
+- Elsewhere the two rules agree: no Greenland basin and 98 of the 100
+  river basins differ in a single cell; Mekong and Volga differ by one
+  cell each, a grid point lying ON a ring edge (distance 1e-14 degrees),
+  which the two point-in-polygon tests assign differently.
+
+### Measured, which changed the finding
+- A33 said three river basins crossing lon 0 (Loire, Niger, Volta) broke
+  the chains' masks. They did not: the chains recentre each polygon at
+  its circular-mean longitude before the planar test, which is wrap-safe
+  for a basin narrower than 180 degrees. The real defect was the polar
+  ring, which no recentring can fix.
+
+### Tests
+- `testGravisChainMasksAreReadBasinRegions`: for every basin of the
+  three shipped files, the readBasin mask equals the old rule except at
+  cells within 1e-6 degrees of a ring edge, and except south of the ring
+  of exactly one polar basin, whose cap readBasin includes and the old
+  rule did not; `twsChain`'s box rule is checked on the same regions.
+- 413 methods / 427 runs (Correctness 212).
+
+Developed by Matthias Weigelt with the help of Claude (Opus 5.5),
+2026-10-21.
+
 ## [5.20.0] - 2026-10-21 - WP8 8i: process-noise scales from the data, VAR(2) and conditioning in a basis
 
 A MINOR release: options on `regionalKalman`, `kalmanFilter` and
