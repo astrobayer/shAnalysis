@@ -6177,7 +6177,10 @@ function testEstimateVAROrderTwoSolvesTheYuleWalkerEquations(testCase)
 %   equation by O(|G|) and put the companion radius at 1.45
 %   (validate_regional_adaptive.py's Yule-Walker, and this fixture).
 [tsm, ~, ~, idx] = var2Fixture(64);
-X = seriesVectors(tsm, idx);
+X = zeros(idx.P, tsm.nEpochs);                 % the model series has no sigmas
+for t = 1:tsm.nEpochs
+    X(:, t) = shLowLevel.vecFromCS(tsm.Cs(:, :, t), tsm.Ss(:, :, t), idx);
+end
 model = shLowLevel.estimateVAR(X, Order = 2);
 T = size(X, 2);
 G0 = X * X.' / T;
