@@ -6256,6 +6256,96 @@ verifyTrue(testCase, issymmetric(St));
 verifyGreaterThan(testCase, min(eig(St)), -1e-12 * max(eig(St)));
 end
 
+% ------------------------------------------- A34: the climatology restore
+function testKalmanChainFitClimatologyFiltered(testCase)
+%TESTKALMANCHAINCLIMATOLOGYFITFILTERED A34, kalmanChain: FitClimatology =
+%   "filtered" is by definition two passes - the chain without a
+%   climatology, the climatology c of that estimate, the chain on the
+%   observations minus c, c restored - and it is exactly that, bit for bit
+%   (the same operations in the same order). The default stays
+%   "observations", bitwise. On the validate_climatology_restore.py
+%   CLAIM 2 configuration (noise above the signal from degree 3) its
+%   coefficient RMS error is below 0.6 of the default's: 0.391 median,
+%   0.433 worst over 40 seeds there.
+[tsm, tsObs, Xt, idx] = climFixture(7);
+ts0 = shLowLevel.kalmanChain(tsObs, ModelSeries = tsm);
+tsO = shLowLevel.kalmanChain(tsObs, ModelSeries = tsm, FitClimatology = "observations");
+verifyTrue(testCase, isequal(ts0.Cs, tsO.Cs) && isequal(ts0.sigmaCs, tsO.sigmaCs), ...
+    'the default is not "observations"');
+tsF = shLowLevel.kalmanChain(tsObs, ModelSeries = tsm, FitClimatology = "filtered");
+ts1 = shLowLevel.kalmanChain(tsObs, ModelSeries = tsm, Climatology = false);
+c1 = climSeriesAt(ts1.climatology, tsObs);
+ts2 = shLowLevel.kalmanChain(tsObs - c1, ModelSeries = tsm, Climatology = false);
+verifyTrue(testCase, isequal(tsF.Cs, ts2.Cs + c1.Cs) && isequal(tsF.Ss, ts2.Ss + c1.Ss), ...
+    'filtered is not the two passes');
+verifyTrue(testCase, isequal(tsF.sigmaCs, ts2.sigmaCs), 'the restore added a sigma');
+eO = sqrt(mean((seriesVectors(ts0, idx) - Xt) .^ 2, 'all'));
+eF = sqrt(mean((seriesVectors(tsF, idx) - Xt) .^ 2, 'all'));
+verifyLessThan(testCase, eF / eO, 0.6);
+end
+
+function testRegionalKalmanFitClimatologyFiltered(testCase)
+%TESTREGIONALKALMANCLIMATOLOGYFITFILTERED A34, regionalKalman: on the SH
+%   basis (T = Proj = sparse identity, so restoring through Proj is exact)
+%   "filtered" is the two passes bit for bit, and the default is
+%   "observations". On an RBF basis the option runs and returns a series
+%   on the same epochs.
+[tsm, tsObs, ~, idx] = climFixture(8);
+B = shLowLevel.regionalBasis(idx, [], Type = "sh");
+r0 = shLowLevel.regionalKalman(tsObs, B, ModelSeries = tsm);
+rO = shLowLevel.regionalKalman(tsObs, B, ModelSeries = tsm, FitClimatology = "observations");
+verifyTrue(testCase, isequal(r0.Cs, rO.Cs), 'the default is not "observations"');
+rF = shLowLevel.regionalKalman(tsObs, B, ModelSeries = tsm, FitClimatology = "filtered");
+r1 = shLowLevel.regionalKalman(tsObs, B, ModelSeries = tsm, Climatology = false);
+c1 = climSeriesAt(r1.climatology, tsObs);
+r2 = shLowLevel.regionalKalman(tsObs - c1, B, ModelSeries = tsm, Climatology = false);
+verifyTrue(testCase, isequal(rF.Cs, r2.Cs + c1.Cs) && isequal(rF.Ss, r2.Ss + c1.Ss), ...
+    'filtered is not the two passes');
+Br = shLowLevel.regionalBasis(idx, @(la, lo) double(la > 30));
+rR = shLowLevel.regionalKalman(tsObs, Br, ModelSeries = tsm, FitClimatology = "filtered");
+verifyEqual(testCase, rR.epochs, tsObs.epochs);
+verifyTrue(testCase, all(isfinite(rR.Cs), 'all'));
+end
+
+function [tsm, tsObs, Xt, idx] = climFixture(seed)
+%CLIMFIXTURE validate_climatology_restore.py CLAIM 2: nmax 6 (P = 45), a
+%   VAR(1) with a 1/(n+1)^2 signal behind a 240-epoch model series, and 36
+%   monthly epochs of the VAR plus an annual climatology, observed with
+%   sigmas 1e-10 (1 + (n/3)^2) - above the signal from degree 3. XT is the
+%   truth at the observed epochs, in IDX order.
+rng(seed);
+idx = shLowLevel.shIndex(6);
+P = idx.P;
+dec = 1 ./ (idx.n + 1) .^ 2;
+Ph = 0.7 * eye(P) + 0.02 * randn(P);
+Ph = Ph * (0.8 / max(abs(eig(Ph))));
+Lq = randn(P) / sqrt(P);
+cQ = chol((Lq * Lq' + 0.2 * eye(P)) .* (dec * dec') * 1e-18, 'lower');
+X = zeros(P, 276);
+for k = 2:276
+    X(:, k) = Ph * X(:, k - 1) + cQ * randn(P, 1);
+end
+ep = 2003 + ((1:36)' - 0.5) / 12;
+amp = 2e-10 * dec .* randn(P, 1);
+Xt = X(:, 241:276) + amp * cos(2 * pi * ep' - 0.7);
+sig = 1e-10 * (1 + (idx.n / 3) .^ 2);
+tsm = vecSeries(X(:, 1:240), 1990 + ((1:240)' - 0.5) / 12, idx, []);
+tsObs = vecSeries(Xt + sig .* randn(P, 36), ep, idx, sig);
+end
+
+function s = climSeriesAt(clim, ts)
+%CLIMSERIESAT The climatology CLIM at the epochs of TS, with its constants.
+n1 = ts.nmax + 1;
+C = zeros(n1, n1, ts.nEpochs);
+S = C;
+for k = 1:ts.nEpochs
+    g = clim.eval(ts.epochs(k));
+    C(:, :, k) = g.C;
+    S(:, :, k) = g.S;
+end
+s = shSeries(C, Ss = S, Epochs = ts.epochs, GM = ts.GM, R = ts.R);
+end
+
 % ------------------------------------------- A33: one GeoJSON reader
 function testGravisChainMasksAreReadBasinRegions(testCase)
 %TESTGRAVISCHAINMASKSAREREADBASINREGIONS A33: twsChain and

@@ -1646,6 +1646,9 @@ methods
         %     NoiseCov (lane default)  observation noise covariance
         %     Climatology (lane default)  reduce the series by its own
         %         climatology around the filter, and restore it after
+        %     FitClimatology (lane default)  "observations" | "filtered":
+        %         fit that climatology to the series or to a first filter
+        %         pass (A34)
         %     Smoother (lane default)  run the RTS pass
         %     QC (lane default)  innovation-based quality control
         %     QCAlpha (lane default)  false-alarm level of that test
@@ -1664,6 +1667,7 @@ methods
             opts.Tolerance
             opts.NoiseCov
             opts.Climatology
+            opts.FitClimatology
             opts.Smoother
             opts.QC
             opts.QCAlpha
@@ -2372,6 +2376,8 @@ methods
         %     Tolerance (lane default)  epoch matching tolerance [yr]
         %     NoiseCov (lane default)  noise covariance of the series
         %     Climatology (lane default)  remove and restore it
+        %     FitClimatology (lane default)  "observations" | "filtered":
+        %         fit it to the series or to a first filter pass (A34)
         %     Lag (lane default)  smoothing lag in epochs
         %     QC (lane default)  innovation quality control
         %     QCAlpha (lane default)  its false-alarm level
@@ -2403,6 +2409,7 @@ methods
             opts.Tolerance
             opts.NoiseCov
             opts.Climatology
+            opts.FitClimatology
             opts.Lag
             opts.QC
             opts.QCAlpha

@@ -45,6 +45,17 @@ block-tridiagonal joint system, never an approximation to it.</div>
 <tr><td>6</td><td>repack to shSeries with formal sigmas</td><td>inside <code class="inline">kalmanChain</code></td></tr>
 </table>
 
+<p><b>The observation climatology (solution mode).</b> With <code class="inline">Climatology = true</code>
+(default) the observations are reduced by their climatology (bias, trend, annual, semiannual)
+before the filter and it is restored afterwards. By default (<code class="inline">FitClimatology = "observations"</code>)
+it is fitted to the observations themselves, so the noise of that fit comes back unfiltered in
+every epoch. <code class="inline">FitClimatology = "filtered"</code> (v5.22.0) fits it instead to a first
+pass of the chain run without a climatology, removes that, filters the residual and restores it:
+twice the cost, and in the regional closed loop of <code class="inline">tools/dev/validate_climatology_restore.py</code>
+(noise rising to 3 cm per coefficient at degree 30) a grid RMS of 0.89&ndash;1.96 cm against 14.5 cm.
+Where the noise is below the signal the two fits differ little. <code class="inline">regionalKalman</code>
+takes the same option.</p>
+
 <h2>Two observation modes</h2>
 <table>
 <tr><th>Mode</th><th>Input</th><th>Update</th></tr>

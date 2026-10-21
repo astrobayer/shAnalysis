@@ -141,6 +141,17 @@ function [ts, out] = regionalKalman(obsIn, B, opts)
 %                    sigmas
 %     Climatology (true)  (1,1) logical  solution mode: remove and
 %                    restore the observation climatology, see above
+%     FitClimatology ("observations")  "observations" | "filtered"   what
+%                    that climatology is fitted to, as in kalmanChain:
+%                    "observations" fits it to the (background-reduced)
+%                    series, so the noise of the fit is restored unfiltered
+%                    (A34); "filtered" runs the chain once with Climatology
+%                    = false and no background, fits the climatology to
+%                    that estimate, removes it, filters the residual and
+%                    restores it through Proj - twice the cost; 0.89-1.96
+%                    against 14.5 cm grid RMS in the 8e closed loop
+%                    (tools/dev/validate_climatology_restore.py). Ignored
+%                    when Climatology = false and in records mode.
 %     Lag (Inf)      (1,1) double  smoothing lag in epochs
 %                    (rtsSmoother's Lag): Inf the full RTS pass, 0 the
 %                    filter estimates alone
@@ -275,7 +286,7 @@ function [ts, out] = regionalKalman(obsIn, B, opts)
 %
 %   Developed by Matthias Weigelt with the help of Claude (Opus 5.5),
 %   2026-10-21 (Background: 2026-10-21, WP8 8e; process-noise scales:
-%   2026-10-21, WP8 8i).
+%   2026-10-21, WP8 8i; FitClimatology: 2026-10-21, A34).
 arguments
     obsIn
     B (1,1) struct
@@ -293,6 +304,7 @@ arguments
     opts.Tolerance (1,1) double {mustBePositive} = 0.5/365.25
     opts.NoiseCov double = []
     opts.Climatology (1,1) logical = true
+    opts.FitClimatology (1,1) string {mustBeMember(opts.FitClimatology, ["observations", "filtered"])} = "observations"
     opts.Lag (1,1) double {mustBeNonnegative} = Inf
     opts.QC (1,1) string {mustBeMember(opts.QC, ["none", "flag", "reject"])} = "none"
     opts.QCAlpha (1,1) double {mustBeInRange(opts.QCAlpha, 0, 1, "exclusive")} = 1e-3
@@ -361,7 +373,18 @@ if solMode
         tsObs = tsObs - shSeries(bC, Ss = bS, Epochs = tsObs.epochs, ...
             GM = tsObs.GM, R = tsObs.R);
     end
-    if opts.Climatology
+    if opts.Climatology && opts.FitClimatology == "filtered"
+        % A34: fit the climatology to a first pass without one (and
+        % without the background, which is already removed)
+        o1 = opts;
+        o1.Climatology = false;
+        o1.FitClimatology = "observations";
+        o1.Background = [];
+        a1 = namedargs2cell(o1);
+        ts1 = shLowLevel.regionalKalman(tsObs, B, a1{:});
+        climObs = ts1.climatology;
+        tsObs = tsObs - climatologySeries(climObs, tsObs);
+    elseif opts.Climatology
         [climObs, tsObs] = tsObs.climatology;
     end
     obsEpochs = tsObs.epochs(:);
@@ -612,4 +635,19 @@ end
 
 function out = tern(c, a, b)
 if c, out = a; else, out = b; end
+end
+
+function s = climatologySeries(clim, ts)
+%CLIMATOLOGYSERIES The climatology CLIM evaluated at the epochs of TS, as
+%   an shSeries with TS's constants, so that TS - s is epoch-matched.
+n1 = ts.nmax + 1;
+nT = ts.nEpochs;
+C = zeros(n1, n1, nT);
+S = C;
+for k = 1:nT
+    g = clim.eval(ts.epochs(k));
+    C(:, :, k) = g.C;
+    S(:, :, k) = g.S;
+end
+s = shSeries(C, Ss = S, Epochs = ts.epochs, GM = ts.GM, R = ts.R);
 end
