@@ -102,6 +102,7 @@ function [grid, lat, lon, P] = shSynthesis(C, S, GM, R, latVec, lonVec, opts)
 %     shLowLevel:shSynthesis:badP
 %         a precomputed P does not match Nmax and the latitude vector
 %     shLowLevel:shSynthesis:badMethod
+%         Method is not "auto", "direct" or "fft" (any case), or
 %         Method="fft" on a longitude vector that is not uniform and
 %         full-circle
 %     shLowLevel:shSynthesis:noRadialLaw
@@ -294,8 +295,13 @@ elseif strcmp(method, 'fft')
             'method=''fft'' requires a uniform, full-circle longitude vector.');
     end
     useFFT = true;
-else
+elseif strcmp(method, 'direct')
     useFFT = false;
+else
+    % v5.23.4: any other value used to run the direct path silently, so a
+    % typo ("fast", "ftt") was indistinguishable from "direct"
+    error('shLowLevel:shSynthesis:badMethod', ...
+        'Method must be "auto", "direct" or "fft" (got "%s").', opts.Method);
 end
 
 if useFFT

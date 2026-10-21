@@ -3405,3 +3405,105 @@ W = struct('nmax', 2, 'name', 'old', 'blocks', ...
 verifyError(testCase, @() shLowLevel.applyDDK(zeros(3), zeros(3), W), ...
     'shLowLevel:applyDDK:badBlock');
 end
+
+function testStandardChainDropsAnEpochInAnInteriorGap(testCase)
+%TESTSTANDARDCHAINDROPSANEPOCHINANINTERIORGAP v5.23.4: OnMissing = "drop"
+%   drops an epoch no record reaches within Tolerance, also inside a
+%   table's range. TN-13 has no record for the 2017-07..2018-05 gap, so a
+%   2017-12 month used to pass the range check and stop the chain in
+%   addDegree1 with epochNotInTable.
+dd = shxTestDataDir();
+fol = tempname; mkdir(fol);
+cl = onCleanup(@() rmIfFolder(fol)); %#ok<NASGU>
+g = shCoefficients.read(fullfile(dd, 'ITSG-Grace2018_n60_2008-04.gfc'));
+g.write(fullfile(fol, 'ITSG-Grace2018_n60_2008-04.gfc'), Sidecar = false);
+g.write(fullfile(fol, 'ITSG-Grace2018_n60_2017-12.gfc'), Sidecar = false);
+tn13 = fullfile(dd, 'TN-13_GEOC_CSR_RL06.3.txt');
+[ts, rep] = shLowLevel.standardChain(fol, TN14 = false, ...
+    Degree1File = tn13, Filter = "none", Quiet = true);
+verifyEqual(testCase, ts.nEpochs, 1, 'the gap month must be dropped');
+verifyLessThan(testCase, ts.epochs, 2009);
+verifyTrue(testCase, any(contains(rep.steps, "without a TN-13 record")));
+verifyError(testCase, @() shLowLevel.standardChain(fol, TN14 = false, ...
+    Degree1File = tn13, Filter = "none", OnMissing = "error", ...
+    Quiet = true), 'shLowLevel:standardChain:uncoveredEpochs');
+end
+
+function testEstimateDegree1UsesTheSeriesRadius(testCase)
+%TESTESTIMATEDEGREE1USESTHESERIESRADIUS v5.23.4: the degree-1 basis takes
+%   the series' R, as the synthesis of the observations does. The EWH
+%   kernel is linear in R, so the same coefficients on another radius
+%   must give the same estimate; with the fixed 6378136.3 in the basis
+%   they came back scaled by the ratio of the radii.
+lat = -89:4:89;
+lon = 0:4:356;
+[LO, LA] = meshgrid(lon, lat);
+ocean = ~(((LA > 10) & (LA < 70) & (LO > 250) & (LO < 350)) | ...
+          ((LA > -40) & (LA < 30) & (LO > 10) & (LO < 60)));
+kn = [0; 0.021; -0.3054; -0.1960; zeros(17, 1)];
+t1 = wp7Series(12, 2, 103);
+t2 = shSeries(t1.Cs, Ss = t1.Ss, Epochs = t1.epochs, R = 1.01 * t1.R);
+ws = warning('off', 'shLowLevel:estimateDegree1:noOceanModel');
+cw = onCleanup(@() warning(ws));
+d1 = shLowLevel.estimateDegree1(t1, ocean, kn = kn, LatDeg = lat, ...
+    LonDeg = lon, Nmax = 12);
+d2 = shLowLevel.estimateDegree1(t2, ocean, kn = kn, LatDeg = lat, ...
+    LonDeg = lon, Nmax = 12);
+% rounding of the two syntheses and solves only; the bug was a factor 1.01
+verifyEqual(testCase, [d2.C10, d2.C11, d2.S11], [d1.C10, d1.C11, d1.S11], ...
+    'RelTol', 1e-10);
+end
+
+function testSynthesisRefusesAnUnknownMethod(testCase)
+%TESTSYNTHESISREFUSESANUNKNOWNMETHOD v5.23.4: a Method other than "auto",
+%   "direct" or "fft" ran the direct path silently.
+C = zeros(3); S = zeros(3);
+verifyError(testCase, @() shLowLevel.shSynthesis(C, S, 1, 1, 0, [0 10 50], ...
+    'Method', 'fast'), 'shLowLevel:shSynthesis:badMethod');
+% any case of a valid value still works
+g = shLowLevel.shSynthesis(C, S, 1, 1, 0, [0 10 50], 'Method', 'DIRECT');
+verifyEqual(testCase, size(g), [1 3]);
+end
+
+function testPlotSHSpectrumOverlaysAStructArray(testCase)
+%TESTPLOTSHSPECTRUMOVERLAYSASTRUCTARRAY v5.23.4: a struct array of
+%   spectra is overlaid like a cell array; it was wrapped as one cell and
+%   failed.
+fig = figure('Visible', 'off');
+cleanup = onCleanup(@() close(fig)); %#ok<NASGU>
+rng(48);
+L = 10; n1 = L + 1;
+C = tril(randn(n1)) * 1e-9; S = tril(randn(n1), -1) * 1e-9; S(:, 1) = 0;
+sd = shLowLevel.shDegreeRMS(C, S);
+axA = subplot(1, 2, 1, 'Parent', fig);
+axB = subplot(1, 2, 2, 'Parent', fig);
+shLowLevel.plotSHSpectrum({sd, sd}, 'Ax', axA);
+shLowLevel.plotSHSpectrum([sd, sd], 'Ax', axB);
+verifyEqual(testCase, numel(findobj(axB, 'Type', 'line')), ...
+    numel(findobj(axA, 'Type', 'line')));
+end
+
+function testDemoEmptyOutDirIsATempFolder(testCase)
+%TESTDEMOEMPTYOUTDIRISATEMPFOLDER v5.23.4: OutDir = "" writes the D16
+%   exports into a fresh folder under tempdir; it reached fullfile as ''
+%   and wrote them into the current folder.
+here = pwd;
+tmp = tempname; mkdir(tmp);
+cd(tmp);
+% one cleanup, in this order: Windows cannot remove the current folder
+cl = onCleanup(@() leaveAndRemove(here, tmp)); %#ok<NASGU>
+% the outcome of the export itself is not this test's subject (D16 also
+% writes a video, which needs a codec); only where it writes is
+ws = warning('off', 'shAnalysis:demo:casesFailed');
+cw = onCleanup(@() warning(ws)); %#ok<NASGU>
+evalc('demo_shAnalysis("D16", Visible = false, OutDir = "");');
+close all hidden;
+verifyEmpty(testCase, dir(fullfile(tmp, 'shx_demo_*')), ...
+    'OutDir = "" wrote into the current folder');
+end
+
+function leaveAndRemove(here, tmp)
+%LEAVEANDREMOVE Return to HERE, then remove TMP.
+cd(here);
+rmIfFolder(tmp);
+end

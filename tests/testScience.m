@@ -195,9 +195,14 @@ function testPublishedTrendOnARealSeries(testCase)
 %   is conserved to a small fraction of the regional signal, and the
 %   secular change over the GRACE era is dominated by degree 2 and the
 %   polar regions.
+% the environment first, then the preference setup_shAnalysis stores
+% (SeriesFolder=), as the other real-data tests do (v5.23.4: this one read
+% the environment only, so a stored preference did not enable it)
 folder = getenv('SHX_SERIES_FOLDER');
+if isempty(folder), folder = getpref('shAnalysis', 'SeriesFolder', ''); end
 assumeNotEmpty(testCase, folder, ...
-    'set SHX_SERIES_FOLDER to a folder of monthly .gfc files to run this');
+    ['set SHX_SERIES_FOLDER (or setup_shAnalysis(SeriesFolder=...)) to ' ...
+     'a folder of monthly .gfc files to run this']);
 assumeTrue(testCase, isfolder(folder), ...
     sprintf('SHX_SERIES_FOLDER is not a folder: %s', folder));
 

@@ -31,9 +31,9 @@ function [files, info] = fetchITSGBackground(months, opts)
 %                        oceanBottomPressure and provides c20,
 %                        degree1, glacialIsostaticAdjustment,
 %                        hydrology. A product absent in an era 404s
-%                        and counts in that product's nFailed; it
-%                        reaches info.missing only when NO selected
-%                        product has the month (see Outputs)
+%                        and counts in that product's nFailed and
+%                        its products(i).missing, and the month is
+%                        listed in info.missing (see Outputs)
 %     Dest ("")          destination folder; "" =
 %                        dataFolder/series/itsg/background (v3.16)
 %     Release ("")       "" routes by month; a release name pins it
@@ -54,13 +54,14 @@ function [files, info] = fetchITSGBackground(months, opts)
 %     info  (1,1) struct  fields
 %           products  (1 x nProducts) struct array, one per product, with
 %                     product, nListed, nDownloaded, nSkipped, nFailed,
-%                     nRemaining
-%           missing   (k,1) string  months for which no file of ANY
-%                     selected product is present - absent on the server,
-%                     failed, or cut by MaxFiles/BudgetSec/MaxFailures. A
-%                     month missing from one product while another has it
-%                     is not listed; read products(i).nFailed and
-%                     nRemaining for that
+%                     nRemaining, and missing ((k,1) string, the months
+%                     that product has no file for)
+%           missing   (k,1) string  months for which at least one
+%                     selected product has no file - absent on the
+%                     server, failed, or cut by MaxFiles/BudgetSec/
+%                     MaxFailures; products(i).missing says which (until
+%                     v5.23.4 a month was listed only when every product
+%                     lacked it)
 %           releases  (r,1) string  releases actually used
 %
 %   Example
@@ -122,7 +123,7 @@ for k = 1:numel(mm)
 end
 files = strings(0, 1);
 pinfo = struct('product', {}, 'nListed', {}, 'nDownloaded', {}, ...
-    'nSkipped', {}, 'nFailed', {}, 'nRemaining', {});
+    'nSkipped', {}, 'nFailed', {}, 'nRemaining', {}, 'missing', {});
 for p = opts.Products
     urls = strings(numel(mm), 1); names = strings(numel(mm), 1);
     for k = 1:numel(mm)
@@ -136,15 +137,22 @@ for p = opts.Products
         PauseSec = opts.PauseSec, RetryAfterCap = opts.RetryAfterCap, ...
         Downloader = opts.Downloader, Quiet = opts.Quiet);
     files = [files; fs]; %#ok<AGROW>
+    % per product: until v5.23.4 missing was formed over the files of all
+    % products together, so a month one product lacked went unreported
+    % whenever another product had it
+    got = regexprep(fs, '^.*[\\/]', '');          % file names of the paths
+    pmiss = reshape(mm(~ismember(names, got)), [], 1);
     pinfo(end+1) = struct('product', p, 'nListed', st.nListed, ...
         'nDownloaded', st.nDownloaded, 'nSkipped', st.nSkipped, ...
-        'nFailed', st.nFailed, 'nRemaining', st.nRemaining); %#ok<AGROW>
+        'nFailed', st.nFailed, 'nRemaining', st.nRemaining, ...
+        'missing', pmiss); %#ok<AGROW>
     if ~opts.Quiet
         fprintf('%s: %d listed, %d downloaded, %d present, %d failed\n', ...
             p, st.nListed, st.nDownloaded, st.nSkipped, st.nFailed);
     end
 end
-missing = mm(~arrayfun(@(m) any(contains(files, m)), mm));
+missing = unique(vertcat(strings(0, 1), pinfo.missing), 'stable');
+missing = mm(ismember(mm, missing));
 info = struct('products', pinfo, 'missing', missing, ...
     'releases', unique(rel));
 end

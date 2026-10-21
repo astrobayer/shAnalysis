@@ -48,15 +48,12 @@ function [ts, rep] = standardChain(folder, opts)
 %                          option that keeps them would splice
 %                          UNCORRECTED months onto corrected ones, which
 %                          puts a step in the series exactly where people
-%                          look for the newest signal. "drop" acts on
-%                          the table's overall range only (first record
-%                          - Tolerance .. last record + Tolerance): an
-%                          epoch inside that range with no record within
-%                          Tolerance (an interior gap of the table) is
-%                          not dropped, and applyTN14 / addDegree1 then
-%                          stop with shCoefficients:applyTN14:
-%                          epochNotInTable or shCoefficients:addDegree1:
-%                          epochNotInTable
+%                          look for the newest signal. An epoch counts
+%                          as reached when a record lies within
+%                          Tolerance of it - the rule applyTN14 and
+%                          addDegree1 apply - so an epoch in an interior
+%                          gap of a table (TN-13 has none for
+%                          2017-07..2018-05) is dropped too (v5.23.4)
 %     Quiet (false)        suppress progress output
 %
 %   Outputs
@@ -91,8 +88,8 @@ function [ts, rep] = standardChain(folder, opts)
 %     shLowLevel:standardChain:noTN14
 %         the TN-14 file was not found - run setup_shAnalysis or name it
 %     shLowLevel:standardChain:uncoveredEpochs
-%         solution epochs lie outside a correction table and
-%         OnMissing="error"
+%         solution epochs have no correction-table record within
+%         Tolerance and OnMissing="error"
 %
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5),
 %   2026-08-10 (v3.1.0).
@@ -146,7 +143,7 @@ if opts.TN14
     [ts, nDrop] = dropUncovered(ts, tn.epoch, opts.Tolerance, ...
         opts.OnMissing, "TN-14");
     if nDrop > 0
-        steps(end+1) = sprintf("dropped %d epoch(s) beyond TN-14 coverage (table ends %.3f)", nDrop, max(tn.epoch));
+        steps(end+1) = sprintf("dropped %d epoch(s) without a TN-14 record (table %.3f..%.3f)", nDrop, min(tn.epoch), max(tn.epoch));
         if ~opts.Quiet, fprintf('  %s\n', steps(end)); end
     end
     ts = ts.applyTN14(tn, Tolerance = opts.Tolerance);
@@ -169,7 +166,7 @@ if opts.Degree1 ~= "none"
     [ts, nDrop] = dropUncovered(ts, tn13.epoch, opts.Tolerance, ...
         opts.OnMissing, "TN-13");
     if nDrop > 0
-        steps(end+1) = sprintf("dropped %d epoch(s) beyond TN-13 coverage (table ends %.3f)", nDrop, max(tn13.epoch));
+        steps(end+1) = sprintf("dropped %d epoch(s) without a TN-13 record (table %.3f..%.3f)", nDrop, min(tn13.epoch), max(tn13.epoch));
         if ~opts.Quiet, fprintf('  %s\n', steps(end)); end
     end
     ts = ts.addDegree1(tn13, Tolerance = opts.Tolerance);
@@ -221,16 +218,23 @@ end
 % ------------------------------------------------------------- helpers
 function [ts, nDropped] = dropUncovered(ts, tableEpochs, tol, mode, what)
 %DROPUNCOVERED Remove solution epochs no correction record can reach.
-lo = min(tableEpochs) - tol;
-hi = max(tableEpochs) + tol;
-keep = ts.epochs >= lo & ts.epochs <= hi;
+% the rule applyTN14 / addDegree1 apply: a record within tol of the epoch.
+% Until v5.23.4 this kept every epoch inside the table's overall range, so
+% an epoch in an interior gap (TN-13 has none for 2017-07..2018-05) was
+% not dropped and stopped the chain with epochNotInTable
+ep = ts.epochs(:);
+keep = false(size(ep));
+for k = 1:numel(ep)
+    keep(k) = min(abs(tableEpochs(:) - ep(k))) <= tol;
+end
 nDropped = nnz(~keep);
 if nDropped == 0
     return
 end
 if mode == "error"
     error('shLowLevel:standardChain:uncoveredEpochs', ...
-        ['%d solution epoch(s) lie outside the %s table (%.3f..%.3f). ' ...
+        ['%d solution epoch(s) have no %s record within Tolerance ' ...
+         '(table %.3f..%.3f). ' ...
          'The correction tables trail the solutions, so this is normal ' ...
          'for a fresh series: OnMissing="drop" (the default) excludes ' ...
          'them, or supply an updated table.'], ...

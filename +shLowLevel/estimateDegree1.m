@@ -152,7 +152,7 @@ if hasModel
 end
 
 % the three degree-1 surface-mass patterns, in EWH metres
-B = degree1Basis(lat, lon, opts.kn);
+B = degree1Basis(lat, lon, opts.kn, ts.R);
 w = cosd(LA);
 % A CONSTANT column goes with the three patterns. The ocean residual
 % generally contains a degree-0 (total mass) component - the observed
@@ -215,13 +215,15 @@ end
 end
 
 % ------------------------------------------------------------- helpers
-function B = degree1Basis(lat, lon, kn)
+function B = degree1Basis(lat, lon, kn, R)
 %DEGREE1BASIS The C10, C11, S11 surface-mass patterns in EWH [m].
 %   A unit degree-1 Stokes coefficient maps to surface density through
 %   the Wahr et al. (1998) kernel at n = 1; the same constants as
 %   shLowLevel.kernelFactors, kept explicit here because only n = 1 is
-%   needed and the basis must match the synthesis exactly.
-R = 6378136.3;
+%   needed and the basis must match the synthesis exactly. R is the
+%   series' own, as in g.synthesis: until v5.23.4 it was the fixed
+%   6378136.3, so a series on another radius got estimates scaled by
+%   the ratio of the two.
 rhoAve = 5517;
 rhoWater = 1000;
 assert(numel(kn) >= 2, 'shLowLevel:estimateDegree1:shortLoveNumbers', ...

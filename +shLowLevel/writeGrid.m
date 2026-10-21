@@ -6,8 +6,9 @@ function writeGrid(filename, grid, latDeg, lonDeg, opts)
 %   with Epochs=) using nccreate/ncwrite - a stack is directly readable
 %   back by shLowLevel.readMascon (roundtrip-tested), by GMT, panoply,
 %   xarray, etc. Time is stored as "days since 2002-01-01" like the
-%   mascon products. A 2-D field (T = 1) gets NO time variable: Epochs
-%   is ignored there.
+%   mascon products. A 2-D field gets a time axis of length 1 when one
+%   epoch is given (Epochs = 2010.29), and none without (before v5.23.4
+%   its epoch was dropped silently).
 %
 %   Inputs
 %     filename  char/string  .nc target (existing file is replaced;
@@ -18,14 +19,15 @@ function writeGrid(filename, grid, latDeg, lonDeg, opts)
 %     lonDeg    (nlon,1) double [deg, 0..360)
 %   Options
 %     Name ("field"), Units (""),
-%     Epochs ([])  (T,1) decimal years, one per layer of a 3-D grid
-%                  (required when T > 1, not written when T = 1),
+%     Epochs ([])  (T,1) decimal years, one per layer (required when
+%                  T > 1; optional, and then written, when T = 1),
 %     LatType ("geocentric"), Description ("")
 %     Sidecar (true)  write <file>.provenance.json alongside the output
 %
 %   Error identifiers
 %     shLowLevel:writeGrid:badEpochs
-%         a 3-D stack was given without one entry of Epochs per layer
+%         Epochs does not have one entry per layer (a 3-D stack always
+%         needs them; a 2-D field takes none or one)
 %     shLowLevel:writeGrid:badSize
 %         GRID is not nlat x nlon (x T)
 %
@@ -53,9 +55,13 @@ nlat = numel(latDeg); nlon = numel(lonDeg);
 T = size(grid, 3);
 assert(size(grid, 1) == nlat && size(grid, 2) == nlon, ...
     'shLowLevel:writeGrid:badSize', 'GRID must be nlat x nlon (x T).');
-if T > 1
+% a time axis whenever there are epochs: a 2-D field given one epoch is
+% written with a time axis of length 1 (v5.23.4: its epoch was dropped)
+hasTime = T > 1 || ~isempty(opts.Epochs);
+if hasTime
     assert(numel(opts.Epochs) == T, 'shLowLevel:writeGrid:badEpochs', ...
-        '3-D stacks need Epochs (T = %d).', T);
+        'GRID has %d layer(s) and needs as many Epochs (got %d).', ...
+        T, numel(opts.Epochs));
 end
 vn = char(opts.Name);
 nccreate(filename, 'lat', 'Dimensions', {'lat', nlat});
@@ -69,7 +75,7 @@ ncwriteatt(filename, 'lat', 'lat_type', char(opts.LatType));
 ncwriteatt(filename, 'lon', 'units', 'degrees_east');
 ncwriteatt(filename, 'lon', 'standard_name', 'longitude');
 ncwriteatt(filename, 'lon', 'axis', 'X');
-if T > 1
+if hasTime
     nccreate(filename, 'time', 'Dimensions', {'time', T});
     t0 = datetime(2002, 1, 1);
     yy = floor(opts.Epochs);
