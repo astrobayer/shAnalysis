@@ -1,4 +1,4 @@
-function webFetch(url, dest, timeoutSec, proxy)
+function webFetch(url, dest, timeoutSec, proxy, varargin)
 %WEBFETCH Download URL to DEST; optional per-call proxy (package-private).
 %
 %   webFetch(URL, DEST, TIMEOUT, "") uses websave (which honours the
@@ -10,17 +10,22 @@ function webFetch(url, dest, timeoutSec, proxy)
 %   shLowLevel.fetch* functions for institutional networks where per-call
 %   proxy control is needed.
 %
+%   webFetch(..., NAME, VALUE, ...) forwards further name-value pairs to
+%   shLowLevel.httpFetch on the no-proxy path (MaxTries, BaseDelay); the
+%   proxy path makes one attempt and ignores them.
+%
 %   Outputs
 %     (none)     writes DEST; errors propagate to the caller, which
 %                implements the safe-swap semantics
 %
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5),
-%   2026-08-10 (v2.7.0); Retry-After path 2026-08-12 (v3.8.9).
+%   2026-08-10 (v2.7.0); Retry-After path 2026-08-12 (v3.8.9);
+%   forwarded retry options: Claude (Opus 5.5), 2026-10-21 (A36).
 if strlength(proxy) == 0
     % Retry-After-aware path (v3.8.9): matlab.net.http exposes the
     % response headers websave discards, so 429/5xx bursts (the GravIS
     % portal case, guide V7/V8) back off politely instead of failing.
-    shLowLevel.httpFetch(url, dest, Timeout = timeoutSec);
+    shLowLevel.httpFetch(url, dest, varargin{:}, Timeout = timeoutSec);
     return
 end
 httpOpts = matlab.net.http.HTTPOptions( ...

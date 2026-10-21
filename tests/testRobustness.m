@@ -482,13 +482,15 @@ function testFetchProxyPlumbing(tc)
 dst = tempname; mkdir(dst);
 c1 = onCleanup(@() rmIfFolder(dst)); %#ok<NASGU>
 % websave path (no proxy): unreachable base -> clean failure report
+% MaxTries = 1: one attempt, so the failure costs no backoff (A36: at
+% httpFetch's defaults each failing URL waited about 15 s)
 [~, i0] = shLowLevel.fetchTN(Dest = dst, BaseURL = "https://127.0.0.1:1", ...
-    Providers = "CSR", TN14 = false, Timeout = 2, Quiet = true);
+    Providers = "CSR", TN14 = false, Timeout = 2, Quiet = true, MaxTries = 1);
 verifyEqual(tc, numel(i0.failed), 1);
 % webFetch path (proxy set): unreachable proxy -> clean failure report
 [~, i1] = shLowLevel.fetchTN(Dest = dst, BaseURL = "https://127.0.0.1:1", ...
     Providers = "CSR", TN14 = false, Timeout = 2, Quiet = true, ...
-    Proxy = "http://127.0.0.1:9");
+    Proxy = "http://127.0.0.1:9", MaxTries = 1);
 verifyEqual(tc, numel(i1.failed), 1);
 % mirror mode: local copy, Proxy irrelevant, succeeds
 d = tc.TestData.dataDir;
@@ -1193,7 +1195,7 @@ verifyFalse(tc, iB.failed);
 rowBad = row; rowBad.zip = string(fullfile(mir, 'no_such.zip'));
 dC = tempname; cC = onCleanup(@() rmIfFolder(dC)); %#ok<NASGU>
 [fsC, iC] = shLowLevel.fetchICGEM(rowBad, FileList = FL, Dest = dC, ...
-    Pause = 0, Quiet = true);
+    Pause = 0, Quiet = true, MaxTries = 1);       % A36: no backoff
 verifyEqual(tc, numel(fsC), 2);
 verifyEqual(tc, iC.mode, "files");             % fallback engaged
 % forced archive on the broken zip must error, not fall back
@@ -1202,7 +1204,7 @@ verifyEqual(tc, iC.mode, "files");             % fallback engaged
 threw = false; thrownId = "";
 try
     shLowLevel.fetchICGEM(rowBad, Mode = "archive", ...
-        Dest = tempname, Quiet = true);
+        Dest = tempname, Quiet = true, MaxTries = 1);
 catch ME
     threw = true; thrownId = string(ME.identifier);
 end
@@ -1314,13 +1316,15 @@ verifyGreaterThan(testCase, height(T), 30);
 Tb = T(1:2, :);
 Tb.url = ["https://invalid.invalid/a.gfc"; "https://invalid.invalid/b.gfc"];
 out = evalc(['[fB, iB] = shLowLevel.fetchICGEM([1 2], List = Tb, ' ...
-    'Dest = tempname, Timeout = 3);']);
+    'Dest = tempname, Timeout = 3, MaxTries = 1);']);   % A36: no backoff
 verifyEqual(testCase, numel(fB), 0);           % nothing fetched
 verifyEqual(testCase, numel(iB), 2);
 verifyTrue(testCase, all([iB.failed]));        % both captured, no throw
 verifyTrue(testCase, contains(out, 'FAILED') && contains(out, '2 failed'));
+verifyTrue(testCase, contains(out, 'after 1 attempts'), ...
+    'MaxTries did not reach httpFetch through the bulk loop');
 outQ = evalc(['[~, iQ] = shLowLevel.fetchICGEM([1 2], List = Tb, ' ...
-    'Dest = tempname, Timeout = 3, Quiet = true);']);
+    'Dest = tempname, Timeout = 3, Quiet = true, MaxTries = 1);']);
 verifyEqual(testCase, strtrim(outQ), '');      % Quiet is quiet
 verifyTrue(testCase, all([iQ.failed]));
 % v3.0.0: numbered catalogue + numeric selection contract (offline)
