@@ -108,11 +108,17 @@ def refuse(label, name):
     return False
 
 def fix_option_default(label, opt, default):
+    # The default goes into the option's OWN row: a line that starts with
+    # the option name (or opts.<name>). Until v5.23.2 this wrote it after
+    # the FIRST mention anywhere in the help - a syntax line, the H1 line,
+    # a formula - and left 125 markers such as `Permanent (false) = true`
+    # that are not MATLAB; help_audit now rejects them (misplaced_defaults).
     path, e = locate(label)
     lines, i, j, pre = helpspan(path, e)
     tgt = None
+    rowre = re.compile(r'^\s*%\s*(opts\.)?' + re.escape(opt) + r'\b(?!\s*=)')
     for k in range(i, j):
-        if re.search(r'\b' + re.escape(opt) + r'\b', lines[k]):
+        if rowre.match(lines[k]):
             tgt = k; break
     dtxt = default if default else '""'
     if tgt is None:

@@ -5,9 +5,9 @@ function reg = demo_shAnalysis(cases, opts)
 %   demo_shAnalysis("all")          runs every case
 %   demo_shAnalysis("list")        prints the case table, returns registry
 %   demo_shAnalysis(["D04","D15"]) runs selected cases
-%   demo_shAnalysis(..., Visible (true)=false)  hidden figures (CI/smoke tests)
-%   demo_shAnalysis(..., OutDir (string(tempdir))=tempdir) target for D16 file exports
-%   demo_shAnalysis(..., StopOnError (false)=true)  rethrow instead of the
+%   demo_shAnalysis(..., Visible=false)  hidden figures (CI/smoke tests)
+%   demo_shAnalysis(..., OutDir=tempdir) target for D16 file exports
+%   demo_shAnalysis(..., StopOnError=true)  rethrow instead of the
 %       default fail-and-continue (each case runs in try/catch; a
 %       summary lists ok/failed cases at the end)
 %
@@ -52,11 +52,11 @@ function reg = demo_shAnalysis(cases, opts)
 %             full registry in order
 %
 %   Options
-%     Visible     (1 x 1) logical  show figures (false keeps them
+%     Visible (true)  (1 x 1) logical  show figures (false keeps them
 %                 off-screen for batch/CI runs)
-%     OutDir      (1 x 1) string   output folder for exported files;
+%     OutDir (string(tempdir))  (1 x 1) string   output folder for exported files;
 %                 "" = a fresh folder under tempdir
-%     StopOnError (1 x 1) logical  true stops at the first failing
+%     StopOnError (false)  (1 x 1) logical  true stops at the first failing
 %                 case; false (default) prints FAILED and continues -
 %                 the fail-and-continue contract the suite exercises
 %

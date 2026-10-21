@@ -3,12 +3,12 @@ function summary = setup_shAnalysis(opts)
 %
 %   setup_shAnalysis                        adds the toolbox to the path
 %                                           for THIS session only
-%   setup_shAnalysis(Permanent (false) = true)      also persists it (savepath)
-%   setup_shAnalysis(Download ("none") = "core")     + TN-14 and TN-13 files
-%   setup_shAnalysis(Download = "filters")  + DDK (3) filter matrices
+%   setup_shAnalysis(Permanent = true)      also persists it (savepath)
+%   setup_shAnalysis(Download = "core")     + TN-14 and TN-13 files
+%   setup_shAnalysis(Download = "filters")  + DDK filter matrices
 %   setup_shAnalysis(Download = "starter")  + ITSG starter months
 %   setup_shAnalysis(Download = "all")      + EVERY monthly ITSG solution
-%   setup_shAnalysis(DryRun (false) = true, ...)    print/return the plan, do
+%   setup_shAnalysis(DryRun = true, ...)    print/return the plan, do
 %                                           NOTHING (no path change, no
 %                                           folders, no network)
 %
@@ -22,7 +22,7 @@ function summary = setup_shAnalysis(opts)
 %     "all"      starter + shLowLevel.fetchITSG("all", Nmax=Nmax): the
 %                complete monthly archive - the extension of "starter"
 %                for machines that shall hold the full series
-%     "starter"  filters + shLowLevel.fetchITSG(Months (["2008-04", "2025-12"]), Nmax (96)=Nmax): a small
+%     "starter"  filters + shLowLevel.fetchITSG(Months, Nmax=Nmax): a small
 %                monthly-solution starter set - by default the n96
 %                companions of the two shipped n60 fixture months
 %                (2008-04 GRACE, 2025-12 GRACE-FO).

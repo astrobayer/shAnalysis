@@ -1,7 +1,7 @@
 function [kernel, radialExp, units] = kernelFactors(quantity, nmax, GM, R, opts)
 %KERNELFACTORS Degree-dependent spectral factors for SH synthesis/analysis.
 %
-%   KERNEL = shLowLevel.kernelFactors(QUANTITY, NMAX, GM, R, kn ([])=..., ...) returns
+%   KERNEL = shLowLevel.kernelFactors(QUANTITY, NMAX, GM, R, kn=..., ...) returns
 %   the (NMAX+1)x1 factor f_n such that a field of QUANTITY is
 %       q(lat,lon) = sum_n f_n * sum_m Pbar_nm (C_nm cos + S_nm sin).
 %   Shared by shLowLevel.shSynthesis (multiply) and shLowLevel.shAnalysisGrid (divide);
@@ -18,13 +18,13 @@ function [kernel, radialExp, units] = kernelFactors(quantity, nmax, GM, R, opts)
 %                                        GM, R or kn enter - synthesize the
 %                                        raw coefficient field, e.g. kernels
 %                                        or masks)
-%     'ewh'                   [m]        R rho_ave (5517)/(3 rho_w) (2n+1)/(1+kn)
+%     'ewh'                   [m]        R rho_ave/(3 rho_w) (2n+1)/(1+kn)
 %     'surface_density'     * [kg/m^2]   R rho_ave/3 (2n+1)/(1+kn)
 %                             (= rho_w * ewh kernel; requires kn)
 %     'bottom_pressure'     * [Pa]       g0 * surface_density kernel,
 %                             g0 = GM/R^2 (ocean-bottom / surface
 %                             pressure equivalent; requires kn)
-%     'deformation_up'      * [m]        R hn ([])/(1+kn): elastic vertical
+%     'deformation_up'      * [m]        R hn/(1+kn): elastic vertical
 %                             load deformation (Wahr et al. 1998; the
 %                             GRACE <-> GNSS uplift comparison quantity;
 %                             requires kn AND hn). Horizontal components
@@ -35,9 +35,9 @@ function [kernel, radialExp, units] = kernelFactors(quantity, nmax, GM, R, opts)
 %     quantity  char/string  see above
 %     nmax      (1,1) double
 %     GM, R     (1,1) double [m^3/s^2], [m]
-%     opts.kn        (>=nmax+1,1) double  load Love numbers k'_n
+%     opts.kn ([])   (>=nmax+1,1) double  load Love numbers k'_n
 %                    (NEVER hardcoded - user-supplied)
-%     opts.hn        (>=nmax+1,1) double  load Love numbers h'_n
+%     opts.hn ([])   (>=nmax+1,1) double  load Love numbers h'_n
 %                    (deformation_up only; user-supplied)
 %     opts.rho_ave   (1,1) double = 5517   [kg/m^3]
 %     opts.rho_water (1,1) double = 1000   [kg/m^3]

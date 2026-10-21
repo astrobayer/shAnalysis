@@ -11,16 +11,16 @@ function [files, info] = fetchITSG(months, opts)
 %   FILES = shLowLevel.fetchITSG(2019:2020) downloads all available monthly
 %   GSM solutions for the given years into dataFolder/series/itsg/monthly (v3.16 layout)
 %   (websave, base MATLAB). Already-present files are skipped unless
-%   Update (false)=true, which re-downloads them with a safe swap (the fresh
+%   Update=true, which re-downloads them with a safe swap (the fresh
 %   file is parse-verified before it replaces the old one); months
 %   that do not exist on the server (mission gap 2017-07..2018-05,
 %   intra-mission dropouts) are reported in INFO.missing, not errors.
 %
 %   FILES = shLowLevel.fetchITSG(["2008-04", "2010-11"]) fetches single months.
 %
-%   FILES = shLowLevel.fetchITSG("2008-04", Product ("monthly")="daily") fetches the DAILY
+%   FILES = shLowLevel.fetchITSG("2008-04", Product="daily") fetches the DAILY
 %   Kalman-smoother solutions (v2.4.1): one .gfc per day (~83 kB,
-%   ICGEM format with formal errors, zero_tide), n40 ONLY - Nmax (NaN)
+%   ICGEM format with formal errors, zero_tide), n40 ONLY - Nmax
 %   resolves to 40 automatically; requesting another Nmax errors. The
 %   months/years spec expands to all days (a full year is ~365 files);
 %   target dataFolder/series/itsg/daily (kept separate from the monthly
@@ -33,6 +33,7 @@ function [files, info] = fetchITSG(months, opts)
 %     months   numeric years (each expands to 12 months) OR string
 %              array "YYYY-MM"
 %   Options
+%     Product ("monthly")  "monthly" | "daily": the ITSG solution kind
 %     Dest (fullfile(shLowLevel.dataFolder(), "series", "itsg", "monthly"))  target folder
 %              (set a shared location once via shLowLevel.dataFolder(path))
 %     Nmax (NaN)     monthly: 60 | 96 | 120 (server folder monthly_nXX;
@@ -40,6 +41,7 @@ function [files, info] = fetchITSG(months, opts)
 %                    and NaN resolves to 40; any other value errors
 %     Timeout (60)   [s] per file
 %     Quiet (false)  suppress per-file progress
+%     Update (false)  re-download files that are already present
 %     Proxy ("")  per-call proxy URL, e.g. "http://proxy:8080" (empty: MATLAB Web Preferences)
 %     BaseURL ("https://ftp.tugraz.at/pub/ITSG/GRACE")  server base URL, or a local mirror folder for offline use
 %     Catalog ([])  row numbers of the shLowLevel.listITSG catalogue to fetch completely

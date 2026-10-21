@@ -11,7 +11,7 @@ function out = mcPropagate(fun, g, opts)
 %   Sampling models:
 %     default        independent Gaussian per coefficient from
 %                    G.sigmaC / G.sigmaS (NaN sigmas -> not perturbed)
-%     Cov ([])=M, Idx (struct([]))=idx correlated sampling from a full P x P covariance
+%     Cov=M, Idx=idx correlated sampling from a full P x P covariance
 %                    (e.g. shLowLevel.readSINEX(..., Output="covariance").M
 %                    reordered via Index=idx) - Cholesky factorization
 %

@@ -10,7 +10,7 @@ function snx = readSINEX(filename, opts)
 %     +SOLUTION/NORMAL_EQUATION_MATRIX L|U  normal-equation matrix
 %   .gz files are gunzipped transparently.
 %
-%   opts.Only ("all") = "estimate" (v2.2) streams the SOLUTION/ESTIMATE block
+%   opts.Only = "estimate" (v2.2) streams the SOLUTION/ESTIMATE block
 %   line-by-line (gz via Java GZIPInputStream) and skips all matrix
 %   blocks - reads the estimates of a 460-MB n96 NEQ SINEX in seconds
 %   with negligible memory. Returns kind='estimate', M=[], epoch=NaN and
@@ -19,14 +19,14 @@ function snx = readSINEX(filename, opts)
 %   read; sigma carries the same values, the name this path used before
 %   v5.23.1, kept so existing callers do not break.
 %
-%   SNX = shLowLevel.readSINEX(..., Index (struct([]))=IDX) additionally reorders the result
+%   SNX = shLowLevel.readSINEX(..., Index=IDX) additionally reorders the result
 %   into the shLowLevel.shIndex ordering IDX: SNX.M and SNX.x then match IDX row
 %   for row, ready for tvANSFilter's opts.NoiseCov (after inverting an
-%   NEQ; see Output ("raw")='covariance'). Coefficients present in IDX but absent
+%   NEQ; see Output='covariance'). Coefficients present in IDX but absent
 %   from the file raise shLowLevel:readSINEX:missingParam.
 %
 %   Options
-%     Index   ([]) shLowLevel.shIndex struct for reordering
+%     Index   (struct([])) shLowLevel.shIndex struct for reordering
 %     Output  ("raw") raw returns the parsed blocks; covariance assembles it from a NEQ solution
 %     Only    ("all") estimate streams only the SOLUTION/ESTIMATE block of large files
 %

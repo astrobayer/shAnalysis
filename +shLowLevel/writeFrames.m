@@ -1,7 +1,7 @@
 function writeFrames(frames, filename, opts)
 %WRITEFRAMES Write ready-made RGB frames to a video container.
 %
-%   shLowLevel.writeFrames(FRAMES, 'out.avi', FrameRate (4)=..., ...)
+%   shLowLevel.writeFrames(FRAMES, 'out.avi', FrameRate=..., ...)
 %   writes an (H x W x 3 x T) uint8 stack to an MPEG-4 or Motion-JPEG AVI
 %   file and, by default, a provenance sidecar beside it.
 %

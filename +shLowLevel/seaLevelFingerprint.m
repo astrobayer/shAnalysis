@@ -2,7 +2,7 @@ function [S, grid, info] = seaLevelFingerprint(loadRegion, ocean, idx, opts)
 %SEALEVELFINGERPRINT Elastic sea-level fingerprint (sea-level equation).
 %
 %   [S, GRID, INFO] = shLowLevel.seaLevelFingerprint(LOADREGION, OCEAN, IDX,
-%       kn ("")=kn, hn ("")=hn) solves the elastic sea-level equation for a land
+%       kn=kn, hn=hn) solves the elastic sea-level equation for a land
 %   load: the ocean does NOT rise uniformly - it follows the perturbed
 %   geoid minus the deformed crust under global mass conservation
 %   (Farrell & Clark 1976, elastic limit):

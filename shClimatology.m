@@ -229,7 +229,7 @@ methods
         %AMPLITUDEMAP Pointwise seasonal amplitude (and phase) map.
         %   [A, LAT, LON, PHASE] = clim.amplitudeMap(WHICH, ... with WHICH
         %   "annual" | "semiannual" | k (index into clim.periods, v2.1),
-        %   LATVEC, LONVEC, Quantity ("geoid")=..., kn ([])=...) synthesizes the cos and
+        %   LATVEC, LONVEC, Quantity=..., kn=...) synthesizes the cos and
         %   sin component fields and combines them pointwise:
         %       A     = sqrt(fc.^2 + fs.^2)
         %       PHASE = atan2(fs, fc)   [rad, relative to t0]
@@ -240,6 +240,12 @@ methods
         %     lat        (1 x nlat) double   latitudes
         %     lon        (1 x nlon) double   longitudes
         %     phase      (nlat x nlon) double   phase [rad] of the harmonic
+        %
+        %   Options
+        %     Quantity ("geoid")  the quantity synthesized, as in
+        %         shCoefficients.synthesis
+        %     kn ([])  load Love numbers (user-supplied; required by the
+        %         mass quantities)
         %
         %   Error identifiers
         %     shClimatology:amplitudeMap:badInput
@@ -300,7 +306,7 @@ end
 methods (Static)
     function obj = fromCoef(coef, t0, series, opts)
         %FROMCOEF Build from shLowLevel.fitDeterministicModel output (internal).
-        %   OBJ = shClimatology.fromCoef(COEF, T0, SERIES, Periods (double.empty(1,0))=[],
+        %   OBJ = shClimatology.fromCoef(COEF, T0, SERIES, Periods=[],
         %   CoefSigma=[]) with COEF (6+2K) x (2*Nc) over the flattened
         %   [C(:); S(:)] stack of SERIES; rows 7:end are the cos/sin
         %   pairs of the K extra Periods [yr].
@@ -309,7 +315,7 @@ methods (Static)
     %     t0     (1 x 1) reference epoch of the fit [decimal years]
     %     series (1 x 1) shSeries the fit came from (history carrier)
     %   Options
-    %     Periods ([])      (1 x K2) extra harmonic periods [yr]
+    %     Periods (double.empty(1,0))  (1 x K2) extra harmonic periods [yr]
     %     CoefSigma ([])    (P x K) 1-sigma uncertainties of coef
     %
     %   Outputs

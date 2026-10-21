@@ -1,8 +1,8 @@
 function [sig, latDeg, lonDeg] = errorMap(M, idx, latDeg, lonDeg, opts)
 %ERRORMAP Analytic formal-error maps from a full coefficient covariance.
 %
-%   [SIG, LAT, LON] = shLowLevel.errorMap(M, IDX, LAT, LON, Quantity ("geoid")="ewh",
-%       kn ([])=kn) computes the pointwise 1-sigma of a synthesized field
+%   [SIG, LAT, LON] = shLowLevel.errorMap(M, IDX, LAT, LON, Quantity="ewh",
+%       kn=kn) computes the pointwise 1-sigma of a synthesized field
 %   from a full P x P covariance (e.g. shLowLevel.readSINEX(...,
 %   Output="covariance").M, reordered via Index=idx).
 %

@@ -8,7 +8,7 @@ function [N, info] = buildNoiseCov(Xres, idx, opts)
 %       across time, assembled block-diagonal. This reproduces the GRACE
 %       error structure responsible for striping (correlations between
 %       same-parity degrees of the same order) without any prior model.
-%       Cross-order and cross-parity terms are exactly zero. Shrinkage (0.1)
+%       Cross-order and cross-parity terms are exactly zero. Shrinkage
 %       toward the diagonal regularizes small-sample blocks.
 %       Caveat: at low degrees the residual variability is signal-
 %       dominated, so N is conservative there (the Wiener weight errs

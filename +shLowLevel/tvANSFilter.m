@@ -7,7 +7,7 @@ function [Xf, op, info] = tvANSFilter(X, tYears, idx, opts)
 %     1. deterministic model fit (bias/trend/annual/semi-annual); the
 %        stochastic filter only ever sees the residuals
 %     2. noise covariance shape N (empirical per-order/parity blocks, or
-%        a released full covariance via opts.NoiseCov ([]))
+%        a released full covariance via opts.NoiseCov)
 %     3. per-month VCE factors s(t):  N_t = s(t) * N
 %     4. iterative data-driven signal covariance S
 %     5. one generalized eigendecomposition  S*U = N*U*diag(lam),
@@ -15,7 +15,7 @@ function [Xf, op, info] = tvANSFilter(X, tYears, idx, opts)
 %            W_t = S (S + s_t N)^(-1) = V * diag(lam./(lam+s_t)) * U'
 %        with V = inv(U'): one O(P^3) factorization for the whole series,
 %        O(P^2) per month (equivalence unit-tested)
-%     6. optional hard linear constraints (opts.Constraints ([]), P x q, e.g.
+%     6. optional hard linear constraints (opts.Constraints, P x q, e.g.
 %        an ocean-mass kernel): Ac'*xf = Ac'*x to machine precision
 %     7. deterministic model added back unfiltered
 %
@@ -35,8 +35,8 @@ function [Xf, op, info] = tvANSFilter(X, tYears, idx, opts)
 %     X            (P,T) double    coefficient vectors per epoch
 %     tYears       (T,1) double    decimal years
 %     idx          struct          from shLowLevel.shIndex
-%     opts.NoiseCov     (P,P) double  full covariance (else empirical)
-%     opts.Constraints  (P,q) double  constraint kernels
+%     opts.NoiseCov ([])     (P,P) double  full covariance ([]: empirical)
+%     opts.Constraints ([])  (P,q) double  constraint kernels
 %     opts.SignalMode   'isotropic' (default) | 'inhomogeneous'
 %     opts.NIterSignal  (1,1) double  signal-covariance iterations, 3
 %     opts.Robust       (1,1) logical robust deterministic fit, false

@@ -14,7 +14,7 @@ function results = runAllTests(opts)
 %                               exact-zero symmetry points, see comment there)
 %     tests/testPerformance.m   benchmarks incl. Legendre-cache assertion
 %
-%   RESULTS = RUNALLTESTS(SkipPerformance (false)=true) omits the (slow)
+%   RESULTS = RUNALLTESTS(SkipPerformance=true) omits the (slow)
 %   performance suite. For statistical benchmark timing use
 %   runperf('testPerformance') directly.
 %
