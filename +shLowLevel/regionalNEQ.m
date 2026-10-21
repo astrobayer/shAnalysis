@@ -47,8 +47,39 @@ function [rec, info] = regionalNEQ(B, kind, opts)
 %                 combinations of the M point functionals, and Values
 %                 and Cov then belong to the combinations: Combine = [1 -1]
 %                 on two points along the line of sight is a line-of-sight
-%                 gravity difference (LGD). The along-track processing of
-%                 real LGD stays in lgdToolbox (CLAUDE.md WP8, row 8h).
+%                 gravity difference (LGD); kind "lgd" builds it from the
+%                 two orbits.
+%     "lgd"       line-of-sight gravity differences of a satellite pair,
+%                 LGD = e . (gB - gA), e = (rB - rA) / |rB - rA| - the
+%                 definition of lgdToolbox (HANDOVER D1). PositionA and
+%                 PositionB (M x 3) are the two satellites at the M epochs
+%                 of one arc, in time order, in the EARTH-FIXED frame of
+%                 the coefficients: lgdToolbox works in an inertial frame,
+%                 and the caller rotates both orbits (the LGD itself is a
+%                 scalar and does not change). Each row is the potential's
+%                 gradient design at B minus that at A, both along e
+%                 (Quantity "potential", the gravitational acceleration).
+%                 Values are the LGD as the same field sees them - residual
+%                 to a background when the basis carries a residual field
+%                 (Route A with ReferenceLgd, or Route B of lgdToolbox).
+%                 The along-track processing stays in lgdToolbox (CLAUDE.md
+%                 WP8): its band filter is passed as Operator and applied
+%                 ONCE to [Values, A], data first. lgd.spectralOperator
+%                 fits its edge predictor on that first column and applies
+%                 the fitted map to every column, so the design is
+%                 filtered exactly as the data are (its help: comparing
+%                 filtered data with unfiltered partials biases the
+%                 inversion). So Values are the UNFILTERED LGD (Route A:
+%                 info.components.unfiltered of lgd.fromRangeAcceleration),
+%                 and Valid is the mask of the data's own filtered call
+%                 (its info.valid). Rows that are not valid, or not finite
+%                 after the operator (edges, filled gaps), are dropped
+%                 together with their rows and columns of Cov, which
+%                 belongs to the FILTERED data (lgdToolbox's noise model).
+%                 Validated against lgdToolbox's forward models
+%                 (tools/dev/validate_regional_lgd.py): degrees 0 and 2
+%                 reproduce lgdReferenceJ2 to 1.7e-15 |g|, degree 0 its
+%                 50-digit Kepler pair (O2) to 5.3e-16 |g|.
 %
 %   The design of "points" uses only band-limited synthesis, so a point
 %   outside the region sees whatever the basis functions carry there; the
@@ -57,17 +88,27 @@ function [rec, info] = regionalNEQ(B, kind, opts)
 %
 %   Inputs
 %     B     (1,1) struct  a basis from shLowLevel.regionalBasis
-%     kind  (1,1) string  "solution" | "neq" | "points"
+%     kind  (1,1) string  "solution" | "neq" | "points" | "lgd"
 %
 %   Options
 %     Solution ([])  (P,1) double  SH coefficients in B.idx order
 %                    ("solution")
 %     Cov ([])       covariance of the data: (n,n), (n,1) variances or a
 %                    scalar variance, n = P ("solution"), M or Q
-%                    ("points"); must be positive definite
+%                    ("points"), M ("lgd": of the filtered data, before
+%                    rows are dropped); must be positive definite
 %     NEQ (struct([]))  (1,1) struct  the SH normal equation ("neq"): fields
 %                    N, b [, ltpl, nobs], or a readSINEX NEQ result
-%     Values ([])    (M,1) or (Q,1) double  the data ("points")
+%     Values ([])    (M,1) or (Q,1) double  the data ("points"); the
+%                    unfiltered LGD [m/s^2] ("lgd")
+%     PositionA ([]) (M,3) double  satellite A, Earth-fixed [m] ("lgd")
+%     PositionB ([]) (M,3) double  satellite B, same frame [m] ("lgd")
+%     Operator ([])  function handle Y = op(X) mapping an (M, 1+K) block
+%                    to (M, 1+K), or an (M,M) matrix W (Y = W X): the
+%                    along-track filter, applied once to [Values, A]
+%                    ("lgd"); [] applies none
+%     Valid ([])     (M,1) logical  epochs to use ("lgd"); [] keeps every
+%                    epoch whose filtered row is finite
 %     LatDeg ([])    (M,1) double  geocentric latitudes [deg] ("points")
 %     LonDeg ([])    (M,1) double  longitudes [deg] ("points")
 %     Height (0)     (1,1) or (M,1) double  height above R [m]; only for
@@ -93,8 +134,11 @@ function [rec, info] = regionalNEQ(B, kind, opts)
 %     info  (1,1) struct  fields
 %           kind  (1,1) string  the KIND argument
 %           A     (n,K) double  the design in the basis for "points"
-%                 (after Combine); [] for "solution", whose design is B.T
-%                 itself, and for "neq"
+%                 (after Combine) and "lgd" (filtered, kept rows); [] for
+%                 "solution", whose design is B.T itself, and for "neq"
+%           y     (n,1) double  the data as used: the filtered, kept LGD
+%                 for "lgd"; [] for the other kinds
+%           kept  (M,1) logical  the epochs used ("lgd"); [] otherwise
 %
 %   Example
 %     B = shLowLevel.regionalBasis(shLowLevel.shIndex(60), "Elbe");
@@ -119,21 +163,30 @@ function [rec, info] = regionalNEQ(B, kind, opts)
 %         which has no upward continuation
 %     shLowLevel:regionalNEQ:poleDirection
 %         a Direction at a pole, where the east direction does not exist
+%     shLowLevel:regionalNEQ:badOperator
+%         Operator is neither a function handle nor an (M,M) matrix, or
+%         returned a block of another size
+%     shLowLevel:regionalNEQ:noObservations
+%         no epoch is left once the invalid and non-finite rows are dropped
 %
 %   References
 %     Kurtenbach, E. (2012), DGK C-683, Sec. 3.3.
 %     Woehnke, V., Eicker, A., Weigelt, M., et al. (2025), Kalman filter
 %       framework for a regional mass change model from GRACE satellite
 %       gravity, GEM - Int. J. Geomath. 16:2, eqs. 10 and A6.
+%     Ghobadi-Far, K., Han, S.-C., Weller, S., et al. (2018), A transfer
+%       function between line-of-sight gravity difference and GRACE
+%       intersatellite ranging data, JGR Solid Earth 123, eqs. 1-2.
 %
 %   Numerics pre-validated in Python
-%   (tools/dev/validate_regional_observations.py).
+%   (tools/dev/validate_regional_observations.py; kind "lgd":
+%   tools/dev/validate_regional_lgd.py).
 %
 %   Developed by Matthias Weigelt with the help of Claude (Opus 5.5),
-%   2026-10-20.
+%   2026-10-20 (kind "lgd": 2026-10-21, WP8 8h).
 arguments
     B (1,1) struct
-    kind (1,1) string {mustBeMember(kind, ["solution", "neq", "points"])}
+    kind (1,1) string {mustBeMember(kind, ["solution", "neq", "points", "lgd"])}
     opts.Solution double = []
     opts.Cov double = []
     opts.NEQ struct = struct([])
@@ -144,6 +197,10 @@ arguments
     opts.Quantity (1,1) string = "ewh"
     opts.Direction double = []
     opts.Combine double = []
+    opts.PositionA double = []
+    opts.PositionB double = []
+    opts.Operator = []
+    opts.Valid = []
     opts.kn double = []
     opts.GM (1,1) double {mustBePositive} = 3.986004415e14
     opts.R (1,1) double {mustBePositive} = 6378136.3
@@ -158,6 +215,8 @@ P = idx.P;
 name = opts.Name;
 if name == "", name = kind; end
 A = [];
+yUsed = [];
+kept = [];
 switch kind
     case "solution"
         need(opts, ["Solution", "Cov"], kind);
@@ -219,9 +278,88 @@ switch kind
         end
         [N, b, ltpl] = weighted(A, y, opts.Cov);
         nobs = numel(y);
+    case "lgd"
+        need(opts, ["Values", "PositionA", "PositionB", "Cov"], kind);
+        [A, yUsed, kept, C] = lgdDesign(B, opts);
+        [N, b, ltpl] = weighted(A, yUsed, C);
+        nobs = numel(yUsed);
 end
 rec = struct('N', N, 'b', b, 'ltpl', ltpl, 'nobs', nobs, 'name', name);
-info = struct('kind', kind, 'A', A);
+info = struct('kind', kind, 'A', A, 'y', yUsed, 'kept', kept);
+end
+
+function [A, y, keep, C] = lgdDesign(B, opts)
+% LGD = e . (gB - gA): the potential's gradient design along e at B minus
+% that at A, the operator applied once to [y, A], invalid rows dropped.
+rA = opts.PositionA;
+rB = opts.PositionB;
+y = opts.Values(:);
+M = numel(y);
+if ~isequal(size(rA), [M 3]) || ~isequal(size(rB), [M 3])
+    error('shLowLevel:regionalNEQ:sizeMismatch', ...
+        'PositionA and PositionB must both be %d x 3 (one row per Values entry).', M);
+end
+d = rB - rA;
+e = d ./ vecnorm(d, 2, 2);
+po = opts;
+po.Quantity = "potential";
+po.Direction = e;
+[latA, lonA, hA] = toGeo(rA, opts.R);
+[latB, lonB, hB] = toGeo(rB, opts.R);
+po.LatDeg = latB; po.LonDeg = lonB; po.Height = hB;
+A = pointDesign(B, po);
+po.LatDeg = latA; po.LonDeg = lonA; po.Height = hA;
+A = A - pointDesign(B, po);
+op = opts.Operator;
+if ~isempty(op)
+    X = [y, A];
+    if isa(op, 'function_handle')
+        Y = op(X);
+    elseif isnumeric(op) && isequal(size(op), [M M])
+        Y = op * X;
+    else
+        error('shLowLevel:regionalNEQ:badOperator', ...
+            'Operator must be a function handle or a %d x %d matrix.', M, M);
+    end
+    if ~isequal(size(Y), size(X))
+        error('shLowLevel:regionalNEQ:badOperator', ...
+            'Operator returned a %s block for a %s one.', ...
+            mat2str(size(Y)), mat2str(size(X)));
+    end
+    y = Y(:, 1);
+    A = Y(:, 2:end);
+end
+keep = all(isfinite([y, A]), 2);
+if ~isempty(opts.Valid)
+    if numel(opts.Valid) ~= M
+        error('shLowLevel:regionalNEQ:sizeMismatch', ...
+            'Valid has %d entries for %d epochs.', numel(opts.Valid), M);
+    end
+    keep = keep & logical(opts.Valid(:));
+end
+if ~any(keep)
+    error('shLowLevel:regionalNEQ:noObservations', ...
+        'No epoch is left once the invalid and non-finite rows are dropped.');
+end
+C = opts.Cov;
+if isequal(size(C), [M M])
+    C = C(keep, keep);
+elseif isvector(C) && numel(C) == M && M > 1
+    C = C(keep);
+elseif ~isscalar(C)
+    error('shLowLevel:regionalNEQ:sizeMismatch', ...
+        'Cov is %s for %d epochs.', mat2str(size(C)), M);
+end
+y = y(keep);
+A = A(keep, :);
+end
+
+function [latDeg, lonDeg, h] = toGeo(X, R)
+% Geocentric latitude, longitude and height above R of ECEF positions.
+r = vecnorm(X, 2, 2);
+latDeg = asind(X(:, 3) ./ r);
+lonDeg = atan2d(X(:, 2), X(:, 1));
+h = r - R;
 end
 
 function need(opts, names, kind)
