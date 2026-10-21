@@ -62,8 +62,9 @@ function B = regionalBasis(idx, region, opts)
 %   faces are divided into f^2 triangles (f = Level + 1), projected
 %   centrally onto the sphere, 10 f^2 + 2 nodes - the count of the
 %   triangle vertex grid of Woehnke et al. (2025, eq. 8). "reuter": the
-%   Reuter (1982) grid of Eicker (2008), Level = gamma rings from pole to
-%   pole, one node per pole and about 4 gamma^2 / pi in all. With
+%   Reuter (1982) grid of Eicker (2008), Level = gamma: gamma + 1 rings
+%   180/gamma deg apart from pole to pole, the two poles one node each,
+%   and about 4 gamma^2 / pi nodes in all. With
 %   Level = [] the level is the smallest whose GLOBAL grid has at least
 %   (Lmax+1)^2 nodes, as many as the SH basis has coefficients: j = 30
 %   at nmax 96 (9612 nodes), the level Woehnke's Fig. 4 shows.

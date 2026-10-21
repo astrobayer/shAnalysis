@@ -24,10 +24,13 @@ function [modes, pcs, varExplained, info] = eofAnalysis(ts, opts)
 %     pcs           (T,K) double, unit variance columns
 %     varExplained  (K,1) double, fraction in [0,1]
 %     info  (1,1) struct  fields
-%           singularValues  (K x 1) double  singular values of the
-%                           centred data matrix
-%           totalVariance   (1,1) double    total variance before
-%                           truncation
+%           singularValues  (min(2(nmax+1)^2, T) x 1) double  ALL
+%                           singular values of the (centred) data
+%                           matrix, not only the K returned modes
+%           totalVariance   (1,1) double    sum(singularValues.^2), the
+%                           sum of squares before truncation (not
+%                           divided by T-1); varExplained is relative
+%                           to it
 %           T               (1,1) double    epochs used
 %           centered        (1,1) logical   whether the temporal mean was
 %                           removed (= the Center option)

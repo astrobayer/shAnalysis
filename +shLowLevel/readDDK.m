@@ -8,6 +8,9 @@ function W = readDDK(source, opts)
 %   Gaussian smoothing and the usual benchmark against tvANS.
 %
 %   Accepted SOURCE forms:
+%     "DDK1".."DDK8"       the filter's name: the file is looked up in
+%                          <dataFolder>/DDK, then in the shipped test
+%                          data (shLowLevel.fetchDDK downloads it)
 %     binary Wbd file      the released filter files (Rietbroek/Kusche
 %                          'BIN' format, type BDFULLV0), e.g.
 %                          Wbd_2-120.a_1d12p_4 from
@@ -47,14 +50,17 @@ function W = readDDK(source, opts)
 %
 %   Claude (Fable 5), 2026-08-07 (binary support v2.2.1, same day).
 %   Inputs
-%     source          DDK filter file or folder the coefficients are
-%                     read from
+%     source          a DDK name ("DDK3"), a filter file (binary, .mat
+%                     or ASCII) or a W struct; a folder is not accepted
 %
 %   Outputs
 %     W  (1,1) struct  fields
 %        nmax    (1,1) double  maximum degree the filter covers
-%        name    (1,1) string  the DDK label, e.g. "DDK3"
-%        blocks  (1 x 241) struct array  one per (order, cs) block, each
+%        name    (1,1) string  the path of the file read (for a name
+%                form, the file it resolved to); a W struct keeps its
+%                own
+%        blocks  (1 x K) struct array  one per (order, cs) block (241
+%                for the Lmax-120 binary files), each
 %                with m (1,1 double), cs (1,1 double, 0 for C and 1
 %                for S), n (1,B double, the degrees) and M (B x B
 %                double, the square block matrix)

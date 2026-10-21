@@ -6,7 +6,8 @@ function nse = nashSutcliffe(ref, model)
 %   column-wise. NSE = 1 is perfect, 0 means "no better than the
 %   reference mean", negative is worse than the mean. More informative
 %   than correlation because bias and amplitude errors are punished.
-%   NaN pairs are removed per column.
+%   Non-finite (NaN/Inf) pairs are removed per column; a column with
+%   fewer than 3 valid pairs, or a constant reference, returns NaN.
 %
 %   Inputs
 %     ref             reference series

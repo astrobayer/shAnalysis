@@ -11,8 +11,10 @@ function spec = diffSpectrum(C1, S1, C2, S2)
 %   shLowLevel.compareSolutions wrapper does this automatically).
 %
 %   Inputs
-%     C2              second cosine set, same indexing as C
-%     S2              second sine set, same indexing as S
+%     C1              first cosine set, C(n+1, m+1) layout
+%     S1              first sine set, same indexing as C1
+%     C2              second cosine set, same indexing as C1
+%     S2              second sine set, same indexing as S1
 %
 %   Outputs
 %     spec       (1,1) struct  fields:

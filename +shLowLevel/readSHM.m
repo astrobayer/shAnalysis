@@ -43,7 +43,9 @@ function out = readSHM(filename, opts)
 %                          the file carries none (GRDOTA never does)
 %                  GM      (1,1) double  [m^3/s^2] from the header
 %                  R       (1,1) double  [m] from the header
-%                  nmax    (1,1) double  maximum degree actually read
+%                  nmax    (1,1) double  Nmax when given (a Nmax above
+%                          the file's degree zero-pads C and S), else
+%                          the file's maximum degree
 %                  header  (1,1) string  the raw YAML header, kept so
 %                          provenance is not lost on the way in
 %

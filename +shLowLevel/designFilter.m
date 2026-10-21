@@ -3,8 +3,9 @@ function [W, info] = designFilter(SigmaC, SigmaS, opts)
 %
 %   W = shLowLevel.designFilter(SIGMAC, SIGMAS) constructs the Wiener-
 %   type decorrelation filter W = (N + Alpha * inv(S))^-1 * N per
-%   order/parity block - the same construction as the published DDK
-%   filters, but matched to YOUR solution's error information instead of
+%   (order, C/S) block, both degree parities in one block - the same
+%   construction as the published DDK filters, but matched to YOUR
+%   solution's error information instead of
 %   a fixed release. N is the normal (inverse noise covariance) matrix
 %   built from the formal sigmas (diagonal) or from a full covariance
 %   (Noise=); S is the signal covariance from a Kaula-type degree rule

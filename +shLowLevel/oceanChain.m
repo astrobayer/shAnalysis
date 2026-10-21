@@ -47,6 +47,7 @@ function [out, rep] = oceanChain(folder, opts)
 %                        residuals are stripe-dominated (1.6 m measured)
 %     GridStep (1)       (1 x 1) synthesis graticule [deg]
 %     SpanEnd ([])       (1 x 1) keep epochs <= SpanEnd [decimal years]
+%                        (+ 0.05 yr slack, as gravisL2B applies it)
 %     GADFolder ("")     folder of GAD-2_*.gfc; when set, epochs with a
 %                        begin-matched GAD file get it added back on the
 %                        coefficient level and REP records covered and
@@ -95,8 +96,8 @@ function [out, rep] = oceanChain(folder, opts)
 %                        capped at 3 modes: the MP edge assumes i.i.d.
 %                        noise and turns liberal under the spatial
 %                        correlation of real GRACE residuals - the cap
-%                        is the honest guard; lamModes and the bulk
-%                        edge are reported for inspection) -
+%                        is the honest guard; lamModes is reported
+%                        for inspection, the bulk edge is not) -
 %                        trend + seasonal fit) into coherent residual
 %                        circulation and noise via shLowLevel.eofSeparate
 %                        (North rule); sigMon is then the NOISE RMS and
@@ -123,10 +124,11 @@ function [out, rep] = oceanChain(folder, opts)
 %       lamModes  (K x 1) variance per EOF mode ([] unless
 %                 SeparateCirculation)
 %     rep  (1,1) struct  fields
-%          steps         (1,K) string  the stages applied, with
+%          steps         (K,1) string  the stages applied, with
 %                        parameters, including any dropped or uncovered
 %                        epochs
-%          version       (1,1) string  shLowLevel.version at run time
+%          version       (1,1) struct  shLowLevel.version() at run time
+%                        (Name, Version, Date, Root, Provenance)
 %          nEpochs       (1,1) double  epochs processed
 %          nGadRestored  (1,1) double  months the GAD restore reached
 %          nGaaApplied   (1,1) double  months the GAA correction reached
@@ -303,7 +305,8 @@ if opts.SeparateCirculation
     % edge assumes i.i.d. noise, but GRACE pixel residuals are spatially
     % correlated, which makes the edge liberal (the uncapped chain kept
     % 10 modes on the real 252-month residuals). Inspect out.lamModes
-    % against infE.bulkEdge before trusting more than the leading modes.
+    % before trusting more than the leading modes (infE.bulkEdge, the MP
+    % edge, stays internal - out does not carry it).
     [circ, nz, infE] = shLowLevel.eofSeparate(Rpx', wA, MaxModes = 3);
     sigMon = infE.rmsNoise;                               % noise, de-circulated
     circulationRMS = sqrt(sum(wA .* mean(circ.^2, 2)) / sum(wA));

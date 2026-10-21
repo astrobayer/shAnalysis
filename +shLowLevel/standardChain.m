@@ -48,17 +48,28 @@ function [ts, rep] = standardChain(folder, opts)
 %                          option that keeps them would splice
 %                          UNCORRECTED months onto corrected ones, which
 %                          puts a step in the series exactly where people
-%                          look for the newest signal
+%                          look for the newest signal. "drop" acts on
+%                          the table's overall range only (first record
+%                          - Tolerance .. last record + Tolerance): an
+%                          epoch inside that range with no record within
+%                          Tolerance (an interior gap of the table) is
+%                          not dropped, and applyTN14 / addDegree1 then
+%                          stop with shCoefficients:applyTN14:
+%                          epochNotInTable or shCoefficients:addDegree1:
+%                          epochNotInTable
 %     Quiet (false)        suppress progress output
 %
 %   Outputs
 %     ts         (1,1) shSeries  the processed series (full history)
 %     rep  (1,1) struct  fields
-%          files    (1,T) string  the files read, in epoch order
+%          files    (1,F) string  the dir() listing of FOLDER for
+%                   Pattern (dir's order, by name), as read - epochs
+%                   dropped later are NOT removed from it
 %          steps    (1,K) string  the stages applied, with parameters
 %          nmax     (1,1) double  the degree the chain ran at
 %          epochs   (T,1) double  the epoch grid [decimal years]
-%          version  (1,1) string  shLowLevel.version at run time
+%          version  (1,1) string  "<Name> <Version>" of
+%                   shLowLevel.version() at run time
 %          created  (1,1) string  when the run happened
 %
 %   Example

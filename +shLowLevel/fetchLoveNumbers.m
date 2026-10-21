@@ -27,10 +27,14 @@ function [files, info] = fetchLoveNumbers(names, opts)
 %   Outputs
 %     files      (1,K) string  local paths
 %     info  (1,1) struct  fields
-%           fetched, updated, skipped, failed  (1,K) string  the tally
-%                   of file names per outcome
-%           parsed  (1,K) struct  one per file, with name, n (N x 1) and
-%                   kn (N x 1); empty for deformation files
+%           fetched, updated, skipped  (1,:) string  local PATHS per
+%                   outcome (skipped includes a present file kept after a
+%                   failed refresh)
+%           failed  (1,:) string  "name: message" per file that did not
+%                   arrive or did not parse
+%           parsed  (1,:) struct  one per loadLoveNumbers_* file, with
+%                   name, n (N x 1) and kn (N x 1); deformation files
+%                   are omitted
 %
 %   Example
 %     [f, inf] = shLowLevel.fetchLoveNumbers();

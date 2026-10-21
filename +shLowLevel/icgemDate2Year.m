@@ -8,15 +8,14 @@ function y = icgemDate2Year(d)
 %   years in legacy synthetic files) are returned UNCHANGED - this rule
 %   keeps pre-v2.1 files evaluating identically.
 %
-%   Inputs   d  double array, yyyymmdd(.hhmm) or decimal years
 %   Inputs
-%     d               dates as yyyymmdd(.hhmm) numbers or decimal
-%                     years (passed through)
+%     d          double array  dates as yyyymmdd(.hhmm) numbers or
+%                decimal years (passed through)
 %
-%   Claude (Fable 5), 2026-08-07.
 %   Outputs
 %     y          (same size as input) double   decimal years
 %
+%   Claude (Fable 5), 2026-08-07.
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 
 arguments

@@ -135,10 +135,12 @@ function [ts, out] = regionalKalman(obsIn, B, opts)
 %                    only
 %     Tolerance (0.5/365.25)  (1,1) double  max |epoch difference| [yr]
 %                    for matching an observation to a grid entry
-%     NoiseCov ([])  solution mode: (P,P) full, (P,1) diagonal or (P,M)
-%                    diagonal noise covariance per observation epoch of
-%                    the series, in B.idx order; [] takes the formal
-%                    sigmas
+%     NoiseCov ([])  solution mode, in B.idx order: a vector is one
+%                    diagonal and a square matrix one full covariance,
+%                    both used at every epoch; any other (P,M) matrix
+%                    holds one diagonal per epoch of the series (column
+%                    k for epoch k) - so with M = P it is read as a full
+%                    covariance. [] takes the formal sigmas
 %     Climatology (true)  (1,1) logical  solution mode: remove and
 %                    restore the observation climatology, see above
 %     FitClimatology ("observations")  "observations" | "filtered"   what

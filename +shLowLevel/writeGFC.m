@@ -2,8 +2,10 @@ function writeGFC(filename, C, S, GM, R, opts)
 %WRITEGFC Write Stokes coefficients to an ICGEM ASCII .gfc file.
 %
 %   shLowLevel.writeGFC(FILENAME, C, S, GM, R) writes a static ICGEM-format
-%   gravity field file readable by shLowLevel.shReadGFC (round-trip tested to
-%   full double precision: coefficients are written with %22.14e).
+%   gravity field file readable by shLowLevel.shReadGFC (round-trip
+%   tested). Coefficients are written with %22.14e, 15 significant
+%   digits - one or two short of full double precision - and sigmas with
+%   %12.4e, 5 significant digits.
 %
 %   Inputs
 %     filename   char/string

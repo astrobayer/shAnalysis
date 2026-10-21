@@ -6,8 +6,10 @@ function writeAnimation(ts, filename, opts)
 %   each frame with geo.map, and writes them to a video container with a
 %   provenance sidecar.
 %
-%   THE COLOUR SCALE IS FIXED ACROSS EVERY FRAME, from shSeries.toGrid's
-%   stack-wide extremes. A per-frame scale is the single most common
+%   THE COLOUR SCALE IS FIXED ACROSS EVERY FRAME, computed over the
+%   whole stack: +/- the 98th percentile of |value| for an anomaly field,
+%   shSeries.toGrid's stack-wide extremes otherwise (a Basemap CLim
+%   overrides both). A per-frame scale is the single most common
 %   animation mistake: it shows the scale changing and the signal not,
 %   which turns a stack of honest maps into a misleading film.
 %

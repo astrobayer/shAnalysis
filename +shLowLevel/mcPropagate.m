@@ -32,7 +32,7 @@ function out = mcPropagate(fun, g, opts)
 %          samples (K x N) double      only when KeepSamples=true;
 %                 K = numel(fun(g)), one column-ized draw per column
 %
-%   MC error of sigma itself ~ sigma/sqrt(2N) (~3%% at N=500).
+%   MC error of sigma itself ~ sigma/sqrt(2N) (~3 percent at N=500).
 %
 %   Error identifiers
 %     shLowLevel:mcPropagate:badCov

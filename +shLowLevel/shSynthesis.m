@@ -21,8 +21,9 @@ function [grid, lat, lon, P] = shSynthesis(C, S, GM, R, latVec, lonVec, opts)
 %   Options
 %     P ([])  precomputed Legendre array from a prior call/LEGENDREALF, for
 %          the identical latVec and nmax -- skips recomputing the
-%          recursion. No validation is done that latVec/nmax actually
-%          match; passing a mismatched P silently gives wrong results.
+%          recursion. Only the size is checked (badP when P has fewer
+%          than Nmax+1 degrees or another latitude count); a P for other
+%          latitudes of the same count silently gives wrong results.
 %     Quantity ("geoid")  one of ('none' = dimensionless passthrough, kernel 1,
 %                 no GM/R/kn enter - the clean way to synthesize raw
 %                 coefficient fields such as kernels or masks):
@@ -31,6 +32,10 @@ function [grid, lat, lon, P] = shSynthesis(C, S, GM, R, latVec, lonVec, opts)
 %         'gravity_disturbance' dg = GM/R^2 * sum (n+1) Pbar_nm (...)                [m/s^2]
 %         'potential'          T  = GM/R * sum Pbar_nm (...)                        [m^2/s^2]
 %         'ewh'                equivalent water height using love numbers 'kn'      [m]
+%       and the further kernels of shLowLevel.kernelFactors:
+%       'gravity_gradient_rr' [1/s^2], 'surface_density' [kg/m^2] and
+%       'bottom_pressure' [Pa] (both need 'kn'), 'deformation_up' [m]
+%       (needs 'kn' and 'hn')
 %     Nmin (0), Nmax (size(C,1)-1)  degree range to include. Renamed
 %                    from nmin/nmax in v4.0.0.
 %     kn ([])        load Love number vector k_n (index 1 = degree 0), required

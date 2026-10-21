@@ -18,11 +18,14 @@ function [Cf, Sf] = shDestripe(C, S, opts)
 %                    (the classic Swenson & Wahr cubic fit)
 %     WindowLength ([])  if empty, fit a single polynomial over the
 %                    full available degree range per order/parity (the
-%                    original Swenson & Wahr formulation). If set to an
-%                    odd integer >= PolyOrder+2, use a centered moving
-%                    window instead (Duan et al. 2009 / "P3M6"-style
-%                    windowed variant, e.g. WindowLength=6 with
-%                    PolyOrder=3 is the commonly used "P3M6" filter).
+%                    original Swenson & Wahr formulation). If set, use
+%                    a centered moving window instead (Duan et al. 2009
+%                    / "P3M6"-style windowed variant): each fit spans
+%                    2*floor(WindowLength/2)+1 same-parity coefficients
+%                    (so 6 and 7 both give 7), shrunk at the ends of the
+%                    degree range and widened to at least PolyOrder+1.
+%                    The value is not validated. WindowLength=6 with
+%                    PolyOrder=3 is the commonly used "P3M6" filter.
 %
 %   Claude (Sonnet 4.6), 2026-07-11; merged into +shLowLevel: Claude (Fable 5), 2026-08-07.
 %   Outputs

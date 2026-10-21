@@ -10,16 +10,22 @@ function model = shReadGFC(filename)
 %     .GM, .R          gravitational parameter [m^3/s^2], reference radius [m]
 %     .nmax            maximum degree found in the file
 %     .C, .S           (nmax+1)x(nmax+1) coefficient matrices, C(n+1,m+1)
-%                       (for gfct files: the constant/reference part only)
+%                       (ICGEM 1.0 gfct files: the constant/reference
+%                       part; ICGEM 2.0: the gfct piece with the latest
+%                       t0 for each n, m)
 %     .sigmaC, .sigmaS same layout, formal errors (NaN if not given)
 %     .header          struct of all raw header key:value pairs
 %     .variableTerms   struct array of time-variable terms from gfct-style
-%                       files (trnd/acos/asin lines), fields:
-%                       .type ('trnd'/'acos'/'asin'), .n, .m, .C, .S,
-%                       ('dot' lines are read as 'trnd' - ICGEM synonym),
-%                       .t0, .t1 (validity/reference epochs, as given in
-%                       the file, format/units not reinterpreted here --
-%                       check the file header for the epoch convention).
+%                       files (gfct pieces of ICGEM 2.0, trnd/acos/asin
+%                       lines), fields:
+%                       .type ('gfct'/'trnd'/'acos'/'asin'), .n, .m, .C,
+%                       .S, ('dot' lines are read as 'trnd' - ICGEM
+%                       synonym), .t0, .t1 (validity/reference epochs,
+%                       converted to decimal years by
+%                       shLowLevel.icgemDate2Year; NaN when absent),
+%                       .period ([yr] for acos/asin; NaN when the file
+%                       gives none, 1 for the ICGEM 1.0 >= 9-column
+%                       layout).
 %                       Empty struct array if the file is a plain (static)
 %                       gfc model.
 %
@@ -33,9 +39,12 @@ function model = shReadGFC(filename)
 %     model  (1,1) struct  fields
 %            C, S, sigmaC, sigmaS  (nmax+1 x nmax+1) double  coefficients
 %                    and their formal errors
-%            GM, R   (1,1) double  the file's reference constants
+%            GM, R   (1,1) double  the file's reference constants;
+%                    without them in the header, silently 3.986004415e14
+%                    and 6378136.3
 %            nmax    (1,1) double  maximum degree read
-%            modelname  (1,1) string  the model's own name
+%            modelname  the header's modelname as parsed (char, or a
+%                    number when the value is numeric); '' when absent
 %            header  (1,1) struct  the parsed file header, verbatim -
 %                    this is where the TIDE SYSTEM lives, as
 %                    header.tide_system when the file declares one.

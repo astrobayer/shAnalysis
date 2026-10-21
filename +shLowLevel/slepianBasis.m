@@ -22,7 +22,8 @@ function [G, lam, info] = slepianBasis(idx, region, opts)
 %     idx     struct  shLowLevel.shIndex (P x P eig: fine to Lmax ~ 60-96)
 %     region  handle | polygon | mask   (see shLowLevel.evalMask)
 %   Options
-%     NKeep (round(Shannon))  columns of G to return; [] = all P
+%     NKeep (round(Shannon))  columns of G to return, at most P; [] =
+%               max(1, round(Shannon number))
 %     BufferKm (0), R (6378136.3)  passed to shLowLevel.evalMask
 %     OverSample (2)  refinement factor of the quadrature grid the
 %         mask is evaluated on; the Gauss rule uses

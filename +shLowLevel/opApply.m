@@ -8,13 +8,16 @@ function Yout = opApply(op, Z, t, mode)
 %   O(P^2) per column; no P x P matrix is formed.
 %
 %   Inputs
+%     op    (1,1) struct  the filter operator from shLowLevel.tvANSFilter
+%     t     (1,1) double  month index (positive integer) selecting W_t
 %     mode  (1,:) char  'forward' (default) | 'transp' - forward or
 %                     transposed operator action
 %     Z               coefficient vector/stack in index ordering the
 %                     operator acts on
 %
 %   Outputs
-%     Yout  (P x T) double  operator applied to every column of Y
+%     Yout  (P x K) double  operator applied to every column of Z (same
+%                           size as Z)
 %
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 

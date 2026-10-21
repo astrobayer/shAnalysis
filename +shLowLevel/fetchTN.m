@@ -5,9 +5,10 @@ function [files, info] = fetchTN(opts)
 %   complete the standard processing chain into <dataFolder>/TN:
 %     TN-14  GSFC SLR C20/C30 replacement       (shLowLevel.readTN14/applyTN14)
 %     TN-13  geocenter (degree 1) per provider  (shLowLevel.readTN13/addDegree1)
-%   Source: the GFZ ISDC open document server (URLs verified 2026-08-07;
-%   the CSR/JPL/GFZ RL06.3 files and the GSFC TN-14 also ship as test
-%   fixtures, so the toolbox works offline out of the box).
+%   Source: the GFZ ISDC open document server (URLs verified 2026-08-07).
+%   No TN file is tracked in the repository: CI checks the test copies
+%   out of the fixtures tag into tests/test_data, so offline use needs
+%   this fetch (or BaseURL pointing at a local mirror folder) once.
 %
 %   The technical notes GROW MONTHLY upstream. With Update=true,
 %   already-present files are re-downloaded and replaced - but only
@@ -36,20 +37,24 @@ function [files, info] = fetchTN(opts)
 %                    default is the only one. The Proxy path makes one
 %                    attempt
 %     BaseDelay (httpFetch's, 2)  (1,1) double  [s] first backoff wait;
-%                    attempt k waits BaseDelay 2^(k-1) plus up to 25%
-%                    jitter. A failing download costs about
-%                    BaseDelay (2^MaxTries - 1) seconds of waiting -
-%                    15 s at the defaults, which is what offline tests
-%                    pay unless they pass MaxTries = 1
+%                    after failed attempt k (k < MaxTries) httpFetch
+%                    waits BaseDelay 2^(k-1) plus up to 25% jitter, and
+%                    none after the last. A failing download costs about
+%                    BaseDelay (2^(MaxTries-1) - 1) seconds of waiting -
+%                    14 s at the defaults (up to 17.5 s with jitter),
+%                    which is what offline tests pay unless they pass
+%                    MaxTries = 1
 %
 %   Outputs
 %     files  (1,:) string  verified present file paths (new + updated
 %                          + kept existing)
 %     info   (1,1) struct  fields
-%            fetched  (1,:) string  files downloaded now
-%            updated  (1,:) string  files replaced by a newer copy
-%            skipped  (1,:) string  files already present
-%            failed   (1,:) string  files that did not arrive
+%            fetched  (1,:) string  file NAMES (not paths) downloaded now
+%            updated  (1,:) string  file names replaced by a newer copy
+%            skipped  (1,:) string  file names already present (or kept
+%                                   after a failed refresh)
+%            failed   (1,:) string  "name (message)" per file that did not
+%                                   arrive or did not parse
 %            urls     (1,:) string  the URLs used, in the same order
 %            dest     (1,1) string  target folder
 %
@@ -62,9 +67,12 @@ function [files, info] = fetchTN(opts)
 %   Error identifiers
 %     shLowLevel:fetchTN:failed
 %         warning - one or more files failed to download or to parse; the
-%         message names them
+%         message names them. Not issued with Quiet = true; info.failed
+%         carries the same list either way
 %     shLowLevel:fetchTN:mirrorMissing
-%         Mirror= was given but does not hold the requested file
+%         BaseURL is a local mirror folder that does not hold the
+%         requested file. Raised and caught internally: the file lands
+%         in info.failed with this message, so a caller cannot catch it
 %
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5),
 %   2026-08-08 (v2.5.1). MaxTries/BaseDelay: Claude (Opus 5.5),

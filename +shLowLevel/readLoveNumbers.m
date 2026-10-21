@@ -18,7 +18,7 @@ function [LN, info] = readLoveNumbers(filename, opts)
 %
 %
 %   Inputs
-%     filename  char/string  path of the file to read/write (gzipped .gz accepted where documented)
+%     filename  char/string  path of the plain-text table to read
 %   Options
 %     Columns ("auto")   explicit column meaning, tokens from {n,k,h,l},
 %                        e.g. "n k h l" (overrides header detection)
@@ -56,8 +56,10 @@ function [LN, info] = readLoveNumbers(filename, opts)
 %                   ln    (D x 1) horizontal  (NaN if absent from file)
 %     info  (1,1) struct  fields
 %           source        (1,1) string   the file it was read from
-%           columns       (1,:) string   the columns actually used
-%           frame         (1,1) string   the degree-1 frame declared
+%           columns       (1,:) char     the columns actually used,
+%                         space-separated
+%           frame         (1,1) string   "as-in-file", or the conversion
+%                         applied, e.g. "CE>CF (degree-1 shift ...)"
 %           interpolated  (D x 1) logical  which degrees were filled in
 %                         rather than read
 %

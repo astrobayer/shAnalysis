@@ -40,7 +40,9 @@ function [ts, rep] = gravisL2B(folder, gravisFolder, opts)
 %     Pattern       ("GSM-2_*.gfc*")  file pattern
 %     Tolerance     (2e-3)   max |begin difference| [yr] for a table match
 %     OnMissing     ("drop") "drop" | "error" for uncovered epochs
-%     SpanEnd       (Inf)    keep epochs <= SpanEnd only (decimal years);
+%     SpanEnd       (Inf)    keep epochs <= SpanEnd + 0.05 only (decimal
+%                    years, mid-month epochs; the 0.05 yr slack keeps
+%                    the month whose mid-epoch lies just past SpanEnd);
 %                    the published ice trends pin 2023.099 (guide V3)
 %     Quiet         (false)
 %
@@ -52,7 +54,8 @@ function [ts, rep] = gravisL2B(folder, gravisFolder, opts)
 %          begins    (T,1) double  each month's interval start
 %          nDropped  (1,1) double  epochs dropped for lack of coverage
 %          nmax      (1,1) double  the degree read
-%          version   (1,1) string  shLowLevel.version at run time
+%          version   (1,1) struct  shLowLevel.version() at run time
+%                    (Name, Version, Date, Root, Provenance)
 %          created   (1,1) string  when the run happened
 %
 %   Example

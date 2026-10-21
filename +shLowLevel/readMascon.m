@@ -5,8 +5,9 @@ function mas = readMascon(filename)
 %   comparison against the SH chain (base MATLAB: ncread/ncinfo, no
 %   toolboxes). Variable names are auto-detected among the layouts used
 %   by JPL RL06 ('lwe_thickness'), CSR RL06 ('lwe_thickness'), and
-%   generic 'lwe'/'water_thickness'; time units "days since YYYY-MM-DD"
-%   are converted to decimal years.
+%   generic 'lwe'/'water_thickness'; CF time units "<days | hours |
+%   minutes | seconds> since Y-M-D[ h:m[:s]]" (one- or two-digit month,
+%   day and clock fields) are converted to decimal years.
 %
 %   VERIFIED LAYOUTS. The dimension order differs between products, and
 %   the reader permutes to (lat, lon, time) whatever it finds:
@@ -65,7 +66,8 @@ function mas = readMascon(filename)
 %     shLowLevel:readMascon:unknownLayout
 %         no EWH, lat, lon and time variable could be recognised
 %     shLowLevel:readMascon:unknownTimeUnits
-%         the time units are not "days since YYYY-MM-DD"
+%         the time units are not "<days | hours | minutes | seconds>
+%         since <date>"
 %
 %   Claude (Fable 5), 2026-08-07; CSR support + loud time units: 2026-08-12 (v3.8.6).
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).

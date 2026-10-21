@@ -59,10 +59,13 @@ function summary = setup_shAnalysis(opts)
 %     SeriesFolder ("")   folder of monthly .gfc files, exported as the
 %                         SHX_SERIES_FOLDER environment variable AND
 %                         persisted via setpref('shAnalysis',
-%                         'SeriesFolder', ...) - preferences survive
-%                         MATLAB restarts, no startup.m needed. This
-%                         enables the opt-in trend regression in
-%                         testScience: a trend needs a real monthly
+%                         'SeriesFolder', ...). The opt-in trend
+%                         regression in testScience reads the
+%                         environment variable ONLY, so after a restart
+%                         it needs this call again (or a setenv in
+%                         startup.m); the real-data chain, excitation
+%                         and gap-bridging tests also read the
+%                         preference. A trend needs a real monthly
 %                         series, which is far too large to ship as a
 %                         fixture, and the fixture suite cannot see the
 %                         class of failure that only appears on a real
@@ -71,8 +74,10 @@ function summary = setup_shAnalysis(opts)
 %                         acceptance run never touches a network or
 %                         archive drive
 %     MasconFile ("")     a mascon .nc, exported as SHX_MASCON_FILE and
-%                         persisted as preference 'MasconFile'. This
-%                         enables the opt-in readMascon check against a
+%                         stored as preference 'MasconFile'. The opt-in
+%                         readMascon check reads the environment
+%                         variable ONLY (so it runs in this session, not
+%                         after a restart); it checks readMascon against a
 %                         REAL product: the synthetic fixture writes
 %                         (lon, lat, time) while the JPL file writes
 %                         (time, lat, lon), and a size check passes
@@ -103,11 +108,14 @@ function summary = setup_shAnalysis(opts)
 %       fetched     (1,:) string   files newly downloaded (verified)
 %       skipped     (1,:) string   files already present (re-verified)
 %       failed      (1,:) string   files that failed (download or parse)
-%       testData    (1,:) string   opt-in test-data variables that were
-%                                  set, if any (SHX_SERIES_FOLDER,
-%                                  SHX_MASCON_FILE). setenv lasts for
-%                                  the session only - put the same lines
-%                                  in startup.m to keep them
+%       testData    (1,:) string   data locations that were set, if any,
+%                                  one line per option given among
+%                                  SeriesFolder, MasconFile, GravisFolder,
+%                                  DDKFolder and TestDataFolder; each is
+%                                  set with setenv (this session only)
+%                                  AND setpref (kept across restarts).
+%                                  DryRun lists SeriesFolder and
+%                                  MasconFile only
 %       ok          (1,1) logical  isempty(failed)
 %
 %   Example
@@ -128,10 +136,11 @@ function summary = setup_shAnalysis(opts)
 %     shAnalysis:setup:noMasconFile
 %         warning - MasconFile is not a file
 %     shAnalysis:setup:noSeriesFolder
-%         warning - SeriesFolder does not exist. This identifier and the four
-%         below are BUILT from the option name ("shAnalysis:setup:no" + name),
-%         so no static scan of this file can find them - they are listed here
-%         because a caller cannot otherwise learn what to catch
+%         warning - SeriesFolder does not exist. This identifier and
+%         noDDKFolder, noGravisFolder, noMasconFile and noTestDataFolder
+%         are BUILT from the option name ("shAnalysis:setup:no" + name),
+%         so no static scan of this file can find them - they are listed
+%         here because a caller cannot otherwise learn what to catch
 %     shAnalysis:setup:noTestDataFolder
 %         warning - TestDataFolder does not exist
 %     shAnalysis:setup:savepathFailed

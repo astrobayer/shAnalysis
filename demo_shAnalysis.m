@@ -44,7 +44,8 @@ function reg = demo_shAnalysis(cases, opts)
 %
 %   Claude (Fable 5), 2026-08-07 (v2.4).
 %   Outputs
-%     reg        (D x 3) table   demo registry: id, title, exercised API
+%     reg        (D x 1) struct   demo registry, fields id, title, fns
+%                (the exercised API) and run (the case's function handle)
 %
 %   Inputs
 %     cases   (1 x n) string  demo IDs to run, e.g. "D01" or ["D01" "D13"];
@@ -55,7 +56,8 @@ function reg = demo_shAnalysis(cases, opts)
 %     Visible (true)  (1 x 1) logical  show figures (false keeps them
 %                 off-screen for batch/CI runs)
 %     OutDir (string(tempdir))  (1 x 1) string   output folder for exported files;
-%                 "" = a fresh folder under tempdir
+%                 D16 writes into it directly (fullfile), so "" writes
+%                 into the current folder
 %     StopOnError (false)  (1 x 1) logical  true stops at the first failing
 %                 case; false (default) prints FAILED and continues -
 %                 the fail-and-continue contract the suite exercises

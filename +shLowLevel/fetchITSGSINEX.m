@@ -32,7 +32,8 @@ function [files, info] = fetchITSGSINEX(months, opts)
 %     Update (false)     re-download files that already exist
 %     MaxFiles (Inf)     downloads cap - bounded acceptance runs
 %     BudgetSec (Inf)    wall-clock cap with clean partial stop
-%     MaxFailures (5)    consecutive-failure cap, stops loudly
+%     MaxFailures (5)    failure cap (failures are counted in total,
+%                        not reset by a success); stops with a warning
 %     PauseSec (1.5)     polite pause between downloads [s]
 %     RetryAfterCap (30) single capped retry wait on HTTP 429 [s]
 %     Downloader ("websave") "websave" | "httpFetch" (Retry-After-aware,
@@ -45,9 +46,13 @@ function [files, info] = fetchITSGSINEX(months, opts)
 %     info  (1,1) struct  fields
 %           nListed, nDownloaded, nSkipped, nFailed, nRemaining
 %                     (1,1) double  the download tally; nRemaining is
-%                     what the budget cut off
-%           missing   (1,:) string  requested months absent on the server
-%           releases  (1,:) string  releases actually used
+%                     what the MaxFiles/BudgetSec/MaxFailures caps cut
+%                     off
+%           missing   (k,1) string  requested months with no local file
+%                     after the run: absent on the server, failed, OR
+%                     cut by MaxFiles/BudgetSec/MaxFailures (so with
+%                     MaxFiles = 0 every month not already present)
+%           releases  (r,1) string  releases actually used
 %
 %   Example
 %     f = shLowLevel.fetchITSGSINEX(["2018-06", "2018-07"], Nmax = 96);

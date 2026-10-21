@@ -26,7 +26,7 @@ function [Xf, op, info] = tvANSFilter(X, tYears, idx, opts)
 %   SINEX, structure changes month to month), tvANS estimates ONE
 %   empirical structure from the series and scales it per month (VCE).
 %   Where monthly covariances exist, prefer VDK (Horvath et al. 2018:
-%   15%% median error reduction, outlier months an order of
+%   15 percent median error reduction, outlier months an order of
 %   magnitude); tvANS covers every series without them - and its
 %   one-eigendecomposition efficiency requires exactly that
 %   stationary structure.
@@ -43,14 +43,18 @@ function [Xf, op, info] = tvANSFilter(X, tYears, idx, opts)
 %     opts.Shrinkage    (1,1) double  empirical noise-cov shrinkage, 0.1
 %     opts.VCEMinDegree (1,1) double  default round(2/3 * idx.Lmax)
 %     opts.Blocks       'auto' (default) | 'on' | 'off'
-%         Block-diagonal fast path: with SignalMode='isotropic', empirical
-%         noise covariance and no constraints, both S and N are block-
+%         Block-diagonal fast path: with SignalMode='isotropic', no
+%         constraints and a noise covariance that is block-diagonal in
+%         this partition (the empirical one, or an external NoiseCov
+%         that buildNoiseCov verifies to be), both S and N are block-
 %         diagonal per (order, C/S, degree parity), so the generalized
 %         eigendecomposition decouples into O(Lmax^2) small blocks. This
 %         removes the O(P^3) wall and the dense P x P memory footprint,
 %         making Lmax = 96-120 tractable. 'auto' engages it exactly when
-%         the conditions hold; results are IDENTICAL to the full path
-%         (validated: 1.8e-15). 'on' errors if conditions are violated.
+%         the conditions hold, falling back quietly to the full path for
+%         an external NoiseCov that is not block-diagonal; results are
+%         IDENTICAL to the full path (validated: 1.8e-15). 'on' errors
+%         if conditions are violated.
 %   Outputs
 %     Xf     (P,T) double   filtered series (deterministic part restored)
 %     op  (1,1) struct  the filter operator, for shLowLevel.opApply,

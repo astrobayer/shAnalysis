@@ -69,7 +69,10 @@ function [d1, info] = estimateDegree1(ts, ocean, opts)
 %           oceanFraction  (1,1) double  area fraction used
 %           nPixels   (1,1) double  ocean pixels that entered the fit
 %           hasModel  (1,1) logical  whether an ocean model was supplied
-%           residualRMS  (T,1) double  of the ocean fit, in EWH [m]
+%           residualRMS  (T,1) double  RMS of the ocean-fit residual
+%                     weighted by sqrt(cos(lat)) per pixel [m EWH times
+%                     the weight] - not a plain EWH RMS; the sigmas
+%                     above scale with it
 %
 %   Validated in tools/dev/validate_degree1.py: exact recovery of a known
 %   geocentre from a synthetic land/ocean world, 1.5-4% error at 2 mm

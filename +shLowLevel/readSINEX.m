@@ -35,8 +35,8 @@ function snx = readSINEX(filename, opts)
 %          n, m, cs  (Q x 1) double  the parameter list; cs is 0 for C,
 %                    1 for S, in file order or in IDX order when Index
 %                    was given
-%          x, sig    (Q x 1) double  estimates and formal sigmas; sig is
-%                    NaN where the file carries none
+%          x, sig    (Q x 1) double  estimates and formal sigmas: the
+%                    last two numeric fields of each estimate line
 %          M         (Q x Q) double  covariance or normal-equation
 %                    matrix, per Output=; [] when absent
 %          kind      (1,:) char  'COVA' | 'NEQ' | '' ('estimate' on

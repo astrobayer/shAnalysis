@@ -3,7 +3,7 @@ function h = plotBasinSeries(tYears, c, sigma, opts)
 %
 %   H = shLowLevel.plotBasinSeries(TYEARS, C, SIGMA) draws the standard basin-
 %   average figure: shaded 1-sigma band (fill), data line, the GRACE <->
-%   GRACE-FO gap (or any gap > GapThreshold years) hatched grey, and an
+%   GRACE-FO gap (or any gap > GapThreshold years) shaded light grey, and an
 %   annotated trend fitted with the toolbox climatology design (bias/
 %   trend/annual/semi-annual, AR(1)-corrected sigma).
 %
@@ -14,7 +14,8 @@ function h = plotBasinSeries(tYears, c, sigma, opts)
 %     sigma  (T,1) double   1-sigma; [] for no band
 %   Options
 %     Label ("basin average"), Units (""), GapThreshold (0.3) [yr],
-%     Trend (true)  fit + annotate trend +/- sigma (AR(1)-corrected),
+%     Trend (true)  fit + annotate trend +/- sigma (AR(1)-corrected);
+%                   skipped without a message below 8 epochs,
 %     Ax ([])
 %   Outputs
 %     h  (1,1) graphics handle  axes of the basin series plot

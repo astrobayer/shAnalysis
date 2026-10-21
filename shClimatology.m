@@ -101,8 +101,9 @@ methods
         %   to the trend sigma. GIA model spread often dominates regional
         %   trend error budgets - compare several models.
         %   Inputs
-        %     gia  GIA rate field (shCoefficients, struct or file) removed
-        %          from the trend component
+        %     gia  (1,1) shCoefficients GIA rate field [1/yr] removed from
+        %          the trend component (read a model file with
+        %          shCoefficients.read first)
         %
         %   Outputs
         %     out  (1,1) shClimatology  copy with the GIA trend removed from the
@@ -200,7 +201,9 @@ methods
         %   S2/K2/K1 tidal alias terms when fitted via
         %   ts.climatology(Periods=[161/365.25, 3.66, 7.48]).
         %   Inputs
-        %     k  harmonic index: 1 = annual, 2 = semiannual, ...
+        %     k  index into obj.periods, the EXTRA periods only (1 = the
+        %        first entry of Periods=); annual and semi-annual have
+        %        their own accessors (cosAnnual, sinSemiannual, ...)
         %
         %   Outputs
         %     gc         (1 x 1) shCoefficients   cosine component of the k-th extra period
@@ -281,8 +284,9 @@ methods
         %DISP Compact display: fitted components, reference epoch, note.
         %   disp(CLIM) prints the maximum degree and the reference epoch
         %   t0, the list of fitted components (bias, trend, annual and
-        %   semi-annual cosine/sine, plus any extra Periods) and the
-        %   processing history including the GIA note. Called
+        %   semi-annual cosine/sine - a fixed line; extra Periods are
+        %   not listed, read obj.periods for them) and the processing
+        %   history including the GIA note. Called
         %   automatically when an shClimatology object is shown without
         %   a semicolon.
         %
@@ -311,12 +315,13 @@ methods (Static)
         %   [C(:); S(:)] stack of SERIES; rows 7:end are the cos/sin
         %   pairs of the K extra Periods [yr].
         %   Inputs
-    %     coef   (P x K) fitted component coefficients in shIndex ordering
+    %     coef   ((6+2K) x 2*Nc) fitted component coefficients over the
+    %            flattened [C(:); S(:)] stack, Nc = (nmax+1)^2
     %     t0     (1 x 1) reference epoch of the fit [decimal years]
     %     series (1 x 1) shSeries the fit came from (history carrier)
     %   Options
     %     Periods (double.empty(1,0))  (1 x K2) extra harmonic periods [yr]
-    %     CoefSigma ([])    (P x K) 1-sigma uncertainties of coef
+    %     CoefSigma ([])    1-sigma uncertainties of coef, same layout
     %
     %   Outputs
         %     obj        (1 x 1) shClimatology   rebuilt from a coefficient table with the series' layout

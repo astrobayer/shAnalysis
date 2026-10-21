@@ -11,6 +11,9 @@ function idx = shIndex(Lmax, opts)
 %   Inputs
 %     Lmax            maximum spherical-harmonic degree of the index
 %
+%   Options
+%     Nmin (2)  (1,1) double  first degree included (non-negative integer)
+%
 %   Outputs
 %     idx  (1,1) struct  the canonical vector ordering of the toolbox, fields
 %          n, m, cs   (P x 1) double  degree, order and 0=cosine/1=sine
