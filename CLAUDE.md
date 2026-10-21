@@ -625,8 +625,8 @@ shAnalysis, the basin is selectable, and otherwise a test area.
 | 8c `[x]` **DONE v5.16.0** (approved 2026-10-20: "Go ahead") | observation adapters to basis NEQs: SH solution + covariance, SH NEQ (SINEX), grid (EWH + covariance, observation area = region + buffer, Woehnke's dO), point functionals (potential, gravity disturbance, gravity vector along a direction, differences of two points = LGD) | `T' N T` against the SH NEQ; grid design against `synthesisPoints` |
 | 8d `[x]` **DONE v5.17.0** (approved 2026-10-21: "Go ahead"; the basis is passed in, not built inside - 6.1) | the chain and its single point of access, `ts.regionalKalman(Region=, Basis=, ModelSeries=, ...)`: filter + RTS (reused), output as basis coefficients, EWH grids on the region, basin mean with sigma through T, an shSeries of `T a` | SH basis = `kalmanChain` (machine precision) |
 | 8e `[x]` **DONE v5.18.0** (approved 2026-10-21: "Go ahead"; the background built, the observation area measured and not built - 6.1) | regional consistency: remove-compute-restore against a global background (low degrees / outside signal), the investigation/observation/computation areas of Woehnke 2025 | closed loop with signal outside the region |
-| 8f `[ ]` | closed loop of Woehnke 2025 / Steffen 2026: ESA ESM truth, ITSG-Grace2018 covariance noise, monthly, then daily | their published RMSD 0.62 / 0.58 cm, correlation 0.98 |
-| 8g `[ ]` | daily real data: ITSG daily NEQs (SINEX) in the basis; the Elbe (2013) and the September 2024 central-European flood as test cases | ITSG daily Kalman product, GravIS basin series |
+| 8f `[-]` **POSTPONED** (2026-10-21: the bridge is unavailable, and A8 cannot hold the covariances - 6.1) | closed loop of Woehnke 2025 / Steffen 2026: ESA ESM truth, ITSG-Grace2018 covariance noise, monthly, then daily | their published RMSD 0.62 / 0.58 cm, correlation 0.98 |
+| 8g `[-]` **POSTPONED** with 8f (needs the same data machine) | daily real data: ITSG daily NEQs (SINEX) in the basis; the Elbe (2013) and the September 2024 central-European flood as test cases | ITSG daily Kalman product, GravIS basin series |
 | 8h `[ ]` | LGD observations: the point-functional design here; along-track preprocessing, transfer function and noise PSD stay in lgdToolbox, which hands over records (toolboxes stay independent) | lgdToolbox forward model |
 | 8i `[ ]` | adaptive process noise (VCE of Q per block from the innovations, replacing Kurtenbach's hand-tuned alpha), VAR(p > 1), space-domain conditioning through `CondFun` | closed loop of 8f |
 
@@ -652,6 +652,14 @@ shAnalysis, the basin is selectable, and otherwise a test area.
 ## 6. Records
 
 ### 6.1 Decisions (append-only; date, decision, evidence)
+- 2026-10-21 — **8f postponed** (Matthias: "We have to postpone this as
+  the bridge will not be available for the time being. Only the CI is
+  available but has limited memory and cannot accommodate the covariance
+  matrices"). The closed loop needs ESA ESM output and ITSG-Grace2018
+  full covariances (at nmax 96, 9409^2 doubles, about 0.7 GB per
+  month), so it waits for the bridge. 8g is postponed with it: daily
+  SINEX NEQs need the same machine. Rows that need neither stay open:
+  8h, 8i (on a synthetic closed loop), A33 and A34.
 - 2026-10-21 — **8e approved** (Matthias: "Go ahead", after #123
   merged). Shipped as 5.18.0: `Background` on `regionalKalman` and
   `ts.regionalKalman`.
