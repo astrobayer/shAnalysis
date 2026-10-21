@@ -2373,10 +2373,14 @@ methods
         %     QC (lane default)  innovation quality control
         %     QCAlpha (lane default)  its false-alarm level
         %     StoreCov (lane default)  "full" | "matfile"
+        %     Background (lane default)  global background series, removed
+        %         from the observations and restored (remove-compute-restore)
         %
         %   Example
         %     B = ts.regionalBasis("Elbe", Type = "slepian", Threshold = 0.5);
         %     [tsK, out] = ts.regionalKalman(B, ModelSeries = tsm, kn = kn);
+        %     [tsK, out] = ts.regionalKalman(B, ModelSeries = tsm, kn = kn, ...
+        %         Background = tsHydrologyModel);
         arguments
             obj
             B (1,1) struct
@@ -2396,6 +2400,7 @@ methods
             opts.QC
             opts.QCAlpha
             opts.StoreCov
+            opts.Background
         end
         args = namedargs2cell(opts);
         [tsK, out] = shLowLevel.regionalKalman(obj, B, args{:});

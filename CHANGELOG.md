@@ -1,5 +1,72 @@
 # Changelog
 
+## [5.18.0] - 2026-10-21 - WP8 8e: remove-compute-restore in the regional Kalman filter
+
+A MINOR release: one additive option on `regionalKalman` and its class
+route, and the fifth row of WP8. No documented call or error identifier
+changes.
+
+### Added
+- `shLowLevel.regionalKalman(..., Background = tsb)` and
+  `ts.regionalKalman(..., Background = tsb)`: a global background series
+  (a hydrology or ESM model, a global solution's long wavelengths) is
+  removed from the observations before they become normal equations in
+  the basis and restored in every output:
+  - the series is b + T (a + Proj c); `out.a` stays the basis
+    coefficients without the background;
+  - `out.grid` and `out.basin` carry the background's EWH, from degree
+    min(2, Nmin) as the rest of the chain;
+  - the background is taken as error-free: no sigma changes;
+  - in record mode the records must already be reduced by it; it is only
+    restored;
+  - a basis on an index with Nmin above 2 leaves the low degrees to the
+    background entirely: remove-compute-restore of the low degrees.
+  New identifier `shLowLevel:regionalKalman:badBackground` (not an
+  shSeries, wrong nmax, or no epoch within Tolerance of an observation or
+  output epoch). New output field `out.background`.
+- `tools/dev/validate_regional_rcr.py`:
+  - CLAIM 1: with the process model fixed the chain is linear, so a
+    background c z leaves exactly 1 - c of the leakage of z: 4.8e-14 at
+    nmax 30, 5.6e-15 at the MATLAB test's nmax 10 over 20 seeds;
+  - CLAIM 2: in a closed loop (nmax 30, cap north of 60 N, a 30 cm
+    seasonal neighbour and a degree-2..4 random walk, five seeds) the
+    outside signal raises the grid RMS over the region by 28% (median);
+    with an 80% background the error is within 3.6% of the error without
+    any outside signal;
+  - CLAIM 3: the observations' own unfiltered low degrees as background
+    are worse than none, 1.57 against 1.20 cm;
+  - CLAIM 4: the process model from the full model series is no worse
+    (worst ratio 1.011);
+  - CLAIM 5: Woehnke's observation area (EWH on the region + 300 km)
+    helps without a background (1.04 against 1.20 cm, 4 of 5 seeds) and
+    costs in every seed with one (0.97 against 0.93 cm).
+
+### Decisions
+- Remove-compute-restore is this toolbox's own design. Woehnke et al.
+  (2025) use no background; Steffen et al. (2026) name it as the
+  treatment of long wavelengths and outside signal without applying it.
+  Neither gives equations, so the oracle checks the scheme on its own
+  terms: the algebra exactly, and what it buys in a closed loop.
+- Woehnke's observation and computation areas are not a chain option. As
+  measured (CLAIM 5), the observation area helps only where a background
+  would help more, and costs where one is removed: SH-coefficient
+  observations carry more than their synthesis on an area. Who has
+  gridded data on an area gets it through `regionalNEQ "points"`
+  records. The computation area is the basis' `BufferKm`, as before.
+- The background is removed as a series difference, before the
+  observation climatology is fitted, so the climatology is the
+  climatology of the residual.
+- The basin mean adds the background's EWH as a separate term, so the
+  chain without a background is bitwise v5.17.0 (plus the new field).
+
+### Found, not changed
+- A34: the observation climatology restored by `Climatology = true` is a
+  fit to the noisy observations and is restored unfiltered, so its noise
+  comes back. With the oracle's noise (3 cm per coefficient at degree 30)
+  it dominated the grid error, 14.6 cm against 1.2 cm without it. This is
+  `kalmanChain`'s restore, kept bit for bit in v5.17.0; changing it is a
+  decision of its own.
+
 ## [5.17.0] - 2026-10-21 - WP8 8d: the regional Kalman filter in one call
 
 A MINOR release: one new function, one class method, two additive options
