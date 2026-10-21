@@ -37,7 +37,21 @@ function [file, info] = fetchICGEM(model, opts)
 %                         ICGEM server RATE-LIMITS rapid requests
 %                         (HTTP 429), which looks like a stall
 %     Retries (3)         retry attempts on 429/timeout, with 30/60/120
-%                         second backoff
+%                         second backoff - the rate-limit loop AROUND
+%                         each download; MaxTries and BaseDelay are the
+%                         transport retries INSIDE it
+%     MaxTries (httpFetch's, 4)  (1,1) double  attempts httpFetch makes
+%                    per download on a transient failure (429, 5xx, a
+%                    network error), with exponential backoff between
+%                    them; not forwarded when omitted, so httpFetch's
+%                    default is the only one. The Proxy path makes one
+%                    attempt
+%     BaseDelay (httpFetch's, 2)  (1,1) double  [s] first backoff wait;
+%                    attempt k waits BaseDelay 2^(k-1) plus up to 25%
+%                    jitter. A failing download costs about
+%                    BaseDelay (2^MaxTries - 1) seconds of waiting -
+%                    15 s at the defaults, which is what offline tests
+%                    pay unless they pass MaxTries = 1
 %     Update (false)  refresh existing files (safe swap: verified before replacing)
 %   TIME SERIES (temporal catalogue): a catalogue row carrying the
 %   'zip' column fetches a whole monthly series into
@@ -88,6 +102,7 @@ function [file, info] = fetchICGEM(model, opts)
 %
 %   Claude (Fable 5), 2026-08-07 (v2.4.1).
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).
+%   MaxTries/BaseDelay: Claude (Opus 5.5), 2026-10-21 (A36).
 arguments
     model
     opts.Dest (1,1) string = ""
@@ -104,6 +119,8 @@ arguments
     opts.Mode (1,1) string {mustBeMember(opts.Mode, ...
         ["auto", "archive", "files"])} = "auto"
     opts.FileList table = table()
+    opts.MaxTries (1,1) double {mustBeInteger, mustBePositive}
+    opts.BaseDelay (1,1) double {mustBePositive}
 end
 % ---- v3.0.0: numeric idx vector (rows of shLowLevel.listICGEM), "all", or a
 % list of names fetch multiple models in one call
@@ -131,6 +148,7 @@ if isnumeric(model) || ...
         rows = T(idxs, :);
     end
     K = height(rows);
+    hopt = retryOptions(opts);
     if ~opts.Quiet
         fprintf(['fetching %d ICGEM models (large fields exceed 100 MB ' ...
             'each;\npresent files are skipped, so an interrupted run ' ...
@@ -141,7 +159,7 @@ if isnumeric(model) || ...
     for k = 1:K
         if ~opts.Quiet, fprintf('[%d/%d] ', k, K); end
         try
-            [fk, infos{k}] = shLowLevel.fetchICGEM(rows(k, :), ...
+            [fk, infos{k}] = shLowLevel.fetchICGEM(rows(k, :), hopt{:}, ...
                 Dest = opts.Dest, Timeout = opts.Timeout, ...
                 Proxy = opts.Proxy, Update = opts.Update, ...
                 Quiet = opts.Quiet, Retries = opts.Retries, ...
@@ -276,11 +294,12 @@ if isfile(url)
     copyfile(char(url), char(tmpf));
     return
 end
+hopt = retryOptions(opts);
 backoff = [30, 60, 120];
 attempt = 0;
 while true
     try
-        webFetch(url, tmpf, opts.Timeout, opts.Proxy);
+        webFetch(url, tmpf, opts.Timeout, opts.Proxy, hopt{:});
         break
     catch errDl
         attempt = attempt + 1;
@@ -416,5 +435,17 @@ info.skipped = nFetched == 0 && ~info.failed;
 if ~opts.Quiet
     fprintf('  series %s: %d fetched, %d present, failed: %d\n', ...
         row.series, nFetched, nSkip, info.failed);
+end
+end
+
+function c = retryOptions(opts)
+%RETRYOPTIONS The retry options the caller gave, as name-value pairs for
+%   shLowLevel.httpFetch; an option not given is not forwarded, so
+%   httpFetch's own default is the only one.
+c = {};
+for nm = ["MaxTries", "BaseDelay"]
+    if isfield(opts, nm)
+        c = [c, {char(nm), opts.(nm)}]; %#ok<AGROW>
+    end
 end
 end

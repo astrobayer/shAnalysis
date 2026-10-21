@@ -29,6 +29,18 @@ function [files, info] = fetchTN(opts)
 %                                       "http://proxy.uni.de:8080" (websave
 %                                       otherwise honours MATLAB Web Preferences)
 %     Timeout (60), Quiet (false)
+%     MaxTries (httpFetch's, 4)  (1,1) double  attempts httpFetch makes
+%                    per download on a transient failure (429, 5xx, a
+%                    network error), with exponential backoff between
+%                    them; not forwarded when omitted, so httpFetch's
+%                    default is the only one. The Proxy path makes one
+%                    attempt
+%     BaseDelay (httpFetch's, 2)  (1,1) double  [s] first backoff wait;
+%                    attempt k waits BaseDelay 2^(k-1) plus up to 25%
+%                    jitter. A failing download costs about
+%                    BaseDelay (2^MaxTries - 1) seconds of waiting -
+%                    15 s at the defaults, which is what offline tests
+%                    pay unless they pass MaxTries = 1
 %
 %   Outputs
 %     files  (1,:) string  verified present file paths (new + updated
@@ -55,7 +67,8 @@ function [files, info] = fetchTN(opts)
 %         Mirror= was given but does not hold the requested file
 %
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5),
-%   2026-08-08 (v2.5.1).
+%   2026-08-08 (v2.5.1). MaxTries/BaseDelay: Claude (Opus 5.5),
+%   2026-10-21 (A36).
 arguments
     opts.Providers (1,:) string ...
         {mustBeMember(opts.Providers, ["GFZ", "CSR", "JPL"])} = ...
@@ -68,7 +81,10 @@ arguments
     opts.Proxy (1,1) string = ""
     opts.Timeout (1,1) double = 60
     opts.Quiet (1,1) logical = false
+    opts.MaxTries (1,1) double {mustBeInteger, mustBePositive}
+    opts.BaseDelay (1,1) double {mustBePositive}
 end
+hopt = retryOptions(opts);
 dest = opts.Dest;
 if strlength(dest) == 0
     dest = string(fullfile(shLowLevel.dataFolder(), 'TN'));
@@ -127,7 +143,7 @@ for k = 1:numel(names)
             end
             copyfile(src, tmpf);
         else
-            webFetch(url, tmpf, opts.Timeout, opts.Proxy);
+            webFetch(url, tmpf, opts.Timeout, opts.Proxy, hopt{:});
         end
         parsers{k}(tmpf);                   % verify the FRESH copy
         ok = true;
@@ -159,4 +175,16 @@ if ~opts.Quiet && ~isempty(failed)
 end
 info = struct('fetched', fetched, 'updated', updated, 'skipped', skipped, ...
     'failed', failed, 'urls', urls, 'dest', dest);
+end
+
+function c = retryOptions(opts)
+%RETRYOPTIONS The retry options the caller gave, as name-value pairs for
+%   shLowLevel.httpFetch; an option not given is not forwarded, so
+%   httpFetch's own default is the only one.
+c = {};
+for nm = ["MaxTries", "BaseDelay"]
+    if isfield(opts, nm)
+        c = [c, {char(nm), opts.(nm)}]; %#ok<AGROW>
+    end
+end
 end

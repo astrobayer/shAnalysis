@@ -1,5 +1,43 @@
 # Changelog
 
+## [5.23.0] - 2026-10-21 - A36: the offline fetch tests stop sleeping
+
+A MINOR release: two options on `fetchTN` and `fetchICGEM`. No default
+changes; a call without them behaves exactly as before.
+
+### Measured (A8, the last four green runs, the runner's own durations)
+- 130 s of the suite's 248 s of test time - 53 percent - was three
+  offline tests waiting: `testICGEMListFixtureAndResolve` 65.5 s,
+  `testFetchICGEMSeriesOffline` 34.0 s, `testFetchProxyPlumbing` 30.3 s,
+  the same to 0.03 s on every run. Each URL those tests make fail on
+  purpose went through `httpFetch`'s backoff - BaseDelay 2 s, 4 tries,
+  so 2 + 4 + 8 s plus up to 25 percent jitter, about 15 s - and the
+  fetchers gave a caller no way to shorten it. No numerical lane came
+  close: the slowest is the Legendre crossover benchmark at 9.9 s.
+
+### Added
+- `MaxTries` and `BaseDelay` on `shLowLevel.fetchTN` and
+  `shLowLevel.fetchICGEM` (single, bulk and series paths), forwarded to
+  `shLowLevel.httpFetch` through the private `webFetch`. Neither has a
+  default of its own: an option not given is not forwarded, so
+  `httpFetch`'s default (4 tries, 2 s) stays the only one. The Proxy path
+  makes one attempt and ignores both. In `fetchICGEM` they are the
+  transport retries inside each download; `Retries` remains the
+  rate-limit loop around it (30/60/120 s on 429 or a timeout).
+
+### Tests
+- The three offline tests pass `MaxTries = 1` to every call meant to
+  fail, and the ICGEM bulk test asserts the option reached `httpFetch`
+  ("after 1 attempts" in the failure report).
+- `testFetchRetryOptionsReachHttpFetch` (contract): `MaxTries = 2`
+  reaches `httpFetch`, an omitted `MaxTries` is `httpFetch`'s 4, and
+  `MaxTries = 0` is refused.
+- 417 methods / 431 runs (Contract 121). The wall time saved is the
+  claim the next A8 run measures; it is not asserted here.
+
+Developed by Matthias Weigelt with the help of Claude (Opus 5.5),
+2026-10-21.
+
 ## [5.22.0] - 2026-10-21 - A34: the observation climatology fitted to a first filter pass
 
 A MINOR release: one option on `kalmanChain`, `regionalKalman` and

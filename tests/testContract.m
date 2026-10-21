@@ -2293,6 +2293,26 @@ verifyTrue(testCase, isequaln(a0, b0) && isequaln(ra0, rb0), ...
     'with the lane defaults, ts.kalman differs from kalmanChain');
 end
 
+function testFetchRetryOptionsReachHttpFetch(testCase)
+%TESTFETCHRETRYOPTIONSREACHHTTPFETCH A36: fetchTN forwards MaxTries and
+%   BaseDelay to shLowLevel.httpFetch, and forwards nothing it was not
+%   given - so an omitted MaxTries is httpFetch's own default (4). Offline:
+%   127.0.0.1:1 refuses at once, and BaseDelay = 0.01 keeps the backoff
+%   below 0.1 s.
+dst = tempname;
+c = onCleanup(@() rmdir(dst, 's')); %#ok<NASGU>
+[~, i2] = shLowLevel.fetchTN(Dest = dst, BaseURL = "https://127.0.0.1:1", ...
+    Providers = "CSR", TN14 = false, Timeout = 2, Quiet = true, ...
+    MaxTries = 2, BaseDelay = 0.01);
+verifyEqual(testCase, numel(i2.failed), 1);
+verifyTrue(testCase, contains(i2.failed, "after 2 attempts"), i2.failed);
+[~, i4] = shLowLevel.fetchTN(Dest = dst, BaseURL = "https://127.0.0.1:1", ...
+    Providers = "CSR", TN14 = false, Timeout = 2, Quiet = true, BaseDelay = 0.01);
+verifyTrue(testCase, contains(i4.failed, "after 4 attempts"), i4.failed);
+verifyError(testCase, @() shLowLevel.fetchTN(Dest = dst, MaxTries = 0), ...
+    'MATLAB:validators:mustBePositive');
+end
+
 function testFitClimatologyRoutes(testCase)
 %TESTCLIMATOLOGYFITROUTES A34: ts.kalman and ts.regionalKalman forward
 %   FitClimatology to their lanes bitwise, and both lanes refuse a value
