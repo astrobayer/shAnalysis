@@ -1634,7 +1634,36 @@ rec = shLowLevel.regionalNEQ(B, "lgd", Values = lgdUnfiltered, ...
     PositionA = rA, PositionB = rB, Operator = op, Valid = valid, Cov = C);
 """)
 
-story += [para("39. References", "h2"),
+story += [para("39. Process-noise scales from the data (v5.20.0)", "h2"),
+          para("Kurtenbach (2012, Sec. 4.3.5) scales the process noise by a "
+               "hand-tuned factor and notes that for real data such a factor "
+               "cannot be fixed beforehand. QBlocks labels blocks of the basis "
+               "coefficients and QScale gives one factor per block,")]
+story += eq(r"Q(\alpha)=D\,Q\,D,\qquad D=\mathrm{diag}\left(\sqrt{\alpha_k}\right),")
+story += [para("so the correlations of the estimated Q are kept; one block is "
+               "Kurtenbach's alpha. EstimateQScale finds the factors as the "
+               "maximum of the innovation likelihood. kalmanFilter returns its "
+               "terms per epoch (Likelihood); in normal-equation form, with the "
+               "predicted state m and covariance P,")]
+story += eq(r"-2\log L_t=\log\left|I+PN\right|+m^{\mathsf{T}}Nm-2m^{\mathsf{T}}b-u^{\mathsf{T}}\left(P^{-1}+N\right)^{-1}u+c_t,\quad u=b-Nm,")
+story += [para("where c_t = log|R| + l'R^-1 l is free of the model and is left "
+               "out. Checked in tools/dev/validate_regional_adaptive.py: the sum "
+               "equals the dense joint Gaussian likelihood to 3.9e-15, gaps "
+               "included; for one block its maximum is the EM fixed point of "
+               "Shumway and Stoffer (1982) to 1.3e-8; with true factors (4, "
+               "0.5) on two blocks the estimates average (3.95, 0.49) over 30 "
+               "seeds and lower the state error against alpha = 1 in all of "
+               "them. VAR(2) passes through the chain (with a VAR(2) truth "
+               "Order 2 has the lower -2 log L in 10 of 10 seeds), and "
+               "buildCondFun(..., Basis = B) turns Kvas' space-domain "
+               "conditioner into one of basis covariances, Proj f(T S T') Proj'.")]
+story += code("""
+[tsK, out] = tsGrace.regionalKalman(B, ModelSeries = tsESM, EstimateQScale = true);
+cf = shLowLevel.buildCondFun(B.idx, kn = kn, Psi0Km = 1100, Basis = B);
+[tsK, out] = tsGrace.regionalKalman(B, ModelSeries = tsESM, CondFun = cf, Order = 2);
+""")
+
+story += [para("40. References", "h2"),
           *bullets([
     "Chambers, D.P., Willis, J.K. (2010): A global evaluation of ocean "
     "bottom pressure from GRACE, OMCT, and steric-corrected altimetry. "
@@ -1705,6 +1734,9 @@ story += [para("39. References", "h2"),
     "R.C. (2017): Characterizing drought in India using GRACE "
     "observations of terrestrial water storage deficit. "
     "J. Hydrometeorol. 18, 381&ndash;396.",
+    "Shumway, R.H., Stoffer, D.S. (1982): An approach to time series "
+    "smoothing and forecasting using the EM algorithm. J. Time Ser. Anal. "
+    "3, 253&ndash;264. (Chapter 39.)",
     "Steffen, R., Woehnke, V., Weigelt, M., Eicker, A. (2026): Improved "
     "regional mass change estimation using Slepian functions in a "
     "Kalman filter framework. IAG Symposia, doi:10.1007/1345_2026_348. "

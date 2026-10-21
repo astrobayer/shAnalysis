@@ -104,6 +104,13 @@ epochs into prediction-only ones &mdash; essential in a <em>recursive</em> estim
 accepted blunder propagates into every later state. <code class="inline">QC="flag"</code>
 records the statistic without acting; thresholds come from the base-MATLAB
 <code class="inline">shLowLevel.chi2Quantile</code>.</li>
+<li><b>Likelihood (v5.20.0).</b> <code class="inline">kalmanFilter(..., Likelihood=true)</code>
+returns <code class="inline">filt.negLogLik</code>, the -2 log likelihood of every epoch's
+observation given the past, formed through Cholesky factors in both observation modes. Summed,
+it is the dense Gaussian likelihood of all observations under the joint process prior (to 3.9e-15,
+gaps included). It is what <code class="inline">regionalKalman(..., EstimateQScale=true)</code>
+maximises to estimate the process-noise scale from the data (<a href="regionalBasis.html">Regional
+bases</a>).</li>
 <li><b>Contribution.</b> <code class="inline">rep.meanContribution</code> is the average share of
 the estimate coming from the <em>data</em> rather than the process model &mdash; near 0 the
 output is the prior wearing your product name.</li>
