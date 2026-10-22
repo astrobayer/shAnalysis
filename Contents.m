@@ -65,7 +65,8 @@
 %   runAllTests     - full validation suite (correctness, contract,
 %                     robustness, science, performance).
 %   doc shAnalysis  - HTML overview (html/ subfolder on the path).
-%   docs/shAnalysis_workflow_guide.pdf - the narrative workflow guide.
+%   Workflow guide  - the narrative guide (PDF), attached to every GitHub
+%                     release; tools/dev/make_guide.py builds it into docs/.
 %
 % Release history
 %   CHANGELOG.md is the authority and the only place a release is

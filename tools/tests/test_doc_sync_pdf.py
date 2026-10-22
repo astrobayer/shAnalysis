@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Unit tests for doc_sync_audit's two A29 checks.
+"""Unit tests for doc_sync_audit's checks of the guide PDF: the two A29
+checks, and (v5.24.1) that the guide is a build output, never tracked.
 
 The guide PDF is pure ASCII, so git took it for text and a Windows checkout
 with core.autocrlf rewrote its line endings - on 2026-09-10 a pull inserted
@@ -12,6 +13,7 @@ Run: python3 tools/tests/test_doc_sync_pdf.py
 Developed by Matthias Weigelt with the help of Claude (Opus 5), 2026-09-10.
 """
 import os
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -51,7 +53,9 @@ class Xref(unittest.TestCase):
         self.assertFalse(ok)
         self.assertIsNone(n)
 
-    def test_the_shipped_guide_is_intact(self):
+    @unittest.skipUnless(os.path.isfile(os.path.join(dsa.ROOT, *GUIDE.split("/"))),
+                         "the guide is not built here (CI builds it first)")
+    def test_the_built_guide_is_intact(self):
         ok, n = dsa.pdf_xref_offset_ok(os.path.join(dsa.ROOT, *GUIDE.split("/")))
         self.assertTrue(ok, "the guide's startxref (%s) misses its xref" % n)
 
@@ -85,6 +89,40 @@ class Attributes(unittest.TestCase):
 
     def test_the_repository_marks_it(self):
         self.assertTrue(dsa.gitattributes_binary(dsa.ROOT, GUIDE))
+
+
+class Tracked(unittest.TestCase):
+    """v5.24.1: the guide is built by CI and attached to the release, so
+    a tracked copy is a finding - it would go stale beside the built one."""
+
+    def repo(self, track):
+        d = tempfile.mkdtemp()
+        run = lambda *a: subprocess.run(["git", "-C", d] + list(a),
+                                        capture_output=True, check=True)
+        run("init", "-q")
+        os.makedirs(os.path.join(d, "docs"))
+        with open(os.path.join(d, *GUIDE.split("/")), "wb") as fh:
+            fh.write(tiny_pdf())
+        if track:
+            run("add", GUIDE)
+        return d
+
+    def test_a_tracked_guide_is_seen(self):
+        self.assertTrue(dsa.guide_tracked(self.repo(True)))
+
+    def test_an_untracked_build_is_not(self):
+        self.assertFalse(dsa.guide_tracked(self.repo(False)))
+
+    def test_no_repository_is_not_a_finding(self):
+        with tempfile.TemporaryDirectory() as d:
+            self.assertFalse(dsa.guide_tracked(d))
+
+    def test_the_repository_does_not_track_it(self):
+        self.assertFalse(dsa.guide_tracked(dsa.ROOT))
+
+    def test_the_repository_ignores_it(self):
+        r = subprocess.run(["git", "-C", dsa.ROOT, "check-ignore", "-q", GUIDE])
+        self.assertEqual(r.returncode, 0, ".gitignore must list the guide")
 
 
 if __name__ == "__main__":

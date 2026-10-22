@@ -85,13 +85,18 @@ develops the theory with live-measured figures.
 
 ## Documentation
 
-The complete **[workflow & theory guide (PDF)](docs/shAnalysis_workflow_guide.pdf)**
+The complete **[workflow & theory guide (PDF)](https://github.com/astrobayer/shAnalysis/releases/latest/download/shAnalysis_workflow_guide.pdf)**
 covers the processing chain, filter theory, uncertainty propagation, worked
 recipes, and a full chapter reproducing the published GravIS Greenland
 series step by step. The generated API reference lists typed inputs and
 outputs with an executable example for every public function. HTML help
 for MATLAB's `doc` browser ships in `html/`, and
 `shLowLevel.makeTutorials` writes Live Scripts you can open and run.
+The guide is attached to every
+[release](https://github.com/astrobayer/shAnalysis/releases) rather than
+committed; to build it from a checkout, run
+`pip install -r tools/dev/guide-requirements.txt` and then
+`python3 tools/dev/make_guide.py`, which writes it to `docs/`.
 
 ## Layout
 

@@ -57,7 +57,7 @@ jobs:
     name: release
     if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -68,3 +68,26 @@ jobs:
         with:
           mode: file
           version-file: Contents.m
+
+      # v5.24.1: the workflow guide is no longer committed; it is built from
+      # the tagged commit and attached to that version's release. Only when
+      # the release exists and does not carry the guide yet - a merge that
+      # does not bump Contents.m releases nothing, and must not replace the
+      # guide of the release before it with one built from a later commit.
+      - name: Attach the workflow guide to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ver=$(sed -n 2p Contents.m | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+          tag="v$ver"
+          if ! gh release view "$tag" >/dev/null 2>&1; then
+            echo "no release $tag - nothing to attach"; exit 0
+          fi
+          if gh release view "$tag" --json assets --jq '.assets[].name' \
+              | grep -qx shAnalysis_workflow_guide.pdf; then
+            echo "$tag already carries the guide"; exit 0
+          fi
+          python3 -m venv "$RUNNER_TEMP/guide"
+          "$RUNNER_TEMP/guide/bin/pip" install -q -r tools/dev/guide-requirements.txt
+          "$RUNNER_TEMP/guide/bin/python" tools/dev/make_guide.py
+          gh release upload "$tag" docs/shAnalysis_workflow_guide.pdf
