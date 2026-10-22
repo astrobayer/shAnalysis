@@ -3,7 +3,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="shAnalysis.css">
 </head><body><div class="content">
-<h1>shAnalysis API reference (v5.23.4)</h1>
+<h1>shAnalysis API reference (v5.24.0)</h1>
 <p>Generated from the source arguments blocks and help text - inputs,
 name-value options with defaults, and outputs for every public function
 and method. Regenerated with every release; the source of truth is the
@@ -1907,10 +1907,12 @@ code itself.</p>
 <a href="#shCoefficients.applyDDK">applyDDK</a>
 <a href="#shCoefficients.applyTN14">applyTN14</a>
 <a href="#shCoefficients.basinAverage">basinAverage</a>
+<a href="#shCoefficients.basinKernel">basinKernel</a>
 <a href="#shCoefficients.compare">compare</a>
 <a href="#shCoefficients.crossover">crossover</a>
 <a href="#shCoefficients.deformation">deformation</a>
 <a href="#shCoefficients.degreeRMS">degreeRMS</a>
+<a href="#shCoefficients.designFilter">designFilter</a>
 <a href="#shCoefficients.destripe">destripe</a>
 <a href="#shCoefficients.disp">disp</a>
 <a href="#shCoefficients.errorMap">errorMap</a>
@@ -1921,6 +1923,7 @@ code itself.</p>
 <a href="#shCoefficients.gradient">gradient</a>
 <a href="#shCoefficients.gradientTensor">gradientTensor</a>
 <a href="#shCoefficients.map">map</a>
+<a href="#shCoefficients.mcPropagate">mcPropagate</a>
 <a href="#shCoefficients.minus">minus</a>
 <a href="#shCoefficients.mtimes">mtimes</a>
 <a href="#shCoefficients.plus">plus</a>
@@ -1929,6 +1932,7 @@ code itself.</p>
 <a href="#shCoefficients.regionalBasis">regionalBasis</a>
 <a href="#shCoefficients.regionalNEQ">regionalNEQ</a>
 <a href="#shCoefficients.regionalProject">regionalProject</a>
+<a href="#shCoefficients.sensitivityKernel">sensitivityKernel</a>
 <a href="#shCoefficients.setCoefficient">setCoefficient</a>
 <a href="#shCoefficients.shCoefficients">shCoefficients</a>
 <a href="#shCoefficients.slepianProject">slepianProject</a>
@@ -1996,6 +2000,19 @@ code itself.</p>
 </table>
 <b>Example</b><pre>    avg = g.basinAverage(B);   % B: P x K, as for ts.basinAverage</pre>
 </div>
+<div class="entry" id="shCoefficients.basinKernel">
+<h3><code>shCoefficients.basinKernel(obj, region, opts)</code></h3>
+<p class="h1line">A basin kernel in the index basinAverage reads.</p>
+<p>[B, INFO] = g.basinKernel(REGION) is shLowLevel.basinKernel(shLowLevel.shIndex(g.nmax), REGION): the band-limited indicator of REGION in the ordering g.basinAverage and ts.basinAverage require, so a kernel built here cannot meet them in another. That function documents the quadrature, the buffer and the taper.</p>
+<b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td>required</td></tr><tr><td><code>region</code></td><td>n x m</td><td>-</td><td>required</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>BufferKm</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>TaperKm</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>R</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>OverSample</code></td><td>lane default</td><td>-</td><td>-</td></tr></table>
+<b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
+<tr><td><code>b</code></td><td>(P,1) double  the kernel in shLowLevel.shIndex(g.nmax) ordering</td></tr>
+<tr><td><code>info</code></td><td>(1,1) struct  as returned by shLowLevel.basinKernel, which documents every field</td></tr>
+</table>
+<b>Example</b><pre>    b = g.basinKernel([-10 100; -10 140; 25 140; 25 100]);
+    avg = g.basinAverage(b);</pre>
+</div>
 <div class="entry" id="shCoefficients.compare">
 <h3><code>shCoefficients.compare(obj, other, varargin)</code></h3>
 <p class="h1line">Full comparison against another solution (v2.6.0).</p>
@@ -2034,6 +2051,19 @@ code itself.</p>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
 <tr><td><code>spec</code></td><td>(1,1) struct   the degree spectrum, including the formal-error curve, as returned by shLowLevel.shDegreeRMS</td></tr>
 </table>
+</div>
+<div class="entry" id="shCoefficients.designFilter">
+<h3><code>shCoefficients.designFilter(obj, opts)</code></h3>
+<p class="h1line">A DDK-class filter built from this field&#x27;s own errors.</p>
+<p>[W, INFO] = g.designFilter() is shLowLevel.designFilter(g.sigmaC, g.sigmaS): the Wiener-type decorrelation filter from G&#x27;s formal sigmas, in the block format g.applyDDK takes. With Noise (and Idx) a full covariance is used instead and the sigmas are not read. That function documents the construction. A field without formal sigmas passes NaN, which the lane refuses unless Noise is given.</p>
+<b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td>required</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Alpha</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>Kaula</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>DegVar</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>Noise</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>Signal</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>Idx</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>Nmin</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>Name</code></td><td>lane default</td><td>-</td><td>-</td></tr></table>
+<b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
+<tr><td><code>W</code></td><td>(1,1) struct  the filter, as returned by shLowLevel.designFilter, which documents every field</td></tr>
+<tr><td><code>info</code></td><td>(1,1) struct  as returned by shLowLevel.designFilter</td></tr>
+</table>
+<b>Example</b><pre>    W = g.designFilter(Alpha = 1);
+    gF = g.applyDDK(W);</pre>
 </div>
 <div class="entry" id="shCoefficients.destripe">
 <h3><code>shCoefficients.destripe(obj, opts)</code></h3>
@@ -2137,6 +2167,18 @@ code itself.</p>
 <b>Example</b><pre>    H = g.map(-89.5:89.5, 0.5:359.5, Quantity = &quot;ewh&quot;, kn = kn, ...
             CRS = &quot;robinson&quot;);</pre>
 </div>
+<div class="entry" id="shCoefficients.mcPropagate">
+<h3><code>shCoefficients.mcPropagate(obj, fun, opts)</code></h3>
+<p class="h1line">Monte-Carlo uncertainty of any functional of this field.</p>
+<p>OUT = g.mcPropagate(FUN) is shLowLevel.mcPropagate(FUN, g): it draws samples of G consistent with its formal sigmas (or with Cov in Idx ordering), pushes each through FUN and returns the sample mean and sigma. That function documents the sampling models.</p>
+<b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td>required</td></tr><tr><td><code>fun</code></td><td>1 x 1</td><td>function_handle</td><td>required</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>N</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>Cov</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>Idx</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>Seed</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>KeepSamples</code></td><td>lane default</td><td>-</td><td>-</td></tr></table>
+<b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
+<tr><td><code>out</code></td><td>(1,1) struct  as returned by shLowLevel.mcPropagate, which documents every field</td></tr>
+</table>
+<b>Example</b><pre>    b = g.basinKernel([-10 100; -10 140; 25 140; 25 100]);
+    out = g.mcPropagate(@(gs) gs.basinAverage(b), N = 500, Seed = 1);</pre>
+</div>
 <div class="entry" id="shCoefficients.minus">
 <h3><code>shCoefficients.minus(a, b)</code></h3>
 <p class="h1line">Coefficient difference (e.g. monthly change gB - gA).</p>
@@ -2215,6 +2257,20 @@ code itself.</p>
 </table>
 <b>Example</b><pre>    B = g.regionalBasis(&quot;Elbe&quot;);
     [a, rec] = g.regionalProject(B);</pre>
+</div>
+<div class="entry" id="shCoefficients.sensitivityKernel">
+<h3><code>shCoefficients.sensitivityKernel(obj, region, opts)</code></h3>
+<p class="h1line">A tailored basin kernel in basinAverage&#x27;s index.</p>
+<p>[K, INFO] = g.sensitivityKernel(REGION) is shLowLevel.sensitivityKernel(shLowLevel.shIndex(g.nmax), REGION): the Swenson-Wahr kernel that trades leakage against noise, in the ordering g.basinAverage and ts.basinAverage require. That function documents the trade-off, Alpha and INFO. Noise and FarField, when given, are in the same shLowLevel.shIndex(g.nmax) ordering.</p>
+<b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td>required</td></tr><tr><td><code>region</code></td><td>n x m</td><td>-</td><td>required</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Alpha</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>Noise</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>FarField</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>BufferKm</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>TaperKm</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>R</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>OverSample</code></td><td>lane default</td><td>-</td><td>-</td></tr></table>
+<b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
+<tr><td><code>k</code></td><td>(P,1) double  the kernel in shLowLevel.shIndex(g.nmax) ordering</td></tr>
+<tr><td><code>info</code></td><td>(1,1) struct  as returned by shLowLevel.sensitivityKernel, which documents every field</td></tr>
+</table>
+<b>Example</b><pre>    k = g.sensitivityKernel([-10 100; -10 140; 25 140; 25 100], ...
+        Alpha = 1);
+    avg = g.basinAverage(k);</pre>
 </div>
 <div class="entry" id="shCoefficients.setCoefficient">
 <h3><code>shCoefficients.setCoefficient(obj, n, m, Cval, Sval, opts)</code></h3>
@@ -2374,7 +2430,10 @@ code itself.</p>
 <a href="#shSeries.applyTN14">applyTN14</a>
 <a href="#shSeries.at">at</a>
 <a href="#shSeries.basinAverage">basinAverage</a>
+<a href="#shSeries.basinKernel">basinKernel</a>
+<a href="#shSeries.basinScaling">basinScaling</a>
 <a href="#shSeries.bridgeGaps">bridgeGaps</a>
+<a href="#shSeries.buildCondFun">buildCondFun</a>
 <a href="#shSeries.climatology">climatology</a>
 <a href="#shSeries.combineCenters">combineCenters</a>
 <a href="#shSeries.compare">compare</a>
@@ -2404,7 +2463,9 @@ code itself.</p>
 <a href="#shSeries.removeGIA">removeGIA</a>
 <a href="#shSeries.restore">restore</a>
 <a href="#shSeries.select">select</a>
+<a href="#shSeries.sensitivityKernel">sensitivityKernel</a>
 <a href="#shSeries.shSeries">shSeries</a>
+<a href="#shSeries.signalVarianceKaula">signalVarianceKaula</a>
 <a href="#shSeries.slepianProject">slepianProject</a>
 <a href="#shSeries.toGrid">toGrid</a>
 <a href="#shSeries.trendBreaks">trendBreaks</a>
@@ -2459,6 +2520,31 @@ code itself.</p>
 <tr><td><code>out</code></td><td>(1,1) struct   on the deconvolution path, as returned by shLowLevel.basinDeconvolve (sigma, c, attn, condA, avgNaive); otherwise struct(), a 1 x 1 struct with no fields</td></tr>
 </table>
 </div>
+<div class="entry" id="shSeries.basinKernel">
+<h3><code>shSeries.basinKernel(obj, region, opts)</code></h3>
+<p class="h1line">A basin kernel in the index basinAverage reads.</p>
+<p>[B, INFO] = ts.basinKernel(REGION) is shLowLevel.basinKernel(shLowLevel.shIndex(ts.nmax), REGION): the band-limited indicator of REGION in the ordering ts.basinAverage and g.basinAverage require, so a kernel built here cannot meet them in another. That function documents the quadrature, the buffer and the taper.</p>
+<b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td>required</td></tr><tr><td><code>region</code></td><td>n x m</td><td>-</td><td>required</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>BufferKm</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>TaperKm</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>R</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>OverSample</code></td><td>lane default</td><td>-</td><td>-</td></tr></table>
+<b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
+<tr><td><code>b</code></td><td>(P,1) double  the kernel in shLowLevel.shIndex(ts.nmax) ordering</td></tr>
+<tr><td><code>info</code></td><td>(1,1) struct  as returned by shLowLevel.basinKernel, which documents every field</td></tr>
+</table>
+<b>Example</b><pre>    b = ts.basinKernel([-10 100; -10 140; 25 140; 25 100]);
+    avg = ts.basinAverage(b);</pre>
+</div>
+<div class="entry" id="shSeries.basinScaling">
+<h3><code>shSeries.basinScaling(obj, op, b, opts)</code></h3>
+<p class="h1line">Basin scaling factor, with this series as the model.</p>
+<p>[K, INFO] = tsModel.basinScaling(OP, B) is shLowLevel.basinScaling(OP, B, tsModel): the series is pushed through the operator OP that filtered the data, and the true basin average is regressed on the filtered one. That function documents the operator forms, the epoch matching and INFO.</p>
+<b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td>required</td></tr><tr><td><code>op</code></td><td>n x m</td><td>-</td><td>required</td></tr><tr><td><code>b</code></td><td>P x 1</td><td>-</td><td>required</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Idx</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>TYears</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>PerMonth</code></td><td>lane default</td><td>-</td><td>-</td></tr></table>
+<b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
+<tr><td><code>k</code></td><td>(1,1) double  the scaling factor</td></tr>
+<tr><td><code>info</code></td><td>(1,1) struct  as returned by shLowLevel.basinScaling, which documents every field</td></tr>
+</table>
+<b>Example</b><pre>    [k, info] = tsModel.basinScaling(W, b, Idx = idx, TYears = ep);</pre>
+</div>
 <div class="entry" id="shSeries.bridgeGaps">
 <h3><code>shSeries.bridgeGaps(obj, bridge, opts)</code></h3>
 <p class="h1line">Fill the months this series lacks from a second series.</p>
@@ -2471,6 +2557,19 @@ code itself.</p>
 </table>
 <b>Example</b><pre>    ts = ts.applyTN14(tnFile);
     [tsF, info] = ts.bridgeGaps(hlsst);</pre>
+</div>
+<div class="entry" id="shSeries.buildCondFun">
+<h3><code>shSeries.buildCondFun(obj, opts)</code></h3>
+<p class="h1line">The CondFun conditioner for this series&#x27; index.</p>
+<p>[F, INFO] = tsModel.buildCondFun(kn = KN) is shLowLevel.buildCondFun(shLowLevel.shIndex(tsModel.nmax), kn = KN, GM = tsModel.GM, R = tsModel.R): Kvas&#x27; covariance conditioning in the EWH domain, in the index ts.kalman and ts.regionalKalman build their process model on. Call it on the MODEL series and pass F as CondFun. That function documents the conditioner and INFO.</p>
+<b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td>required</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>kn</code></td><td>required by the lane</td><td>-</td><td>-</td></tr><tr><td><code>Psi0Km</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>Regions</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>NLat</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>NLon</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>Basis</code></td><td>lane default</td><td>-</td><td>-</td></tr></table>
+<b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
+<tr><td><code>f</code></td><td>function handle  the conditioner, C -&gt; conditioned C</td></tr>
+<tr><td><code>info</code></td><td>(1,1) struct  as returned by shLowLevel.buildCondFun, which documents every field</td></tr>
+</table>
+<b>Example</b><pre>    cf = tsModel.buildCondFun(kn = kn, Psi0Km = 2000);
+    tsK = tsObs.kalman(ModelSeries = tsModel, CondFun = cf);</pre>
 </div>
 <div class="entry" id="shSeries.climatology">
 <h3><code>shSeries.climatology(obj, opts)</code></h3>
@@ -2798,6 +2897,20 @@ code itself.</p>
 <b>Example</b><pre>    tsFO = ts.select(ts.epochs &gt; 2018.5);
     tsB  = ts.select(Range = [2004 2010]);</pre>
 </div>
+<div class="entry" id="shSeries.sensitivityKernel">
+<h3><code>shSeries.sensitivityKernel(obj, region, opts)</code></h3>
+<p class="h1line">A tailored basin kernel in basinAverage&#x27;s index.</p>
+<p>[K, INFO] = ts.sensitivityKernel(REGION) is shLowLevel.sensitivityKernel(shLowLevel.shIndex(ts.nmax), REGION): the Swenson-Wahr kernel that trades leakage against noise, in the ordering ts.basinAverage and g.basinAverage require. That function documents the trade-off, Alpha and INFO. Noise and FarField, when given, are in the same shLowLevel.shIndex(ts.nmax) ordering.</p>
+<b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td>required</td></tr><tr><td><code>region</code></td><td>n x m</td><td>-</td><td>required</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Alpha</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>Noise</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>FarField</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>BufferKm</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>TaperKm</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>R</code></td><td>lane default</td><td>-</td><td>-</td></tr><tr><td><code>OverSample</code></td><td>lane default</td><td>-</td><td>-</td></tr></table>
+<b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
+<tr><td><code>k</code></td><td>(P,1) double  the kernel in shLowLevel.shIndex(ts.nmax) ordering</td></tr>
+<tr><td><code>info</code></td><td>(1,1) struct  as returned by shLowLevel.sensitivityKernel, which documents every field</td></tr>
+</table>
+<b>Example</b><pre>    k = ts.sensitivityKernel([-10 100; -10 140; 25 140; 25 100], ...
+        Alpha = 1);
+    avg = ts.basinAverage(k);</pre>
+</div>
 <div class="entry" id="shSeries.shSeries">
 <h3><code>shSeries.shSeries(in, opts)</code></h3>
 <p class="h1line">Construct from an shCoefficients array or raw stacks.</p>
@@ -2807,6 +2920,19 @@ code itself.</p>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
 <tr><td><code>obj</code></td><td>(1 x 1) shSeries   epoch-sorted monthly stack with sigmas and history</td></tr>
 </table>
+</div>
+<div class="entry" id="shSeries.signalVarianceKaula">
+<h3><code>shSeries.signalVarianceKaula(obj, opts)</code></h3>
+<p class="h1line">The VDK signal model of this series.</p>
+<p>[AB, INFO] = ts.signalVarianceKaula() is shLowLevel.signalVarianceKaula(ts.Cs, ts.Ss, ts.epochs): the Kaula-type signal sigma a * l^b per calendar month, the input g.vdkApply takes as SIGM. Feed a pre-filtered series; that function documents why, and the bias correction.</p>
+<b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td>required</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>LRange</code></td><td>lane default</td><td>-</td><td>-</td></tr></table>
+<b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
+<tr><td><code>ab</code></td><td>(12 x 2) double  [a, b] per calendar month, January first</td></tr>
+<tr><td><code>info</code></td><td>(1,1) struct  as returned by shLowLevel.signalVarianceKaula, which documents every field</td></tr>
+</table>
+<b>Example</b><pre>    ab = ts.applyDDK(W4).signalVarianceKaula();
+    gf = ts.at(k).vdkApply(N, ab(mo, :), Index = idx);</pre>
 </div>
 <div class="entry" id="shSeries.slepianProject">
 <h3><code>shSeries.slepianProject(obj, G, idx)</code></h3>
@@ -2981,4 +3107,4 @@ code itself.</p>
 <tr><td><code>obj</code></td><td>(1 x 1) shClimatology   copy with the note appended to its history</td></tr>
 </table>
 </div>
-<p class="provenance">Developed by Matthias Weigelt with the help of Claude (Fable 5), 21-Oct-2026 (v5.23.4). Generated by tools - do not edit.</p></div></body></html>
+<p class="provenance">Developed by Matthias Weigelt with the help of Claude (Fable 5), 22-Oct-2026 (v5.24.0). Generated by tools - do not edit.</p></div></body></html>

@@ -2433,6 +2433,212 @@ methods
         [tsK, out] = shLowLevel.regionalKalman(obj, B, args{:});
     end
 
+    function [b, info] = basinKernel(obj, region, opts)
+        %BASINKERNEL A basin kernel in the index basinAverage reads.
+        %   [B, INFO] = ts.basinKernel(REGION) is
+        %   shLowLevel.basinKernel(shLowLevel.shIndex(ts.nmax), REGION): the
+        %   band-limited indicator of REGION in the ordering ts.basinAverage
+        %   and g.basinAverage require, so a kernel built here cannot meet
+        %   them in another. That function documents the quadrature, the
+        %   buffer and the taper.
+        %
+        %   Inputs
+        %     region  handle f(latDeg, lonDeg), K x 2 polygon [lat lon] or
+        %             mask, as shLowLevel.basinKernel takes it
+        %
+        %   Outputs
+        %     b     (P,1) double  the kernel in shLowLevel.shIndex(ts.nmax)
+        %           ordering
+        %     info  (1,1) struct  as returned by shLowLevel.basinKernel,
+        %           which documents every field
+        %
+        %   Options
+        %     BufferKm (lane default)  growth (> 0) or shrinkage of the
+        %         region [km]
+        %     TaperKm (lane default)  Gaussian taper radius [km]
+        %     R (lane default)  sphere radius for the km conversions [m]
+        %     OverSample (lane default)  quadrature refinement factor
+        %
+        %   Example
+        %     b = ts.basinKernel([-10 100; -10 140; 25 140; 25 100]);
+        %     avg = ts.basinAverage(b);
+        arguments
+            obj
+            region
+            opts.BufferKm
+            opts.TaperKm
+            opts.R
+            opts.OverSample
+        end
+        args = namedargs2cell(opts);
+        [b, info] = shLowLevel.basinKernel(shLowLevel.shIndex(obj.nmax), ...
+            region, args{:});
+    end
+
+    function [k, info] = sensitivityKernel(obj, region, opts)
+        %SENSITIVITYKERNEL A tailored basin kernel in basinAverage's index.
+        %   [K, INFO] = ts.sensitivityKernel(REGION) is
+        %   shLowLevel.sensitivityKernel(shLowLevel.shIndex(ts.nmax), REGION):
+        %   the Swenson-Wahr kernel that trades leakage against noise, in
+        %   the ordering ts.basinAverage and g.basinAverage require. That
+        %   function documents the trade-off, Alpha and INFO. Noise and
+        %   FarField, when given, are in the same shLowLevel.shIndex(ts.nmax)
+        %   ordering.
+        %
+        %   Inputs
+        %     region  handle f(latDeg, lonDeg), K x 2 polygon [lat lon] or
+        %             mask, as shLowLevel.sensitivityKernel takes it
+        %
+        %   Outputs
+        %     k     (P,1) double  the kernel in shLowLevel.shIndex(ts.nmax)
+        %           ordering
+        %     info  (1,1) struct  as returned by shLowLevel.sensitivityKernel,
+        %           which documents every field
+        %
+        %   Options
+        %     Alpha (lane default)  weight of the noise against the leakage
+        %     Noise (lane default)  error covariance or sigmas, in index
+        %         ordering
+        %     FarField (lane default)  per-coefficient far-field weight
+        %     BufferKm (lane default)  growth of the region [km]
+        %     TaperKm (lane default)  Gaussian taper radius [km]
+        %     R (lane default)  sphere radius for the km conversions [m]
+        %     OverSample (lane default)  quadrature refinement factor
+        %
+        %   Example
+        %     k = ts.sensitivityKernel([-10 100; -10 140; 25 140; 25 100], ...
+        %         Alpha = 1);
+        %     avg = ts.basinAverage(k);
+        arguments
+            obj
+            region
+            opts.Alpha
+            opts.Noise
+            opts.FarField
+            opts.BufferKm
+            opts.TaperKm
+            opts.R
+            opts.OverSample
+        end
+        args = namedargs2cell(opts);
+        [k, info] = shLowLevel.sensitivityKernel( ...
+            shLowLevel.shIndex(obj.nmax), region, args{:});
+    end
+
+    function [ab, info] = signalVarianceKaula(obj, opts)
+        %SIGNALVARIANCEKAULA The VDK signal model of this series.
+        %   [AB, INFO] = ts.signalVarianceKaula() is
+        %   shLowLevel.signalVarianceKaula(ts.Cs, ts.Ss, ts.epochs): the
+        %   Kaula-type signal sigma a * l^b per calendar month, the input
+        %   g.vdkApply takes as SIGM. Feed a pre-filtered series; that
+        %   function documents why, and the bias correction.
+        %
+        %   Inputs
+        %     none beyond the object
+        %
+        %   Outputs
+        %     ab    (12 x 2) double  [a, b] per calendar month, January first
+        %     info  (1,1) struct  as returned by
+        %           shLowLevel.signalVarianceKaula, which documents every
+        %           field
+        %
+        %   Options
+        %     LRange (lane default)  (1 x 2) degree range of the fit
+        %
+        %   Example
+        %     ab = ts.applyDDK(W4).signalVarianceKaula();
+        %     gf = ts.at(k).vdkApply(N, ab(mo, :), Index = idx);
+        arguments
+            obj
+            opts.LRange
+        end
+        args = namedargs2cell(opts);
+        [ab, info] = shLowLevel.signalVarianceKaula(obj.Cs, obj.Ss, ...
+            obj.epochs, args{:});
+    end
+
+    function [k, info] = basinScaling(obj, op, b, opts)
+        %BASINSCALING Basin scaling factor, with this series as the model.
+        %   [K, INFO] = tsModel.basinScaling(OP, B) is
+        %   shLowLevel.basinScaling(OP, B, tsModel): the series is pushed
+        %   through the operator OP that filtered the data, and the true
+        %   basin average is regressed on the filtered one. That function
+        %   documents the operator forms, the epoch matching and INFO.
+        %
+        %   Inputs
+        %     op  tvANS struct, (P x P) matrix in Idx ordering or handle
+        %         @(x, t), as shLowLevel.basinScaling takes it
+        %     b   (P,1) double  basin kernel in the operator's ordering
+        %
+        %   Outputs
+        %     k     (1,1) double  the scaling factor
+        %     info  (1,1) struct  as returned by shLowLevel.basinScaling,
+        %           which documents every field
+        %
+        %   Options
+        %     Idx (lane default)  shLowLevel.shIndex struct of a matrix or
+        %         handle operator
+        %     TYears (lane default)  data epochs of a matrix or handle
+        %         operator
+        %     PerMonth (lane default)  also return monthly factors
+        %
+        %   Example
+        %     [k, info] = tsModel.basinScaling(W, b, Idx = idx, TYears = ep);
+        arguments
+            obj
+            op
+            b
+            opts.Idx
+            opts.TYears
+            opts.PerMonth
+        end
+        args = namedargs2cell(opts);
+        [k, info] = shLowLevel.basinScaling(op, b, obj, args{:});
+    end
+
+    function [f, info] = buildCondFun(obj, opts)
+        %BUILDCONDFUN The CondFun conditioner for this series' index.
+        %   [F, INFO] = tsModel.buildCondFun(kn = KN) is
+        %   shLowLevel.buildCondFun(shLowLevel.shIndex(tsModel.nmax),
+        %   kn = KN, GM = tsModel.GM, R = tsModel.R): Kvas' covariance
+        %   conditioning in the EWH domain, in the index ts.kalman and
+        %   ts.regionalKalman build their process model on. Call it on the
+        %   MODEL series and pass F as CondFun. That function documents the
+        %   conditioner and INFO.
+        %
+        %   Inputs
+        %     none beyond the object
+        %
+        %   Outputs
+        %     f     function handle  the conditioner, C -> conditioned C
+        %     info  (1,1) struct  as returned by shLowLevel.buildCondFun,
+        %           which documents every field
+        %
+        %   Options
+        %     kn (required by the lane)  load Love numbers, degrees 0..nmax
+        %     Psi0Km (lane default)  correlation length of the taper [km]
+        %     Regions (lane default)  region assignment for the block mask
+        %     NLat (lane default)  Gauss-Legendre rings of the grid
+        %     NLon (lane default)  longitudes of the grid
+        %     Basis (lane default)  a regional basis, for basis covariances
+        %
+        %   Example
+        %     cf = tsModel.buildCondFun(kn = kn, Psi0Km = 2000);
+        %     tsK = tsObs.kalman(ModelSeries = tsModel, CondFun = cf);
+        arguments
+            obj
+            opts.kn
+            opts.Psi0Km
+            opts.Regions
+            opts.NLat
+            opts.NLon
+            opts.Basis
+        end
+        args = namedargs2cell(opts);
+        [f, info] = shLowLevel.buildCondFun(shLowLevel.shIndex(obj.nmax), ...
+            "GM", obj.GM, "R", obj.R, args{:});
+    end
+
     function [out, info] = bridgeGaps(obj, bridge, opts)
         %BRIDGEGAPS Fill the months this series lacks from a second series.
         %   [OUT, INFO] = ts.bridgeGaps(TSB) is shLowLevel.bridgeGaps(ts,

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shSeries.buildCondFun &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shSeries.buildCondFun</nav>
+<h1>shSeries.buildCondFun</h1>
+<p class="h1line">The CondFun conditioner for this series&#x27; index.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>[f, info] = shSeries.buildCondFun(obj)</code><code>[f, info] = shSeries.buildCondFun(obj, kn=..., Psi0Km=..., Regions=..., ...)</code></div>
+<h2>Description</h2>
+<p>[F, INFO] = tsModel.buildCondFun(kn = KN) is <a href="shLowLevel_buildCondFun.html"><code>shLowLevel.buildCondFun</code></a>(<a href="shLowLevel_shIndex.html"><code>shLowLevel.shIndex</code></a>(tsModel.nmax), kn = KN, GM = tsModel.GM, R = tsModel.R): Kvas&#x27; covariance conditioning in the EWH domain, in the index ts.kalman and ts.regionalKalman build their process model on. Call it on the MODEL series and pass F as CondFun. That function documents the conditioner and INFO.</p>
+<h2>Examples</h2>
+<details class="example"><summary>From the help block</summary><div><pre><code>    cf = tsModel.buildCondFun(kn = kn, Psi0Km = 2000);
+    tsK = tsObs.kalman(ModelSeries = tsModel, CondFun = cf);</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td><code>required</code></td><td class="desc">the object the method is called on</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>kn</code></td><td>required by the lane</td><td>-</td><td><code>-</code></td><td class="desc">load Love numbers, degrees 0..nmax</td></tr><tr><td><code>Psi0Km</code></td><td>lane default</td><td>-</td><td><code>-</code></td><td class="desc">correlation length of the taper [km]</td></tr><tr><td><code>Regions</code></td><td>lane default</td><td>-</td><td><code>-</code></td><td class="desc">region assignment for the block mask</td></tr><tr><td><code>NLat</code></td><td>lane default</td><td>-</td><td><code>-</code></td><td class="desc">Gauss-Legendre rings of the grid</td></tr><tr><td><code>NLon</code></td><td>lane default</td><td>-</td><td><code>-</code></td><td class="desc">longitudes of the grid</td></tr><tr><td><code>Basis</code></td><td>lane default</td><td>-</td><td><code>-</code></td><td class="desc">a regional basis, for basis covariances</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>f</code></td><td class="desc">function handle  the conditioner, C -&gt; conditioned C</td></tr><tr><td><code>info</code></td><td class="desc">(1,1) struct  as returned by <a href="shLowLevel_buildCondFun.html"><code>shLowLevel.buildCondFun</code></a>, which documents every field</td></tr></table>
+<h2>Error Identifiers</h2>
+<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<ul class="seealso"><li><a href="shLowLevel_buildCondFun.html"><code>shLowLevel.buildCondFun</code></a></li><li><a href="shLowLevel_shIndex.html"><code>shLowLevel.shIndex</code></a></li></ul>
+<p class="prov">shAnalysis v5.24.0 (22-Oct-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

@@ -66,6 +66,10 @@ _EXPORT = ("exports a GRID - what toGrid returns - rather than a field of "
            "the classes")
 _HELPER = ("a helper on latitudes, masks, paths or documentation, not an "
            "operation on a field")
+_GRID = ("takes a GRID or a pixel stack - what toGrid returns - not a "
+         "field; a method would run toGrid first and carry both option "
+         "sets, which is more than a forward (Matthias: \"Go ahead with "
+         "the class-surface backlog\", 2026-10-22, decided in v5.24.0)")
 _CHAIN = ("a validated chain: it takes a FOLDER and returns a product (a "
           "trend, basin tables, grids) in one call already, so a method "
           "would only rename it - kept off the classes by decision "
@@ -112,25 +116,21 @@ EXCEPTIONS = {
     "oceanChain": _CHAIN,
     "obpChain": _CHAIN,
     "gravisL2B": _CHAIN,
+    "eofSeparate": _GRID,
+    "gridScaling": _GRID,
+    "hydroExtremeIndex": _GRID,
+    "oceanRMS": _GRID,
+    "resolutionMap": ("describes a FILTER operator - its kernel "
+                      "half-widths - and reads no field"),
+    "seaLevelFingerprint": ("solves the sea-level equation for a LOAD "
+                            "region on an index; no field is its input"),
 }
 
 # Numerical lanes with no class route YET, each with the route it would
-# most naturally take. May only shrink (see the module docstring).
-BACKLOG = {
-    "basinKernel": "basin kernels B for basinAverage (a builder of its input)",
-    "basinScaling": "leakage/attenuation scaling factors by forward modelling",
-    "buildCondFun": "the CondFun= conditioner that ts.kalman forwards",
-    "designFilter": "a DDK-class W from covariances, for applyDDK",
-    "eofSeparate": "coherent modes out of a residual stack, beside ts.eof",
-    "gridScaling": "per-pixel scaling factors from a model series",
-    "hydroExtremeIndex": "flood and drought indices from a series",
-    "mcPropagate": "Monte-Carlo propagation through a processing chain",
-    "oceanRMS": "open-ocean RMS noise metric of a field",
-    "resolutionMap": "filter-kernel half-widths of a filter operator",
-    "seaLevelFingerprint": "elastic sea-level fingerprint of a load",
-    "sensitivityKernel": "a basin kernel with a leakage/noise trade-off",
-    "signalVarianceKaula": "Kaula signal variance, an input of the VDK filter",
-}
+# most naturally take. May only shrink (see the module docstring). Empty
+# since v5.24.0: the last 13 became nine routes or six exceptions. A new
+# lane goes into a class or into EXCEPTIONS, not here.
+BACKLOG = {}
 
 DELEGATES = {
     ("shSeries", "kalman"): "kalmanChain",
@@ -156,6 +156,15 @@ DELEGATES = {
     ("shSeries", "regionalProcessModel"): "regionalProcessModel",
     ("shCoefficients", "regionalNEQ"): "regionalNEQ",
     ("shSeries", "regionalKalman"): "regionalKalman",
+    ("shCoefficients", "basinKernel"): "basinKernel",
+    ("shCoefficients", "sensitivityKernel"): "sensitivityKernel",
+    ("shCoefficients", "designFilter"): "designFilter",
+    ("shCoefficients", "mcPropagate"): "mcPropagate",
+    ("shSeries", "basinKernel"): "basinKernel",
+    ("shSeries", "sensitivityKernel"): "sensitivityKernel",
+    ("shSeries", "signalVarianceKaula"): "signalVarianceKaula",
+    ("shSeries", "basinScaling"): "basinScaling",
+    ("shSeries", "buildCondFun"): "buildCondFun",
 }
 
 

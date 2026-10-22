@@ -1753,6 +1753,186 @@ methods
             "Cov", cov, args{:});
     end
 
+    function [b, info] = basinKernel(obj, region, opts)
+        %BASINKERNEL A basin kernel in the index basinAverage reads.
+        %   [B, INFO] = g.basinKernel(REGION) is
+        %   shLowLevel.basinKernel(shLowLevel.shIndex(g.nmax), REGION): the
+        %   band-limited indicator of REGION in the ordering g.basinAverage
+        %   and ts.basinAverage require, so a kernel built here cannot meet
+        %   them in another. That function documents the quadrature, the
+        %   buffer and the taper.
+        %
+        %   Inputs
+        %     region  handle f(latDeg, lonDeg), K x 2 polygon [lat lon] or
+        %             mask, as shLowLevel.basinKernel takes it
+        %
+        %   Outputs
+        %     b     (P,1) double  the kernel in shLowLevel.shIndex(g.nmax)
+        %           ordering
+        %     info  (1,1) struct  as returned by shLowLevel.basinKernel,
+        %           which documents every field
+        %
+        %   Options
+        %     BufferKm (lane default)  growth (> 0) or shrinkage of the
+        %         region [km]
+        %     TaperKm (lane default)  Gaussian taper radius [km]
+        %     R (lane default)  sphere radius for the km conversions [m]
+        %     OverSample (lane default)  quadrature refinement factor
+        %
+        %   Example
+        %     b = g.basinKernel([-10 100; -10 140; 25 140; 25 100]);
+        %     avg = g.basinAverage(b);
+        arguments
+            obj
+            region
+            opts.BufferKm
+            opts.TaperKm
+            opts.R
+            opts.OverSample
+        end
+        args = namedargs2cell(opts);
+        [b, info] = shLowLevel.basinKernel(shLowLevel.shIndex(obj.nmax), ...
+            region, args{:});
+    end
+
+    function [k, info] = sensitivityKernel(obj, region, opts)
+        %SENSITIVITYKERNEL A tailored basin kernel in basinAverage's index.
+        %   [K, INFO] = g.sensitivityKernel(REGION) is
+        %   shLowLevel.sensitivityKernel(shLowLevel.shIndex(g.nmax), REGION):
+        %   the Swenson-Wahr kernel that trades leakage against noise, in
+        %   the ordering g.basinAverage and ts.basinAverage require. That
+        %   function documents the trade-off, Alpha and INFO. Noise and
+        %   FarField, when given, are in the same shLowLevel.shIndex(g.nmax)
+        %   ordering.
+        %
+        %   Inputs
+        %     region  handle f(latDeg, lonDeg), K x 2 polygon [lat lon] or
+        %             mask, as shLowLevel.sensitivityKernel takes it
+        %
+        %   Outputs
+        %     k     (P,1) double  the kernel in shLowLevel.shIndex(g.nmax)
+        %           ordering
+        %     info  (1,1) struct  as returned by shLowLevel.sensitivityKernel,
+        %           which documents every field
+        %
+        %   Options
+        %     Alpha (lane default)  weight of the noise against the leakage
+        %     Noise (lane default)  error covariance or sigmas, in index
+        %         ordering
+        %     FarField (lane default)  per-coefficient far-field weight
+        %     BufferKm (lane default)  growth of the region [km]
+        %     TaperKm (lane default)  Gaussian taper radius [km]
+        %     R (lane default)  sphere radius for the km conversions [m]
+        %     OverSample (lane default)  quadrature refinement factor
+        %
+        %   Example
+        %     k = g.sensitivityKernel([-10 100; -10 140; 25 140; 25 100], ...
+        %         Alpha = 1);
+        %     avg = g.basinAverage(k);
+        arguments
+            obj
+            region
+            opts.Alpha
+            opts.Noise
+            opts.FarField
+            opts.BufferKm
+            opts.TaperKm
+            opts.R
+            opts.OverSample
+        end
+        args = namedargs2cell(opts);
+        [k, info] = shLowLevel.sensitivityKernel( ...
+            shLowLevel.shIndex(obj.nmax), region, args{:});
+    end
+
+    function [W, info] = designFilter(obj, opts)
+        %DESIGNFILTER A DDK-class filter built from this field's own errors.
+        %   [W, INFO] = g.designFilter() is
+        %   shLowLevel.designFilter(g.sigmaC, g.sigmaS): the Wiener-type
+        %   decorrelation filter from G's formal sigmas, in the block format
+        %   g.applyDDK takes. With Noise (and Idx) a full covariance is used
+        %   instead and the sigmas are not read. That function documents the
+        %   construction. A field without formal sigmas passes NaN, which
+        %   the lane refuses unless Noise is given.
+        %
+        %   Inputs
+        %     none beyond the object
+        %
+        %   Outputs
+        %     W     (1,1) struct  the filter, as returned by
+        %           shLowLevel.designFilter, which documents every field
+        %     info  (1,1) struct  as returned by shLowLevel.designFilter
+        %
+        %   Options
+        %     Alpha (lane default)  regularisation weight
+        %     Kaula (lane default)  signal RMS of the Kaula rule
+        %     DegVar (lane default)  per-degree signal variance
+        %     Noise (lane default)  full noise covariance in Idx ordering
+        %     Signal (lane default)  full signal covariance in Idx ordering
+        %     Idx (lane default)  shLowLevel.shIndex struct of Noise/Signal
+        %     Nmin (lane default)  first filtered degree
+        %     Name (lane default)  label stored in W.name
+        %
+        %   Example
+        %     W = g.designFilter(Alpha = 1);
+        %     gF = g.applyDDK(W);
+        arguments
+            obj
+            opts.Alpha
+            opts.Kaula
+            opts.DegVar
+            opts.Noise
+            opts.Signal
+            opts.Idx
+            opts.Nmin
+            opts.Name
+        end
+        sc = obj.sigmaC; ss = obj.sigmaS;
+        if isempty(sc), sc = nan(size(obj.C)); end
+        if isempty(ss), ss = nan(size(obj.S)); end
+        args = namedargs2cell(opts);
+        [W, info] = shLowLevel.designFilter(sc, ss, args{:});
+    end
+
+    function out = mcPropagate(obj, fun, opts)
+        %MCPROPAGATE Monte-Carlo uncertainty of any functional of this field.
+        %   OUT = g.mcPropagate(FUN) is shLowLevel.mcPropagate(FUN, g): it
+        %   draws samples of G consistent with its formal sigmas (or with
+        %   Cov in Idx ordering), pushes each through FUN and returns the
+        %   sample mean and sigma. That function documents the sampling
+        %   models.
+        %
+        %   Inputs
+        %     fun  function handle  y = fun(gs), gs an shCoefficients
+        %          sample, y numeric of a fixed size
+        %
+        %   Outputs
+        %     out  (1,1) struct  as returned by shLowLevel.mcPropagate,
+        %          which documents every field
+        %
+        %   Options
+        %     N (lane default)  number of samples
+        %     Cov (lane default)  full covariance in Idx ordering
+        %     Idx (lane default)  shLowLevel.shIndex struct of Cov
+        %     Seed (lane default)  rng seed
+        %     KeepSamples (lane default)  also return the samples
+        %
+        %   Example
+        %     b = g.basinKernel([-10 100; -10 140; 25 140; 25 100]);
+        %     out = g.mcPropagate(@(gs) gs.basinAverage(b), N = 500, Seed = 1);
+        arguments
+            obj
+            fun (1,1) function_handle
+            opts.N
+            opts.Cov
+            opts.Idx
+            opts.Seed
+            opts.KeepSamples
+        end
+        args = namedargs2cell(opts);
+        out = shLowLevel.mcPropagate(fun, obj, args{:});
+    end
+
     function disp(obj)
         %DISP Compact display: size, epoch, GM/R, processing history.
         %   disp(G) prints one header line with the model name, one

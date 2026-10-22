@@ -59,8 +59,8 @@ function [W, info] = designFilter(SigmaC, SigmaS, opts)
 %     shLowLevel:designFilter:badDegVar
 %         DegVar does not have nmax+1 entries (degrees 0..nmax)
 %     shLowLevel:designFilter:badSigma
-%         a filtered degree has a non-positive sigma - the Wiener weight
-%         would divide by zero
+%         a filtered degree has a non-positive or NaN sigma - the Wiener
+%         weight would divide by zero, or be NaN
 %     shLowLevel:designFilter:idxMiss
 %         Idx has no entry for a (n, m, C/S) triple the filter needs
 %     shLowLevel:designFilter:needIdx
@@ -125,9 +125,11 @@ for m = 0:nmax
         else
             if cs == 'c', sg = diag(SigmaC(nvec + 1, m + 1));
             else, sg = diag(SigmaS(nvec + 1, m + 1)); end
-            if any(diag(sg) <= 0)
+            % ~(> 0), not <= 0: a NaN sigma fails <= 0 as well, and before
+            % v5.24.0 it passed here and made the whole block NaN
+            if ~all(diag(sg) > 0)
                 error('shLowLevel:designFilter:badSigma', ...
-                    'All sigmas of filtered degrees must be positive (m = %d).', m);
+                    'All sigmas of filtered degrees must be positive, and none NaN (m = %d).', m);
             end
             Nblk = diag(1 ./ diag(sg).^2);
             Sblk = diag(dv(nvec + 1));
