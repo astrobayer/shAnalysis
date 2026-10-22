@@ -53,6 +53,12 @@ given, so each default stays in its lane alone. All nine are pinned in
   (`testDesignFilterRefusesANaNSigma`). Found while writing
   `g.designFilter`, whose most natural input - a field filtered by
   `applyDDK`, which sets its sigmas to NaN - would have met it.
+- **`signalVarianceKaula`**'s documented `badRange` could never be
+  raised: its message passed the 1 x 2 `LRange` to `error`, which takes
+  scalar format arguments only, so `error` itself threw
+  `MATLAB:error:nonScalarInput` (the A27 shape). Found on A8 by
+  `testSeriesLastBacklogRoutesAreTheirLanes`, which drives the guard
+  through `ts.signalVarianceKaula`.
 
 ## [5.23.4] - 2026-10-21 - code defects of the help-versus-code review
 
