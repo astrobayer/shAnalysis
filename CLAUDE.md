@@ -23,10 +23,10 @@ says whether it was *read* or *inferred*.
 
 | Fact | Value | Evidence |
 |---|---|---|
-| Version | **5.22.0**, 21-Oct-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
+| Version | **5.23.4**, 21-Oct-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
 | Branches | `main` only; `claude/getframe-recapture` and `claude/readshm` are gone (merged/deleted) | `GET /branches` |
 | Public surface | 3 classes / 97 methods, 134 `+shLowLevel` functions (+5 private), 3 root functions. 87 of the 134 are reachable from a class method; each of the other 47 is a named exception (34) or in a backlog that may only shrink (13) | `tools/dev/api_extract.py`; `tools/dev/class_surface_audit.py` |
-| Tests | 5 classes, **417 methods / 431 runs**: Correctness 214, Contract 121, Robustness 60, Science 9, Performance 13 methods (27 runs, `budgetCase` x14 + `nmaxP` x2). On A8 7 filter out without the optional real-data fixtures (the GravIS-grid test joined them in v5.8.0, the ESMGFZ check in v5.11.0, the HLSST check in v5.12.0); on MATTHIASPC only 2 do, because `E:\DATAPOOL` supplies the SINEX files, the GravIS folder and - with `SHX_EARTHROTATION_FOLDER` and `SHX_BRIDGE_FOLDER` set for the run, no preference is stored - the ESMGFZ and HLSST series. The counter has matched the runner EXACTLY on the last ten green A8 runs and on every local Tier-A run. | `python3 tools/dev/count_tests.py` |
+| Tests | 5 classes, **431 methods / 445 runs**: Correctness 221, Contract 127, Robustness 61, Science 9, Performance 13 methods (27 runs, `budgetCase` x14 + `nmaxP` x2). On A8 7 filter out without the optional real-data fixtures (the GravIS-grid test joined them in v5.8.0, the ESMGFZ check in v5.11.0, the HLSST check in v5.12.0); on MATTHIASPC only 2 do, because `E:\DATAPOOL` supplies the SINEX files, the GravIS folder and - with `SHX_EARTHROTATION_FOLDER` and `SHX_BRIDGE_FOLDER` set for the run, no preference is stored - the ESMGFZ and HLSST series. The counter has matched the runner EXACTLY on the last ten green A8 runs and on every local Tier-A run. | `python3 tools/dev/count_tests.py` |
 | Python oracles | 31 `tools/dev/validate_*.py` (+ `regional_oracle_lib.py`, shared by the WP8 oracles) + `tools/audit/*` | listing |
 | Docs | **27** hand-written `html/*.html` (24 per-entity duplicates retired in v5.0.1, WP6 stage 3; `regionalBasis.html` added in v5.14.0) + **238 generated `html/ref/*.html`** (one per entity + index, `make_refpages.py`), one shared `html/shAnalysis.css`, `helptoc.xml`, `info.xml`, guide PDF, generated `html/apiReference.html`. `docs/` holds the PDF and `apiExamples.json` only - no HTML page lives outside `html/` (gated). | listing |
 | CI | `gates` job on ubuntu (help_audit, doc_sync_audit, no_map_renderer, toolbox_dependency_audit, nv_casing_audit, fixture_tag_audit, gate self-tests `tools/tests/`, `count_tests`, `name_coverage`, `class_surface_audit`, `error_id_audit`, `option_values_audit`, `refpages_audit`, `make_demos --check`, `perf_baseline_audit`) + `runAllTests (self-hosted)` on A8/R2026a; fixtures from tag `fixtures-2026-08` | `.github/workflows/ci.yml` |
@@ -209,6 +209,12 @@ do not see; **L** = polish.
 | A32 | H | **CLOSED v5.13.1** - an audit of the help, the html pages and the guide, asked for by Matthias, run as read-only probes over what the documentation gates do NOT read. With all 19 gates green it found: **wrong for a user** - the README quick start called `clim.amplitudeMap` with five positional arguments (three allowed); ten guide snippets and two html pages assigned `Idx=` and then used `idx`; guide G9 called `shLowLevel.plotSHMap`, removed in v3.32.0; `shSynthesis.html` and `legendreALF.html` called both functions without `shLowLevel.`; `demo_shAnalysis` looked for fetched ITSG data only in the pre-v3.16 folders, so D05/D06 never found a fetch made since (Tier A: 257 months found now, 0 before); six guide paragraphs printed a literal `%%` and one a mangled path; six html pages opened `<body>` twice and one closed `</head>` twice. **Stale** - the refuted "5-20x" on two pages; GIA "treated as exact" (v5.2.0 propagates it); "two" opt-in tests (seven); the pre-v3.16 download layout in five pages, four help blocks and the guide; fixtures "shipped in tests/test_data" (a plain clone has none); "four" suites; "six" CI gates; the guide's Edition 5, "169 unit tests" and two-part identifier convention; `standardChain`'s "DDKn (fetched on demand)". **Missing** - 28 public methods from the three class pages; guide chapters for everything after v3.26 (now 28-32 and G14); 51 of 128 functions in the guide's "Utilities" index (now 5, the utilities). The four probe rules that fire only on defects, and a one-head-one-body check, are gated as `doc_sync_audit` PROSE, fault-injected in `tools/tests/test_doc_sync_prose.py`. | `python3 tools/doc_sync_audit.py` |
 | A34 | M | **CLOSED v5.22.0**, as an option - `FitClimatology = "filtered"` on `kalmanChain`, `regionalKalman` and their class routes fits the climatology to a first pass run without one, removes it, filters the residual and restores it. In the 8e closed loop 0.89-1.96 cm grid RMS against the default's 14.5 cm, never more than 2% above `Climatology = false` and better than it with a strong climatology; on the SH basis 0.43 of the default's error at worst with noise above the signal, 0.95-1.00 with noise below it. The default stays `"observations"`, by Matthias's decision, bitwise. Original finding: `Climatology = true` (`kalmanChain`, and `regionalKalman` after it) fits the observation climatology to the NOISY observations and restores it unfiltered, so the climatology's noise comes back in every output. | `tools/dev/validate_climatology_restore.py` |
 | A36 | M | **CLOSED v5.23.0**, measured on A8 at `82fabb2`: the three tests ran 0.86, 0.86 and 7.04 s, and the new contract test 17.96 s - 26.7 s where 130 s were, **103 s off every run**. The remainder is not backoff: a refused connection to 127.0.0.1:1 costs about 3 s per attempt on Windows, which is why the 4-attempt half of the contract test, kept to pin that an omitted `MaxTries` is `httpFetch`'s own default, is the largest of them. Original finding: 130 s of the suite's 248 s of test time on A8 (53%) was three OFFLINE tests sleeping: `testICGEMListFixtureAndResolve` 65.5 s, `testFetchICGEMSeriesOffline` 34.0 s, `testFetchProxyPlumbing` 30.3 s, identical to 0.03 s over four runs. Each URL they make fail on purpose paid `httpFetch`'s backoff (4 tries, 2 s base, about 15 s), and `fetchTN`/`fetchICGEM` gave a caller no way to shorten it. v5.23.0 forwards `MaxTries`/`BaseDelay` (no defaults of their own) and the tests pass `MaxTries = 1`. No numerical lane is slow: the largest is `benchPointsCrossover` at 9.9 s. | A8 job logs, per-test durations |
+| A37 | H | **CLOSED v5.23.1** - `designFilter` never filtered C, from v3.1.0 on. Its blocks stored `cs` as the char `'c'`/`'s'`, `applyDDK` branches on `cs == 0` (the numeric 0/1 `readDDK` stores), so every block took the S branch; `g.applyDDK(W)`, `ts.applyDDK(W)` and `standardChain(Filter = W)` with a designed W passed C unfiltered. `testDesignFilter` checked the degree RMS of C and S TOGETHER, which the S filtering alone damps. Blocks carry 0/1 now; `applyDDK` refuses any other `cs` (`badBlock`). Found by reading `readDDK`'s help, which also said `'c'\|'s'` - the help was the likely origin of the bug. | `testDesignFilterFiltersBothCoefficients` (bitwise per block) |
+| A38 | H | **CLOSED v5.23.1** - `obpChain` could not finish a run: its last line called `shLowLevel.shxVersion`, a name gone since the v3.0.0 rename. Every call that passed the guards failed after the synthesis; the tests reached the guards only. Same release: `readSINEX(Only = "estimate")` returned `sigma` (not `sig`) and ignored `Index`; `hydroExtremeIndex`'s `int8` category turned NaN into -6 (now double, NaN where Z is - Matthias's call, merged). | `testObpChainRunsToTheEnd` |
+| A39 | M | **CLOSED v5.23.2** - `tools/dev/fix_help.py` documented a missing default by writing ` (<default>)` after the FIRST mention of the option anywhere in the help. From v3.0.1 (`9bd487f`, the "328 findings to zero" sweep) that left 125 markers in 32 files: syntax lines that are not MATLAB (`setup_shAnalysis(Permanent (false) = true)`) and prose such as `Convert to another (GM (NaN), R (NaN)) reference`, copied into 31 generated pages. `help_audit`'s default check was satisfied by them - it only asks that the default appear on SOME line naming the option. 41 options had no other record of their default and got a proper row. `help_audit` rejects a marker outside the option's own row (`misplaced_defaults`); the writer writes only into that row. A writer that satisfies a gate by putting text where the gate looks is the A12 shape. | `python3 tools/help_audit.py`; `tools/tests/test_help_audit.py` |
+| A40 | M | **CLOSED v5.23.3** - a help-versus-code review of all 234 entities, asked for by Matthias, found about 80 places where a help block contradicted its code, with all 18 gates green. Wrong for a user: `gravisRegionChain`'s `sigTrend`/`residRMS` shapes swapped; `shClimatology.periodic(k)` "1 = annual"; `Nmax` for the property `nmax`; five `ts.filter("tvANS")` option rows; inputs the help accepted and the code refused (`ts.at(year)`, `removeGIA(file)`, `restore`/`read` with a folder, `readDDK(folder)`). Corrected with the CODE as the authority, comment lines only; code defects were listed, not bent into the help (A41). | CHANGELOG 5.23.3 |
+| A41 | H | **CLOSED v5.23.4** - fifteen code defects A40 recorded. The worst: `twsChain` joined its DDK candidate paths as char rows with `[;]`, a dimension error on every default `Filter = "DDK3"` call (confirmed on A8 by the first test to reach it). Also: `standardChain(OnMissing = "drop")` stopped on an interior table gap; `combineCenters` dropped GM/R and fixed ProductType "GSM" (now kept, mixed types "unknown", mixed references refused); `estimateDegree1` hardcoded R in its basis; `fetchICGEM`, `fetchITSGBackground`, `fetchITSG` (daily Catalog rows now skipped with `dailySkipped` - Matthias's call, merged), `fetchLoveNumbers` (deformation tables, two columns - inferred from the layout in 6.3, pinned on synthetic files); `shSynthesis` Method, `writeGrid` 2-D epoch, `plotSHSpectrum` struct arrays, `demo_shAnalysis(OutDir = "")`, `obpChain`/`oceanChain` Quiet; two opt-in tests now read the stored preference. | 10 tests, A8 445 runs at `b8c487b` |
+| A42 | L | **OPEN** - recorded by A40/A41, deliberately not changed: `readSINEX` misreads an estimate line without a std field (needs a file of that layout); `synthesisPoints` quotes 2.0x/34x where A22 says 2.3x/37x (needs a run); `gravisRegionChain` has `rep.basins` for Antarctica only; `standardChain`'s `rep.files` is the raw listing; MaxFailures counts in total. And one test whose reach is unverified: `testStandardChainDropsAnEpochInAnInteriorGap` assumes the TN-13 fixture spans 2017-07..2018-05; if the fixture copy ends earlier it tests the end of the table instead. | CHANGELOG 5.23.4 "Recorded, not changed" |
 | A35 | H | **CLOSED v5.20.0** - `estimateVAR` with `Order` >= 2 built its Yule-Walker block matrix from Sigma(i - j) where E[x_(t-i) x_(t-j)'] = Sigma(j - i) belongs: each block transposed. Exact for `Order = 1` and for 1 x 1 blocks, so no default call and no earlier test could see it; a multivariate VAR(2) of a stationary truth (radius 0.76) came back with radius 1.45, missing its own Yule-Walker equations by 0.30 of Sigma(0). Present since the function was written (2026-08-17); `kalmanChain` and `regionalKalman` at `Order >= 2` inherited it. The Python oracles built the matrix correctly and so never disagreed with anything MATLAB was asked; 8i's VAR(2) identity test on A8 is what reached it. | `testEstimateVAROrderTwoSolvesTheYuleWalkerEquations` |
 | A33 | M | **CLOSED v5.21.0** - `twsChain` and `gravisRegionChain` (and through it the Greenland and Antarctica chains) take their masks from `readBasin`; `jsondecode` lives there only. **The finding's premise was wrong, measured**: the chains recentre each polygon at its circular-mean longitude, so Loire, Niger and Volta were never broken. The defect was elsewhere - Antarctic basin 302's ring winds once around the pole, and the old rule left the cap south of -88.54 outside: 686 cells of the 1-degree grid differ, net 137,000 km2, 1.2 percent of the Antarctic area. Every other basin agrees cell for cell except two ring-edge cells (Mekong, Volga, distance 1e-14 deg). Pinned by `testGravisChainMasksAreReadBasinRegions`, which keeps the old rule as the captured reference. Original finding: GravIS basin GeoJSON is parsed in four places (`twsChain`, `gravisRegionChain`, `greenlandChain`, `antarcticaChain`), each converting `[lon lat]` rings itself; three rivbas basins (Loire, Niger, Volta) cross lon 0, where `evalMask`'s planar polygon test in `[0, 360)` breaks. | `grep -ln jsondecode +shLowLevel/*.m` |
 | A15 | M | **CLOSED v4.0.0** with A3 — `kernelFactors`, `shSynthesisGradient` and `seaLevelFingerprint` now own their identifiers, and the tests that pinned the old names were remapped per raising file (the same old id mapped to two different owners, so a global replace would have been wrong). Original finding: A3 is **wider than the audit's 12**: `kernelFactors` (`shSynthesis:missingLoveNumbers`, `:badQuantity`, `:heightInvalid`), `shSynthesisGradient` (`shSynthesis:badInput`) and `seaLevelFingerprint` (`shSynthesis:missingLoveNumbers`) also raise identifiers they do not own. Unlike `shSynthesisDeformation`'s, these ARE documented and pinned by `testContract`/`testCorrectness`, so renaming them is a MAJOR change. Belongs in WP1's identifier sweep, not in a patch. | `grep -rn "shSynthesis:" --include=*.m` |
@@ -488,7 +494,7 @@ proposal stays below as the record.
 | 5e `[x]` **DONE v5.8.0** (approved 2026-09-10): `shLowLevel.readGrid`, and `Fill` on `analysis`; the real file is the GravIS TWS grid instead of GLDAS | `shLowLevel.readGrid(ncfile, Var=…)` (netCDF → grid + metadata, inverse of `writeGrid`) so GLDAS/WGHM enter `shCoefficients.analysis` | `writeGrid` roundtrip; one GLDAS file | S |
 Version: MINOR per approved row.
 
-### WP6 — Documentation to the MathWorks layout   `[~] STAGES 1-2 DONE in v3.34.0`
+### WP6 — Documentation to the MathWorks layout   `[x] STAGES 1-2 DONE in v3.34.0, STAGE 3 in v5.0.1; topic categories deferred`
 
 **Stage 1 (done)**: `make_refpages.py` + `html/shAnalysis.css` + the
 `refpages_audit.py` gate + `helptoc.xml` entry — 199 pages, one skeleton,
@@ -654,6 +660,35 @@ shAnalysis, the basin is selectable, and otherwise a test area.
 ## 6. Records
 
 ### 6.1 Decisions (append-only; date, decision, evidence)
+- 2026-10-22 — **The review closed in four releases, 5.23.1 to 5.23.4**
+  (Matthias: "Review the current status of the repo ... Review the
+  documentation and help text of each function if it is in sync with
+  the code", then "Go ahead" for each step). The order was code defects
+  first, then the injector, then the help, then the code defects the
+  help review recorded - so no help text was ever written to describe a
+  bug that the same release fixed.
+- 2026-10-22 — **Help follows code; a code defect is listed, not
+  described away.** In 5.23.3 every help correction took the code as
+  the authority, and where the code looked wrong the help was made to
+  say what the code did and the defect went into the CHANGELOG. 5.23.4
+  then fixed those defects with a test each, and updated the same help
+  rows again. The alternative - writing the intended behaviour into the
+  help - would have left help promising what the code did not do, which
+  is the defect the review existed to remove.
+- 2026-10-22 — **Comment-only releases are checked on the diff, not
+  trusted.** 5.23.2 and 5.23.3 were edited partly by parallel agents; a
+  filter of the diff for changed lines not starting with `%` came back
+  empty before each commit. That is the proof a "documentation only"
+  release needs; a reviewer's statement is not.
+- 2026-10-22 — **Three calls left to Matthias and merged as proposed**:
+  `hydroExtremeIndex`'s `category` is double (NaN where Z is) instead of
+  `int8`; `fetchITSG(Catalog = ...)` skips a daily row with a warning
+  rather than fetching tens of GB; `combineCenters` labels mixed product
+  types "unknown". Each was named in its PR as a decision to confirm or
+  overrule.
+- 2026-10-22 — **Five items stay open on purpose (A42)**: each needs data
+  or a run this session did not have, and a fix built from a guess is
+  6.3's confident nonsense.
 - 2026-10-21 — **A36: the offline fetch tests stop sleeping** (Matthias
   chose "Cut the sleeps" over a wider optimisation pass, after the A8
   profile showed no numerical hot spot). Shipped as 5.23.0: `MaxTries`
@@ -1792,13 +1827,13 @@ shAnalysis, the basin is selectable, and otherwise a test area.
 | v4.0.1 (A19) | ☑ 13 gates + mlint + make_demos + 11 self-test suites, 0 findings | ☑ **CI self-hosted (A8) at `0b4fb3b`, green — 304 runs, 300 passed, 0 failed, 4 filtered** (shared run with 4.0.2; both releases are on the one head) | ☑ PR #97 | ☑ 2026-09-09 |
 | v4.0.2 (A20; A21 opened) | ☑ 13 gates + mlint + make_demos + 11 self-test suites, 0 findings; `count_tests.py` predicts 303 methods / 304 runs, unchanged (the two `testContract` pins changed an identifier STRING, not a method count) | ☑ **CI self-hosted (A8) at `0b4fb3b`, green — 304 runs, 300 passed, 0 failed, 4 filtered**; the prediction matched EXACTLY for the fourth release running, per class as well as in total (Contract 73, Correctness 159, Performance 12 runs, Robustness 53, Science 7). First run, no red round. | ☑ PR #97 | ☑ 2026-09-09 |
 | v4.0.3 (A21a; A21b opened) | ☑ 13 gates + mlint + make_demos + 11 self-test suites, 0 findings | ☑ **CI self-hosted (A8) at `0d06e14`, green — 305 runs, 301 passed, 0 failed, 4 filtered**; the prediction matched EXACTLY for the FIFTH release running, per class as well as in total (Contract 74, Correctness 159, Performance 12 runs, Robustness 53, Science 7), and `testMinusDoesNotEnforceEpochAgreement` ran and passed. First run, no red round. | ☑ PR #98 | ☑ 2026-09-09 |
-| v5.0.0 (A21b) | ☑ 13 gates + mlint + make_demos + 11 self-test suites, 0 findings | ☑ **CI self-hosted (A8) at `631d524`, green — 305 runs, 301 passed, 0 failed, 4 filtered** (shared run with 5.0.1). **TWO red rounds first, both mine, both pin errors** — see the row below. | ☑ PR #99 | ◐ pending |
-| v5.0.1 (WP6 stage 3) | ☑ 13 gates + mlint + make_demos + 12 self-test suites, 0 findings; 50 hand-written pages -> 26, no entity lost COVERAGE | ☑ **CI self-hosted (A8) at `631d524`, green — 305 runs, 301 passed, 0 failed, 4 filtered**; the count prediction matched EXACTLY for the sixth release running. Round 1 (`2530e9f`) failed `testGravisChainsContract`: a pin mapped by call graph, not by which GUARD fires — `fromFolder` asserts `isfolder` (the temp folder EXISTS) then delegates to `read`. Round 2 (`f6481d7`) failed `testTN14IDs`: the pin-enumerating grep used `[A-Za-z]*` and `noC30` HAS DIGITS, so it was never rewritten — and the verification grep repeated the same character class. The new PINS rule closes the second shape. | ☑ PR #99 | ◐ pending |
-| v5.0.2 (WP2 step 1 harness) | ☑ 14 gates + mlint + make_demos + 13 self-test suites, 0 findings | ☑ **CI self-hosted (A8) at `f6d5529`, green — 315 runs, 301 passed, 0 failed, 14 filtered**; the prediction matched EXACTLY for the SEVENTH release running, per class as well as in total (Contract 74, Correctness 159, Performance 22, Robustness 53, Science 7), counts parsed from the 315-row results table. The 14 filtered were the 4 real-data fixtures plus all 10 budgets, exactly as designed — and this is the run that measured the baselines. First run, no red round. | ☑ PR #99 | ◐ pending |
+| v5.0.0 (A21b) | ☑ 13 gates + mlint + make_demos + 11 self-test suites, 0 findings | ☑ **CI self-hosted (A8) at `631d524`, green — 305 runs, 301 passed, 0 failed, 4 filtered** (shared run with 5.0.1). **TWO red rounds first, both mine, both pin errors** — see the row below. | ☑ PR #99 | ☑ 2026-09-09 |
+| v5.0.1 (WP6 stage 3) | ☑ 13 gates + mlint + make_demos + 12 self-test suites, 0 findings; 50 hand-written pages -> 26, no entity lost COVERAGE | ☑ **CI self-hosted (A8) at `631d524`, green — 305 runs, 301 passed, 0 failed, 4 filtered**; the count prediction matched EXACTLY for the sixth release running. Round 1 (`2530e9f`) failed `testGravisChainsContract`: a pin mapped by call graph, not by which GUARD fires — `fromFolder` asserts `isfolder` (the temp folder EXISTS) then delegates to `read`. Round 2 (`f6481d7`) failed `testTN14IDs`: the pin-enumerating grep used `[A-Za-z]*` and `noC30` HAS DIGITS, so it was never rewritten — and the verification grep repeated the same character class. The new PINS rule closes the second shape. | ☑ PR #99 | ☑ 2026-09-09 |
+| v5.0.2 (WP2 step 1 harness) | ☑ 14 gates + mlint + make_demos + 13 self-test suites, 0 findings | ☑ **CI self-hosted (A8) at `f6d5529`, green — 315 runs, 301 passed, 0 failed, 14 filtered**; the prediction matched EXACTLY for the SEVENTH release running, per class as well as in total (Contract 74, Correctness 159, Performance 22, Robustness 53, Science 7), counts parsed from the 315-row results table. The 14 filtered were the 4 real-data fixtures plus all 10 budgets, exactly as designed — and this is the run that measured the baselines. First run, no red round. | ☑ PR #99 | ☑ 2026-09-09 |
 | v5.1.0 (WP2 step 2, B2) | ☑ 15 gates + mlint + make_demos + 13 self-test suites, 0 findings | ☑ **CI self-hosted (A8) at `640f3be` by workflow_dispatch, green — 319 runs, 313 passed, 0 failed, 6 filtered**; the NINTH exact count prediction running, per class as well as in total (Contract 75, Correctness 161, Performance 23, Robustness 53, Science 7). All three new tests passed, dispatch pin and bitwise-chunking pin included. | ☐ no PR (not asked) | ☐ |
-| v5.1.1 (A8 numbers + matched-pair budget) | ☑ 15 gates + mlint + make_demos + 13 self-test suites, 0 findings | ☑ **CI self-hosted (A8) at `e8875fe`, green — 320 runs, 315 passed, 0 failed, 5 filtered**; the TENTH exact count prediction running. The matched pair measured: direct@200 0.0155142 s, clenshaw@200 0.0034370 s. | ☑ PR #101 | ◐ pending |
+| v5.1.1 (A8 numbers + matched-pair budget) | ☑ 15 gates + mlint + make_demos + 13 self-test suites, 0 findings | ☑ **CI self-hosted (A8) at `e8875fe`, green — 320 runs, 315 passed, 0 failed, 5 filtered**; the TENTH exact count prediction running. The matched pair measured: direct@200 0.0155142 s, clenshaw@200 0.0034370 s. | ☑ PR #101 | ☑ 2026-09-09 |
 | v5.2.0 (WP5 5c + help_audit scoping) | ☑ 15 gates + mlint + make_demos + 13 self-test suites, 0 findings | ☑ **CI self-hosted (A8) at `b65f9a2` by workflow_dispatch, green — 326 runs, 320 passed, 0 failed, 6 filtered**; the ELEVENTH exact count prediction running, per class as well as in total (Contract 76, Correctness 164, Performance 26, Robustness 53, Science 7), and exactly the 6 the row predicted. Read back by the v5.3.0 session — the run had gone green and nobody had looked, which is also how the n50 baselines sat unused. | ☐ no PR (branch was unmerged) | ☐ |
-| v5.3.0 (A22, A23, A24; A9 two-factor; WP2 both machines) | ☑ 15 gates + mlint + make_demos + 13 self-test suites, 0 findings; `NO_BASELINE` empty, 14 budgets, both machines baselined | ☑ **Tier A LOCAL on MATTHIASPC (R2026a), the first since the bridge returned** — 328 runs, count prediction matched EXACTLY (Contract 77, Correctness 164, Performance 27, Robustness 53, Science 7). Only 2 filter here, not 4: `E:\DATAPOOL` supplies the SINEX and GravIS fixtures. Then ☑ **CI self-hosted (A8) at `2a38d25` via PR #102, green — 328 runs, 323 passed, 0 failed, 5 filtered** (the 4 real-data fixtures plus `apply_ddk_n300`, which A8 had no baseline for): the TWELFTH exact count prediction running, per class as well as in total. That run also measured `apply_ddk_n300` at 23.0 ms, which is what argued it OUT of `TightBudgets` — one A8 observation is not a spread. With that baseline committed, A8 at `3c003e3` is green again with **328 runs, 324 passed, 0 failed, and only the 4 optional real-data fixtures filtered**: all fourteen speed budgets now ASSERT on both machines, which is what WP2 step 1 was for. | ☑ PR #102 | ◐ pending |
+| v5.3.0 (A22, A23, A24; A9 two-factor; WP2 both machines) | ☑ 15 gates + mlint + make_demos + 13 self-test suites, 0 findings; `NO_BASELINE` empty, 14 budgets, both machines baselined | ☑ **Tier A LOCAL on MATTHIASPC (R2026a), the first since the bridge returned** — 328 runs, count prediction matched EXACTLY (Contract 77, Correctness 164, Performance 27, Robustness 53, Science 7). Only 2 filter here, not 4: `E:\DATAPOOL` supplies the SINEX and GravIS fixtures. Then ☑ **CI self-hosted (A8) at `2a38d25` via PR #102, green — 328 runs, 323 passed, 0 failed, 5 filtered** (the 4 real-data fixtures plus `apply_ddk_n300`, which A8 had no baseline for): the TWELFTH exact count prediction running, per class as well as in total. That run also measured `apply_ddk_n300` at 23.0 ms, which is what argued it OUT of `TightBudgets` — one A8 observation is not a spread. With that baseline committed, A8 at `3c003e3` is green again with **328 runs, 324 passed, 0 failed, and only the 4 optional real-data fixtures filtered**: all fourteen speed budgets now ASSERT on both machines, which is what WP2 step 1 was for. | ☑ PR #102 | ☑ 2026-09-09 |
 | v5.4.0 (WP5 5b: leakageDataDriven) | ☑ 15 gates + mlint + make_demos + 13 self-test suites + the new oracle, 0 findings | ☑ **Tier A LOCAL on MATTHIASPC (R2026a) — 335 runs, 333 passed, 0 failed, 2 filtered**; the count prediction matched EXACTLY, per class as well as in total (Contract 79, Correctness 168, Performance 27, Robustness 54, Science 7). All 7 new tests pass. Two red rounds locally first, both mine and both in the TESTS, not the function: a string-array `sprintf` format, and a `badNmax` case that tripped `badSize` first because the grid was not sliced with the latitudes. Then ☑ **CI self-hosted (A8) at `c1dc1d3` via PR #103, green — 335 runs, 331 passed, 0 failed, 4 filtered** (exactly the optional real-data fixtures): the THIRTEENTH exact count prediction running, per class as well as in total, and all seven new tests ran there. | ☑ PR #103 | ☑ 2026-09-10 |
 | v5.4.1 (A9: four workloads replaced, apply_ddk_n300 promoted, TightFactor 1.3, leakageCorrect duplicate chain) | ☑ 15 gates + mlint + make_demos + 13 self-test suites, 0 findings; `leakageCorrect` change bitwise on 16 outputs | ☑ **Tier A LOCAL on MATTHIASPC — 335 runs, 333 passed, 0 failed, 2 filtered**; count exact per class; all fourteen budgets asserted, the four tight ones at 1.3. Then ☑ **A8 twice at `2c7b779`** (PR run + `workflow_dispatch`): 335 runs, 327 passed, 0 failed, 8 filtered each - the four fixtures plus the four new workloads, as predicted, per class as well as in total. Those two runs are the evidence the promotion rests on. A third A8 run, on the promotion commit `5d4980e` itself: 335 runs, 331 passed, 0 failed, 4 filtered - only the fixtures - with every budget asserting and the worst tight one at 1.030x. | ☑ PR #104 (A8 x3) | ☑ 2026-09-10 |
 | v5.5.0 (WP3: `Surface = "ellipsoid"`, `ellipsoidRadius`) | ☑ 15 gates + mlint + make_demos + 13 self-test suites + the new oracle, 0 findings; sphere path bitwise on 26/26 pre-WP3 outputs | ☑ **Tier A LOCAL on MATTHIASPC — 346 runs, 344 passed, 0 failed, 2 filtered**; count exact per class (Contract 83, Correctness 173, Performance 27, Robustness 56, Science 7); the 11 WP3 tests passed on their first run - no red round. Then ☑ **CI self-hosted (A8) at `3f99bf3` via PR #105, green — 346 runs, 342 passed, 0 failed, 4 filtered** (exactly the optional real-data fixtures); `count_tests` confirmed the prediction against the run, per class as well as in total, and all eleven WP3 tests ran there | ☑ PR #105 | ☑ 2026-09-10 |
@@ -1813,17 +1848,21 @@ shAnalysis, the basin is selectable, and otherwise a test area.
 | v5.12.1 (A30: NaN refused by `shAnalysisGrid`, `leakageCorrect` without a Mask, `gridScaling`) | ☑ 16 gates + mlint + make_demos + 15 self-test suites, 0 findings; the four working paths bitwise before and after | ☑ **Tier A LOCAL on MATTHIASPC — 382 runs, 380 passed, 0 failed, 2 filtered**; count exact per class (Contract 108, Correctness 181, Performance 27, Robustness 57, Science 9), all 27 performance runs asserted. Then ☑ **CI self-hosted (A8) at `6675806` via PR #115, green — 382 runs, 375 passed, 0 failed, 7 filtered**, per class exactly as predicted, and `testNaNNeverReachesAnAnalysis` ran there | ☑ PR #115 | ☑ 2026-09-10 |
 | v5.12.2 (WP2: B1 and the FFT/direct sweep measured, neither built; the `Method` help) | ☑ 16 gates + mlint + make_demos + 15 self-test suites, 0 findings; documentation only | ☑ **Tier A LOCAL on MATTHIASPC — 382 runs, 380 passed, 0 failed, 2 filtered**; count exact per class (Contract 108, Correctness 181, Performance 27, Robustness 57, Science 9), all 27 performance runs asserted. Then ☑ **CI self-hosted (A8) at `8a8141b` via PR #116, green — 382 runs, 375 passed, 0 failed, 7 filtered**, per class exactly as predicted | ☑ PR #116 | ☑ 2026-09-10 |
 | v5.13.0 (WP7 backlog: `poleTideConvert`, `estimateDegree1`, `combineCenters`, `slepianProject` behind the classes) | ☑ 16 gates + mlint + make_demos + 15 self-test suites, 0 findings; reach 75 -> 79 of 128, 16 delegates pinned | ☑ **Tier A LOCAL on MATTHIASPC — 384 runs, 382 passed, 0 failed, 2 filtered**; count exact per class (Contract 110, Correctness 181, Performance 27, Robustness 57, Science 9), all 27 performance runs asserted, and both new tests passed on their first run. Then ☑ **CI self-hosted (A8) at `385e44f` via PR #117, green — 384 runs, 377 passed, 0 failed, 7 filtered**, per class exactly as predicted, and both new tests ran there | ☑ PR #117 | ☑ 2026-09-10 |
-| v5.13.1 (documentation audit: help, html and guide in sync; the demo's v3.16 lookup; `doc_sync_audit` PROSE) | ☑ 16 gates + mlint + make_demos + 15 self-test suites (the new `test_doc_sync_prose`, 18 tests), 0 findings; the demo fix checked in MATLAB: D05 found the 257 fetched months it had missed | ☑ **Tier A LOCAL on MATTHIASPC — 384 runs, 382 passed, 0 failed, 2 filtered**; count exact per class (Contract 110, Correctness 181, Performance 27, Robustness 57, Science 9), all 27 performance runs asserted - unchanged from 5.13.0, as a documentation release should be; the demo fix was run on its own (D05 on the 257 fetched months) | ◐ pending | ◐ pending |
-| v5.14.0 (WP8 8a: `readBasin`, `regionalBasis`, `regionalProject`, class routes; `synthesisMatrix` GridOnly) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally** (the bridge's device was offline). ☑ **CI self-hosted (A8) at `bc74d1b` via PR #120, green — 394 runs, 387 passed, 0 failed, 7 filtered** (the optional real-data fixtures); the count prediction matched EXACTLY, per class as well as in total (Contract 112, Correctness 188, Performance 27, Robustness 58, Science 9). One red round first, at `52913ca`: two TEST defects of mine, both root-caused - `isequal` on a basis carrying NaN, and an expected area taken from an oracle whose point-in-polygon rule drops edge points (6.3) | ☑ PR #120 | ◐ pending |
-| v5.15.0 (WP8 8b: `regionalProcessModel`, `ts.regionalProcessModel`, `estimateVAR` `Sigma0Add`) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally** (the bridge's device offline). ☑ **CI self-hosted (A8) at `43a8b74` via PR #121, green — 399 runs, 392 passed, 0 failed, 7 filtered** (the optional real-data fixtures); the count prediction matched EXACTLY, per class as well as in total (Contract 113, Correctness 192, Performance 27, Robustness 58, Science 9). All five new tests passed on their first run - no red round | ☑ PR #121 | ◐ pending |
+| v5.13.1 (documentation audit: help, html and guide in sync; the demo's v3.16 lookup; `doc_sync_audit` PROSE) | ☑ 16 gates + mlint + make_demos + 15 self-test suites (the new `test_doc_sync_prose`, 18 tests), 0 findings; the demo fix checked in MATLAB: D05 found the 257 fetched months it had missed | ☑ **Tier A LOCAL on MATTHIASPC — 384 runs, 382 passed, 0 failed, 2 filtered**; count exact per class (Contract 110, Correctness 181, Performance 27, Robustness 57, Science 9), all 27 performance runs asserted - unchanged from 5.13.0, as a documentation release should be; the demo fix was run on its own (D05 on the 257 fetched months) | ☑ PR #118, green at `208336a` | ☑ 2026-09-11 |
+| v5.14.0 (WP8 8a: `readBasin`, `regionalBasis`, `regionalProject`, class routes; `synthesisMatrix` GridOnly) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally** (the bridge's device was offline). ☑ **CI self-hosted (A8) at `bc74d1b` via PR #120, green — 394 runs, 387 passed, 0 failed, 7 filtered** (the optional real-data fixtures); the count prediction matched EXACTLY, per class as well as in total (Contract 112, Correctness 188, Performance 27, Robustness 58, Science 9). One red round first, at `52913ca`: two TEST defects of mine, both root-caused - `isequal` on a basis carrying NaN, and an expected area taken from an oracle whose point-in-polygon rule drops edge points (6.3) | ☑ PR #120 | ☑ 2026-10-20 |
+| v5.15.0 (WP8 8b: `regionalProcessModel`, `ts.regionalProcessModel`, `estimateVAR` `Sigma0Add`) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally** (the bridge's device offline). ☑ **CI self-hosted (A8) at `43a8b74` via PR #121, green — 399 runs, 392 passed, 0 failed, 7 filtered** (the optional real-data fixtures); the count prediction matched EXACTLY, per class as well as in total (Contract 113, Correctness 192, Performance 27, Robustness 58, Science 9). All five new tests passed on their first run - no red round | ☑ PR #121 | ☑ 2026-10-20 |
 | v5.16.0 (WP8 8c: `regionalNEQ`, `g.regionalNEQ`) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally** (the bridge's device offline). ☑ **CI self-hosted (A8) at `6de6098` via PR #122, green — 406 runs, 399 passed, 0 failed, 7 filtered** (the optional real-data fixtures); the count prediction matched EXACTLY, per class as well as in total (Contract 115, Correctness 197, Performance 27, Robustness 58, Science 9). All seven new tests passed on their first run - no red round | ☑ PR #122 | ☑ 2026-10-20 |
-| v5.17.0 (WP8 8d: `regionalKalman`, `ts.regionalKalman`, `rtsSmoother` `Functionals`, `B.region.core`) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally** (the bridge's device offline). ☑ **CI self-hosted (A8) at `9503ec3` via PR #123, green — 412 runs, 405 passed, 0 failed, 7 filtered** (the optional real-data fixtures); the count prediction matched EXACTLY, per class as well as in total (Contract 116, Correctness 201, Performance 27, Robustness 59, Science 9). All six new tests passed on their first run - no red round | ☑ PR #123 | ◐ pending |
-| v5.18.0 (WP8 8e: `regionalKalman` `Background`, remove-compute-restore; A34 opened) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally** (the bridge's device offline). ☑ **CI self-hosted (A8) at `f4d69a5` via PR #124, green — 416 runs, 409 passed, 0 failed, 7 filtered** (the optional real-data fixtures); the count prediction matched EXACTLY, per class as well as in total (Contract 117, Correctness 203, Performance 27, Robustness 60, Science 9). All four new tests passed on their first run - no red round | ☑ PR #124 | ◐ pending |
+| v5.17.0 (WP8 8d: `regionalKalman`, `ts.regionalKalman`, `rtsSmoother` `Functionals`, `B.region.core`) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally** (the bridge's device offline). ☑ **CI self-hosted (A8) at `9503ec3` via PR #123, green — 412 runs, 405 passed, 0 failed, 7 filtered** (the optional real-data fixtures); the count prediction matched EXACTLY, per class as well as in total (Contract 116, Correctness 201, Performance 27, Robustness 59, Science 9). All six new tests passed on their first run - no red round | ☑ PR #123 | ☑ 2026-10-21 |
+| v5.18.0 (WP8 8e: `regionalKalman` `Background`, remove-compute-restore; A34 opened) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally** (the bridge's device offline). ☑ **CI self-hosted (A8) at `f4d69a5` via PR #124, green — 416 runs, 409 passed, 0 failed, 7 filtered** (the optional real-data fixtures); the count prediction matched EXACTLY, per class as well as in total (Contract 117, Correctness 203, Performance 27, Robustness 60, Science 9). All four new tests passed on their first run - no red round | ☑ PR #124 | ☑ 2026-10-21 |
 | v5.19.0 (WP8 8h: `regionalNEQ` kind "lgd") | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally** (no bridge). ☑ **CI self-hosted (A8) at `bf90359` via PR #126, green — 419 runs, 412 passed, 0 failed, 7 filtered** (the optional real-data fixtures); the count prediction matched EXACTLY, per class as well as in total (Contract 118, Correctness 205, Performance 27, Robustness 60, Science 9). One red round first, at `5634698`: a test bound of mine - GEMM rounds M and 2M rows differently, and the LGD's cancellation amplified it (6.3) | ☑ PR #126 | ☑ 2026-10-21 |
 | v5.20.0 (WP8 8i: process-noise scales, `kalmanFilter` `Likelihood`, `buildCondFun` `Basis`, VAR(2)) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally** (no bridge). ☑ **CI self-hosted (A8) at `c410d72` via PR #127, green — 426 runs, 419 passed, 0 failed, 7 filtered** (the optional real-data fixtures); the count prediction matched EXACTLY. Four red rounds first, all at A8: an explosive VAR(2) fixture of mine (`26584ca`), an empty index under `shIndex`'s default Nmin 2 (`461e2b4`), the real defect A35 - `estimateVAR`'s Yule-Walker blocks transposed for Order >= 2 (`3d79780`), and a test helper of mine reading absent sigmas (`d109f59`) (6.3) | ☑ PR #127 | ☑ 2026-10-21 |
-| v5.21.0 (A33: `readBasin` names and whole files; the GravIS chains on it; basin 302's polar cap) | ☑ 17 gates + mlint + make_demos + 15 self-test suites, 0 findings | ◑ **Tier B locally** (no bridge). ☑ **CI self-hosted (A8) at `d42840e` via PR #128, green — 427 runs, 420 passed, 0 failed, 7 filtered**; the count prediction matched EXACTLY, and `testGravisChainMasksAreReadBasinRegions` passed on every A8 run it was in. Red rounds before were 8i's tests riding along, and once (`2ec1496`) two Legendre budgets at 1.5x baseline with `legendreALF` untouched - 1.01x on the runs before and after (0.089 / 0.293 s against 0.088 / 0.285), so runner load, not this release | ☑ PR #128 | ◐ pending |
-| v5.22.0 (A34: `FitClimatology` on both chains and their routes) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally** (no bridge). ☑ **CI self-hosted (A8) at `06a8200` via PR #129, green — 430 runs, 423 passed, 0 failed, 7 filtered** (the optional real-data fixtures); the count prediction matched EXACTLY, and the three A34 tests passed on their first run - no red round | ☑ PR #129 | ◐ pending |
-| v5.23.0 (A36: `MaxTries`/`BaseDelay` on `fetchTN` and `fetchICGEM`; the offline tests stop sleeping) | ☑ 17 gates + mlint + make_demos + 15 self-test suites, 0 findings | ◑ **Tier B locally** (no bridge). ☑ **CI self-hosted (A8) at `82fabb2` via PR #130, green — 431 runs, 424 passed, 0 failed, 7 filtered** (the optional real-data fixtures); the count prediction matched EXACTLY. The three tests 65.5/34.0/30.3 s -> 0.86/0.86/7.04 s; the new contract test 17.96 s; net 103 s off the run | ☑ PR #130 | ◐ pending |
+| v5.21.0 (A33: `readBasin` names and whole files; the GravIS chains on it; basin 302's polar cap) | ☑ 17 gates + mlint + make_demos + 15 self-test suites, 0 findings | ◑ **Tier B locally** (no bridge). ☑ **CI self-hosted (A8) at `d42840e` via PR #128, green — 427 runs, 420 passed, 0 failed, 7 filtered**; the count prediction matched EXACTLY, and `testGravisChainMasksAreReadBasinRegions` passed on every A8 run it was in. Red rounds before were 8i's tests riding along, and once (`2ec1496`) two Legendre budgets at 1.5x baseline with `legendreALF` untouched - 1.01x on the runs before and after (0.089 / 0.293 s against 0.088 / 0.285), so runner load, not this release | ☑ PR #128 | ☑ 2026-10-21 |
+| v5.22.0 (A34: `FitClimatology` on both chains and their routes) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally** (no bridge). ☑ **CI self-hosted (A8) at `06a8200` via PR #129, green — 430 runs, 423 passed, 0 failed, 7 filtered** (the optional real-data fixtures); the count prediction matched EXACTLY, and the three A34 tests passed on their first run - no red round | ☑ PR #129 | ☑ 2026-10-21 |
+| v5.23.0 (A36: `MaxTries`/`BaseDelay` on `fetchTN` and `fetchICGEM`; the offline tests stop sleeping) | ☑ 17 gates + mlint + make_demos + 15 self-test suites, 0 findings | ◑ **Tier B locally** (no bridge). ☑ **CI self-hosted (A8) at `82fabb2` via PR #130, green — 431 runs, 424 passed, 0 failed, 7 filtered** (the optional real-data fixtures); the count prediction matched EXACTLY. The three tests 65.5/34.0/30.3 s -> 0.86/0.86/7.04 s; the new contract test 17.96 s; net 103 s off the run | ☑ PR #130 | ☑ 2026-10-21 |
+| v5.23.1 (A37, A38: `designFilter` C, `obpChain`, `readSINEX` estimate, `hydroExtremeIndex` category) | ☑ 17 gates + mlint + make_demos + 15 self-test suites, 0 findings | ◑ **Tier B locally**. ☑ **CI self-hosted (A8) at `3d2682f` via PR #131, green — 435 runs, 428 passed, 0 failed, 7 filtered**; the count prediction matched EXACTLY, per class as well as in total, and the four new tests passed on their first run | ☑ PR #131 | ☑ 2026-10-21 |
+| v5.23.2 (A39: 125 default markers removed; `help_audit` `misplaced_defaults`) | ☑ 17 gates + mlint + make_demos + 15 self-test suites (six new `help_audit` self-tests), 0 findings; the rule fired on a re-injected marker in the real tree | ◑ **Tier B locally**. ☑ **CI self-hosted (A8) at `da3b29d` via PR #132, green — 435 runs, 428 passed, 0 failed, 7 filtered**; comment-only, count unchanged | ☑ PR #132 | ☑ 2026-10-21 |
+| v5.23.3 (A40: about 80 help texts made to say what the code does) | ☑ 17 gates + mlint (69 files) + make_demos + 15 self-test suites, 0 findings; no executable line changed, checked on the diff | ◑ **Tier B locally**. ☑ **CI self-hosted (A8) at `f7294fd` via PR #133, green — 435 runs, 428 passed, 0 failed, 7 filtered** | ☑ PR #133 | ☑ 2026-10-21 |
+| v5.23.4 (A41: fifteen code defects recorded by A40) | ☑ 17 gates + mlint (21 files) + make_demos + 15 self-test suites, 0 findings | ◑ **Tier B locally**. ☑ **CI self-hosted (A8) at `b8c487b` via PR #134, green — 445 runs, 438 passed, 0 failed, 7 filtered**; the count prediction matched EXACTLY, and all ten new tests and the three extended ones passed on their first run - the `twsChain` one is the first to reach the DDK lookup on A8 | ☑ PR #134 | ☑ 2026-10-22 |
 | v5.0.3 (WP2 step 1 baselines) | ☑ 14 gates + mlint + make_demos + 13 self-test suites, 0 findings; `NO_BASELINE` empty | ☑ **CI self-hosted (A8) at `b70c947`, green — 315 runs, 311 passed, 0 failed, 4 filtered**; the EIGHTH exact count prediction running, per class as well as in total. All ten budgets PASSED (they filtered at `f6d5529`), and the only filtered are the four real-data fixtures. Triggered by `workflow_dispatch`, not a PR — #99 merged mid-session and `ci.yml` runs only on push-to-main, pull_request and workflow_dispatch. | ☐ no PR (#99 merged; not asked) | ☐ |
 
 **Tier A debt: DISCHARGED for all nine releases.** The local MATLAB
@@ -1848,6 +1887,32 @@ confirmation that the counter is right about a real run and not only
 about the source.
 
 ### 6.3 What the next session could be wrong for not reading
+- **A statistic over two things cannot see one of them broken.**
+  `testDesignFilter` compared the degree RMS of C and S together, and S
+  filtered twice was enough to pass while C was never filtered (A37),
+  for twenty releases. Test each half of a pair on its own - here,
+  each block against `M * c` of its own coefficients.
+- **A writer that satisfies a gate by inserting text where the gate
+  looks will be satisfied wherever it inserts.** `fix_help.py` put the
+  default after the first mention of the option, `help_audit` accepted
+  any line, and 125 markers broke syntax lines and prose (A39). When a
+  tool exists to clear a gate's findings, gate where the tool writes,
+  not only whether it wrote.
+- **`git log -S` on a shallow clone names the wrong commit.** It
+  attributed the markers to `40223ce`, the oldest commit the shallow
+  clone held; deepening put them at `9bd487f`, four weeks earlier.
+  Run `git rev-parse --is-shallow-repository` before blaming.
+- **Code that a test never reaches can be broken in a way only a run
+  shows.** `twsChain`'s DDK lookup failed on every default call (A41)
+  and no test went past the series read; the one written to reach it
+  is the first to have run that code on A8. Ask, for each fix, what
+  the test has to run before it gets there, and build that input -
+  three synthetic months near the shipped NFIL mean are enough for
+  every GravIS chain.
+- **When agents edit in parallel, give them disjoint files and check
+  the result on the diff.** Five agents corrected help in 69 files in
+  one pass of 5.23.3; the check that none touched code was a filter of
+  `git diff` for non-comment lines, run before the commit.
 - **A duration that repeats to 0.03 s is a sleep.** Over half the A8
   suite was three offline tests waiting out a retry backoff they could
   not shorten. Profile the suite from the runner's per-test durations
@@ -2302,87 +2367,39 @@ about the source.
 
 ### 6.4 Next action
 
-Done and on PR #95: WP0, WP6 stages 1-2, and findings A1, A3 (partial),
-A4, A5, A6, A7, A8, A10, A11, A12, A13, A14, A16, A17, A18 closed;
-A19 partially.
+**State, 2026-10-22.** `main` is `5bd7bf9`, v5.23.4, green on A8 with
+445 runs (438 passed, 7 optional real-data fixtures filtered). No pull
+request is open. Every finding in 4.1 is CLOSED except A42, which holds
+five low items that need data or a run, not effort. Read the version from
+1's table or `Contents.m` line 2, never from this paragraph.
 
-**Seven releases are merged to `main` (PR #95..#98). PR #99 is still
-OPEN** — it was believed merged on 2026-09-09; `state: open`,
-`merged: false`, `mergeable_state: clean`, and `origin/main` is still
-`a3fa54b`, the #98 merge. Both of its jobs are green at `631d524` and
-again at `d110752`. 5.0.0, 5.0.1 and now 5.0.2 sit on the branch behind
-it. **Do not treat the branch as merged; check `git ls-remote` first.**
+**Open, in the order of what they buy:**
+1. **A42**, each a small, separate change once its input exists:
+   - one look at `tests/test_data` on A8 or MATTHIASPC settles whether
+     the TN-13 fixture spans 2017-07..2018-05, i.e. whether
+     `testStandardChainDropsAnEpochInAnInteriorGap` reaches an interior
+     gap or the table's end;
+   - a Tier-A run of `benchPointsCrossover` settles 2.0x/34x against
+     A22's 2.3x/37x in `synthesisPoints`' help;
+   - a SINEX file whose estimate lines lack the std column is what a
+     `readSINEX` fix needs - until then the parser's assumption stands,
+     documented;
+   - `gravisRegionChain`'s Greenland `rep.basins`, `standardChain`'s
+     `rep.files`, MaxFailures: documented as they behave; changing any
+     is a design call for Matthias.
+2. **A7, unverified on Tier A**: whether `builddocsearchdb` descends into
+   `html/ref/` - the acceptance machine only.
+3. **WP8 8f and 8g**, POSTPONED until the bridge returns (6.1,
+   2026-10-21): they need ESA ESM output and full covariances that A8
+   cannot hold.
+4. **The class-surface backlog**, 13 lanes, named with a reason each in
+   `tools/dev/class_surface_audit.py`. Each needs more than a forward
+   (grids, regions, handles), so each is its own decision.
+5. **WP6's topic categories** for the reference index: an editorial call
+   for Matthias (6.1, 2026-09-08).
 
-**Every audit finding in §4.1 is CLOSED** - A9 last, in v5.4.1, after WP2 reopened it the day it was accepted. A22-A24 were found and closed on the way.
-
-**WP3, WP4, WP5 and WP7 wait on approval only** — see the 2026-09-09
-correction in §6.1. Their acceptance is a MATLAB test against a committed
-Python oracle, and CI runs exactly that. What each additionally needs
-from Matthias was measured on 2026-09-09: WP7 and WP5 5b/5c need only the
-tick (5b uses the shipped `data/gravis/basins_*.json`); WP3 needs either
-published EGM2008 undulations as a fixture or permission to drop that
-half of its acceptance (`tests/test_data` does not exist and no EGM2008,
-GLDAS, tenv3 or GNET file is in the tree); WP5 5a/5d/5e need a reference
-series, a Swarm fetch policy and one GLDAS file; WP4 needs the five
-signatures signed off and a real GNSS network.
-
-**5.0.0 and 5.0.1 are GREEN on A8 at `631d524` via PR #99** — 305 runs,
-301 passed, 0 failed, 4 filtered; the count prediction matched exactly
-for the sixth release running. Two red rounds preceded it, both mine and
-both pin errors; the second shape is now gated by the PINS rule.
-
-**Done for 5.0.3**: the ten `PERFBASE` lines from A8 at `f6d5529` are
-committed and `NO_BASELINE` is empty. The budgets assert.
-
-**HANDOVER — what a session ON THE BRIDGE should pick up first.**
-Everything is pushed; nothing lives only in the cloud container. The
-branch is `claude/scientific-toolbox-discipline-wps-17ssya` at
-`b65f9a2` (v5.2.0), two commits ahead of `main` at `ea816eb`.
-A bridge session gains BOTH Tier A locally (no CI round-trip) and
-internet, which unblocks all three stuck items at once:
-1. **WP5 5b** needs the Vishwakarma et al. 2017 equations — the
-   paper, or the authors' published MATLAB scripts. Nothing else
-   about the row is hard: `applyChain` (analysis -> filter ->
-   synthesis) inside `leakageCorrect.m` is the operator it needs,
-   and it is three lines to re-implement in a new file.
-   **Do not reconstruct the equations from memory.**
-2. **WP3** needs published EGM2008 undulations for its `reference`
-   half. Matthias approved dropping that half ("WP3 self-consistency
-   is fine"), so it can proceed WITHOUT the bridge — but with
-   internet the stronger acceptance is available again. The geometry
-   is settled: the ellipsoid's geocentric radius at geocentric
-   latitude phi is `r(phi) = R*sqrt((1-e^2)/(1-e^2*cos^2(phi)))`,
-   `e^2 = 2f - f^2`, and it enters the existing `(R/r)^p_n` law that
-   `kernelFactors` already applies for `Height` (line ~195,
-   `kernel .* (R/(R+Height)).^radialExp`). `Height` adds to `r(phi)`.
-3. **WP4 / WP5 5e** need `geodesy.unr.edu` (.tenv3, open) and a GLDAS
-   file (GES DISC needs an Earthdata login even with egress).
-   Remember the CORRECTED framing: a "fetch" in this toolbox is a
-   `Download` level in `setup_shAnalysis` plus a fetcher with
-   `BaseURL=`/`Mirror=`, tested offline against a temp directory
-   (`testFetchLoveNumbersMirror` is the pattern). The fetcher is
-   buildable and testable WITHOUT network; only the live URL needs it.
-
-**Next concrete actions, in order of what they buy:**
-1. **The whole order agreed on 2026-09-10 is DONE**: A9 (v5.4.1), WP3
-   (v5.5.0, merged via PR #105) and WP7 (v5.6.0, merged via PR #106).
-2. **DONE in v5.7.0: A25, one filter-spec resolver** (`shLowLevel.filterSpec`). A28, A26 and A29 (the guide PDF's `.gitattributes`) DONE in v5.7.1. Eight parsers of `"gauss300"` /
-   `"DDK3"` / `"none"` / W, accepting different subsets. The resolver
-   becomes the single home; each lane keeps its admitted subset.
-3. **The class-surface BACKLOG** (18 lanes after v5.7.0 took `synthesisPoints`, `vdkApply` and `shSynthesisGradientTensor`; `class_surface_audit.py`).
-   Cheapest routes: `synthesisPoints` beside `g.synthesis`, `vdkApply`
-   beside `applyDDK`, `shSynthesisGradientTensor` beside `g.gradient`.
-   An entry that gets a method must leave the list in the same commit -
-   the gate enforces it.
-4. **DONE v5.12.2, the FFT/direct sweep**: `direct` is 0-14 percent
-   faster on MATTHIASPC at 13 sizes, FFT 1.40x faster at n60 on A8; no path
-   wins on both machines, so `auto` keeps FFT.
-5. **WP5 follow-ons**: the method of scale is DONE (v5.9.0), and it
-   became an option on `leakageDataDriven`, not a third leakage method
-   on `shSeries`: it shares every estimate with the method of deviation.
-6. **B1 (packed Legendre): MEASURED, NOT BUILT (v5.12.2)** - 1.11-1.69x
-   raw, 0.92-0.99x as a drop-in; below the 2x bar.
-7. **WP5 is DONE**: 5e in v5.8.0, the method of scale in v5.9.0, 5a in v5.10.0 and v5.11.0, 5d in v5.12.0. Nothing of WP5 is open: the axial factor keeps eq. (1)'s 0.753 by Matthias's decision, and ESMGFZ's 0.844 is an `AxialFactor` away. Then the order Matthias agreed on 2026-09-10: A30 (DONE v5.12.1), B1 and the FFT/direct sweep (both measured, neither built, v5.12.2), and the class-surface backlog (four routes in v5.13.0; the 14 lanes left each need more than a forward). **WP4 is moved out** to a separate GNSS toolbox (2026-09-10); do not start it here.
+Nothing waits on a decision from Matthias today; the three calls of the
+review were merged as proposed (6.1, 2026-10-22).
 
 **What a Tier-A session should know about running the suite here.** The
 MATLAB MCP tool times out on anything suite-sized. Run it detached and
@@ -2391,14 +2408,24 @@ read the log:
 "/c/Program Files/MATLAB/R2026a/bin/matlab.exe" -batch "run('<script>.m')" > run.log 2>&1
 ```
 The machine label for baselines is `MATTHIASPC` (upper-cased since
-v5.3.0). Only 2 tests filter here rather than A8's 4, because
-`E:\DATAPOOL` supplies the SINEX and GravIS fixtures.
+v5.3.0). Only 2 tests filter here rather than A8's 7, because
+`E:\DATAPOOL` supplies the real-data fixtures (with the environment
+variables of 1's Tests row set for the run).
 
-To re-run the gates and the prediction from a fresh sandbox:
+To re-run the gates and the prediction from a fresh sandbox (the list
+of 3.4; `mlint_lite` takes the changed files as arguments):
 ```
 pip install reportlab matplotlib && \
-  for g in tools/*.py tools/dev/{no_map_renderer,check_api,api_audit,attribution_sweep}.py; do python3 $g; done && \
-  for t in tools/tests/test_*.py; do python3 $t; done && \
+  for g in tools/help_audit.py tools/doc_sync_audit.py \
+      tools/dev/no_map_renderer.py tools/toolbox_dependency_audit.py \
+      tools/nv_casing_audit.py tools/fixture_tag_audit.py \
+      tools/dev/check_api.py tools/dev/api_audit.py \
+      tools/dev/attribution_sweep.py tools/dev/refpages_audit.py \
+      tools/dev/name_coverage.py tools/dev/class_surface_audit.py \
+      tools/error_id_audit.py tools/dev/option_values_audit.py \
+      "tools/dev/make_demos.py --check" tools/dev/perf_baseline_audit.py; \
+    do python3 $g || echo "FAILED: $g"; done && \
+  for t in tools/tests/test_*.py; do python3 $t || echo "FAILED: $t"; done && \
   python3 tools/dev/count_tests.py
 ```
 
@@ -2444,4 +2471,8 @@ asserts on both machines.
 5.4.0 (WP5 5b) green both ways: local 335 runs / 333 passed / 2
 filtered, and A8 at `c1dc1d3` via PR #103 with 335 / 331 / 0 failed /
 4 filtered - the THIRTEENTH exact count prediction. |
+5.23.1 to 5.23.4, the help-versus-code review (A37-A42), green on A8
+at `3d2682f`, `da3b29d`, `f7294fd` and `b8c487b` via PRs #131 to #134 -
+the last with 445 runs, 438 passed, 0 failed, 7 filtered |
+2026-10-21..22 |
 Developed by Matthias Weigelt with the help of Claude.*
