@@ -21,6 +21,14 @@ Rules, per the shAnalysis handoff spec:
       to CI (plotSHSpectrum kept its "if ~iscell(specs)" guard above the
       block WP1 put where inputParser had been): mlint_lite was green,
       five tests red.
+  R8  a format argument of error()/warning() that is declared non-scalar
+      (opts.X or an input with a size like (1,2) or (:,1) in an arguments
+      block of the file) or is a bare size(...): error() takes SCALAR
+      format arguments only and throws MATLAB:error:nonScalarInput
+      instead of the identifier. Added in v5.24.1 after the third such
+      raise that could never happen (vdkApply:badSize, signalVariance-
+      Kaula:badRange, obpChain:emptyRefPeriod), each in a guard no test
+      drove. A tripwire: a vector held in a local variable is not seen.
 Tokenizes away comments (%, %{..%}), char/string literals (transpose-aware),
 and folds ... line continuations. A tripwire, not a parser.
 Usage: python3 mlint_lite.py file1.m [file2.m ...]   (also reads .txt snippets)
@@ -395,14 +403,93 @@ def check_unterminated(name, unterminated):
              f"parse this file") for ln, q in unterminated]
 
 
+_SIZE_DECL = re.compile(r"^\s*([A-Za-z_]\w*(?:\.[A-Za-z_]\w*)?)\s*\(([^)]*)\)")
+
+
+def _nonscalar_decls(txt):
+    """Names an arguments block of the file declares with a non-scalar
+    size: {'opts.RefPeriod', 'C20', ...}."""
+    out = set()
+    lines = txt.split("\n")
+    i = 0
+    while i < len(lines):
+        if re.match(r"\s*arguments\b", lines[i]):
+            i += 1
+            while i < len(lines) and not re.match(r"\s*end\b", lines[i]):
+                m = _SIZE_DECL.match(lines[i])
+                if m:
+                    dims = [d.strip() for d in m.group(2).split(",")]
+                    if len(dims) >= 2 and any(d != "1" for d in dims):
+                        out.add(m.group(1))
+                i += 1
+        i += 1
+    return out
+
+
+def _call_args(stripped, start):
+    """Top-level argument spans of the call whose '(' is at `start`, on
+    UNFOLDED stripped text (same length as the source, so a span indexes
+    the raw source too). A ... continuation counts as whitespace."""
+    spans, depth, j, a = [], 0, start, start + 1
+    n = len(stripped)
+    while j < n:
+        if stripped.startswith("...", j):
+            k = stripped.find("\n", j)
+            j = n if k < 0 else k + 1
+            continue
+        c = stripped[j]
+        if c in OPEN:
+            depth += 1
+        elif c in CLOSE:
+            depth -= 1
+            if depth == 0:
+                spans.append((a, j))
+                return spans
+        elif c == "," and depth == 1:
+            spans.append((a, j))
+            a = j + 1
+        j += 1
+    return None
+
+
+def check_format_args(name, src, stripped):
+    """R8: a non-scalar format argument to error() or warning()."""
+    bad = []
+    decl = _nonscalar_decls(fold_continuations(stripped))
+    if not decl:
+        decl = set()
+    for m in re.finditer(r"(?<![\w.])(error|warning)\s*\(", stripped):
+        spans = _call_args(stripped, m.end() - 1)
+        if not spans or len(spans) < 2:
+            continue
+        first = src[spans[0][0]:spans[0][1]].strip()
+        # error(ID, FMT, args...) when the first literal is an identifier
+        lead = 2 if re.fullmatch(r"['\"][A-Za-z]\w*(:\w+)+['\"]", first) else 1
+        for a, b in spans[lead:]:
+            arg = re.sub(r"\.\.\.[^\n]*\n", " ", stripped[a:b]).strip()
+            hit = (arg in decl
+                   # size(x) is a vector; size(x, dim) is a scalar
+                   or re.fullmatch(r"size\s*\([^(),]*\)", arg))
+            if hit:
+                ln = stripped[:m.start()].count("\n") + 1
+                bad.append((name, ln, "R8 %s() format argument '%s' is not a "
+                            "scalar - %s throws MATLAB:error:nonScalarInput "
+                            "instead of its identifier (index it, or wrap it "
+                            "in mat2str/num2str)" % (m.group(1), arg,
+                                                     m.group(1))))
+    return bad
+
+
 def lint_text(name, src):
     unterminated = []
-    txt = fold_continuations(strip_tokens(src, unterminated))
+    stripped = strip_tokens(src, unterminated)
+    txt = fold_continuations(stripped)
     return (check_balance(name, txt) + check_dot_rules(name, txt)
             + check_arguments_blocks(name, txt)
             + check_nv_before_expansion(name, txt)
             + check_arguments_first(name, txt)
-            + check_unterminated(name, unterminated))
+            + check_unterminated(name, unterminated)
+            + check_format_args(name, src, stripped))
 
 
 def main(paths):

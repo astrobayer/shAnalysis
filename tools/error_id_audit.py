@@ -33,6 +33,21 @@ Three checks:
               not, and saying so is the point.
   GHOSTS      every identifier the help documents is actually raised.
               A12's lesson: documentation drifts in BOTH directions.
+  DRIVEN      every identifier the toolbox raises is named by a test
+              (v5.24.1). Three documented identifiers could never be
+              raised - vdkApply:badSize (A27), signalVarianceKaula:
+              badRange, obpChain:emptyRefPeriod - because their error()
+              call threw on a non-scalar format argument, and each sat
+              in a guard NO test drove. A static gate sees such a raise
+              as present and documented; only a test that drives the
+              guard sees it fail. Identifiers no test names sit in
+              tools/undriven_ids.txt, a backlog that may only shrink: an
+              entry a test now names, or that nothing raises any more,
+              is a finding. REACH: naming is not driving. A test may name
+              an identifier in a verifyError whose call stops at another
+              guard first - the PINS limit again - and only MATLAB can
+              tell. Identifiers built at runtime (a prefix + a name) are
+              not enumerable and are not checked.
 
 WHAT COUNTS AS A RAISE. Only the identifier argument of error(), assert()
 and warning(). A first pass that matched any quoted identifier reported
@@ -290,6 +305,81 @@ def raisable():
     return ids, prefixes
 
 
+UNDRIVEN_FILE = os.path.join(ROOT, "tools", "undriven_ids.txt")
+
+
+def load_undriven(path=None):
+    """The DRIVEN backlog: one identifier per line, '#' starts a comment."""
+    path = UNDRIVEN_FILE if path is None else path
+    if not os.path.isfile(path):
+        return set()
+    out = set()
+    with open(path, encoding="utf-8") as fh:
+        for line in fh:
+            line = line.split("#", 1)[0].strip()
+            if line:
+                out.add(line)
+    return out
+
+
+UNDRIVEN = load_undriven()
+
+
+def toolbox_raised():
+    """Whole identifiers the TOOLBOX raises - tests/ excluded, since an
+    identifier a test helper raises is not one a test has to drive."""
+    ids = set()
+    sources = [p for p, _s, _o in surface()]
+    priv = os.path.join(PKG, "private")
+    if os.path.isdir(priv):
+        sources += [os.path.join(priv, f) for f in sorted(os.listdir(priv))
+                    if f.endswith(".m")]
+    for path in sources:
+        if os.path.isfile(path):
+            ids |= raised_in(code_of(path)[1])[0]
+    for f in CLASS_FILES:
+        path = os.path.join(ROOT, f)
+        if os.path.isfile(path):
+            for fn in parse_class(path):
+                ids |= fn["raises"]
+    return ids
+
+
+def test_pins():
+    """Every owned identifier named in executable test code."""
+    pins = set()
+    if not os.path.isdir(TEST_DIR):
+        return pins
+    for f in sorted(os.listdir(TEST_DIR)):
+        if f.endswith(".m"):
+            src = open(os.path.join(TEST_DIR, f), encoding="utf-8",
+                       errors="replace").read()
+            for line in src.split("\n"):
+                if not line.lstrip().startswith("%"):
+                    pins |= set(PIN.findall(line))
+    return pins
+
+
+def check_driven(undriven=None):
+    """DRIVEN: every raised identifier is named by a test, or backlogged.
+    -> (findings, identifiers raised, identifiers still in the backlog)"""
+    undriven = UNDRIVEN if undriven is None else undriven
+    if not os.path.isdir(TEST_DIR):
+        return [], 0, 0                 # no tests/ to read, as for PINS
+    ids, pins = toolbox_raised(), test_pins()
+    probs = []
+    for i in sorted(ids - pins - undriven):
+        probs.append("%s is raised but no test names it - drive its guard "
+                     "in a test (DRIVEN)" % i)
+    for i in sorted(undriven & pins):
+        probs.append("%s is named by a test now - delete it from "
+                     "tools/undriven_ids.txt (the backlog only shrinks)" % i)
+    for i in sorted(undriven - ids):
+        probs.append("%s is in tools/undriven_ids.txt but nothing raises it "
+                     "- delete the entry" % i)
+    return probs, len(ids), len(undriven & ids)
+
+
 def check_pins():
     """PINS: a test may only name an identifier something raises."""
     probs, checked = [], 0
@@ -426,6 +516,8 @@ def main(argv=None):
     probs += cprobs
     pprobs, pchecked = check_pins()
     probs += pprobs
+    dprobs, draised, dback = check_driven()
+    probs += dprobs
 
     if "--list" in argv:
         for s in sorted(backlog):
@@ -443,12 +535,15 @@ def main(argv=None):
           "owned by the file that raises it; %d document them, %s. Classes: "
           "%d public methods document every identifier they can raise, their "
           "private helpers' included, and every identifier is three-part (%s). "
-          "%d test pins name an identifier something raises. Reach: "
+          "%d test pins name an identifier something raises. DRIVEN: %d of "
+          "%d raised identifiers are named by a test, %d in the shrinking "
+          "backlog (naming is not driving). Reach: "
           "+shLowLevel, the root functions, the three class files and "
           "tests/ - nothing else."
           % (checked, checked - len(backlog), tail, cchecked,
              "A21b drained its backlog in v5.0.0" if not cbacklog
-             else "%d still in the A21b backlog" % len(cbacklog), pchecked))
+             else "%d still in the A21b backlog" % len(cbacklog), pchecked,
+             draised - dback, draised, dback))
     return 0
 
 

@@ -418,5 +418,80 @@ class TestPins(unittest.TestCase):
                       " ".join(eia.__doc__.split()))
 
 
+class TestDriven(unittest.TestCase):
+    """DRIVEN (v5.24.1): every raised identifier is named by a test, or
+    backlogged in a list that may only shrink."""
+
+    PKG = ("function f()\n%F T.\n"
+           "%   Error identifiers\n%     shLowLevel:f:bad\n"
+           "%         why\n%     shLowLevel:f:worse\n%         why\n%\n"
+           "%   Developed by M W.\n"
+           "error('shLowLevel:f:bad', 'x');\n"
+           "error('shLowLevel:f:worse', 'y');\n")
+
+    def _driven(self, test_src, undriven):
+        with tempfile.TemporaryDirectory() as d:
+            pkg = os.path.join(d, "+shLowLevel")
+            tests = os.path.join(d, "tests")
+            os.makedirs(pkg)
+            os.makedirs(tests)
+            with open(os.path.join(pkg, "f.m"), "w", encoding="utf-8") as fh:
+                fh.write(self.PKG)
+            with open(os.path.join(tests, "testX.m"), "w", encoding="utf-8") as fh:
+                fh.write(test_src)
+            keep = (eia.PKG, eia.ROOT, eia.CLASS_FILES, eia.TEST_DIR)
+            try:
+                eia.PKG, eia.ROOT, eia.CLASS_FILES, eia.TEST_DIR = \
+                    pkg, d, (), tests
+                return eia.check_driven(set(undriven))
+            finally:
+                eia.PKG, eia.ROOT, eia.CLASS_FILES, eia.TEST_DIR = keep
+
+    BOTH = ("verifyError(t, @() f(), 'shLowLevel:f:bad');\n"
+            "verifyError(t, @() f(), 'shLowLevel:f:worse');\n")
+
+    def test_every_identifier_named_passes(self):
+        probs, n, back = self._driven(self.BOTH, [])
+        self.assertEqual(probs, [])
+        self.assertEqual((n, back), (2, 0))
+
+    def test_an_undriven_identifier_is_a_finding(self):
+        probs, _, _ = self._driven(
+            "verifyError(t, @() f(), 'shLowLevel:f:bad');\n", [])
+        self.assertTrue(any("shLowLevel:f:worse" in p and "no test names it"
+                            in p for p in probs), probs)
+
+    def test_a_backlogged_identifier_passes(self):
+        probs, _, back = self._driven(
+            "verifyError(t, @() f(), 'shLowLevel:f:bad');\n",
+            ["shLowLevel:f:worse"])
+        self.assertEqual(probs, [])
+        self.assertEqual(back, 1)
+
+    def test_the_backlog_only_shrinks(self):
+        probs, _, _ = self._driven(self.BOTH, ["shLowLevel:f:worse"])
+        self.assertTrue(any("delete it from" in p for p in probs), probs)
+
+    def test_a_stale_backlog_entry_is_a_finding(self):
+        probs, _, _ = self._driven(self.BOTH, ["shLowLevel:f:gone"])
+        self.assertTrue(any("nothing raises it" in p for p in probs), probs)
+
+    def test_a_name_in_a_comment_does_not_drive(self):
+        probs, _, _ = self._driven(
+            "verifyError(t, @() f(), 'shLowLevel:f:bad');\n"
+            "% verifyError(t, @() f(), 'shLowLevel:f:worse');\n", [])
+        self.assertTrue(any("shLowLevel:f:worse" in p for p in probs), probs)
+
+    def test_the_real_backlog_file_is_read(self):
+        self.assertTrue(os.path.isfile(eia.UNDRIVEN_FILE))
+        self.assertEqual(eia.UNDRIVEN, eia.load_undriven())
+        for i in eia.UNDRIVEN:
+            self.assertRegex(i, r"^(shLowLevel|shAnalysis|shCoefficients|"
+                                r"shSeries|shClimatology):\w+:\w+$")
+
+    def test_the_limit_is_stated(self):
+        self.assertIn("naming is not driving", " ".join(eia.__doc__.split()))
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
