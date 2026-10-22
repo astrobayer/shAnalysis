@@ -1,5 +1,5 @@
 % shAnalysis - Spherical harmonic analysis toolbox
-% Version 5.24.0 (R2026a-compatible) 22-Oct-2026
+% Version 5.24.1 (R2026a-compatible) 22-Oct-2026
 %
 % The line above is what ver('shAnalysis') reports as the product name:
 % keep it a SHORT name, not a sentence and not a version string (pinned
@@ -65,7 +65,8 @@
 %   runAllTests     - full validation suite (correctness, contract,
 %                     robustness, science, performance).
 %   doc shAnalysis  - HTML overview (html/ subfolder on the path).
-%   docs/shAnalysis_workflow_guide.pdf - the narrative workflow guide.
+%   Workflow guide  - the narrative guide (PDF), attached to every GitHub
+%                     release; tools/dev/make_guide.py builds it into docs/.
 %
 % Release history
 %   CHANGELOG.md is the authority and the only place a release is

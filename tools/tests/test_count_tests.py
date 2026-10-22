@@ -109,7 +109,7 @@ class TestCounting(unittest.TestCase):
         self.assertEqual(c["runs"], c["methods"])
 
 
-EXPECTED_RUNS = 448          # v5.24.0: 445 + three Contract tests (the last backlog routes, designFilter NaN)
+EXPECTED_RUNS = 452          # v5.24.1: 448 + four Contract tests (the DRIVEN first batch)
                              # (5 correctness, 4 contract, 2 robustness)
 
 

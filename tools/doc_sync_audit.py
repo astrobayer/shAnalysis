@@ -11,7 +11,12 @@ a call that threw. Each of those is checked here.
   1. the in-file help text        (help shLowLevel.foo)
   2. html/                        (doc shAnalysis, incl. the generated
                                    apiReference.html)
-  3. docs/shAnalysis_workflow_guide.pdf, authored in tools/dev/make_guide.py
+  3. docs/shAnalysis_workflow_guide.pdf, authored in tools/dev/make_guide.py.
+     Since v5.24.1 it is a BUILD OUTPUT, not a committed file: CI builds
+     it before this gate runs (SHX_GUIDE_REQUIRED=1 makes a missing guide
+     a finding there) and the release workflow attaches it to the GitHub
+     release. 112 committed builds had made up 43.5 MB of a 72 MB .git.
+     A tracked copy is a finding: it would go stale beside the built one.
 
 Checks, in order of how badly they bite:
 
@@ -52,6 +57,7 @@ import html as _html
 import base64
 import fnmatch
 import os
+import subprocess
 import zlib
 import re
 import sys
@@ -453,6 +459,21 @@ def pdf_xref_offset_ok(path):
     return data[n:n + 4] == b"xref", n
 
 
+GUIDE_REL = "docs/shAnalysis_workflow_guide.pdf"
+
+
+def guide_tracked(root, relpath=GUIDE_REL):
+    """True when git tracks RELPATH in the repository at ROOT. False when it
+    does not, or when there is no git to ask - a tarball has no index, and
+    the gate must not invent a finding there."""
+    try:
+        r = subprocess.run(["git", "-C", root, "ls-files", "--error-unmatch",
+                            relpath], capture_output=True, text=True)
+    except OSError:
+        return False
+    return r.returncode == 0
+
+
 def gitattributes_binary(root, relpath):
     """True when .gitattributes keeps RELPATH out of line-ending conversion
     ('binary' or '-text'). As in git, the LAST matching line wins, and a
@@ -727,10 +748,20 @@ def main():
                                   chg, re.M):
             probs.append("CHANGELOG.md: %s - a tagged release leaves no "
                          "Unreleased section" % openhdr.strip())
-        pdf = os.path.join(ROOT, "docs", "shAnalysis_workflow_guide.pdf")
+        pdf = os.path.join(ROOT, *GUIDE_REL.split("/"))
+        if guide_tracked(ROOT):
+            probs.append("%s is tracked by git - since v5.24.1 the guide is "
+                         "built by CI and attached to the GitHub release; "
+                         "remove it with git rm --cached" % GUIDE_REL)
         if not os.path.isfile(pdf):
-            probs.append("docs/shAnalysis_workflow_guide.pdf is missing - "
-                         "build it with tools/dev/make_guide.py")
+            # Locally the guide is optional: it needs reportlab and
+            # matplotlib, and its stamp is checked wherever it is built.
+            # CI sets SHX_GUIDE_REQUIRED after building it, so there a
+            # missing guide means the build step did not run.
+            if os.environ.get("SHX_GUIDE_REQUIRED"):
+                probs.append("%s is missing - CI builds it with "
+                             "tools/dev/make_guide.py before this gate"
+                             % GUIDE_REL)
         else:
             page1 = pdf_first_page_text(pdf)
             mp = re.search(r"shAnalysis v(\S+?) - Workflow", page1)
@@ -752,10 +783,12 @@ def main():
                              "after it was built (a CRLF checkout inserts a byte "
                              "per line; A29). Rebuild it with "
                              "tools/dev/make_guide.py" % xoff)
-        if not gitattributes_binary(ROOT, "docs/shAnalysis_workflow_guide.pdf"):
-            probs.append(".gitattributes does not mark the guide PDF binary - it "
-                         "is pure ASCII, so git takes it for text and "
-                         "core.autocrlf rewrites it on a Windows checkout (A29)")
+        # .gitattributes still marks *.pdf binary (A29): should a PDF be
+        # committed anywhere again, a Windows checkout must not rewrite it.
+        if not gitattributes_binary(ROOT, GUIDE_REL):
+            probs.append(".gitattributes does not mark *.pdf binary - pure-"
+                         "ASCII PDFs are taken for text and core.autocrlf "
+                         "rewrites them on a Windows checkout (A29)")
         if "API reference (v%s)" % ver not in api:
             probs.append("apiReference.html: title is not v%s - regenerate it"
                          % ver)

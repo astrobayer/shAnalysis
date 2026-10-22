@@ -1,0 +1,5 @@
+# What tools/dev/make_guide.py needs, pinned to the versions it was last
+# built and checked with (v5.24.1). Installed into a virtual environment by
+# the gates job and the release workflow; locally: pip install -r this file.
+reportlab==5.0.1
+matplotlib==3.11.2

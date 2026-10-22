@@ -1,5 +1,52 @@
 # Changelog
 
+## [5.24.1] - 2026-10-22 - five refinements
+
+A PATCH release: one fix, two new gate rules with the first 56
+identifiers they asked for, the guide PDF moved out of the repository,
+a CI action on Node 24, and `CLAUDE.md` split in two. No documented
+call changes its result.
+
+### Fixed
+- **`obpChain`**'s documented `emptyRefPeriod` could never be raised:
+  its message passed the 1 x 2 `RefPeriod` to `error`, which takes
+  scalar format arguments only, so `error` threw
+  `MATLAB:error:nonScalarInput` instead. The third of this shape after
+  `vdkApply:badSize` (A27) and `signalVarianceKaula:badRange` (5.24.0).
+  `testObpChainRunsToTheEnd` now drives the guard.
+
+### Added (tooling and tests)
+- **`error_id_audit` DRIVEN**: every identifier the toolbox raises is
+  named by a test, or is listed in `tools/undriven_ids.txt`, a backlog
+  that may only shrink. All three defects of the shape above sat in
+  guards no test drove. 395 identifiers are raised; 164 were named by
+  no test, 108 are after this release. The rule states its reach:
+  naming is not driving.
+- **`mlint_lite` R8**: an `error`/`warning` format argument declared
+  non-scalar in an arguments block, or a bare `size(x)`, is reported.
+  It fires on all three historical defects and on nothing in the tree.
+- **Four `testContract` methods** drive 56 identifiers of the backlog:
+  the input guards of the statistics, spectral, grid and class lanes,
+  each with the smallest input that reaches it.
+
+### Changed
+- **The workflow guide is no longer committed.** 112 committed builds
+  were 43.5 MB of a 72 MB `.git`. The gates job builds it on every run
+  (pinned in `tools/dev/guide-requirements.txt`), `doc_sync_audit`
+  checks it there and keeps it as an artifact, and `release.yml`
+  attaches it to the release of its version. `doc_sync_audit` refuses a
+  tracked copy. README, `Contents.m` and `html/kalman.html` link to the
+  latest release. The history already committed stays until it is
+  rewritten, which is a separate decision.
+- **CI**: `actions/upload-artifact` pinned to v6.0.0, which runs on
+  Node 24; the Node 20 deprecation warning on every self-hosted run is
+  gone.
+- **`CLAUDE.md`** went from 2,503 lines to about 900: every decision before
+  2026-10-22, the full verification board (now in version order) and
+  the lessons in full moved, verbatim, to the append-only
+  `tools/dev/RECORD.md`. `CLAUDE.md` keeps the state, the rules, one line
+  per lesson and the current decisions.
+
 ## [5.24.0] - 2026-10-22 - the class-surface backlog, emptied
 
 A MINOR release: nine class methods, each a thin delegate pinned

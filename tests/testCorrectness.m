@@ -6540,6 +6540,11 @@ verifyEqual(testCase, rep0.nGadRestored, 0);
 scale = max(abs(out0.grid(~land, :, :)), [], 'all');
 verifyLessThan(testCase, max(abs(out.grid(~land, :, :) - out0.grid(~land, :, :)), [], 'all'), ...
     1e-10 * scale, 'a GAD field equal every month must cancel in the anomalies');
+% v5.24.1: a RefPeriod holding no epoch raises its own identifier; before,
+% the 1 x 2 RefPeriod went to error as one format argument and error threw
+% MATLAB:error:nonScalarInput instead
+verifyError(testCase, @() shLowLevel.obpChain(d, args{:}, GADFolder = noGad, ...
+    RefPeriod = [2010, 2011]), 'shLowLevel:obpChain:emptyRefPeriod');
 end
 
 function testHydroExtremeIndexCategoryIsNaNWhereZIs(testCase)

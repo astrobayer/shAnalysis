@@ -112,10 +112,25 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
+      # v5.24.1: the workflow guide is a BUILD OUTPUT. 112 committed builds
+      # had made up 43.5 MB of a 72 MB .git, so it is built here on every
+      # run, checked by doc_sync_audit below (SHX_GUIDE_REQUIRED makes a
+      # missing guide a finding) and kept as an artifact; release.yml
+      # builds it again from the tagged commit and attaches it to the
+      # release. A virtual environment, because ubuntu-latest refuses a
+      # system-wide pip install (PEP 668).
+      - name: Build the workflow guide
+        run: |
+          python3 -m venv "$RUNNER_TEMP/guide"
+          "$RUNNER_TEMP/guide/bin/pip" install -q -r tools/dev/guide-requirements.txt
+          "$RUNNER_TEMP/guide/bin/python" tools/dev/make_guide.py
+
       - name: Documentation completeness audit
         run: python3 tools/help_audit.py
 
       - name: Documentation sync audit (help vs html vs guide)
+        env:
+          SHX_GUIDE_REQUIRED: "1"
         run: python3 tools/doc_sync_audit.py
 
       - name: No map renderer (geoMap is the single cartographic authority)
@@ -211,6 +226,14 @@ jobs:
       - name: Speed budgets are declared, armed and baselined
         run: python3 tools/dev/perf_baseline_audit.py
 
+      - name: Keep the built guide
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0 (node24)
+        with:
+          name: workflow-guide
+          path: docs/shAnalysis_workflow_guide.pdf
+          if-no-files-found: error
+          retention-days: 30
+
   test:
     name: runAllTests (${{ matrix.os }})
     strategy:
@@ -287,7 +310,7 @@ jobs:
 
       - name: Archive test artifacts
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0 (node24)
         with:
           name: test-results-${{ matrix.os }}
           path: tests/perf_log.csv

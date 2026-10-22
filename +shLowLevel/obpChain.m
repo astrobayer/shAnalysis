@@ -172,7 +172,8 @@ steps(end+1) = sprintf("EWH synthesis %d epochs, %g-deg grid", T, st);
 inRef = ep >= opts.RefPeriod(1) & ep < opts.RefPeriod(2);
 if ~any(inRef)
     error('shLowLevel:obpChain:emptyRefPeriod', ...
-        'no epochs inside RefPeriod [%.3f, %.3f).', opts.RefPeriod);
+        'no epochs inside RefPeriod [%.3f, %.3f).', ...
+        opts.RefPeriod(1), opts.RefPeriod(2));   % error takes scalars only
 end
 refMean = mean(E(:, :, inRef), 3);
 G = E - refMean;

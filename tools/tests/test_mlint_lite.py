@@ -146,6 +146,54 @@ class TestUnterminatedLiteral(unittest.TestCase):
         self.assertTrue(r7(R7_DQ), "R7 only covers char vectors")
 
 
+def r8(lines):
+    return [f for f in ml.lint_text("t.m", "\n".join(lines)) if "R8" in f[2]]
+
+
+R8_HEAD = ["function f(N, opts)", "arguments", "    N double",
+           "    opts.Range (1,2) double = [0 1]", "    opts.Col (:,1) double = []",
+           "    opts.K (1,1) double = 3", "end"]
+
+
+class TestNonScalarFormatArgument(unittest.TestCase):
+    """R8 (v5.24.1), fault-injected both ways on the three shapes that
+    shipped - vdkApply's size(N), signalVarianceKaula's 1 x 2 LRange,
+    obpChain's 1 x 2 RefPeriod - and silent on the legal look-alikes."""
+
+    def test_a_declared_pair_fires(self):
+        self.assertTrue(r8(R8_HEAD + ["error('a:b:c', '[%g, %g]', opts.Range);", "end"]))
+
+    def test_a_declared_column_fires(self):
+        self.assertTrue(r8(R8_HEAD + ["warning('a:b:c', '%d', opts.Col);", "end"]))
+
+    def test_a_bare_size_fires(self):
+        self.assertTrue(r8(R8_HEAD + ["error('a:b:c', '%d x %d', size(N));", "end"]))
+
+    def test_a_continued_call_fires(self):
+        self.assertTrue(r8(R8_HEAD + ["error('a:b:c', ...", "    '[%g %g]', ...",
+                                      "    opts.Range);", "end"]))
+
+    def test_indexed_elements_are_clean(self):
+        self.assertEqual(r8(R8_HEAD + ["error('a:b:c', '[%g, %g]', opts.Range(1), "
+                                       "opts.Range(2));", "end"]), [])
+
+    def test_size_with_a_dimension_is_clean(self):
+        self.assertEqual(r8(R8_HEAD + ["error('a:b:c', '%d', size(N, 1));", "end"]), [])
+
+    def test_numel_and_mat2str_are_clean(self):
+        self.assertEqual(r8(R8_HEAD + ["error('a:b:c', '%d %s', numel(opts.Col), "
+                                       "mat2str(size(N)));", "end"]), [])
+
+    def test_a_declared_scalar_is_clean(self):
+        self.assertEqual(r8(R8_HEAD + ["error('a:b:c', '%d', opts.K);", "end"]), [])
+
+    def test_a_message_only_call_is_clean(self):
+        self.assertEqual(r8(R8_HEAD + ["error('a:b:c', 'no format here');", "end"]), [])
+
+    def test_a_name_in_a_comment_is_not_read(self):
+        self.assertEqual(r8(R8_HEAD + ["% error('a:b:c', '%g', opts.Range);", "end"]), [])
+
+
 class TestRealRepository(unittest.TestCase):
 
     def test_every_shipped_m_file_is_clean(self):
