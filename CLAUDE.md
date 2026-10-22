@@ -765,7 +765,7 @@ The last releases only; the full board, in version order, is
 |---|---|---|---|---|
 | v5.23.4 (A41: fifteen code defects recorded by A40) | ☑ 17 gates + mlint (21 files) + make_demos + 15 self-test suites, 0 findings | ◑ **Tier B locally**. ☑ **CI self-hosted (A8) at `b8c487b` via PR #134, green — 445 runs, 438 passed, 0 failed, 7 filtered**; the count prediction matched EXACTLY, and all ten new tests and the three extended ones passed on their first run - the `twsChain` one is the first to reach the DDK lookup on A8 | ☑ PR #134 | ☑ 2026-10-22 |
 | v5.24.0 (the class-surface backlog: nine routes, six exceptions; `designFilter` NaN, `signalVarianceKaula` badRange) | ☑ 17 gates + mlint + make_demos + 15 self-test suites, 0 findings; reach 87 -> 94 of 134, backlog 13 -> 0 | ◑ **Tier B locally**. ☑ **CI self-hosted (A8) at `7b0d331` via PR #136, green — 448 runs, 441 passed, 0 failed, 7 filtered**; the count prediction matched EXACTLY, per class as well as in total (Contract 130). One red round first, at `962b4b8`: the new series test drove `signalVarianceKaula`'s range guard, whose `error` call threw `nonScalarInput` on its vector format argument - a lane defect of the A27 shape, fixed | ☑ PR #136 | ☑ 2026-10-22 |
-| v5.24.1 (`obpChain:emptyRefPeriod`; DRIVEN + R8 and 56 identifiers driven; the guide built by CI; Node 24 artifact action; this file split) | ☑ 17 gates + mlint + make_demos + 15 self-test suites, 0 findings; DRIVEN: 231 -> 287 of 395 raised identifiers named by a test, backlog 164 -> 108 | ◑ **Tier B locally**. CI self-hosted (A8): pending; predicted 452 runs (Contract 134) | ☐ PR pending | ☐ |
+| v5.24.1 (`obpChain:emptyRefPeriod`; DRIVEN + R8 and 56 identifiers driven; the guide built by CI; Node 24 artifact action; this file split) | ☑ 17 gates + mlint + make_demos + 15 self-test suites, 0 findings; DRIVEN: 231 -> 287 of 395 raised identifiers named by a test, backlog 164 -> 108 | ◑ **Tier B locally**. ☑ **CI self-hosted (A8) at `392d9a6` via PR #137, green — 452 runs, 445 passed, 0 failed, 7 filtered**; the count prediction matched EXACTLY, per class as well as in total (Contract 134), and all five new or extended tests passed on their first run. The gates job built the guide (2.2 MB artifact) and `doc_sync_audit` checked it there; no Node 20 warning | ☑ PR #137 | ☐ |
 
 ### 6.3 What the next session could be wrong for not reading
 
@@ -837,9 +837,11 @@ One line per rule; the incident behind each, with its numbers, is in
 
 ### 6.4 Next action
 
-**State, 2026-10-22.** v5.24.1 (five refinements) is on
-`claude/vigilant-cray-w79e72`, awaiting A8; `main` is `36e347d`, v5.24.0,
-green on A8 with 448 runs. Every finding in 4.1 is CLOSED except A42,
+**State, 2026-10-22.** v5.24.1 (five refinements) is PR #137, green on A8
+with 452 runs (445 passed, 7 optional real-data fixtures filtered),
+awaiting merge; `main` is `36e347d`, v5.24.0. Its merge is the first
+run of `release.yml`'s guide step - check that the v5.24.1 release
+carries `shAnalysis_workflow_guide.pdf`. Every finding in 4.1 is CLOSED except A42,
 which holds five low items that need data or a run, not effort. Read the version from
 1's table or `Contents.m` line 2, never from this paragraph.
 
