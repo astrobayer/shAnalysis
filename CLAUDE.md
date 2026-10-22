@@ -10,6 +10,9 @@ full text (2026-08-10, v3.1.0 era) is archived verbatim with staleness marks
 at `tools/dev/HANDOVER_shAnalysis_RETIRED.md`, and its still-valid
 operational rules are carried into §2–§4 below.
 Where this file and any skill or memory disagree, this file is right.
+The history behind it - every earlier decision, the full verification
+board and the lessons in full - is `tools/dev/RECORD.md`, append-only
+(split out in v5.24.1).
 
 Provenance: audit of `astrobayer/shAnalysis` @ `0225c8d3` (main, pushed
 2026-09-06), read in a sandbox on 2026-09-08 18:30 UTC by Claude Fable 5.1.
@@ -23,12 +26,12 @@ says whether it was *read* or *inferred*.
 
 | Fact | Value | Evidence |
 |---|---|---|
-| Version | **5.24.0**, 22-Oct-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
+| Version | **5.24.1**, 22-Oct-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
 | Branches | `main` only; `claude/getframe-recapture` and `claude/readshm` are gone (merged/deleted) | `GET /branches` |
 | Public surface | 3 classes / 106 methods, 134 `+shLowLevel` functions (+5 private), 3 root functions. 94 of the 134 are reachable from a class method; each of the other 40 is a named exception with its reason, and the backlog is empty (v5.24.0) | `tools/dev/api_extract.py`; `tools/dev/class_surface_audit.py` |
-| Tests | 5 classes, **434 methods / 448 runs**: Correctness 221, Contract 130, Robustness 61, Science 9, Performance 13 methods (27 runs, `budgetCase` x14 + `nmaxP` x2). On A8 7 filter out without the optional real-data fixtures (the GravIS-grid test joined them in v5.8.0, the ESMGFZ check in v5.11.0, the HLSST check in v5.12.0); on MATTHIASPC only 2 do, because `E:\DATAPOOL` supplies the SINEX files, the GravIS folder and - with `SHX_EARTHROTATION_FOLDER` and `SHX_BRIDGE_FOLDER` set for the run, no preference is stored - the ESMGFZ and HLSST series. The counter has matched the runner EXACTLY on the last ten green A8 runs and on every local Tier-A run. | `python3 tools/dev/count_tests.py` |
+| Tests | 5 classes, **438 methods / 452 runs**: Correctness 221, Contract 134, Robustness 61, Science 9, Performance 13 methods (27 runs, `budgetCase` x14 + `nmaxP` x2). On A8 7 filter out without the optional real-data fixtures (the GravIS-grid test joined them in v5.8.0, the ESMGFZ check in v5.11.0, the HLSST check in v5.12.0); on MATTHIASPC only 2 do, because `E:\DATAPOOL` supplies the SINEX files, the GravIS folder and - with `SHX_EARTHROTATION_FOLDER` and `SHX_BRIDGE_FOLDER` set for the run, no preference is stored - the ESMGFZ and HLSST series. The counter has matched the runner EXACTLY on the last ten green A8 runs and on every local Tier-A run. | `python3 tools/dev/count_tests.py` |
 | Python oracles | 31 `tools/dev/validate_*.py` (+ `regional_oracle_lib.py`, shared by the WP8 oracles) + `tools/audit/*` | listing |
-| Docs | **27** hand-written `html/*.html` (24 per-entity duplicates retired in v5.0.1, WP6 stage 3; `regionalBasis.html` added in v5.14.0) + **238 generated `html/ref/*.html`** (one per entity + index, `make_refpages.py`), one shared `html/shAnalysis.css`, `helptoc.xml`, `info.xml`, guide PDF, generated `html/apiReference.html`. `docs/` holds the PDF and `apiExamples.json` only - no HTML page lives outside `html/` (gated). | listing |
+| Docs | **27** hand-written `html/*.html` (24 per-entity duplicates retired in v5.0.1, WP6 stage 3; `regionalBasis.html` added in v5.14.0) + **238 generated `html/ref/*.html`** (one per entity + index, `make_refpages.py`), one shared `html/shAnalysis.css`, `helptoc.xml`, `info.xml`, guide PDF (built by CI and attached to each GitHub release since v5.24.1, not committed - `doc_sync_audit` refuses a tracked copy), generated `html/apiReference.html`. `docs/` holds `apiExamples.json` and, where it was built, the PDF - no HTML page lives outside `html/` (gated). | listing |
 | CI | `gates` job on ubuntu (help_audit, doc_sync_audit, no_map_renderer, toolbox_dependency_audit, nv_casing_audit, fixture_tag_audit, gate self-tests `tools/tests/`, `count_tests`, `name_coverage`, `class_surface_audit`, `error_id_audit`, `option_values_audit`, `refpages_audit`, `make_demos --check`, `perf_baseline_audit`) + `runAllTests (self-hosted)` on A8/R2026a; fixtures from tag `fixtures-2026-08` | `.github/workflows/ci.yml` |
 | Namespace | `+shLowLevel` (renamed from `+shx` in v3.0.0). Any memory saying `shx.*` is stale. | README §History |
 
@@ -144,12 +147,15 @@ CF-1.8 export, provenance sidecars, geoMap bridge (`toGrid`, `gridHandover`).
    per tier, debt named, next action as a command.
 9. Regenerate what the version stamps: `tools/dev/make_apiref.py`,
    `tools/dev/make_refpages.py`, `tools/dev/make_demos.py` and
-   `tools/dev/make_guide.py` (the last needs `reportlab` + `matplotlib`;
-   `pip install reportlab matplotlib`). **Four** artifacts carry the
-   version, not two: `apiReference.html`, `html/ref/*`, `demos.xml` and
-   the guide PDF. All four stamps are now gated by `doc_sync_audit.py`;
-   `demos.xml` was not until v3.34.1, which is how a bump alone shipped a
-   stale one.
+   `tools/dev/make_guide.py` (the last needs
+   `pip install -r tools/dev/guide-requirements.txt`). **Four** artifacts
+   carry the version, not two: `apiReference.html`, `html/ref/*`,
+   `demos.xml` and the guide PDF. All four stamps are gated by
+   `doc_sync_audit.py`; `demos.xml` was not until v3.34.1, which is how a
+   bump alone shipped a stale one. Since v5.24.1 the guide is NOT
+   committed: build it locally to check its stamp (the gate checks a
+   built copy, and requires one in CI), and leave it untracked - CI builds
+   it on every run and `release.yml` attaches it to the release.
 
 Machine facts: acceptance machine `C:\Users\matth\Documents\MATLAB\shAnalysis`,
 data `E:\DATAPOOL\GravityField`; self-hosted runner A8 (R2026a, MinGW64,
@@ -664,6 +670,40 @@ shAnalysis, the basin is selectable, and otherwise a test area.
 ## 6. Records
 
 ### 6.1 Decisions (append-only; date, decision, evidence)
+Current entries only; every earlier one is in `tools/dev/RECORD.md` §1,
+verbatim. An entry moves there when it stops describing the current
+state; nothing is deleted.
+- 2026-10-22 — **Five refinements, one PATCH, 5.24.1** (Matthias: "Go
+  ahead with 1, 5 and 2", "3: go for (a)", "4: go ahead", on a list of
+  six that ranked them). 1: `obpChain:emptyRefPeriod`, the third raise
+  that threw on a non-scalar format argument. 5: `upload-artifact` on
+  Node 24. 2: the DRIVEN rule, R8, and the first 56 identifiers driven.
+  3(a): the guide is built by CI and attached to releases. 4: this
+  file split, its history into `tools/dev/RECORD.md`. Item 6 (a Tier-A
+  checklist script) was offered and not taken up.
+- 2026-10-22 — **DRIVEN measures naming, and says so.** 395 raised
+  identifiers, 164 named by no test, 108 after the first batch. A name
+  in a `verifyError` proves the test asks; only MATLAB proves the call
+  reaches the guard (the PINS limit). The backlog may only shrink, and
+  a new raise must arrive with its test - there is no third list.
+- 2026-10-22 — **R8 reads declarations, not values.** It flags `opts.X`
+  or an input declared non-scalar, and a bare `size(x)`; a vector held
+  in a local variable is not seen. It fires on all three historical
+  defects and on nothing in the tree; `size(x, dim)` is a scalar and
+  was the one false positive the probe showed.
+- 2026-10-22 — **The guide's history stays in `.git`.** Removing the
+  file stops the growth (about 3 MB per bump); the 43.5 MB already
+  committed remain until the history is rewritten, which would change
+  every commit SHA on `main` and need a force-push. That is a call for
+  Matthias, not a ride-along. The gates job builds the guide in a venv
+  from `tools/dev/guide-requirements.txt` (ubuntu-latest refuses a
+  system-wide pip), and `release.yml` attaches it only when the release
+  lacks it, so the asset is always the tagged commit's.
+- 2026-10-22 — **The split moved text, it did not rewrite it.** Every
+  non-blank line of the old file is in the new one or in the record
+  (checked by script; the one exception is the 5.24.0 board row, which
+  gained its merge date). 6.3's rules are new one-line summaries; their
+  stories are the old bullets, verbatim, in the record.
 - 2026-10-22 — **The class-surface backlog is empty, as 5.24.0**
   (Matthias: "Go ahead with the class-surface backlog"). Thirteen lanes:
   seven got nine thin delegates, pinned bitwise in `testContract`; six
@@ -716,1689 +756,91 @@ shAnalysis, the basin is selectable, and otherwise a test area.
 - 2026-10-22 — **Five items stay open on purpose (A42)**: each needs data
   or a run this session did not have, and a fix built from a guess is
   6.3's confident nonsense.
-- 2026-10-21 — **A36: the offline fetch tests stop sleeping** (Matthias
-  chose "Cut the sleeps" over a wider optimisation pass, after the A8
-  profile showed no numerical hot spot). Shipped as 5.23.0: `MaxTries`
-  and `BaseDelay` on `fetchTN` and `fetchICGEM`, forwarded through the
-  private `webFetch`, declared without defaults so `httpFetch` keeps the
-  only one. A MINOR: options added, no default moved.
-- 2026-10-21 — **The profile came from the runner's durations, not from
-  a profiler.** Four A8 logs gave the same per-test times to 0.03 s; a
-  wait that reproducible is a sleep, not a computation, and the cause
-  was read off `httpFetch`'s backoff rather than guessed.
-- 2026-10-21 — **A34: the two-pass climatology fit is an option, not
-  the default** (Matthias: "A34 make it optional"). Shipped as 5.22.0:
-  `FitClimatology = "observations" | "filtered"`, default unchanged.
-  `ClimatologyFit` was the first name and `nv_casing_audit` refused it:
-  `Climatology` would have been its prefix.
-- 2026-10-21 — **Two passes, not an iteration, and not a shrinkage.**
-  Measured before asking: a per-degree Wiener shrinkage of the fitted
-  climatology lost on the grid (about 2 cm), estimating it as static
-  states inside the filter lost too (5.9 cm, the diffuse prior), and a
-  third pass moved the median by at most 5.1%, against a bar of 5% set
-  before the run. The option does the one pass that carries the gain.
-- 2026-10-21 — **The first-pass climatology is fitted on the output
-  epochs**, the grid the chain smooths onto (`Epochs`), not only the
-  observed ones: the smoothed estimate exists at a gap, the noisy
-  observation does not.
-- 2026-10-21 — **A33 shipped as 5.21.0, a MINOR**: `readBasin` takes a
-  string array or `string.empty`, and the chains use it. Basin 302's
-  mask grows by its polar cap, a change of numbers; it is filed as a fix,
-  since no reading of a ring that encircles the pole leaves the pole out.
-- 2026-10-21 — **Measured before migrating, and the measurement moved
-  the finding.** The lon-0 basins the finding named were already right
-  (the chains recentre); the polar ring it did not name was wrong. The
-  reference is the old rule itself, re-implemented in the test, not a
-  frozen file: a mask is a deterministic function of the GeoJSON, and a
-  rule is easier to audit than 132 bitmaps.
-- 2026-10-21 — **Only two of the four chains parsed GeoJSON.**
-  `greenlandChain` and `antarcticaChain` reach it through
-  `gravisRegionChain`; their code changed in help rows only.
-- 2026-10-21 — **8i's first A8 run failed on a fixture of mine, and the
-  fix took the fixture from a new oracle claim, not a wider bound.** See
-  6.3; CLAIM 4b mirrors kalmanFilter's own update formulas.
-- 2026-10-21 — **A35 fixed inside 8i's release, not as its own.** 8i
-  claims VAR(2) through the chain, and the claim was false until the
-  Yule-Walker fix; shipping 5.20.0 without it would have released a
-  feature its own test showed broken. The fix changes numbers only where
-  they were wrong (`Order >= 2`, multivariate blocks).
-- 2026-10-21 — **8i shipped as 5.20.0**: `QBlocks`, a `QScale` per
-  block and `EstimateQScale` on `regionalKalman`; `kalmanFilter`'s
-  `Likelihood`; `buildCondFun`'s `Basis`; VAR(2) through the chain tested.
-- 2026-10-21 — **The row's "VCE of Q from the innovations" became a
-  maximum likelihood of the innovations.** Kurtenbach gives no method for
-  his alpha, and no source in hand gives the equations of a variance-
-  component estimator for Q. Two estimators are derivable from first
-  principles for one block: the innovation-likelihood maximum and the EM
-  fixed point (Shumway and Stoffer 1982). The oracle shows they are the
-  same stationary point (1.3e-8), so the likelihood - which serves any
-  number of blocks - is the implementation, and the claim it rests on is
-  checked by an independent route, not asserted.
-- 2026-10-21 — **Q(alpha) = D Q D, not a block-diagonal Q.** A block
-  scale keeps the cross-block correlations the Yule-Walker estimate
-  measured; dropping them would change the model in a way no factor
-  undoes. One fixed factor stays v5.19.0's path, bitwise.
-- 2026-10-21 — **The likelihood is formed in the normal-equation form
-  without log|R| + l'R^-1 l**, which a normal equation does not carry
-  and no model parameter changes. Shown to equal the dense joint Gaussian
-  likelihood (3.9e-15) and the solution form minus exactly that constant.
-- 2026-10-21 — **The "CondFun" item needed no new conditioner.** Kvas'
-  conditioner acts on SH covariances; in a basis it is Proj f(T S T')
-  Proj', exact because Proj T = I. So it is one option on
-  `buildCondFun`, not a second conditioner.
-- 2026-10-21 — **The order after the postponement** (Matthias: "Go
-  ahead in this order: 8h, 8i, A33 and A34"). 8h shipped as 5.19.0:
-  kind "lgd" of `regionalNEQ`.
-- 2026-10-21 — **lgdToolbox has no SH forward model, so 8h's oracle is
-  the two it has.** "lgdToolbox forward model" in the row means its
-  point mass + J2 closed form (`lgdReferenceJ2`) and its 50-digit Kepler
-  pair (oracle O2); degrees 0 and 2 of the shAnalysis design reproduce
-  both to rounding of |g|. Higher degrees are checked against Cartesian
-  differences of the potential. lgdToolbox was read from its `main`, in
-  an extracted copy; its working clone was left on its own branch.
-- 2026-10-21 — **The data go through the operator with the design, data
-  first.** `lgd.spectralOperator` fits its edge predictor on its first
-  column and applies the fitted map to every column, and its help says
-  partials must pass through the same call. Filtered values with a
-  separately filtered design would get another predictor. So `Values`
-  are the unfiltered LGD (Route A's `info.components.unfiltered`) and
-  `Valid` is the mask of the data's own call.
-- 2026-10-21 — **shAnalysis calls no `lgd.*` function and rotates no
-  frame.** The operator is a handle the caller builds, so the toolboxes
-  stay independent; the orbits must be Earth-fixed, because the field is,
-  and the rotation belongs to the toolbox that reads the orbits.
-- 2026-10-21 — **8f postponed** (Matthias: "We have to postpone this as
-  the bridge will not be available for the time being. Only the CI is
-  available but has limited memory and cannot accommodate the covariance
-  matrices"). The closed loop needs ESA ESM output and ITSG-Grace2018
-  full covariances (at nmax 96, 9409^2 doubles, about 0.7 GB per
-  month), so it waits for the bridge. 8g is postponed with it: daily
-  SINEX NEQs need the same machine. Rows that need neither stay open:
-  8h, 8i (on a synthetic closed loop), A33 and A34.
-- 2026-10-21 — **8e approved** (Matthias: "Go ahead", after #123
-  merged). Shipped as 5.18.0: `Background` on `regionalKalman` and
-  `ts.regionalKalman`.
-- 2026-10-21 — **Remove-compute-restore is this toolbox's own design.**
-  Woehnke et al. 2025 use no background; Steffen et al. 2026 name it for
-  long wavelengths and outside signal without applying it, and give no
-  equations. So the oracle checks it on its own terms: the restore
-  algebra exactly (with the process model fixed the chain is linear, a
-  background c z leaves 1 - c of the leakage of z, 5.6e-15), and a closed
-  loop with signal outside the region (+28% grid RMS without it; within
-  3.6% of the no-outside-signal error with an 80% background).
-- 2026-10-21 — **Woehnke's observation area was measured and not built.**
-  EWH observed on the region + 300 km helped without a background (1.04
-  against 1.20 cm) and cost in every seed with one (0.97 against 0.93):
-  SH-coefficient observations carry more than their synthesis on an
-  area. Gridded data on an area already enter as `regionalNEQ "points"`;
-  the computation area is the basis' `BufferKm`. A chain option would
-  have offered a measured loss as a feature.
-- 2026-10-21 — **The background is error-free and removed as a series
-  difference before the climatology fit.** It adds nothing to the
-  sigmas; the climatology is that of the residual. In record mode it is
-  only restored - the chain cannot reduce a normal equation it did not
-  build. The basin mean adds the background's EWH as a separate term, so
-  the chain without a background is bitwise v5.17.0.
-- 2026-10-21 — **A34 recorded, not fixed.** The observation climatology
-  restore re-injects the climatology's noise; it is `kalmanChain`'s
-  restore and the SH-basis identity rests on it.
-- 2026-10-21 — **8d approved** (Matthias: "Go ahead", after #122
-  merged). Shipped as 5.17.0: `regionalKalman` and `ts.regionalKalman`,
-  `rtsSmoother`'s `Functionals`, and `B.region.core`.
-- 2026-10-21 — **The chain takes a built basis, not the basis' options.**
-  The row sketched `ts.regionalKalman(Region=, Basis=, ...)`; that would
-  copy regionalBasis' dozen options into a second home. `B =
-  ts.regionalBasis(...)` first, as rows 8a-8c already do.
-- 2026-10-21 — **Solution observations update in the information form.**
-  A general basis observes x = T a, H = T, and kalmanFilter's solution
-  mode knows H = I only. So every observation becomes a basis normal
-  equation (regionalNEQ) and kalmanFilter is reused unchanged. On the
-  SH basis this is the one place the chain differs from kalmanChain,
-  measured at 5.6e-15 (states) and 8.9e-16 (sigmas) over 40 seeds.
-- 2026-10-21 — **The basin sigma is formed inside the chain, from the
-  full smoothed covariance.** An shSeries carries per-coefficient sigmas
-  only, so a basin sigma computed afterwards would drop every
-  correlation. `rtsSmoother` gained `Functionals` (sqrt(diag(F Ps F'))
-  without the m x m product), exactly `sig` for F = I, pinned bitwise.
-- 2026-10-21 — **The basin mean is taken over the UNBUFFERED region**,
-  which the basis did not store; `B.region.core` is the evalMask result
-  regionalBasis already computed for `areaFraction`, now kept. Additive.
-- 2026-10-21 — **The climatology is restored in the basis, T (a + Proj
-  c).** Adding the global climatology to a regional estimate would mix
-  a global field into a regional one; on the SH basis (Proj = I) it is
-  exactly kalmanChain's restore.
-- 2026-10-21 — **Records mode refuses two records within Tolerance**
-  instead of picking one: several kinds of one epoch belong in
-  neqCombine, with variance components, before the filter.
-- 2026-10-20 — **8c approved** (Matthias: "Go ahead", after #121
-  merged). Shipped as 5.16.0: `regionalNEQ` with three kinds and the
-  class route `g.regionalNEQ`.
-- 2026-10-20 — **One function, three kinds, one weighted core.** A
-  solution, an SH NEQ and point functionals differ only in the design A
-  (T, T'(.)T, A_SH T); the covariance is applied in one place, through a
-  Cholesky factor, so a non-positive-definite covariance is refused
-  rather than inverted. The output is `neqCombine`'s contribution format,
-  so combining kinds of one epoch needed no new code.
-- 2026-10-20 — **The LGD shape is in 8c, its preprocessing is not.**
-  `Direction` + `Combine` give a line-of-sight gravity difference
-  exactly; the along-track filtering, transfer function and noise PSD of
-  real LGD stay in lgdToolbox (row 8h), as the toolboxes stay
-  independent. GNSS loading enters as an SH NEQ built elsewhere (WP4).
-- 2026-10-20 — **Option names avoid every prefix of `R`.** `R` (the
-  reference radius) is a house option; 5.14.0's `RelTol` collided with it
-  in `nv_casing_audit`. So the SH normal equation is one struct option,
-  `NEQ` (the neqCombine/readSINEX formats), and the point radius is
-  `Height`, as in kernelFactors.
-- 2026-10-20 — **8b approved** (Matthias: "Go ahead", after 8a merged as
-  #120). Shipped as 5.15.0: `regionalProcessModel` and its class route,
-  and `estimateVAR`'s `Sigma0Add`.
-- 2026-10-20 — **Kurtenbach's ground noise is added to Sigma(0), not to
-  Q, and it is a white EWH field.** His Sec. 4.3.5 says the ground noise
-  changes Sigma(0) and so B and Q alike, while alpha touches Q only; his
-  real-data run adds 2 cm EWH "in the form of a diagonal matrix" without
-  saying in which domain. Read as the isotropic white field band-limited
-  to the index - equal EWH variance per coefficient - because that is
-  the one reading under which "2 cm everywhere" is exactly true (the
-  addition theorem). Stated as a reading in the help.
-- 2026-10-20 — **`Sigma0Add` went into `estimateVAR` rather than a
-  second Yule-Walker into the new function.** The ground noise must enter
-  Sigma(0) only, before the solve; `Shrink` already did exactly that for
-  one special matrix, so the option generalises it (pinned bitwise) and
-  the solve keeps one home.
-- 2026-10-20 — **alpha leaves Sigma0 unchanged.** Eq. 4.8 scales Q and
-  says the dynamics B stay; the filter's initial covariance is Sigma0,
-  and nothing in the thesis rescales it. A caller who wants the
-  stationary covariance of the scaled model computes it.
-- 2026-10-20 — **No model output was available to this session** (the
-  bridge's device was offline), so 8b is validated on synthetic series:
-  the SH-basis identity with kalmanChain and a VAR(1) recovered through
-  the whole pipeline. A real model series (ESA ESM, WGHM) is first needed
-  in 8f.
-- 2026-10-20 — **WP8 approved: a regional Kalman with local basis
-  functions, inside shAnalysis** (Matthias: "1 local basis function /
-  2. Reuse it / 3. All of them / 4. Make it part of the shAnalysis
-  toolbox and the basin shall be selectable. Else can be a test area").
-  The answers followed a review of Kurtenbach's thesis and the work
-  since, which ended "once these are settled I start the basis row";
-  8a starts on that reading, the later rows wait for their own tick.
-- 2026-10-20 — **Every basis is a linear map to SH coefficients.**
-  RBF, Slepian and SH differ only in `T`; the filter, the NEQs and the
-  VAR estimate stay SH-agnostic, which is what makes "reuse it"
-  possible without a second filter. The price is band-limitation at
-  nmax - the RBF of Eicker (2008) and Woehnke (2025) are band-limited
-  Legendre series already, so nothing is lost against the literature.
-- 2026-10-20 — **The RBF kernel follows Woehnke 2025 eq. 7, not a
-  window.** Their shape coefficients are phi_n = sigma_n / sqrt(2n+1)
-  from the signal's degree amplitudes (Eicker 2008), and they report
-  Kaula's rule within 0.07% in correlation. So the kernel options are
-  the user's degree amplitudes, Kaula's 1/n^2 (default, no data
-  needed) and Shannon (phi_n = 1). A Blackman window was NOT
-  implemented: its formula was not in hand, and 6.3 says what happens
-  to methods built from memory.
-- 2026-10-20 — **The default node level makes the GLOBAL grid as large
-  as the SH basis**, 10(j+1)^2 + 2 >= (nmax+1)^2. At nmax 96 that is
-  j = 30, the level Woehnke's Fig. 4 labels "n = 30" (their text gives
-  the node count as K = 10(j+1)^2 + 2, eq. 8).
-- 2026-10-20 — **A node belongs to the basis when its nearest
-  quadrature point is inside the buffered region**, one rule for every
-  region form (name, polygon, handle, mask), and the same buffered mask
-  the projector weights with. The cost is a node-selection resolution
-  of half a grid spacing, stated in the help; OverSample refines it.
-- 2026-10-20 — **The GeoJSON reader is new, and the four chains that
-  parse GeoJSON themselves were left alone** (A33). Moving them onto
-  `readBasin` changes their code paths in a release whose claim is
-  "additive"; it is a row of its own, with captured references first.
-- 2026-09-11 — **The documentation audit shipped as 5.13.1, a PATCH**
-  (Matthias: "Audit the help text, html doc and pdf documentation for
-  completeness and if they are in sync. Fix everything mistake or miss
-  accordingly."). Findings in A32. One code change rode along, and it is a
-  fix, not a feature: `demo_shAnalysis`'s real-series lookup now searches
-  the v3.16 folder first. Its own help and two pages had promised that for
-  fourteen releases while the code looked where fetchITSG stopped writing.
-- 2026-09-11 — **Probes first; only the precise rules became a gate.**
-  Twelve read-only probe rules ran over html, the guide source, README,
-  Contents.m and every help block. Four had zero false positives once the
-  defects were fixed and became `doc_sync_audit` PROSE (inline calls, bare
-  package calls, class-page coverage, identifiers in narrative docs). The
-  rest - lowercase option names, lists of stale phrases, `object.member` by
-  variable name - also flag legitimate history ("plotSHMap is gone", "this
-  row claimed 5-20x until v5.5.0"), and a gate that fires on history is one
-  people learn to ignore.
-- 2026-09-11 — **The guide gained chapters, not an appendix.** The five
-  capabilities after v3.26 are Part I chapters 28-32 in the house form
-  (theory as implemented, the measured numbers, one gated snippet each),
-  References moved to 33, and the class lanes are Part III G14. Every
-  number in them is quoted from the function's help or the changelog, not
-  re-derived for the page.
-- 2026-09-11 — **#115, #116 and #117 were merged on 2026-09-10**; the
-  branch was fast-forwarded to `main` (`3135b7b`, the same tree as
-  `385e44f`) before this release was committed.
-- 2026-09-10 — **Item 4 of the agreed order, the class-surface
-  backlog: the four cheapest routes, 5.13.0.** `poleTideConvert` (the
-  object form on a field, the raw form at every epoch on a series, which
-  keeps names, sigmas and history), `estimateDegree1`, `combineCenters`
-  and `slepianProject` - thin delegates, pinned bitwise. The backlog is
-  14. The rest take grids, load regions or function handles, where a
-  method would do more than forward; they stay listed, not forced.
-- 2026-09-10 — **B1 is measured and not built, by WP2's own bar.** The
-  latitude-first recursion is 1.11-1.69x faster raw, and every caller
-  indexes P(n+1, m+1, :), so a drop-in pays a permute back and lands at
-  0.92-0.99x. Changing nine callers for at most 1.7x is below the 2x the
-  WP set before anything was measured. Bitwise identical throughout.
-- 2026-09-10 — **`shSynthesis`'s `auto` keeps FFT: no path wins on both
-  machines.** On MATTHIASPC `direct` is 0-14 percent faster over the
-  whole call at 13 sizes; on A8 the FFT reduction ran 1.40x faster at
-  nmax 60. The gap is the longitude step alone, at most 7 ms. The help
-  row now states the sweep instead of one observation.
-- 2026-09-10 — **The next order agreed** (Matthias: "#113 and #114 is
-  merged. Continue in the suggested order"): A30's lane guard, then B1
-  (measure first), then the FFT/direct sweep, then the class-surface
-  backlog. A30 shipped as 5.12.1, a PATCH like 5.7.1's refusals.
-- 2026-09-10 — **A30: the lane refuses NaN, and each caller that fed it
-  NaN refuses under its own identifier.** Measured first: one NaN polar
-  cap reached 153 of 289 C coefficients of `shAnalysisGrid`;
-  `leakageCorrect` without a Mask reported `diverged`; `gridScaling` with
-  a NaN model returned 0 of 1122 finite factors. The four paths that
-  worked were captured and are bitwise unchanged.
-- 2026-09-10 — **An inline script with a doubled quote does not reach
-  bash.** Twice this session a long command carrying `''` died at parse
-  time; the fix was a script file run from the command. Nothing had
-  run, so nothing was half-done - checked, not assumed.
-- 2026-09-10 — **The axial factor keeps its default, 0.753** (Matthias:
-  "Keep 0.753 as default"). That is Chen & Wilson's eq. (1); ESMGFZ's
-  prefactors give 0.844, and a caller who takes that convention passes
-  `AxialFactor`. The question the 5.11.0 entry below left open is
-  closed.
-- 2026-09-10 — **5d's design decided by four answers** (Matthias: the
-  Kalman-filtered variant; an offset, a per-degree scale and a per-degree
-  noise from the overlap; every month GRACE lacks, 32 of them; the flag
-  in the epoch names). Measured before asking, so each option carried a
-  number: at 750 km the fill error over degrees 3-60 is 45 percent of the
-  GRACE signal for the Kalman variant and 92 for the unfiltered one.
-  Executed as 5.12.0; held out and bridged back, the error is 0.38 and
-  the predicted sigma matches it (1.03).
-- 2026-09-10 — **The flag lives in the epoch names, not a new property.**
-  Names already travel through every method that selects, truncates or
-  rebuilds a series; a new property would need carrying in each of them,
-  and one that missed it would drop the flag silently - as the
-  constructor already drops per-epoch history.
-- 2026-09-10 — **The output is smoothed throughout, not only in the
-  filled months.** A series whose resolution jumped at the flagged
-  epochs would carry the fill's smoothing into every trend and
-  amplitude fitted across them.
-- 2026-09-10 — **The HLSST series came through the house fetcher.**
-  `fetchICGEM`'s whole-series archive holds both variants (83 MB in one
-  request, where file by file would have been 240 rate-limited ones);
-  the unfiltered files sit beside the Kalman ones, unused.
-- 2026-09-10 — **5a's open points decided** (Matthias: "length of day is
-  a time and consequently ms is correct. mas is an angle"; "for M,R,C,A
-  use the IERS conventions 2010"; "go ahead and download the data. Store
-  them in E:\DATAPOOL\EarthRotation and not in the repo"). Executed as
-  5.11.0. The ESMGFZ AAM, OAM, HAM and SLAM series for 2002-2026 and
-  their Product Description Document are in that folder, not the repo.
-- 2026-09-10 — **5d's method set** (Matthias: "Use a 750km Gaussian
-  smooting"; "Use the overlapping periods"; "Flag the Swarm Epochs";
-  "You can use the QuantumFrontiers/HLSST_SLR_COMB2023s time-series. It
-  contains Swarm but many more satellite but no kbr. It should be
-  slightly better than Swarm but poorer than a GRACE solution with
-  KBR"). The series is not in the data pool: the local
-  `HLSST+SLR/QF/RL01_60` is COMB2019s, and RL02 is Matthias's own.
-- 2026-09-10 — **IERS 2010 lists none of M, C and A; they are derived,
-  and checked against a second publication.** M = GM/G, C - A =
-  J2 M a_E^2, C = (C - A)/H, A the mean equatorial moment, R = a_E (the
-  table has no mean radius). C and A agree with ESMGFZ's Table 2.1 to
-  0.03 percent.
-- 2026-09-10 — **The length-of-day relation came from ESMGFZ's document,
-  and its misprint was read by the units, then checked against data.**
-  Eq. (2.8) prints 2 pi Omega; only 2 pi / Omega is a time. The observed
-  length of day against the ESMGFZ model gives slope 1.097 and
-  correlation 0.943; the printed form would give 2e8.
-- 2026-09-10 — **The axial factor stays 0.753, and the question goes to
-  Matthias.** ESMGFZ's prefactors give 0.844 - 12 percent more, close to
-  C / Cm - and the model comparison cannot tell the two apart. It is an
-  option, and the difference is in the help and the changelog.
-- 2026-09-10 — **The new opt-in data is found through an environment
-  variable, and no preference was written.** `SHX_EARTHROTATION_FOLDER`
-  (or an `EarthRotationFolder` preference, not set on this machine); the
-  local runner sets the variable for its own session only.
-- 2026-09-10 — **5a shipped as 5.10.0 without the length of day in
-  ms.** The approval named mas and ms, but the conversion of chi3 into
-  a length-of-day change is not in Chen & Wilson (2003), the source
-  supplied, and the sign of the axial term differs between authors. By
-  6.3's rule - a method's description is not its equations - chi3 is
-  returned as eq. (1)'s dimensionless excitation, and the conversion
-  waits for a source.
-- 2026-09-10 — **The Earth's constants are required, like the Love
-  numbers.** The paper gives no values for M, R, C and A, and section 2
-  forbids hardcoding a physical constant; a default would have been a
-  number from memory. The test and oracle use SYNTHETIC round numbers,
-  labelled as test inputs.
-- 2026-09-10 — **The axial term needs a TN-14 table as an input, not a
-  history check.** A series built from coefficient objects keeps one
-  history line, so it cannot tell whether its C20 was replaced, and
-  products such as GravIS ship with it replaced already. Applying TN-14
-  again is idempotent, so passing the table makes it so either way.
-- 2026-09-10 — **chi2 points to 90 E, as eq. (1) fixes it, and there
-  is no `Convention` option.** The equation treats (C21, chi1) and
-  (S21, chi2) alike; the IERS pole coordinate y points to 90 W. The help
-  states the frame; an option would switch something the equation does
-  not leave open.
-- 2026-09-10 — **The method of scale shipped as 5.9.0, as an option, not
-  a function.** It shares every estimate with the method of deviation -
-  the filtered average, the leakage and its phase step - and differs in
-  one line, so it is `Method = "deviation" | "scale"` on
-  `leakageDataDriven`. The default is unchanged, and was proven bitwise
-  on four configurations captured before the edit.
-- 2026-09-10 — **The method of scale wins both closed loops, and that is
-  recorded as ranking nothing.** 75.0% against 55.3% of the damage on
-  the `testCorrectness` fixture, 78.6% against 62.9% in the oracle - but
-  both fixtures put a uniform layer inside the catchment, the one case
-  the scale factor is exact for. The thesis's own caveat (s grows as the
-  catchment shrinks, amplifying errors) is in the help, and the default
-  stays the method of deviation.
-- 2026-09-10 — **`s` is reported whichever method ran.** It costs
-  nothing, since the filtered catchment function is already computed,
-  and it is the number that says how far the approximation reaches: s
-  near 1 means the filter barely attenuates the catchment.
-- 2026-09-10 — **WP5 5e shipped as 5.8.0, and the reader only reads.**
-  `readGrid` neither regrids nor fills: the two choices that change
-  numbers - what a NaN means, which latitude type a grid is on - stay
-  with the caller, and both are loud. `analysis` refuses NaN until `Fill`
-  is given, and `readGrid` reports the latitude type rather than assume
-  one ("" for a grid from elsewhere).
-- 2026-09-10 — **One CF time decoder, not two.** `readMascon`'s own
-  pattern could not read GravIS's one-digit month; writing a second,
-  better one for `readGrid` would have left two parsers of one fact
-  (A17). Both call the private `cfTimeToYears`, which never raises, so
-  each keeps its own identifiers - the `filterSpec` pattern.
-  `readMascon` was captured on the real CSR file before the edit and is
-  bitwise unchanged.
-- 2026-09-10 — **`analysis` refusing NaN is a MINOR, not a MAJOR.** No
-  documented call gave a meaningful result with NaN in the grid: they
-  reached every coefficient. The refusal replaces a silent failure, and
-  `Fill` is the new, explicit way to say what the gaps mean.
-- 2026-09-10 — **WP5 rows 5a, 5d, 5e and the 5b follow-on (the method
-  of scale) approved** (Matthias: "Chen and Wilson paper is attached. For
-  everything else, continue as suggested."). Order: 5e, the method of
-  scale, 5a, 5d, one PR each. Adopted with the recommendations: the
-  GravIS L3 TWS grid is 5e's real file instead of GLDAS (whose download
-  needs an Earthdata login); `analysis` refuses NaN unless a fill value
-  is given; the method of scale is `Method = "deviation" | "scale"` on
-  `leakageDataDriven`; 5a returns mas and ms and refuses dLOD without the
-  TN-14 C20. 5d's method stays open until Matthias settles it.
-- 2026-09-10 — **WP4 moved out of shAnalysis, to a GNSS toolbox of its
-  own** (Matthias: "This sounds a lot like a toolbox by itself. GNSS
-  data need preprocessing." ... "Inversion and joint combination shall
-  also be part of the GNSS toolbox."). Nothing of WP4 had been built;
-  the question that prompted it was what the package would need. The
-  proposal, the facts gathered for it and the open questions went into
-  a handover note kept outside the repository, at Matthias's request.
-  C1 and C2 go with it. What stays here is the forward side such a
-  toolbox would call, which already exists.
-- 2026-09-10 — **A28, A26 and the `.gitattributes` fix approved**
-  (Matthias: "#107 is merged. Continue with A28, A26 and the
-  .gitattributes fix"). Executed as 5.7.1, one PATCH on one PR; the
-  task chip for the PDF, put up during WP7, was withdrawn.
-- 2026-09-10 — **A28 covers `obpChain` too, though the finding named
-  `oceanChain` only**: the same REQUIRED option with the same unchecked
-  `[]` default. What `obpChain` did without it is read from its code,
-  not measured - there is no GAD folder here - and the changelog says so.
-- 2026-09-10 — **The mask guard sits after the `kn` and GAD checks, not
-  first.** Existing tests pin `missingKn` and `missingGAD` on calls that
-  also omit the mask; a guard ahead of them would have changed which
-  identifier those calls raise.
-- 2026-09-10 — **A26 keeps the lower-case folder after the fetched one
-  instead of replacing it.** Someone on Linux may have put files there,
-  following the old lookup; on Windows the two are one folder, so
-  nothing moves.
-- 2026-09-10 — **`.gitattributes` marks binary types only; text is not
-  normalized.** `* text=auto` would rewrite every file's line endings in
-  one commit, for no defect.
-- 2026-09-10 — **A25 and the class-surface backlog approved** (Matthias:
-  "Please continue and do both A25 and the backlog items"), read as the
-  three routes the proposal named - `synthesisPoints`, the VDK filter, the
-  gradient tensor - not all 21. Executed as 5.7.0 on one branch and PR.
-- 2026-09-10 — **`filterSpec` does not raise when asked for two
-  outputs, so each lane keeps its own identifier.** The lanes' badFilter
-  identifiers are documented and test-pinned, and an identifier belongs
-  to the file that raises it (A3). A parser that raised its own would
-  have renamed four pinned identifiers - a MAJOR change - to remove
-  duplication.
-- 2026-09-10 — **It only parses; building the filter stays with each
-  lane.** The lanes apply filters differently (a class method, weights
-  times coefficients, a W through applyDDK) and each is pinned to its own
-  numbers. Moving the build into one place would have been a second
-  refactor hiding inside the first, with no bitwise guarantee.
-- 2026-09-10 — **A malformed spec is now refused where it used to be
-  accepted, and that is a MINOR, not a MAJOR.** No documented valid call
-  changes: `"gaussX"`, a negative radius and `"DDK<file>"` were never
-  in the vocabulary, and what they produced (NaN, no filter, a file read)
-  was a defect. Measured before the edit, so the release notes state
-  what it did rather than what it might have done.
-- 2026-09-10 — **Two defects found during A25 were recorded and left
-  open** (A26, A28), and one was fixed (A27). A27 sits on the lane behind
-  the new `g.vdkApply`, whose test exposed it; A26 and A28 are in lanes
-  A25 touched only for parsing, and fixing them would have mixed a
-  behaviour change into a release whose claim is "bitwise unchanged".
-- 2026-09-10 — **WP7's scope was settled by four answers** (Matthias):
-  no generic `shCoefficients.filter`, no `shSeries.chain`, the two
-  leakage lanes as two methods named after them, and a reachability
-  gate with a backlog that may only shrink. Executed as 5.6.0 the same
-  day. Each question carried a measurement rather than a preference:
-  `shSeries.filter` dispatches tvANS only, the chains take folders and
-  return different products, the two leakage lanes return different
-  things, and 21 numerical lanes had no class route.
-- 2026-09-10 — **A delegate declares its lane's options WITHOUT
-  defaults and forwards only what the caller gave** (`namedargs2cell`).
-  Copying each default into the method gives it two homes that can
-  drift. The no-option bitwise call in each delegate test is what pins
-  this: a method that grew a default of its own would stop equalling
-  the lane.
-- 2026-09-10 — **The leakage methods REQUIRE `Filter` although the
-  functions default it.** A function handed a grid may assume the common
-  filter; a method on a series would be asserting something about data
-  it cannot know, and the wrong filter gives a plausible wrong answer
-  with no error.
-- 2026-09-10 — **`ts.write` warns instead of guaranteeing the epoch
-  round trip.** A `.gfc` file has no epoch field; `shSeries.read` takes
-  the epoch from the file name alone. An exact round trip would mean
-  inventing a span from a mid-epoch - calendar arithmetic of its own in
-  a method meant to have none. So it checks every name with the parser
-  the reader uses, and says before writing which epochs would not come
-  back.
-- 2026-09-10 — **The reach figure in the scope question was a
-  prototype's, and it erred in the unsafe direction.** The question said
-  62 of 124 unreachable; the shipped gate says 66. The prototype stripped
-  comments but not strings, so `readDDK`'s error message "Download it
-  once with shLowLevel.fetchDDK" counted as a call, and three fetch
-  helpers hung on that one string. No decision changed - the four are
-  download plumbing and joined the exceptions - but the number did, and
-  the release notes carry the corrected one.
-- 2026-09-10 — **WP7's "method bodies contain only argument
-  forwarding" gate was NOT built; the bitwise tests stand in for it.**
-  Deciding statically whether a MATLAB body only forwards needs an
-  expression parser - `.^ 2` building a diagonal covariance is
-  arithmetic, `[infos{:}]` is not - and a cheap version would be one
-  more checker that lies before it tells the truth (6.3). A test that
-  the method equals the lane bit for bit, with and without options,
-  proves more than any reading of the body. What IS gated: each
-  lane-calling method calls its lane (DELEGATES), and every lane is
-  reached or listed.
-- 2026-09-10 — **The class-surface exception list lives in the gate, not
-  here**, although WP7 said "list of deliberate exceptions in this
-  file". A second copy would be a duplicated fact, and this file already
-  records how those rot (the version bullet in 6.3). Here: the policy
-  and the counts; there: the names, one reason each.
-- 2026-09-10 — **WP3 approved, acceptance by self-consistency only**
-  (Matthias: "Yes, but you can drop the EGM2008 reference. Self-consistency
-  is fine"). Executed as 5.5.0 the same day.
-- 2026-09-10 — **The geoid is refused on the ellipsoid, against one
-  sentence of the WP.** WP3 said both "surface quantities keep erroring"
-  and "geoid/gravity disturbance on the ellipsoid agree with a Python
-  oracle". Both cannot hold: `kernelFactors` gives the geoid no radial law
-  on purpose. And a proper ellipsoidal geoid needs gamma(phi) as well as
-  r(phi) - normal gravity changes by about 0.5% from equator to pole - so
-  moving only the radius would have shipped a correction that looks
-  complete and is not. Resolved by the WP's own explicit rule; the error
-  message carries the reason; Matthias can overrule it.
-- 2026-09-10 — **The ellipsoid's semi-major axis is WGS84's a (6378137),
-  not the coefficients' R (6378136.3).** R belongs to the series, a to the
-  surface, and the house flattening is WGS84's: pairing it with R would
-  describe an ellipsoid nobody uses. The two places now holding WGS84's a
-  (`normalFieldCS`, `ellipsoidRadius`) are pinned together by a test.
-- 2026-09-10 — **`synthesisPoints` got a helper, not an option.** It takes
-  a radius per point already; a `Surface` option would have changed what
-  that positional argument means. `r = ellipsoidRadius(lat) + h` does it.
-- 2026-09-10 — **The sphere path was proven bitwise, not argued.** 26
-  outputs captured from the unmodified code before any edit, 26 identical
-  after. Second time in two days that capturing references first turned
-  "should be unchanged" into "is unchanged" (`leakageCorrect` was first).
-- 2026-09-10 — **A refuted claim survived in the help a user reads.**
-  `shSynthesis`'s Method row said the FFT path is "5-20x faster at 1
-  degree". v5.0.3 corrected the same claim in a `testPerformance` comment;
-  the help row stayed wrong for two more days. Now: 1.40x at n60 on A8,
-  slower than direct at n180 / 0.5 deg on MATTHIASPC.
-- 2026-09-10 — **A9 CLOSED.** Two A8 runs of `2c7b779` put the four new
-  workloads at 1.007 (leakage n48), 1.009 (Kalman p200), 1.021 and 1.002
-  (synthesis direct/fft n180); all four joined the tight tier at 1.3.
-  Every lane A9 names now fails CI on a 1.3x regression. Promoted in the
-  same release that created them because the rule asks for two A8 runs
-  and there were two - not because the release wanted to close.
-- 2026-09-10 — **The promotion criterion was refined, in the open, after
-  a run that would have broken it.** "max/min <= 1.1 on both machines"
-  counts fast runs; a quiet-desktop run 0.84x below its baselines would
-  have demoted `analysis_rings_n60`, the steadiest budget on A8, for the
-  machine being idle. Refined to: A8 spread <= 1.1 over >= 2 runs, and no
-  run on either machine more than 1.1 ABOVE its baseline - the direction
-  an upper bound can actually fail in. Applied to every tight budget,
-  not only the new ones, and the cost (desktop sensitivity) is written
-  into the code. Recorded here because a criterion changed at the moment
-  it bites looks exactly like one bent to fit - the difference has to be
-  shown, not asserted.
-- 2026-09-10 — **A workstation's between-SESSION spread is larger than
-  its between-run spread - and here it erred the safe way.** The v5.4.1
-  full-suite run measured `analysis_rings_n60` at 33.9 ms and
-  `leakage_1iter_n48` at 38.7 ms against baselines of 40.2 and 46.9:
-  0.84x, on a quieter machine than the one the baselines were taken on.
-  Four back-to-back runs in one session understate how far a desktop
-  moves (~1.2x here); A8 does not move like that (<= 1.072 across runs
-  hours apart). For an UPPER bound the dangerous direction is a run
-  slower than baseline, and the worst such run in the tight tier is
-  still 1.057. The max/min criterion also counts fast runs, so it is
-  conservative, not wrong - but a baseline measured on a busy desktop
-  errs loose, and the CI gate that matters is A8.
-- 2026-09-10 — **Order agreed: A9, then WP3, then WP7** (Matthias: "Ok.
-  Let's do it in this order. Please continue with A9"). Read as the
-  go-ahead for WP3 and WP7 in that sequence; WP3's box is to be ticked
-  and its acceptance (self-consistency only, per the earlier "WP3
-  self-consistency is fine") confirmed when it starts.
-- 2026-09-10 — **The A9 noise was threads, not size, and not the
-  timer.** Forcing ONE thread made `leakage_1iter_n24` 1.32x faster and
-  its spread 1.44 -> 1.15. The budgets did not need braver factors; they
-  needed workloads big enough for 16-thread BLAS to pay for its
-  scheduling. Measured before deciding, which is why the fix is a size and
-  not a number.
-- 2026-09-10 — **The first grid-synthesis resize was sized on the wrong
-  code path, and the between-run check caught it.** A cold `shSynthesis`
-  sweep said nmax 120 / 1 deg was steady at 19 ms; the budget arm primes
-  the Legendre cache and times a 4 ms reduction, which measured 1.82
-  between runs. Re-sized on the arm itself. The stopping rule written
-  down beforehand - revert to n60 unless within-run <= ~1.05 AND
-  between-run <= 1.1 - is what kept this from becoming open-ended tuning.
-- 2026-09-10 — **`TightFactor` 1.5 -> 1.3.** The worst single-run
-  deviation from a tight-tier baseline is 1.057, so 1.3 leaves 1.23x.
-  It is set now, for the four workloads with two-machine evidence,
-  rather than with the promotions, so the next A8 runs test the factor
-  as well as the new workloads.
-- 2026-09-10 — **`leakageCorrect`'s duplicate residual chain was fixed
-  in the same release as the budgets it affects, and proven bitwise
-  first.** References were captured from the old code before the edit
-  (16 outputs, four configurations, nmax 24 and 48, ResidualRegion ~=
-  Mask included); all identical after. Fixing it after baselining would
-  have made the new leakage baseline lie - §6.3's first bullet.
-- 2026-09-10 — **FFT slower than direct at n180 / 0.5 deg is recorded,
-  not acted on.** 31.4 against 29.9 ms on one machine at one size. A
-  candidate like B2 was, to be measured across sizes before `auto` is
-  touched.
-- 2026-09-09 — **WP5 5b was unblocked by a PDF, and the block was real.**
-  The previous session STOPPED the row rather than reconstruct the
-  method from a half-remembered description, and that was right: the
-  paper is paywalled (Wiley 403s from here) and the open restatements
-  describe the method without giving a single equation. Matthias supplied
-  the author's PhD thesis, which carries the derivation. Two details
-  decide whether the method works and NEITHER is guessable — the
-  deviation integral is weighted by the FILTERED catchment function
-  (eq. 3.19), and the leakage extrapolation corrects a PHASE while the
-  deviation integral deliberately gets none, because the thesis measured
-  those phase differences and found no consistent relation. A confident
-  reconstruction would have got both wrong and still produced numbers.
-- 2026-09-09 — **The authors' MATLAB bundle is GPL-3 and shAnalysis is
-  MIT, so nothing was copied from it.** The `DataDrivenCorrection`
-  bundle (gis.uni-stuttgart.de) was read to confirm the method; the
-  implementation is written from the thesis equations, which is what §2
-  requires anyway ("reuse is by re-implementation"). Copying would have
-  forced shAnalysis to GPL. Recorded here because the temptation is
-  strongest exactly when a reference implementation is at hand, and
-  because a future session should not "improve" the code by aligning it
-  with that bundle.
-- 2026-09-09 — **A closed-loop percentage is not enough to test a phase
-  method.** The oracle's CLAIM 0 — that measuring a phase and applying
-  one are mutual inverses — caught a sign error that left the other
-  three claims passing while the correction was applied BACKWARDS. It
-  cost 80 degrees on a -40 degree input. An estimator that is internally
-  consistent can still be consistently wrong; assert the inverse pair.
-- 2026-09-09 — **The oracle's first transform pair was wrong and the
-  IDENTITY claim is what said so.** A hand-written analysis/synthesis
-  pair made `smooth(constant)` return zero, so the decomposition missed
-  by 61%. Replaced with the pair already validated in
-  `validate_leakage.py` — the A17 lesson: two parsers of one fact
-  disagree, and the newer one is usually the wrong one.
-- 2026-09-09 — **`leakageDataDriven` refuses fewer than 12 epochs and
-  refuses NaN.** Both correction steps are regressions over the WHOLE
-  series, so they cannot skip a gap, and below one annual cycle the
-  phase is unidentifiable — the regression still returns an angle, which
-  is the dangerous part. `leakageCorrect` tolerates NaN outside its mask
-  because it works per epoch; this one cannot, and the difference is in
-  both help blocks rather than left to be discovered.
-- 2026-09-09 — **TIER A IS BACK, on the acceptance machine.** The MATLAB
-  MCP bridge answers again (R2026a Update 4, 16 threads, working tree at
-  the acceptance path in §3), which retires the 2026-09-08 entry "Tier A
-  is gone for now" for a session started HERE. The 2026-09-09 note that a
-  re-homed session cannot go back still stands — it is about that
-  session, not about the machine. Consequence: WP2's two-machine
-  calibration, named all along as the one thing needing the bridge, is
-  done. Practical note: the MCP call times out on a full suite, so run it
-  with `matlab -batch` in the background and read the log.
-- 2026-09-09 — **A cloud session had already shipped a v5.2.0 that this
-  session did not know about.** `main` was `ea816eb` and the branch was
-  two commits ahead with WP5 5c (GIA sigma) plus a handover written FOR a
-  bridge session. This work was built on `main` and numbered 5.2.0 too.
-  Resolved by MERGING their branch and renumbering this release to
-  **5.3.0** — their commits are preserved, not rebased away. The lesson is
-  §6.4's own, unheeded for an hour: **check `git ls-remote` and read the
-  branch before choosing a version number**, not only before assuming a
-  PR merged.
-- 2026-09-09 — **The numpy crossover does not exist in MATLAB, and the
-  option's design is what made that cheap to fix.** `ClenshawFrom = 150`
-  was a real measurement — of numpy. In MATLAB `clenshaw` wins at every
-  point count from 1 to 2000, because `direct` is bounded by
-  `legendreALF` and `clenshaw` never calls it. The default is now 1.
-  `testSynthesisPointsAutoPicksTheFasterPath` needed NO edit, because
-  v5.1.0 deliberately pinned the RULE and drove the number by hand. That
-  is the decision paying off: a test that had pinned 150 would have had to
-  be rewritten by the person least able to judge whether the rewrite was
-  honest.
-- 2026-09-09 — **A9's own number is refuted, and the answer is two
-  factors rather than a braver one.** `leakage_1iter_n24` moved 1.306
-  across three A8 runs of untouched code, at 23 ms — so 1.3 is not
-  achievable and not a small-timer artefact. But `legendre_n720`,
-  `legendre_n360`, `analysis_rings_n60` and `apply_ddk_n300` never moved
-  past 1.079 over fifteen runs on two machines. One global factor must
-  serve the worst member, which is how ten noisy benchmarks were keeping
-  four steady ones at 3x. The factor is now per benchmark against a
-  STATED criterion (worst observed <= 1.1), not fitted per benchmark from
-  three runs each. A9 stays open and its remaining work is named: make
-  `leakageCorrect` and the Kalman step steady enough to budget.
-- 2026-09-09 — **Every baseline is now a median OVER RUNS.** A single
-  `PERFBASE` line can land at either end of a spread that reaches 1.7; a
-  baseline that landed at the fast end would silently turn a 1.5x budget
-  into a 1.1x one. A8 rows carry 45 samples (3 runs x 15), MATTHIASPC 60
-  (4 x 15). This changes what the column MEANS, so it is written in the
-  file's header rather than left to be inferred.
-- 2026-09-09 — **Two A8 baselines existed and nobody had read them.** The
-  n50 crossover pair sat in `NO_BASELINE` as "awaiting A8" while A8 had
-  already measured it at `b65f9a2` — the numbers were in the job log. A
-  measurement nobody reads back is not a measurement, and a backlog entry
-  is a claim about the world that can go stale like any other.
-- 2026-09-09 — **The agreement assertion in the new dispatch test was
-  REMOVED rather than loosened.** It failed at 6e-13 per element where the
-  documented bound is 5e-14 — but the two are different statistics: the
-  oracle normalises by `max|direct|`, and a white-spectrum fixture cancels
-  to a near-zero value whose per-element relative error means nothing.
-  `testSynthesisPointsMethodsAgree` already owns that property and bounds
-  it correctly, over three degrees, three quantities, both `Nmin` values
-  and near-pole latitudes. Widening the tolerance would have been the §3.6
-  violation; deleting a duplicate assertion that used the wrong
-  normalisation is not, and the property stays guarded.
-- 2026-09-09 — **WP5 5b is STOPPED, not attempted, and the reason is
-  the right one.** The method of deviation is a PUBLISHED method
-  (Vishwakarma et al. 2017, WRR 53, 9824-9844) and its equations are
-  not reachable from this container: the paper (`agupubs.
-  onlinelibrary.wiley.com`) and an open-access restatement
-  (`hess.copernicus.org`) are both refused by the egress proxy, and a
-  web search returns the SHAPE ("twice-filtered fields give two
-  correction terms, the leakage and deviation integrals") but no
-  formulas. Implementing a published method from a half-remembered
-  description into a scientific toolbox is exactly the confident
-  nonsense §6.3 records twice already (the A12 checker's 67 invented
-  findings; the prose->field-list rewrite that was written and
-  DISCARDED). It waits for the equations, not for effort.
-  **What unblocks it**: the paper, the authors' own MATLAB scripts
-  (they published them), or a session with internet access.
-- 2026-09-09 — **This session cannot be moved to the bridge, and
-  cannot spawn one either** (Matthias asked). `list_environments`
-  offers exactly ONE environment, `env_017PPfKpV5xCVc3aD4pCGQ2w`,
-  kind `anthropic_cloud`. The container is fixed at session creation,
-  so there is nothing to re-home; and `create_session` needs an
-  `environment_id`, so with no bridge environment listed a new
-  session cannot be started on it FROM HERE either. Only Matthias can
-  start one, on the machine where the bridge runs. Note the
-  environment is named "trusted network access": the allowlist is a
-  deliberate policy, not a fault - github, pypi and Anthropic's own
-  services are reachable, which is why pushes and WebSearch work.
-- 2026-09-09 — **WP5 5c approved and shipped as 5.2.0** (Matthias:
-  "WP5 5c approved"). `removeGIA` propagates the model's rate sigma;
-  the default call is bitwise unchanged.
-- 2026-09-09 — **The per-epoch stacks are the right answer to the
-  wrong question, and the help says so.** Quadrature gives correct
-  MARGINAL per-epoch sigmas, which is what `mcPropagate` and the
-  other sigma consumers need. It is NOT what a trend needs: one rate
-  error applies to every epoch, so the GIA term is perfectly
-  correlated in time and a trend fitted assuming independence
-  understates it by ~sqrt(T). `info.rateSigmaC/S` return the rate
-  sigma itself so a trend consumer can add it directly. Shipping the
-  stacks without that warning would have replaced one silent error
-  (GIA treated as exact) with a subtler one.
-- 2026-09-09 — **The oracle failed first, and the EXPERIMENT was
-  wrong, not the claim.** `validate_gia_sigma.py` initially tested
-  the correlation claim on an ensemble where per-epoch noise (2e-11)
-  swamped the GIA rate error (4e-12), and duly reported that
-  independence was no worse — true in that regime, and irrelevant.
-  Isolating the GIA component gives MC 4.03e-12 against sigmaRate
-  4.00e-12 and an independence estimate of 1.15e-12: a 3.49x
-  understatement against sqrt(T) = 3.46. Design the ensemble around
-  the term under test, or the null result is about the fixture.
-- 2026-09-09 — **A second `info` output exposed a deliberate
-  over-reach in `help_audit`.** It appended EVERY classdef local
-  function to EVERY method's source so `shSeries.mean` could see
-  `meanWindowInfo`. Harmless while one method had an `info` output;
-  `removeGIA` is the second and inherited all ten of that helper's
-  fields as false findings. A12's lesson one level out. The rule is
-  now REACHABILITY, transitive — the same idea A21a uses for
-  identifiers — pinned in both directions plus the local-calls-local
-  case.
-- 2026-09-09 — **The matched pair reversed my crossover guess, and
-  the number still is not set.** At the SAME 200 points A8 gives
-  direct 0.0155 s against clenshaw 0.0034 s: clenshaw is 4.5x
-  faster, so the crossover is BELOW 200 and `ClenshawFrom = 150` is
-  too HIGH. I had argued the opposite from direct@200 versus
-  clenshaw@2000 — different point counts, exactly the comparison the
-  matched pair exists to forbid. The implied ~44 is an
-  EXTRAPOLATION from two points at one size, so the default stays at
-  150 and a second pair at 50 points brackets it. Conservative is
-  not wrong: for 44 <= P < 150 `auto` returns the same answers by
-  the slower path.
-- 2026-09-09 — **Both paths stay, and `auto` DISPATCHES** (Matthias:
-  "Keep both paths behind the Method option but make the faster one
-  the default for each calculation type"). Neither path dominates:
-  `direct` is linear in the point count, `clenshaw` nearly flat, so
-  they cross. A single default would be wrong on one side of that
-  crossover, which is why the option's default is a rule and not a
-  path. The rule itself is pinned by
-  `testSynthesisPointsAutoPicksTheFasterPath`, bitwise in both
-  directions — and it pins the RULE, not the number 150, by driving
-  `ClenshawFrom` explicitly, so the default can move when A8
-  measures the real crossover without breaking the test.
-- 2026-09-09 — **`clenshaw` cannot be bitwise, so nothing asserts it
-  is.** It sums the same terms in a different order. WP2's
-  acceptance ("bitwise, or <= 4 eps with the term named") is
-  therefore INAPPLICABLE to this row, and writing that assertion
-  anyway would have been asserting something arithmetic forbids.
-  What is asserted: agreement with `direct` to 5e-14 (about 2x the
-  oracle's worst case), and that neither path dominates the other
-  against 60-digit truth — direct 52.7 eps worst, clenshaw 89.0 eps,
-  with clenshaw better at three of six points. `direct` carries the
-  bitwise guarantee instead, which is what lets the old pinned
-  reference values stand untouched.
-- 2026-09-09 — **The retired baseline was deleted, not kept.**
-  `synthesis_points_n60`'s 2.2829 s measured the per-point path that
-  no longer runs. Keeping it would have left a budget that passes
-  vacuously — green, and measuring nothing. It goes back into
-  `NO_BASELINE` to be re-measured, which is exactly the mechanism
-  v5.0.2 built for the case of having no trustworthy number.
-- 2026-09-09 — **The BETWEEN-run spread now exists, and it indicts one
-  benchmark rather than the factor.** Two A8 runs (`f6d5529` baseline,
-  `b70c947` second) give median ratios of **0.979-1.060 for the eight
-  workloads at 3 ms and above** — and **1.519 for `apply_ddk_n96`** at
-  1.8 ms. So 3x is not merely conservative for most of the set: a 1.3x
-  budget would already be safe for eight of ten, and would fail on
-  `apply_ddk_n96` for reasons that have nothing to do with the code.
-  The conclusion is NOT "tighten the factor" but "a 1.8 ms workload
-  cannot be budgeted": it must be enlarged until the timer stops
-  dominating, and its baseline re-measured. Two runs is still two
-  runs — this is a direction, not a settled number.
-- 2026-09-09 — **A queued self-hosted job is not an offline runner.**
-  `runAllTests (self-hosted)` sat QUEUED for 9 minutes at `b70c947`
-  while every earlier run that day started in seconds, and I reported
-  the runner as probably offline. It picked up at 09:45 and went green
-  at 09:50. A8 is a single-runner queue on someone's machine; latency
-  is normal. Do not retrigger, and do not diagnose from a wait.
-- 2026-09-09 — **A9 is DOWNGRADED, not closed, and the difference is
-  the whole point.** The budgets assert now, which is real: a lost
-  fast path or an accidental O(n^2) fails CI. But A9's own words are
-  "a 1.3x regression ships unnoticed", and a 3x threshold still lets
-  one through. Marking the finding CLOSED because the machinery works
-  would have been the most tempting sentence in this file and the
-  least true one. It closes when the factor is set from evidence.
-- 2026-09-09 — **The spread the first run measured is the WRONG one,
-  and it must not be used to tighten the factor.** 15 repeats inside
-  one process gave median/min <= 1.043 above 20 ms (1.114 at 1.8 ms,
-  where the timer dominates). That is within-run scatter on a quiet
-  machine. A budget is threatened by BETWEEN-run variation — a
-  different runner load, a background job, a MATLAB update — which one
-  run cannot show. Tightening from 1.04 would produce a gate that
-  fails on noise, and a gate that cries wolf is worse than none.
-- 2026-09-09 — **`synthesisPoints` is the measured hot spot, so B2
-  stops being a hypothesis.** 2.28 s against 1.7-88 ms for every other
-  budget, and 36.65 s of a 4:51 job, because it calls `legendreALF`
-  once per point — 1.14 ms per point at n60. WP2 step 2 has a target
-  and a number to beat, which is exactly what step 1 was for.
-- 2026-09-09 — **A comment claimed 5-20x and the measurement says
-  1.40x.** `benchSynthesisFFTvsDirect` documented the FFT gain at
-  nmax=60, 1 deg — the exact configuration now measured as 4.28 ms
-  direct against 3.07 ms fft with the cache primed identically. The
-  old figure was never measured against the direct path in the same
-  cache state. Corrected in place with its provenance rather than
-  deleted, because the next reader deserves to know it was checked.
-  This is what a budget harness is FOR: it measures the things the
-  comments assert.
-- 2026-09-09 — **WP2 approved, superseding the "A9 is ok" acceptance**
-  (Matthias: "Go ahead with WP2"). The earlier entry stays below as the
-  record it is; the risk it accepted is now being closed instead.
-- 2026-09-09 — **A budget that cannot be measured yet FILTERS; it does
-  not pass.** No baseline existed for any machine, and there are only
-  three ways to ship that: assert against a guessed number, assert
-  nothing and call it green, or say out loud that nothing is guarded.
-  The third is the only honest one, so a machine with no baseline row
-  raises an assumption failure — the same mechanism the four real-data
-  fixtures already use — and the gate carries all ten budgets in a
-  named `NO_BASELINE` backlog that may only shrink. A filtered budget
-  guards nothing, and the run counter says so in the open.
-- 2026-09-09 — **Baselines are per machine, not ratios against a
-  calibration workload.** WP2's wording ("median of per-repeat ratios")
-  suggests a dimensionless budget that would survive a machine change.
-  It only would if the calibration scaled like the workload, and no one
-  calibration tracks both a BLAS-bound reduction and a memory-bound
-  Legendre recursion — a matmul on 16 OpenMP threads and a scalar
-  column recursion do not move together. So the CSV is keyed by machine
-  and the deviation from the WP is recorded here rather than in a
-  comment nobody reads.
-- 2026-09-09 — **The factor 3 is a specification, not a measurement,
-  and is labelled as one.** §3.6 requires every tolerance to name the
-  oracle it was measured against. This one has none: there was no
-  baseline to measure a spread against, which is exactly the state A9
-  records. The comment on `BudgetFactor` says so, and every run logs
-  the min beside the median so the next session can replace the choice
-  with the observed spread instead of inheriting it.
-- 2026-09-09 — **`count_tests.py` counted a char-valued TestParameter
-  twice, and the fix was to delete a parser, not to write one.** Adding
-  `budgetCase` made it predict 19 runs where the runner runs 10: its
-  rule was "a quoted word followed by a comma", correct only while the
-  VALUES are unquoted. `help_audit.struct_field_names` already answers
-  "what are this struct's fields" correctly, transpose heuristic and
-  all, so the counter now calls it. Two parsers of one fact is A17.
-- 2026-09-09 — **WP6 stage 3 approved and executed as 5.0.1** (Matthias:
-  "WP6 is approved as suggested", then "retire the 24").
-- 2026-09-09 — **The COVERAGE check did NOT have to be redefined, and
-  that was a measurement, not a hope.** §6.4 had recorded stage 3 as
-  blocked on deciding what COVERAGE should mean once per-entity pages
-  went. Computing the retirement set answered it instead: 30 pages can go
-  with ZERO entities losing narrative coverage, so the check keeps its
-  current meaning and its teeth. Only the 6 pages that ARE the last
-  mention of something were ever the problem, and they stay. A decision
-  that looked editorial turned out to be arithmetic.
-- 2026-09-09 — **`removeGIA.html` pointed at `shSeries.removeGIA` by
-  accident before it did so by decision.** Its short name matches two
-  entities (`shSeries.removeGIA`, `shClimatology.removeGIA`) and a
-  `setdefault` picked one. Reading the retired page settled it — it
-  documents both routes, `ts.removeGIA(gia)` first. The accident happened
-  to be right; the fix was to make it a decision rather than leave it to
-  ordering. It is the only ambiguous short name among the 24, which was
-  checked rather than assumed.
-- 2026-09-09 — **A21b approved and executed as 5.0.0** (Matthias:
-  "A21b approved"). MAJOR: 29 documented, test-pinned identifiers stop
-  working.
-- 2026-09-09 — **A shared private check gets a CONCEPT segment, not its
-  function name.** `checkPair`/`checkEpochs` guard the operand pair for
-  both binary operators, `assertClean` guards the stacks for six methods.
-  Naming the helper in the identifier
-  (`shSeries:assertClean:nanInSeries`) would make renaming a private
-  function a breaking change — the identifier would be pinned to an
-  implementation detail the user cannot even see. They carry `operands`,
-  `stack` and `range` instead, the help explains the segment rather than
-  naming the helper, and the gate holds a three-entry SHARED_CHECKS list
-  as the only exception to "the middle segment is a method".
-- 2026-09-09 — **The constructor follows the mechanical rule, stutter and
-  all.** `shCoefficients:shCoefficients:badInput` reads oddly, but the
-  alternative — a special case for constructors — is a rule with an
-  exception nobody will remember. The middle segment is the method name;
-  for a constructor that is the class name.
-- 2026-09-09 — **Three-part alone would be a spelling convention.** The
-  gate checks that the middle segment names a real method of that class
-  or one of the three declared shared checks, so `shSeries:att:badIndex`
-  fails. Without that rule the release would have bought a longer string
-  and no guarantee.
-- 2026-09-09 — **A9 is accepted as it stands** (Matthias: "A9 is ok"), so
-  WP2 is NOT started. The consequence, stated so it is not rediscovered
-  as a gap: the toolbox has no speed budget, and a 1.3x regression in
-  `legendreALF`, `shSynthesis`, `shAnalysisGrid`, `applyDDK`,
-  `leakageCorrect` or the Kalman step still ships unnoticed. That is a
-  known, accepted risk, not an oversight.
-- 2026-09-09 — **A21 was split, and only the documentation half shipped.**
-  A21a (document what the classes raise, per method) is a PATCH and is
-  done. A21b (make the 29 two-part identifiers three-part) is MAJOR
-  because `testContract` pins the current names, so it is a backlog with
-  a gate behind it, not a promise: `TWO_PART_OK` may only shrink, and a
-  two-part identifier outside it fails the gate today.
-- 2026-09-09 — **The class rule follows REACHABILITY, not the raise
-  site.** Documenting `shSeries:nanInSeries` only in `assertClean` would
-  put it where `help` cannot reach — the helper is private. So each
-  public method documents what it raises plus what the private helpers it
-  calls raise, one hop. One hop is enough for this repository and the
-  gate CHECKS that rather than assuming it: a private helper calling
-  another private helper is reported as "the rule has become too
-  shallow". An instrument that states the limit of its own rule is worth
-  more than one that happens to be right.
-- 2026-09-09 — **`minus` does not check epochs, and now says so.**
-  Deriving the reachability map from the source turned up a real
-  behavioural distinction: `shCoefficients.plus` calls `checkEpochs`,
-  `minus` deliberately does not, because a difference between two months
-  has no single epoch (it sets `epoch = NaN`). `testPairCheckIDs` pinned
-  the `plus` half only, so a stray `checkEpochs` call added to `minus`
-  would have passed every test. Both halves are pinned now. A derived map
-  is worth more than a hand-written list precisely because it finds the
-  asymmetries a human would smooth over.
-- 2026-09-09 — **The writer put twelve blocks in the wrong place and no
-  gate saw it.** The first anchor was the FIRST provenance line, but
-  `readDDK` and eleven others carry a `Claude (...)` credit line in the
-  MIDDLE of the help, so the section landed above `Inputs`/`Outputs`.
-  `help_audit` was silent because its footer is `Developed by`, not
-  `Claude (` — the two instruments disagreed on where a help block ends
-  and neither said so. Caught in the diff, not by a check. The writer now
-  anchors on the trailing provenance run AND asserts that its section is
-  the last heading; that assertion immediately found a thirteenth file,
-  `tvANSFilter`, whose `Options` section was itself stranded BELOW a
-  credit line. Its layout was repaired rather than worked around.
-  (`httpFetch`, `readSHM` and `safeMove` put `Example` last; that
-  predates this work and was left alone.)
-- 2026-09-09 — **A20 is closed, and the number in this file was wrong.**
-  The backlog was recorded as 165 identifiers; it was **208**. That
-  figure was never measured, only carried forward — the same fault §6.3
-  already names ("do not write a number into this file that you did not
-  just read"), committed inside the very finding that tracked the debt.
-  The count now comes from the tree.
-- 2026-09-09 — **`demo:casesFailed` and `demo:unknownCase` renamed to
-  `shAnalysis:demo:*` as a PATCH, not a MAJOR.** Neither appears in any
-  help block, `html/` page, the guide or the changelog — only at the
-  raise site and in two `testContract` pins. The toolbox's rule is that
-  an undocumented identifier is not part of the contract, which is the
-  same reasoning that made `shSynthesisDeformation`'s rename a PATCH in
-  v3.33.1 while `kernelFactors`' had to wait for 4.0.0. The audit named
-  only `casesFailed`; `unknownCase` was found by reading the file.
-- 2026-09-09 — **A gate that reads a computed identifier as a literal
-  invents a finding.** `setup_shAnalysis` raises
-  `"shAnalysis:setup:no" + locs(li, 1)` for five option names. Extending
-  the gate to root functions made it report `shAnalysis:setup:no`, an
-  identifier nothing raises. The rule now distinguishes a concatenated
-  literal (a PREFIX — the help must name at least one member, since the
-  gate cannot enumerate them) from a whole identifier. This is the A12
-  lesson again: the checker lied before it told the truth, and the
-  source settled it.
-- 2026-09-09 — **The class files were NOT swept, and the gate says so.**
-  A21 is measured (32 identifiers, 29 of them two-part) and left open on
-  purpose: a class needs a per-METHOD owner rule, and renaming 29
-  identifiers that `testContract` pins is a MAJOR change, not a PATCH
-  ridealong. `error_id_audit.py`'s last line names its own reach rather
-  than implying the whole toolbox is covered — the instrument states
-  what it inspects, as `help_audit.py` and `name_coverage.py` already do.
-- 2026-09-09 — **The drained backlog would have made its own test
-  vacuous.** `test_backlog_only_names_files_without_a_section` looped
-  over `UNDOCUMENTED`; emptying it leaves an assertion that cannot fail
-  — exactly how A14's `test_legacy_name_tolerated` sat broken for a
-  release after the v3.33.0 sweep drained `LEGACY`. The mechanism is now
-  asserted with a TEMPORARY entry, and the no-section rule is
-  fault-injected on a synthetic tree in both directions.
-- 2026-09-09 — **CORRECTION, and it invalidates a decision below: CI IS the
-  oracle tier.** The 2026-09-08 entry "WP3/WP4/WP5 (new numerics — the
-  Python oracle can be written but nothing can be checked against it)" is
-  WRONG and blocked four packages for a day. The oracle is a Python script
-  that runs in any sandbox; the COMPARISON is a MATLAB test that runs on
-  A8 through CI. Neither half needs a local interpreter. §2 already says
-  "Python numerical pre-validation before MATLAB; the oracle is committed
-  under `tools/dev/validate_*.py` in the same PR" — that is the whole
-  mechanism, and it has always worked. WP3, WP5 and WP7 are unblocked and
-  always were; they wait on approval, not on a bridge.
-- 2026-09-09 — **WP2 is the only partial exception, and only in half.**
-  Its acceptance calls for budgets calibrated on the acceptance machine
-  AND A8 in the same repeat. The A8 half is available through CI, so step
-  1 (making speed measurable: the budget harness, A8 baselines recorded
-  in `tests/perf_log.csv`) can proceed. Only the two-machine calibration
-  needs the bridge.
-- 2026-09-09 — **A session created on the bridge and continued remotely
-  does not go back.** This session was started on the bridge; when the
-  computer restarted it was re-homed to the `anthropic_cloud`
-  environment, and `list_environments` then offers only that one. The
-  bridge agent being up again does not re-attach it — the container the
-  tools execute in is fixed. Tier A locally requires a NEW session
-  started on the bridge. Do not read "no MATLAB here" as "no MATLAB
-  anywhere": check which of the three it is (this container, the bridge,
-  CI).
-- 2026-09-09 — **WP1 approved as 4.0.0, hard break, no shim** (Matthias:
-  "4.0.0 is approved"). Executed the same session.
-- 2026-09-09 — **The release notes state what actually breaks, which is
-  less than the diff suggests.** `nv_casing_audit.py` measured against
-  R2026a that Name-Value matching is CASE-INSENSITIVE, so renaming
-  `'quantity'` to `Quantity` breaks no caller. Only `n0`/`N0` -> `Nmin`
-  and the error identifiers are breaking. Claiming otherwise would have
-  been a false alarm in a MAJOR release; a contract test pins that the
-  old spelling still returns the identical numbers.
-- 2026-09-09 — **No new value validators were added during the
-  conversion.** `inputParser` validated nothing, so typing the options
-  (`mustBePositive`, `mustBeMember`) would have rejected input the old
-  code accepted — a behaviour change smuggled in under a mechanical
-  refactor. The arguments blocks declare defaults and, where safe, size
-  and class only. Tightening them is its own decision.
-- 2026-09-09 — **`plotSHSpectrum`'s legacy `Field` option was kept, not
-  dropped.** 4.0.0 would have been the moment to remove it, but WP1's
-  scope is the parsing mechanism and the casing; removing a documented
-  option is a separate call for Matthias. It survives as an
-  empty-string sentinel because an arguments block has no
-  `p.UsingDefaults`.
-- 2026-09-09 — **A20's documentation backlog was NOT swept.** Writing
-  165 identifier descriptions across 61 files in the same release that
-  changed their names would have buried the breaking change in noise.
-  Ownership is gated with no backlog; the documentation half carries a
-  named, shrinking list instead.
-- 2026-09-08 — **A10 was closed over the WHOLE public surface, not the 13
-  recorded.** Measuring it turned up 22 more (A18). The gate covers package
-  functions, root functions and public class methods together, because a
-  gate scoped to the convenient part of a surface is how A10 stayed open.
-- 2026-09-08 — **Operators are not allowlisted.** `plus`/`minus`/`times`/
-  `mtimes`/`uminus`/`disp` are reachable by name, so the tests call them by
-  name and check the result against the operator syntax. The allowlist holds
-  exactly one entry, `runAllTests`, which cannot name itself without
-  recursing.
-- 2026-09-08 — **The name-coverage gate's claim is deliberately narrow and
-  says so in its own output.** It proves a test mentions the entity in
-  executable code; it does not prove the test asserts anything. An entity
-  reached only indirectly still counts as uncovered — that is the point,
-  since an indirect test is exactly what misses a rename in the callee.
-- 2026-09-08 — **A19's general gate was NOT built, deliberately.** A crude
-  scan for "documented option values the arguments block rejects" produced
-  25 hits, 24 of them false (output-field docs, prose, the wrong method's
-  options inside a class file). Shipping it would have repeated the A12
-  checker's history of confident nonsense. The correct instrument scopes
-  each help row to its own arguments block, and `api_data.py` already pairs
-  them; it is cheap, but it is a separate row, not a bolt-on to this one.
-- 2026-09-08 — v3.34.1 is a PATCH: a parser fix, a wrong help row, a new
-  gate and 32 tests. No documented call or identifier changed.
-- 2026-09-08 — Handover document retired to `tools/dev/HANDOVER_shAnalysis_RETIRED.md`;
-  `CLAUDE.md` is the single point of truth. Evidence: PR `wp0-record`.
-  *(§5 work packages still pending Matthias's approval.)*
-- 2026-09-08 — WP0 executed on Matthias's instruction "continue working on the
-  open WPs", which is §6.4's next action. Released as **3.33.1** (PATCH:
-  documentation, tooling and one undocumented identifier rename — no numerical
-  behaviour changed). Branch is `claude/scientific-toolbox-discipline-wps-17ssya`,
-  not `wp0-hygiene`: the session harness pins the branch name and that
-  overrides §3.3 for this run.
-- 2026-09-08 — A3 split. `shSynthesisDeformation`'s identifiers were never
-  documented, so renaming them is PATCH and was done here. `kernelFactors`,
-  `shSynthesisGradient` and `seaLevelFingerprint` raise documented,
-  test-pinned `shSynthesis:*` identifiers; renaming those is MAJOR and waits
-  for WP1 (new finding A15).
-- 2026-09-08 — **Correction to the entry below**: Tier A is unavailable
-  *locally*, but the self-hosted runner A8 still runs `runAllTests` on every
-  PR, so a change can still be checked against MATLAB — one PR round-trip
-  later instead of immediately. WP0's debt was discharged that way the same
-  evening. What genuinely cannot proceed is work whose ACCEPTANCE needs
-  interactive measurement (WP2's speed budgets) or a decision (WP1).
-- 2026-09-08 — **Tier A is unavailable until further notice** (Matthias:
-  "Tier A is gone for now. we rely on tier B for the time being and finish
-  everything that does not need the bridge"). Consequence, stated so it is
-  not rediscovered: work proceeds on Tier B green alone, every WP row carries
-  ◐ on the verification board, and the discharge that clears each ◐ is named
-  in §6.2. Packages whose ACCEPTANCE needs MATLAB do not start: WP2 (speed
-  budgets are measurements), WP3/WP4/WP5 (new numerics — the Python oracle can
-  be written but nothing can be checked against it), WP7 (`metamorphic`
-  method = low-level, bitwise). WP1 is additionally blocked on the 4.0.0
-  decision. What remains Tier-B-completable: **WP6**, **A12**, **A13**.
-- 2026-09-08 — WP0 and WP6 run as one release train on one branch, as §5
-  anticipated for the hygiene packages. The harness pins the branch name for
-  this session, so §3.3's one-WP-one-branch rule cannot be followed literally;
-  the train is **3.34.0** (MINOR — WP6 adds `setup_shAnalysis(BuildSearch=)`
-  and the generated reference pages).
-- 2026-09-08 — WP6's per-entity **Version History is dropped**, by its own
-  pre-registered rule. The bar was a changelog name-match rate > 80%: a loose
-  match reaches 81% but matches `filter` against releases that never mention
-  it, an anchored match reaches 74%. Every reference page links `CHANGELOG.md`
-  and says why it claims no per-entity history.
-- 2026-09-08 — WP6's **topic categories are deferred**, not silently dropped.
-  The WP assumed "the existing tag categories"; there are none in the data,
-  and deriving them from `helptoc.xml` maps 163/198 entities with 75 in one
-  catch-all. The reference index groups by what is derivable (class, class
-  methods, package, root, A-Z). Assigning topics is an editorial call for
-  Matthias, not a derivation.
-- 2026-09-08 — The section vocabulary of help blocks is now closed and gated:
-  `Inputs`, `Outputs`, `Options`, `Example`, `Error identifiers`,
-  `References`. Near-miss spellings are rejected by name. Prose sub-headings
-  inside a description are explicitly not sections.
 
 ### 6.2 Verification board (◑ = one tier only, ☑ = both)
+The last releases only; the full board, in version order, is
+`tools/dev/RECORD.md` §2.
+
 | WP | Static gates | Tier A (MATLAB) | CI | Merged |
 |---|---|---|---|---|
-| audit 2026-09-08 | ☑ read | — | — | — |
-| WP0 (v3.33.1) | ☑ 9 gates + 4 self-test suites, 0 findings | ☑ CI self-hosted (A8), green — 268 runs | ☑ PR #95 | ☑ 2026-09-09 |
-| v3.34.0 (A7, A8, A12, A13, A16, WP6.1+2) | ☑ 12 gate steps + 6 self-test suites, 0 findings | ☑ **CI self-hosted (A8), green — 269 runs, 265 passed, 4 filtered** | ☑ PR #95 | ☑ 2026-09-09 |
-| v4.0.0 (WP1: A2, A3, A15) | ☑ 14 gates + 10 self-test suites + mlint, 0 findings | ☑ **CI self-hosted (A8) at `5452938`, green — 304 runs, 300 passed, 0 failed, 4 filtered**; `count_tests.py` matched EXACTLY for the third release running, per class as well as in total. First run (`ab52d4f`) also executed 304 but had 5 failures, all one cause: `plotSHSpectrum`'s `arguments` block sat below its `if ~iscell(specs)` guard, so the function did not parse. mlint_lite R6 now catches it. | ☑ PR #96 | ☑ 2026-09-09 |
-| v3.34.1 (A10, A17, A18, A19-partial) | ☑ 13 gates + 8 self-test suites + mlint, 0 findings | ☑ **CI self-hosted (A8) at `7c8cb4c`, green — 301 runs, 297 passed, 0 failed, 4 filtered**; the `count_tests.py` prediction matched EXACTLY, and all 32 new tests pass. First run (`0ab29b5`) also executed 301 but had 1 failure — `testCompareDelegatesToCompareSolutions` gave `compareSeries` 8 epochs where it needs >= 12 common ones. | ☑ PR #95 | ☑ 2026-09-09 |
-| v4.0.1 (A19) | ☑ 13 gates + mlint + make_demos + 11 self-test suites, 0 findings | ☑ **CI self-hosted (A8) at `0b4fb3b`, green — 304 runs, 300 passed, 0 failed, 4 filtered** (shared run with 4.0.2; both releases are on the one head) | ☑ PR #97 | ☑ 2026-09-09 |
-| v4.0.2 (A20; A21 opened) | ☑ 13 gates + mlint + make_demos + 11 self-test suites, 0 findings; `count_tests.py` predicts 303 methods / 304 runs, unchanged (the two `testContract` pins changed an identifier STRING, not a method count) | ☑ **CI self-hosted (A8) at `0b4fb3b`, green — 304 runs, 300 passed, 0 failed, 4 filtered**; the prediction matched EXACTLY for the fourth release running, per class as well as in total (Contract 73, Correctness 159, Performance 12 runs, Robustness 53, Science 7). First run, no red round. | ☑ PR #97 | ☑ 2026-09-09 |
-| v4.0.3 (A21a; A21b opened) | ☑ 13 gates + mlint + make_demos + 11 self-test suites, 0 findings | ☑ **CI self-hosted (A8) at `0d06e14`, green — 305 runs, 301 passed, 0 failed, 4 filtered**; the prediction matched EXACTLY for the FIFTH release running, per class as well as in total (Contract 74, Correctness 159, Performance 12 runs, Robustness 53, Science 7), and `testMinusDoesNotEnforceEpochAgreement` ran and passed. First run, no red round. | ☑ PR #98 | ☑ 2026-09-09 |
-| v5.0.0 (A21b) | ☑ 13 gates + mlint + make_demos + 11 self-test suites, 0 findings | ☑ **CI self-hosted (A8) at `631d524`, green — 305 runs, 301 passed, 0 failed, 4 filtered** (shared run with 5.0.1). **TWO red rounds first, both mine, both pin errors** — see the row below. | ☑ PR #99 | ☑ 2026-09-09 |
-| v5.0.1 (WP6 stage 3) | ☑ 13 gates + mlint + make_demos + 12 self-test suites, 0 findings; 50 hand-written pages -> 26, no entity lost COVERAGE | ☑ **CI self-hosted (A8) at `631d524`, green — 305 runs, 301 passed, 0 failed, 4 filtered**; the count prediction matched EXACTLY for the sixth release running. Round 1 (`2530e9f`) failed `testGravisChainsContract`: a pin mapped by call graph, not by which GUARD fires — `fromFolder` asserts `isfolder` (the temp folder EXISTS) then delegates to `read`. Round 2 (`f6481d7`) failed `testTN14IDs`: the pin-enumerating grep used `[A-Za-z]*` and `noC30` HAS DIGITS, so it was never rewritten — and the verification grep repeated the same character class. The new PINS rule closes the second shape. | ☑ PR #99 | ☑ 2026-09-09 |
-| v5.0.2 (WP2 step 1 harness) | ☑ 14 gates + mlint + make_demos + 13 self-test suites, 0 findings | ☑ **CI self-hosted (A8) at `f6d5529`, green — 315 runs, 301 passed, 0 failed, 14 filtered**; the prediction matched EXACTLY for the SEVENTH release running, per class as well as in total (Contract 74, Correctness 159, Performance 22, Robustness 53, Science 7), counts parsed from the 315-row results table. The 14 filtered were the 4 real-data fixtures plus all 10 budgets, exactly as designed — and this is the run that measured the baselines. First run, no red round. | ☑ PR #99 | ☑ 2026-09-09 |
-| v5.1.0 (WP2 step 2, B2) | ☑ 15 gates + mlint + make_demos + 13 self-test suites, 0 findings | ☑ **CI self-hosted (A8) at `640f3be` by workflow_dispatch, green — 319 runs, 313 passed, 0 failed, 6 filtered**; the NINTH exact count prediction running, per class as well as in total (Contract 75, Correctness 161, Performance 23, Robustness 53, Science 7). All three new tests passed, dispatch pin and bitwise-chunking pin included. | ☐ no PR (not asked) | ☐ |
-| v5.1.1 (A8 numbers + matched-pair budget) | ☑ 15 gates + mlint + make_demos + 13 self-test suites, 0 findings | ☑ **CI self-hosted (A8) at `e8875fe`, green — 320 runs, 315 passed, 0 failed, 5 filtered**; the TENTH exact count prediction running. The matched pair measured: direct@200 0.0155142 s, clenshaw@200 0.0034370 s. | ☑ PR #101 | ☑ 2026-09-09 |
-| v5.2.0 (WP5 5c + help_audit scoping) | ☑ 15 gates + mlint + make_demos + 13 self-test suites, 0 findings | ☑ **CI self-hosted (A8) at `b65f9a2` by workflow_dispatch, green — 326 runs, 320 passed, 0 failed, 6 filtered**; the ELEVENTH exact count prediction running, per class as well as in total (Contract 76, Correctness 164, Performance 26, Robustness 53, Science 7), and exactly the 6 the row predicted. Read back by the v5.3.0 session — the run had gone green and nobody had looked, which is also how the n50 baselines sat unused. | ☐ no PR (branch was unmerged) | ☐ |
-| v5.3.0 (A22, A23, A24; A9 two-factor; WP2 both machines) | ☑ 15 gates + mlint + make_demos + 13 self-test suites, 0 findings; `NO_BASELINE` empty, 14 budgets, both machines baselined | ☑ **Tier A LOCAL on MATTHIASPC (R2026a), the first since the bridge returned** — 328 runs, count prediction matched EXACTLY (Contract 77, Correctness 164, Performance 27, Robustness 53, Science 7). Only 2 filter here, not 4: `E:\DATAPOOL` supplies the SINEX and GravIS fixtures. Then ☑ **CI self-hosted (A8) at `2a38d25` via PR #102, green — 328 runs, 323 passed, 0 failed, 5 filtered** (the 4 real-data fixtures plus `apply_ddk_n300`, which A8 had no baseline for): the TWELFTH exact count prediction running, per class as well as in total. That run also measured `apply_ddk_n300` at 23.0 ms, which is what argued it OUT of `TightBudgets` — one A8 observation is not a spread. With that baseline committed, A8 at `3c003e3` is green again with **328 runs, 324 passed, 0 failed, and only the 4 optional real-data fixtures filtered**: all fourteen speed budgets now ASSERT on both machines, which is what WP2 step 1 was for. | ☑ PR #102 | ☑ 2026-09-09 |
-| v5.4.0 (WP5 5b: leakageDataDriven) | ☑ 15 gates + mlint + make_demos + 13 self-test suites + the new oracle, 0 findings | ☑ **Tier A LOCAL on MATTHIASPC (R2026a) — 335 runs, 333 passed, 0 failed, 2 filtered**; the count prediction matched EXACTLY, per class as well as in total (Contract 79, Correctness 168, Performance 27, Robustness 54, Science 7). All 7 new tests pass. Two red rounds locally first, both mine and both in the TESTS, not the function: a string-array `sprintf` format, and a `badNmax` case that tripped `badSize` first because the grid was not sliced with the latitudes. Then ☑ **CI self-hosted (A8) at `c1dc1d3` via PR #103, green — 335 runs, 331 passed, 0 failed, 4 filtered** (exactly the optional real-data fixtures): the THIRTEENTH exact count prediction running, per class as well as in total, and all seven new tests ran there. | ☑ PR #103 | ☑ 2026-09-10 |
-| v5.4.1 (A9: four workloads replaced, apply_ddk_n300 promoted, TightFactor 1.3, leakageCorrect duplicate chain) | ☑ 15 gates + mlint + make_demos + 13 self-test suites, 0 findings; `leakageCorrect` change bitwise on 16 outputs | ☑ **Tier A LOCAL on MATTHIASPC — 335 runs, 333 passed, 0 failed, 2 filtered**; count exact per class; all fourteen budgets asserted, the four tight ones at 1.3. Then ☑ **A8 twice at `2c7b779`** (PR run + `workflow_dispatch`): 335 runs, 327 passed, 0 failed, 8 filtered each - the four fixtures plus the four new workloads, as predicted, per class as well as in total. Those two runs are the evidence the promotion rests on. A third A8 run, on the promotion commit `5d4980e` itself: 335 runs, 331 passed, 0 failed, 4 filtered - only the fixtures - with every budget asserting and the worst tight one at 1.030x. | ☑ PR #104 (A8 x3) | ☑ 2026-09-10 |
-| v5.5.0 (WP3: `Surface = "ellipsoid"`, `ellipsoidRadius`) | ☑ 15 gates + mlint + make_demos + 13 self-test suites + the new oracle, 0 findings; sphere path bitwise on 26/26 pre-WP3 outputs | ☑ **Tier A LOCAL on MATTHIASPC — 346 runs, 344 passed, 0 failed, 2 filtered**; count exact per class (Contract 83, Correctness 173, Performance 27, Robustness 56, Science 7); the 11 WP3 tests passed on their first run - no red round. Then ☑ **CI self-hosted (A8) at `3f99bf3` via PR #105, green — 346 runs, 342 passed, 0 failed, 4 filtered** (exactly the optional real-data fixtures); `count_tests` confirmed the prediction against the run, per class as well as in total, and all eleven WP3 tests ran there | ☑ PR #105 | ☑ 2026-09-10 |
-| v5.6.0 (WP7: eight class delegates, `Surface` through `toGrid`/`map`, `class_surface_audit`) | ☑ 16 gates + mlint + make_demos + 14 self-test suites, 0 findings; reach 58 -> 69 of 124; the 11 WP7 tests passed on their first run | ☑ **Tier A LOCAL on MATTHIASPC — 357 runs, 355 passed, 0 failed, 2 filtered**; count exact per class (Contract 94, Correctness 173, Performance 27, Robustness 56, Science 7), and all 27 performance runs asserted. Then ☑ **CI self-hosted (A8) at `78cfea9` via PR #106, green — 357 runs, 353 passed, 0 failed, 4 filtered** (exactly the optional real-data fixtures); `count_tests` confirmed the prediction per class as well as in total, and `class_surface_audit` ran in the gates job with 0 findings | ☑ PR #106 | ☑ 2026-09-10 |
-| v5.7.0 (A25 `filterSpec` + eight lanes; `g.synthesisPoints`, `g.gradientTensor`, `g.vdkApply`; A27) | ☑ 16 gates + mlint + make_demos + 14 self-test suites, 0 findings; 19 valid-spec lane outputs bitwise identical before/after (plus 4 from oceanChain and greenlandChain, run on an extracted copy of the old tree and on the new; obpChain not run, for want of GAD data) | ☑ **Tier A LOCAL on MATTHIASPC — 364 runs, 362 passed, 0 failed, 2 filtered**; count exact per class (Contract 101, Correctness 173, Performance 27, Robustness 56, Science 7), and all 27 performance runs asserted. Then ☑ **CI self-hosted (A8) at `5eab68a` via PR #107, green — 364 runs, 360 passed, 0 failed, 4 filtered** (exactly the optional real-data fixtures); `count_tests` confirmed the prediction per class as well as in total, and `class_surface_audit` and `doc_sync_audit` ran in the gates job with 0 findings | ☑ PR #107 | ☑ 2026-09-10 |
-| v5.7.1 (A28 in both ocean chains, A26, A29 `.gitattributes`) | ☑ 16 gates + mlint + make_demos + 15 self-test suites, 0 findings; `doc_sync`'s new xref check fired on the corrupted guide before it was rebuilt | ☑ **Tier A LOCAL on MATTHIASPC — 365 runs, 363 passed, 0 failed, 2 filtered**; count exact per class (Contract 102, Correctness 173, Performance 27, Robustness 56, Science 7), and all 27 performance runs asserted. The two `noOcean` messages were reworded while it ran - `no_map_renderer` read "coastline" in them - message text only, which no test reads. Then ☑ **CI self-hosted (A8) at `38a9a4f` via PR #108, green — 365 runs, 361 passed, 0 failed, 4 filtered** (exactly the optional real-data fixtures); `count_tests` confirmed the prediction per class as well as in total, and `doc_sync_audit` - with its two new A29 checks - and `test_doc_sync_pdf` (11 tests) passed on the ubuntu gates job | ☑ PR #108 | ☑ 2026-09-10 |
-| v5.8.0 (WP5 5e: `readGrid`, `analysis(..., Fill =)`, one CF time decoder) | ☑ 16 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings; `readMascon` bitwise on the real CSR file and a synthetic one | ☑ **Tier A LOCAL on MATTHIASPC — 371 runs, 369 passed, 0 failed, 2 filtered**; count exact per class (Contract 104, Correctness 176, Performance 27, Robustness 57, Science 7), all 27 performance runs asserted, and the GravIS-grid test ran here on the real file. `readMascon`'s epoch assignment was split in two while it ran (`help_audit` reads `s.f = ...` assignments only); the mascon and `readGrid` tests then ran again on the final code - 14 run, 13 passed, 1 filtered (`SHX_MASCON_FILE`) - and `readMascon` was still bitwise on the real CSR file. Then ☑ **CI self-hosted (A8) at `96a1630` via PR #110, green — 371 runs, 366 passed, 0 failed, 5 filtered** (the four optional fixtures plus the GravIS grid), per class exactly as predicted (Contract 104, Correctness 176, Performance 27, Robustness 57, Science 7) | ☑ PR #110 | ☑ 2026-09-10 |
-| v5.9.0 (WP5: the method of scale, `leakageDataDriven(..., Method = "scale")`) | ☑ 16 gates + mlint + make_demos + 15 self-test suites + the extended oracle (CLAIMs 4 and 5), 0 findings; the default path bitwise on 4 of 4 configurations captured before the edit | ☑ **Tier A LOCAL on MATTHIASPC — 373 runs, 371 passed, 0 failed, 2 filtered**; count exact per class (Contract 105, Correctness 177, Performance 27, Robustness 57, Science 7), all 27 performance runs asserted, and the two new tests passed on their first run. Then ☑ **CI self-hosted (A8) at `beaa434` via PR #111, green — 373 runs, 368 passed, 0 failed, 5 filtered** (the four optional fixtures plus the GravIS grid), per class exactly as predicted, and both new tests ran there | ☑ PR #111 | ☑ 2026-09-10 |
-| v5.10.0 (WP5 5a: `rotationExcitation`, `ts.excitation`) | ☑ 16 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings; reach 73 -> 74 of 127, 9 delegates pinned | ☑ **Tier A LOCAL on MATTHIASPC — 375 runs, 373 passed, 0 failed, 2 filtered**; count exact per class (Contract 106, Correctness 178, Performance 27, Robustness 57, Science 7), all 27 performance runs asserted, and the two new tests passed on their first run. Then ☑ **CI self-hosted (A8) at `81704d3` via PR #112, green — 375 runs, 370 passed, 0 failed, 5 filtered**, per class exactly as predicted, and both new tests ran there | ☑ PR #112 | ☑ 2026-09-10 |
-| v5.11.0 (WP5 5a: dLOD in ms, IERS 2010 constants, the ESMGFZ check) | ☑ 16 gates + mlint + make_demos + 15 self-test suites + the extended oracle (CLAIMs 4-6, the EOP check run with the data), 0 findings | ☑ **Tier A LOCAL on MATTHIASPC — 377 runs, 375 passed, 0 failed, 2 filtered**; count exact per class (Contract 106, Correctness 179, Performance 27, Robustness 57, Science 8), all 27 performance runs asserted, and the ESMGFZ check ran here against the real data (`SHX_EARTHROTATION_FOLDER` set for the run). Then ☑ **CI self-hosted (A8) at `413a54a` via PR #113, green — 377 runs, 371 passed, 0 failed, 6 filtered** (the ESMGFZ check joined the optional fixtures), per class exactly as predicted | ☑ PR #113 | ☑ 2026-09-10 |
-| v5.12.0 (WP5 5d: `bridgeGaps`, `ts.bridgeGaps`, the `_YYYY_MM` file names) | ☑ 16 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ☑ **Tier A LOCAL on MATTHIASPC — 381 runs, 379 passed, 0 failed, 2 filtered**; count exact per class (Contract 107, Correctness 181, Performance 27, Robustness 57, Science 9), all 27 performance runs asserted, and both real-data checks - ESMGFZ and HLSST - ran here (`SHX_EARTHROTATION_FOLDER` and `SHX_BRIDGE_FOLDER` set for the run). Then ☑ **CI self-hosted (A8) at `a86dfd0` via PR #114, green — 381 runs, 374 passed, 0 failed, 7 filtered**, per class exactly as predicted | ☑ PR #114 | ☑ 2026-09-10 |
-| v5.12.1 (A30: NaN refused by `shAnalysisGrid`, `leakageCorrect` without a Mask, `gridScaling`) | ☑ 16 gates + mlint + make_demos + 15 self-test suites, 0 findings; the four working paths bitwise before and after | ☑ **Tier A LOCAL on MATTHIASPC — 382 runs, 380 passed, 0 failed, 2 filtered**; count exact per class (Contract 108, Correctness 181, Performance 27, Robustness 57, Science 9), all 27 performance runs asserted. Then ☑ **CI self-hosted (A8) at `6675806` via PR #115, green — 382 runs, 375 passed, 0 failed, 7 filtered**, per class exactly as predicted, and `testNaNNeverReachesAnAnalysis` ran there | ☑ PR #115 | ☑ 2026-09-10 |
-| v5.12.2 (WP2: B1 and the FFT/direct sweep measured, neither built; the `Method` help) | ☑ 16 gates + mlint + make_demos + 15 self-test suites, 0 findings; documentation only | ☑ **Tier A LOCAL on MATTHIASPC — 382 runs, 380 passed, 0 failed, 2 filtered**; count exact per class (Contract 108, Correctness 181, Performance 27, Robustness 57, Science 9), all 27 performance runs asserted. Then ☑ **CI self-hosted (A8) at `8a8141b` via PR #116, green — 382 runs, 375 passed, 0 failed, 7 filtered**, per class exactly as predicted | ☑ PR #116 | ☑ 2026-09-10 |
-| v5.13.0 (WP7 backlog: `poleTideConvert`, `estimateDegree1`, `combineCenters`, `slepianProject` behind the classes) | ☑ 16 gates + mlint + make_demos + 15 self-test suites, 0 findings; reach 75 -> 79 of 128, 16 delegates pinned | ☑ **Tier A LOCAL on MATTHIASPC — 384 runs, 382 passed, 0 failed, 2 filtered**; count exact per class (Contract 110, Correctness 181, Performance 27, Robustness 57, Science 9), all 27 performance runs asserted, and both new tests passed on their first run. Then ☑ **CI self-hosted (A8) at `385e44f` via PR #117, green — 384 runs, 377 passed, 0 failed, 7 filtered**, per class exactly as predicted, and both new tests ran there | ☑ PR #117 | ☑ 2026-09-10 |
-| v5.13.1 (documentation audit: help, html and guide in sync; the demo's v3.16 lookup; `doc_sync_audit` PROSE) | ☑ 16 gates + mlint + make_demos + 15 self-test suites (the new `test_doc_sync_prose`, 18 tests), 0 findings; the demo fix checked in MATLAB: D05 found the 257 fetched months it had missed | ☑ **Tier A LOCAL on MATTHIASPC — 384 runs, 382 passed, 0 failed, 2 filtered**; count exact per class (Contract 110, Correctness 181, Performance 27, Robustness 57, Science 9), all 27 performance runs asserted - unchanged from 5.13.0, as a documentation release should be; the demo fix was run on its own (D05 on the 257 fetched months) | ☑ PR #118, green at `208336a` | ☑ 2026-09-11 |
-| v5.14.0 (WP8 8a: `readBasin`, `regionalBasis`, `regionalProject`, class routes; `synthesisMatrix` GridOnly) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally** (the bridge's device was offline). ☑ **CI self-hosted (A8) at `bc74d1b` via PR #120, green — 394 runs, 387 passed, 0 failed, 7 filtered** (the optional real-data fixtures); the count prediction matched EXACTLY, per class as well as in total (Contract 112, Correctness 188, Performance 27, Robustness 58, Science 9). One red round first, at `52913ca`: two TEST defects of mine, both root-caused - `isequal` on a basis carrying NaN, and an expected area taken from an oracle whose point-in-polygon rule drops edge points (6.3) | ☑ PR #120 | ☑ 2026-10-20 |
-| v5.15.0 (WP8 8b: `regionalProcessModel`, `ts.regionalProcessModel`, `estimateVAR` `Sigma0Add`) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally** (the bridge's device offline). ☑ **CI self-hosted (A8) at `43a8b74` via PR #121, green — 399 runs, 392 passed, 0 failed, 7 filtered** (the optional real-data fixtures); the count prediction matched EXACTLY, per class as well as in total (Contract 113, Correctness 192, Performance 27, Robustness 58, Science 9). All five new tests passed on their first run - no red round | ☑ PR #121 | ☑ 2026-10-20 |
-| v5.16.0 (WP8 8c: `regionalNEQ`, `g.regionalNEQ`) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally** (the bridge's device offline). ☑ **CI self-hosted (A8) at `6de6098` via PR #122, green — 406 runs, 399 passed, 0 failed, 7 filtered** (the optional real-data fixtures); the count prediction matched EXACTLY, per class as well as in total (Contract 115, Correctness 197, Performance 27, Robustness 58, Science 9). All seven new tests passed on their first run - no red round | ☑ PR #122 | ☑ 2026-10-20 |
-| v5.17.0 (WP8 8d: `regionalKalman`, `ts.regionalKalman`, `rtsSmoother` `Functionals`, `B.region.core`) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally** (the bridge's device offline). ☑ **CI self-hosted (A8) at `9503ec3` via PR #123, green — 412 runs, 405 passed, 0 failed, 7 filtered** (the optional real-data fixtures); the count prediction matched EXACTLY, per class as well as in total (Contract 116, Correctness 201, Performance 27, Robustness 59, Science 9). All six new tests passed on their first run - no red round | ☑ PR #123 | ☑ 2026-10-21 |
-| v5.18.0 (WP8 8e: `regionalKalman` `Background`, remove-compute-restore; A34 opened) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally** (the bridge's device offline). ☑ **CI self-hosted (A8) at `f4d69a5` via PR #124, green — 416 runs, 409 passed, 0 failed, 7 filtered** (the optional real-data fixtures); the count prediction matched EXACTLY, per class as well as in total (Contract 117, Correctness 203, Performance 27, Robustness 60, Science 9). All four new tests passed on their first run - no red round | ☑ PR #124 | ☑ 2026-10-21 |
-| v5.19.0 (WP8 8h: `regionalNEQ` kind "lgd") | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally** (no bridge). ☑ **CI self-hosted (A8) at `bf90359` via PR #126, green — 419 runs, 412 passed, 0 failed, 7 filtered** (the optional real-data fixtures); the count prediction matched EXACTLY, per class as well as in total (Contract 118, Correctness 205, Performance 27, Robustness 60, Science 9). One red round first, at `5634698`: a test bound of mine - GEMM rounds M and 2M rows differently, and the LGD's cancellation amplified it (6.3) | ☑ PR #126 | ☑ 2026-10-21 |
-| v5.20.0 (WP8 8i: process-noise scales, `kalmanFilter` `Likelihood`, `buildCondFun` `Basis`, VAR(2)) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally** (no bridge). ☑ **CI self-hosted (A8) at `c410d72` via PR #127, green — 426 runs, 419 passed, 0 failed, 7 filtered** (the optional real-data fixtures); the count prediction matched EXACTLY. Four red rounds first, all at A8: an explosive VAR(2) fixture of mine (`26584ca`), an empty index under `shIndex`'s default Nmin 2 (`461e2b4`), the real defect A35 - `estimateVAR`'s Yule-Walker blocks transposed for Order >= 2 (`3d79780`), and a test helper of mine reading absent sigmas (`d109f59`) (6.3) | ☑ PR #127 | ☑ 2026-10-21 |
-| v5.21.0 (A33: `readBasin` names and whole files; the GravIS chains on it; basin 302's polar cap) | ☑ 17 gates + mlint + make_demos + 15 self-test suites, 0 findings | ◑ **Tier B locally** (no bridge). ☑ **CI self-hosted (A8) at `d42840e` via PR #128, green — 427 runs, 420 passed, 0 failed, 7 filtered**; the count prediction matched EXACTLY, and `testGravisChainMasksAreReadBasinRegions` passed on every A8 run it was in. Red rounds before were 8i's tests riding along, and once (`2ec1496`) two Legendre budgets at 1.5x baseline with `legendreALF` untouched - 1.01x on the runs before and after (0.089 / 0.293 s against 0.088 / 0.285), so runner load, not this release | ☑ PR #128 | ☑ 2026-10-21 |
-| v5.22.0 (A34: `FitClimatology` on both chains and their routes) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally** (no bridge). ☑ **CI self-hosted (A8) at `06a8200` via PR #129, green — 430 runs, 423 passed, 0 failed, 7 filtered** (the optional real-data fixtures); the count prediction matched EXACTLY, and the three A34 tests passed on their first run - no red round | ☑ PR #129 | ☑ 2026-10-21 |
-| v5.23.0 (A36: `MaxTries`/`BaseDelay` on `fetchTN` and `fetchICGEM`; the offline tests stop sleeping) | ☑ 17 gates + mlint + make_demos + 15 self-test suites, 0 findings | ◑ **Tier B locally** (no bridge). ☑ **CI self-hosted (A8) at `82fabb2` via PR #130, green — 431 runs, 424 passed, 0 failed, 7 filtered** (the optional real-data fixtures); the count prediction matched EXACTLY. The three tests 65.5/34.0/30.3 s -> 0.86/0.86/7.04 s; the new contract test 17.96 s; net 103 s off the run | ☑ PR #130 | ☑ 2026-10-21 |
-| v5.23.1 (A37, A38: `designFilter` C, `obpChain`, `readSINEX` estimate, `hydroExtremeIndex` category) | ☑ 17 gates + mlint + make_demos + 15 self-test suites, 0 findings | ◑ **Tier B locally**. ☑ **CI self-hosted (A8) at `3d2682f` via PR #131, green — 435 runs, 428 passed, 0 failed, 7 filtered**; the count prediction matched EXACTLY, per class as well as in total, and the four new tests passed on their first run | ☑ PR #131 | ☑ 2026-10-21 |
-| v5.23.2 (A39: 125 default markers removed; `help_audit` `misplaced_defaults`) | ☑ 17 gates + mlint + make_demos + 15 self-test suites (six new `help_audit` self-tests), 0 findings; the rule fired on a re-injected marker in the real tree | ◑ **Tier B locally**. ☑ **CI self-hosted (A8) at `da3b29d` via PR #132, green — 435 runs, 428 passed, 0 failed, 7 filtered**; comment-only, count unchanged | ☑ PR #132 | ☑ 2026-10-21 |
-| v5.23.3 (A40: about 80 help texts made to say what the code does) | ☑ 17 gates + mlint (69 files) + make_demos + 15 self-test suites, 0 findings; no executable line changed, checked on the diff | ◑ **Tier B locally**. ☑ **CI self-hosted (A8) at `f7294fd` via PR #133, green — 435 runs, 428 passed, 0 failed, 7 filtered** | ☑ PR #133 | ☑ 2026-10-21 |
-| v5.24.0 (the class-surface backlog: nine routes, six exceptions; `designFilter` NaN, `signalVarianceKaula` badRange) | ☑ 17 gates + mlint + make_demos + 15 self-test suites, 0 findings; reach 87 -> 94 of 134, backlog 13 -> 0 | ◑ **Tier B locally**. ☑ **CI self-hosted (A8) at `7b0d331` via PR #136, green — 448 runs, 441 passed, 0 failed, 7 filtered**; the count prediction matched EXACTLY, per class as well as in total (Contract 130). One red round first, at `962b4b8`: the new series test drove `signalVarianceKaula`'s range guard, whose `error` call threw `nonScalarInput` on its vector format argument - a lane defect of the A27 shape, fixed | ☑ PR #136 | ☐ |
 | v5.23.4 (A41: fifteen code defects recorded by A40) | ☑ 17 gates + mlint (21 files) + make_demos + 15 self-test suites, 0 findings | ◑ **Tier B locally**. ☑ **CI self-hosted (A8) at `b8c487b` via PR #134, green — 445 runs, 438 passed, 0 failed, 7 filtered**; the count prediction matched EXACTLY, and all ten new tests and the three extended ones passed on their first run - the `twsChain` one is the first to reach the DDK lookup on A8 | ☑ PR #134 | ☑ 2026-10-22 |
-| v5.0.3 (WP2 step 1 baselines) | ☑ 14 gates + mlint + make_demos + 13 self-test suites, 0 findings; `NO_BASELINE` empty | ☑ **CI self-hosted (A8) at `b70c947`, green — 315 runs, 311 passed, 0 failed, 4 filtered**; the EIGHTH exact count prediction running, per class as well as in total. All ten budgets PASSED (they filtered at `f6d5529`), and the only filtered are the four real-data fixtures. Triggered by `workflow_dispatch`, not a PR — #99 merged mid-session and `ci.yml` runs only on push-to-main, pull_request and workflow_dispatch. | ☐ no PR (#99 merged; not asked) | ☐ |
-
-**Tier A debt: DISCHARGED for all nine releases.** The local MATLAB
-bridge is gone, but the self-hosted runner A8 is not: `runAllTests
-(self-hosted)` went green on PR #95 at `fcaddd2` (268 runs), `5acf14c`
-(**269 runs, 265 passed, 4 filtered**) and `7c8cb4c` (**301 runs, 297
-passed, 4 filtered**), on PR #96 at `5452938` (**304 runs, 300
-passed, 4 filtered**), on PR #97 at `0b4fb3b` (**304 runs, 300
-passed, 4 filtered**, covering 4.0.1 and 4.0.2 together), on PR #98
-at `0d06e14` (**305 runs, 301 passed, 4 filtered**), and on PR #99 at
-`631d524` (**305 runs, 301 passed, 4 filtered**, covering 5.0.0 and
-5.0.1 — after two red rounds, both pin errors of mine). The four
-filtered are the absent optional real-data fixtures throughout — `testGravisChainsRealData`,
-`testUserSuppliedSINEXFiles`, `testMasconReaderOnARealFile`,
-`testPublishedTrendOnARealSeries`.
-
-So Tier A is reachable **through CI** even when it is not reachable from
-a sandbox — do not record a session as Tier-B-only without saying which
-of the two is meant. The 268 run refuted the predicted count (A16); the
-269 run **matched `count_tests.py` exactly**, which is the first
-confirmation that the counter is right about a real run and not only
-about the source.
+| v5.24.0 (the class-surface backlog: nine routes, six exceptions; `designFilter` NaN, `signalVarianceKaula` badRange) | ☑ 17 gates + mlint + make_demos + 15 self-test suites, 0 findings; reach 87 -> 94 of 134, backlog 13 -> 0 | ◑ **Tier B locally**. ☑ **CI self-hosted (A8) at `7b0d331` via PR #136, green — 448 runs, 441 passed, 0 failed, 7 filtered**; the count prediction matched EXACTLY, per class as well as in total (Contract 130). One red round first, at `962b4b8`: the new series test drove `signalVarianceKaula`'s range guard, whose `error` call threw `nonScalarInput` on its vector format argument - a lane defect of the A27 shape, fixed | ☑ PR #136 | ☑ 2026-10-22 |
+| v5.24.1 (`obpChain:emptyRefPeriod`; DRIVEN + R8 and 56 identifiers driven; the guide built by CI; Node 24 artifact action; this file split) | ☑ 17 gates + mlint + make_demos + 15 self-test suites, 0 findings; DRIVEN: 231 -> 287 of 395 raised identifiers named by a test, backlog 164 -> 108 | ◑ **Tier B locally**. CI self-hosted (A8): pending; predicted 452 runs (Contract 134) | ☐ PR pending | ☐ |
 
 ### 6.3 What the next session could be wrong for not reading
-- **A statistic over two things cannot see one of them broken.**
-  `testDesignFilter` compared the degree RMS of C and S together, and S
-  filtered twice was enough to pass while C was never filtered (A37),
-  for twenty releases. Test each half of a pair on its own - here,
-  each block against `M * c` of its own coefficients.
-- **A writer that satisfies a gate by inserting text where the gate
-  looks will be satisfied wherever it inserts.** `fix_help.py` put the
-  default after the first mention of the option, `help_audit` accepted
-  any line, and 125 markers broke syntax lines and prose (A39). When a
-  tool exists to clear a gate's findings, gate where the tool writes,
-  not only whether it wrote.
-- **`git log -S` on a shallow clone names the wrong commit.** It
-  attributed the markers to `40223ce`, the oldest commit the shallow
-  clone held; deepening put them at `9bd487f`, four weeks earlier.
-  Run `git rev-parse --is-shallow-repository` before blaming.
-- **Code that a test never reaches can be broken in a way only a run
-  shows.** `twsChain`'s DDK lookup failed on every default call (A41)
-  and no test went past the series read; the one written to reach it
-  is the first to have run that code on A8. Ask, for each fix, what
-  the test has to run before it gets there, and build that input -
-  three synthetic months near the shipped NFIL mean are enough for
-  every GravIS chain.
-- **When agents edit in parallel, give them disjoint files and check
-  the result on the diff.** Five agents corrected help in 69 files in
-  one pass of 5.23.3; the check that none touched code was a filter of
-  `git diff` for non-comment lines, run before the commit.
-- **A duration that repeats to 0.03 s is a sleep.** Over half the A8
-  suite was three offline tests waiting out a retry backoff they could
-  not shorten. Profile the suite from the runner's per-test durations
-  before optimising code: the expensive thing may not be numerics. And
-  a refused localhost connection is not free on Windows - about 3 s per
-  attempt on A8 - so an offline test that counts attempts pays for each.
-- **A speed budget can fail on runner load, and the run after says so.**
-  At `2ec1496` two Legendre budgets ran 1.5x their A8 baselines in a
-  release that does not touch `legendreALF`; the runs before and after
-  measured 1.01x. Before calling a budget failure a regression, compare
-  the same workload on the neighbouring runs - and do not re-baseline
-  from the slow one.
-- **Two rounding paths through an explosive model are not an identity
-  test.** v5.20.0's first VAR(2) test estimated 2 x 45^2 parameters from
-  240 model epochs; the estimate's companion radius was 6.8, and the
-  information and gain forms, equal in exact arithmetic, drifted to
-  8.6e-12 on A8. An identity comparison needs a fixture whose model is
-  identifiable and stationary - and the test should assert it, as the
-  fixed one now does (`specRadius < 1`). The estimateVAR warning was in
-  the log; read warnings in a failing run before reading the numbers.
-  The first replacement fixture then failed too, before any number: it
-  used `shIndex(1)`, and `shIndex`'s default `Nmin` is 2, so the index
-  was EMPTY and `estimateVAR` refused a 0 x T matrix. Read a helper's
-  defaults before sizing a fixture on it. And the third run, on a
-  stationary truth with 3000 epochs, still got radius 1.45: not the
-  fixture, `estimateVAR` itself (A35). Two fixture defects in a row made
-  the third failure look like a third; the warning said radius 1.45 for a
-  truth of 0.76, and that number was the finding.
-- **An oracle that implements a method correctly cannot find the
-  implementation's bug unless the test compares them on the point where
-  they differ.** Every VAR oracle built the Yule-Walker matrix right;
-  every MATLAB test ran `Order = 1`, where the transposed blocks are the
-  same. Name the configurations a test exercises against the ones the
-  code admits.
-- **A dense product rounds differently for a different row count.** The
-  first 8h run compared kind "lgd" (M rows times B.T) with kind "points"
-  (2M rows times B.T, then Combine) at 2 eps and failed at 3.7 eps: GEMM
-  blocks by size, and the LGD's subtraction of two near-equal rows turns
-  an eps of each into several eps of the difference. Compare such routes
-  where the product is exact (the SH basis, B.T the sparse identity), or
-  bound by the per-row magnitude before the cancellation.
-- **A Python heredoc that writes LaTeX must use raw strings all the
-  way down.** `\right` inside a plain string became a carriage return;
-  text-mode reading then split the line there, and an index-based repair
-  left a fragment behind that only `make_guide.py` itself caught. Write
-  generator edits with the Edit tool, or `r'''...'''`.
-- **`isequal` is false on NaN, whatever the bits.** A delegate test that
-  compares two basis structs with `isequal` failed on A8 only for the
-  Slepian basis, whose `level` and `nGlobal` are NaN; it looked like
-  eigen-solver nondeterminism and was not. Compare structs that can carry
-  NaN with `isequaln`.
-- **An oracle's point-in-polygon rule is part of its answer.** matplotlib's
-  `contains_points` leaves out points ON an edge; `inpolygon` keeps them.
-  A ring starting on lon 0 put one grid column on the edge, and the
-  oracle's area came out 1/244 short of the MATLAB one (v5.14.0, first A8
-  run). Where a region has an exact definition, pin the handle to that
-  definition, not to a second implementation's sum.
-- **A tolerance can hold on one branch only.** `leakageCorrect`'s "NaN
-  outside both regions is tolerated" was true with a Mask, which zeroes
-  the model outside it; without one the same NaN went into the analysis
-  and came out as `diverged` - the very symptom audit F-20 was written
-  against. When a guard exempts a region, check every branch that reads
-  it.
-- **Measure a series against the reference before designing around it.**
-  The unfiltered HLSST variant looked like the natural input for a
-  Gaussian the user chose; at 750 km it is noise-dominated above degree
-  10, and the Kalman variant halves the error. The probe took two
-  minutes and turned a guess into a question with numbers.
-- **A file-name parser decides whether a series has epochs at all.**
-  `shSeries.read` takes each epoch from the name, and the HLSST names
-  (`..._2017_08`) matched no pattern, so every epoch would have been NaN.
-  Check a new product's names against `parseGraceFilename` first.
-- **A published equation can be dimensionally wrong.** ESMGFZ's eq.
-  (2.8) prints 2 pi Omega where only 2 pi / Omega is a time. Check the
-  units of every equation taken from a document, and confirm a
-  correction against data before shipping it.
-- **A file's name is not its content.** The data pool's
-  `deformationLoveNumbers_*` tables hold h' and l' in two unlabelled
-  columns; the load Love numbers k' are in the test data's
-  `loadLoveNumbers_Gegout97.txt`. `readLoveNumbers` refused the first,
-  which is how it surfaced.
-- **A patch that fails must stop what comes after it.** A probe patch
-  missed its anchor (a `\n` collapsed in the heredoc) and the chain ran
-  MATLAB on the old file anyway. Chain with `&&`, and match lines by how
-  they start rather than by escaped text.
-- **Write error identifiers whole in tests.** A test that built them as
-  `[id 'noEarth']` from a prefix variable was invisible to the PINS rule,
-  which reads literals - it read the prefix itself as a pin nothing
-  raises. The gate caught it before MATLAB ran; the fix is the house
-  form, one literal per pin.
-- **A gate reads constructs, not documents.** SNIPPET read `<pre>`
-  blocks and the guide's code(); the README quick start, every inline
-  `<code>` and the guide's Courier spans were outside it, and that is where
-  the one call that threw lived. Before trusting a documentation gate's
-  silence, list every place a call is written and check each is read.
-- **A promise in help text outlives the path that kept it.** The demo's
-  help said D05/D06 switch to real data once fetchITSG has filled its
-  folder; v3.16 moved the folder and the promise quietly became false. A
-  lookup of a path another function writes is the A17 shape - two owners of
-  one fact - and only running the demo on a machine with the data showed it.
-- **A synthetic fixture can favour one method by construction.** Both
-  closed loops for the data-driven correction put a uniform layer inside
-  the catchment - exactly the case the method of scale is exact for - so
-  its better number there says nothing about a real catchment. Before
-  reading a comparison off a fixture, name what the fixture makes exact.
-- **MATLAB's `regexp` DROPS the tokens of an optional group that did
-  not take part.** `regexp(s, p, 'tokens', 'once')` returns fewer cells,
-  not empty ones, so `tok{5}` fails when the fifth group was optional
-  and absent. Python's `re` returns `None` there, so an oracle cannot
-  see it; the capture on a real file did. Index tokens by count.
-- **Capture before you edit even when you only move code.** Moving
-  `readMascon`'s time decoding into a shared helper looked mechanical;
-  the capture on the real file is what showed the helper failing, before
-  a single test ran.
-- **A check can pass the very file it sits next to while that file is
-  broken.** `doc_sync` read the corrupted guide's version stamp without
-  complaint, because ASCII85 decoding skips the inserted CR bytes; the
-  file was still broken for any reader that trusts its xref offsets.
-  Check the property the damage breaks, not the one convenient to read.
-- **Git's text detection looks at bytes, not at file types.** A PDF
-  made of ASCII85 streams has no NUL byte, so to git it is text. Mark
-  binary artifacts in `.gitattributes`; do not rely on detection.
-- **Run the control before explaining the treatment.** `oceanChain`
-  failed with an index error on `Filter = "DDK3"`, and that went into
-  a help block as a consequence of the NaN radius. It failed the same way
-  on `"gauss445"` and `"none"`: the cause was a missing ocean mask
-  (A28). Compare against a valid input before attributing a failure to
-  the invalid one.
-- **A documented identifier can be unreachable.** `vdkApply` raised
-  `badSize` through an `error` call that itself threw, so the guard
-  never produced its identifier (A27). A static gate sees the identifier
-  raised and documented; only a test that DRIVES the guard sees the
-  raise fail. A delegate test that checks error pass-through is how it
-  surfaced.
-- **Measure a finding's defects before fixing them.** A25 was recorded
-  as duplication; running the old lanes on malformed specs turned it
-  into silent NaN results and a negative radius that meant no filter.
-  The release notes could say what the old code did only because the
-  references were captured before the first edit.
-- **Quote a number from the instrument you will ship, not from its
-  prototype.** WP7's scope question carried a reach figure from a
-  throwaway script; the gate, written an hour later on the repository's
-  own scanner, disagreed by four, because the script read string
-  literals as code. Nothing hung on it this time.
-- **A reach or coverage check must blank strings, not only comments.**
-  A function named in an error message ("run shLowLevel.fetchDDK
-  first") is the most natural false positive there is, and it errs in
-  the one direction such a check must not: it reports as reached a lane
-  nothing calls. `mlint_lite.strip_tokens` already knows where a MATLAB
-  literal stops; reuse it.
-- **`name=value` before a `{:}` expansion is a parse error, and it came
-  back twice in one day** (5.16.0, in a class delegate and in tests).
-  mlint_lite catches it; write `f(x, args{:}, Name = v)` or
-  `"Name", v, args{:}` from the start.
-- **Tripwire counts in the self-tests move with the surface.**
-  `test_count_tests` pins the run count and `test_error_id_audit` the
-  number of class methods that raise identifiers; a new raising method
-  moves both. Bump them in the same commit with a comment naming what
-  moved - it is bookkeeping, not a regression.
-- **A work package can contradict itself; resolve it by its own explicit
-  rule and say so.** WP3's acceptance named the geoid, its scope said
-  surface quantities keep erroring. The rule wins over the example, the
-  choice goes in 6.1, and the error message carries the reason so a user
-  meets the explanation where they meet the refusal.
-- **Correct a refuted claim everywhere it appears, not where you found
-  it.** Grep for the number. The FFT "5-20x" was fixed in one comment and
-  lived on in the help block for two more days.
-- **Size a benchmark on the path the budget times.** A sweep of a cold
-  call measured a Legendre recursion; the budget arm primes the cache
-  and times the reduction behind it, 5x smaller and noisy. The proxy
-  looked rigorous and answered a different question.
-- **When a mid-sized workload is noisy, try one thread before anything
-  else.** If a single thread is steadier - and here it was also FASTER -
-  the spread is BLAS scheduling on small matrices, and no factor fixes
-  it. Only a bigger workload does.
-- **Write the stopping rule down before tuning.** "Revert unless
-  within-run <= 1.05 and between-run <= 1.1" is what made the synthesis
-  resize a two-round decision instead of an afternoon.
-- **A pushed SHA is not a running CI.** `ci.yml` fires on push-to-main,
-  `pull_request` and `workflow_dispatch` only. When the branch's PR is
-  merged mid-session, a further push to that branch raises NO event and
-  the commit sits there green-looking and unverified. §3.7 says to read
-  the SHA back with `git ls-remote`, and that is not sufficient: also
-  check `gh run list` actually shows a run for it, and open a new PR if
-  it does not. This has now happened twice (v5.0.3 after #99, v5.4.0
-  after #102).
-- **A method's published description is not its equations.** Three open
-  restatements of the data-driven correction describe it accurately in
-  prose ("uses twice-filtered fields to determine leakage and deviation
-  integrals") and none gives a formula. Prose is enough to believe you
-  understand a method and not enough to implement it. If the equations
-  are not in hand, the row is STOPPED — say so, do not approximate.
-- **`hilbert()` is Signal Processing Toolbox.** So is a lot of what a
-  time-series method reaches for. The analytic signal is ten lines of
-  FFT; check `toolbox_dependency_audit` will pass BEFORE designing
-  around a function.
-- **When you implement an estimator, assert its inverse.** Measuring a
-  phase and applying one must round-trip. Without that assertion a sign
-  error is invisible: every other claim still passes and the correction
-  is simply applied the wrong way round, which looks like the method
-  underperforming rather than like a bug.
-- **Read the branch before you pick a version number.** This session
-  built a v5.2.0 on `main` while a cloud session's v5.2.0 sat unmerged
-  two commits ahead, with a handover addressed to exactly this kind of
-  session. §6.4 already said "do not treat the branch as merged; check
-  `git ls-remote` first" — that was read as a statement about PR status
-  and it is also a statement about what work exists. `git log
-  main..origin/<branch>` costs one command.
-- **A constant measured in the prototype is not a constant of the
-  product.** `ClenshawFrom = 150` was honestly measured — in numpy — and
-  documented as such, and it still sent every station list under 150
-  points down a path 2-4x slower for a whole release. When a number
-  crosses languages, re-measure it there or do not ship it as a default.
-- **A benchmark under ~3 ms measures the timer.** Four of them in one
-  set held the global budget factor at 3x for every workload. But note
-  the converse trap too: `leakage_1iter_n24` is 23 ms and still moved
-  1.306 between two A8 runs, so "big enough" is not sufficient either —
-  measure, do not assume from size.
-- **A backlog entry can be stale in the direction that looks safe.**
-  `NO_BASELINE` said the n50 pair was "awaiting A8" when A8 had already
-  measured it; the numbers were sitting in a job log nobody re-read. The
-  entry looked conservative and was simply wrong.
-- **A failing assertion is sometimes the wrong assertion, not a wrong
-  tolerance — and the difference is the normalisation.** The new
-  dispatch test compared two summations per element and failed at 6e-13,
-  where the documented 5e-14 is `max|diff| / max|direct|`. Widening the
-  number would have violated §3.6; the honest fix was that the assertion
-  duplicated a better one and should not have been written. Ask what
-  statistic a documented tolerance actually bounds before reusing it.
-- **`mlint_lite` now catches an unterminated literal (R7), and the gap
-  it filled is the shape to look for.** It reported zero findings on a
-  file MATLAB would not parse at all, so the tests in it would have
-  VANISHED rather than failed — a count mismatch, not a red test. When
-  adding a rule, prefer reading the fact off a scanner that already
-  computes it over writing a second parser.
-- **One machine can have two names.** `COMPUTERNAME` and `hostname`
-  disagreed in case on the acceptance machine, and the budget harness
-  keyed baselines on whichever MATLAB inherited. The failure mode was
-  silent: an unmatched row FILTERS a budget instead of failing it.
-  Whenever a lookup key comes from the environment, ask what happens
-  when it misses — and prefer a miss that is loud.
-- **A faster algorithm makes its own budget lie.** Changing which
-  summation `synthesis_points_n60` runs made its committed baseline
-  meaningless — the budget would still have gone green while
-  measuring code that no longer executes. When an optimisation lands,
-  RETIRE the baseline it invalidates in the same commit; a budget is
-  only as honest as the workload it was measured on.
-- **The budget set has one member that cannot be budgeted.**
-  `apply_ddk_n96` runs in 1.8 ms and moved 1.519x between two runs of
-  the same commit on the same machine, while everything at 3 ms and
-  above stayed inside 0.979-1.060. Enlarge it (and re-measure its
-  baseline) before anyone reads its number as signal, and do not let
-  its noise set `BudgetFactor` for the other nine.
-- **A budget that asserts is not the same as a budget that catches
-  what you care about.** The ten budgets are live (v5.0.3), and A9 is
-  still open, because 3x does not catch A9's own 1.3x. Two different
-  questions — does the gate fire at all, and does it fire at the
-  right place — and only the first is answered.
-- **Do not tighten `BudgetFactor` from the within-run spread.** The
-  first run's median/min (<= 1.043 above 20 ms) describes 15 repeats
-  in one process on a quiet machine. What can break a budget is
-  between-run variation, which needs several runs' medians. Tightening
-  from 1.04 buys a gate that fails on noise.
-- **The log is the artifact; the artifact is not reachable.** The A8
-  `PERFBASE,` lines had to come from the job log, because
-  `actions/upload-artifact` and the raw-log redirect both land on
-  `*.blob.core.windows.net`, which the egress proxy refuses. Use
-  `mcp__github__get_job_logs` with a large `tail_lines`; it saves
-  oversized output to a file that CAN be grepped, which is better than
-  paging it into context. And note the suite order is ALPHABETICAL —
-  testPerformance runs third, so its stdout is in the MIDDLE of the
-  log, not near the end where the results table sits.
-- **A parser you write beside one that already exists will disagree
-  with it, and the cheap one will be wrong.** `count_tests.py` counted
-  TestParameter values by regex; `help_audit.struct_field_names` counts
-  struct fields properly (even arguments only, transpose-aware). They
-  agreed for two releases because no parameter had quoted VALUES. The
-  first one that did made the prediction 19 against a real 10 — and a
-  missed prediction is a finding by §3.5, discovered on the runner.
-- **A cost model beats a taste.** The Legendre budgets use 181 / 91 /
-  31 rings because `P` is `(nmax+1)^2 x nlat` doubles: n720 over the
-  1441 rings B1's protocol names would allocate about 6 TB. Compute
-  the array before choosing the fixture, not after the runner dies.
-- **A character class is an enumeration, and a narrow one silently
-  shortens the list.** A21b's pins were enumerated with
-  `[A-Za-z]*` for the reason segment, so `shCoefficients:noC30` — digits
-  — was never in the list, never rewritten, and cost a CI round. The
-  grep written to VERIFY the sweep used the same class and confirmed the
-  same blind spot. When a sweep is driven by a pattern, test the pattern
-  against a known member of the awkward class before trusting its count.
-- **Nothing read `tests/` until v5.0.1.** `error_id_audit`'s PINS rule
-  now checks that every toolbox identifier a test names is one something
-  raises. Its reach is stated in its own docstring and is narrower than
-  it sounds: it catches a pin naming an identifier that exists NOWHERE,
-  not a pin naming a REAL identifier the call under test cannot reach —
-  that needs per-call guard analysis. Of A21b's two red rounds it
-  prevents the second, not the first, and the gate says so.
-- **A gate can be silenced by its own inputs.** The PINS rule first
-  harvested prefix literals from `tests/` as well as the toolbox, so the
-  bad pin was read as its OWN prefix and the rule went quiet on exactly
-  the defect it was written for. The injection not firing is what
-  revealed it. Ask what a rule reads, and whether the thing being
-  checked is inside that set.
-- **Check BOTH quotings when rewriting HTML links.** WP6 stage 3's first
-  pass rewrote `href="x.html"` and missed `href='x.html'`; the See-also
-  lines of `shSynthesis` and `legendreALF` use single quotes, and the
-  pages would have shipped with dead links that no gate then covered.
-  Verify a sweep by searching for what should be ABSENT afterwards, not
-  by trusting the count of what was changed.
-- **A decision that looks editorial may be arithmetic.** Stage 3 sat
-  blocked for two releases on "what should COVERAGE mean afterwards".
-  Measuring which pages could go without costing coverage dissolved the
-  question: 30 could, so the check never had to change. Measure before
-  asking for a decision — the measurement sometimes IS the decision.
-- **An identifier must not name something the user cannot see.** A21b's
-  first instinct was `shSeries:assertClean:nanInSeries` — mechanical, and
-  wrong: `assertClean` is private, so the contract would have been pinned
-  to a name the user cannot reach and a refactor could not touch. A
-  shared check gets a concept name (`stack`), and the gate keeps that
-  list to three entries so it stays an exception rather than a habit.
-- **When one old name maps to several new ones, rewrite per SITE.**
-  `shSeries:noEpoch` became four identifiers and `shCoefficients:badInput`
-  four; a `sed` would have collapsed them. The same applies to the TEST
-  pins: each was remapped by line to the method the call actually
-  reaches, which needed reading `twsChain` to find it delegates to
-  `gravisL2B` and thus to `fromFolder`, not `read`.
-- **One constant must answer one question.** `CLASS_FILES` was both the
-  list the CLASS pass reads AND the skip-list keeping class files out of
-  the root-function pass. A self-test that emptied it to focus on the
-  package silently re-admitted `shSeries.m` as a ROOT function owning
-  `shAnalysis:shSeries:*`, and the suite went red for a reason unrelated
-  to what it tested. Same shape as A17. When a name serves two purposes,
-  split it before the two purposes drift.
-- **Pin the half that is NOT true as well as the half that is.**
-  `testPairCheckIDs` proved `plus` raises `epochMismatch`; nothing proved
-  `minus` does not, so adding an epoch check to `minus` would have been
-  invisible. When documenting a deliberate asymmetry, test both sides of
-  it.
-- **An identifier can be BUILT, and then no scan can name it.**
-  `setup_shAnalysis` raises `"shAnalysis:setup:no" + locs(li, 1)` for
-  five option names. Every static instrument here — grep, the gate, the
-  reader — sees the literal and not the identifier. Treat a concatenated
-  literal as a prefix and make the HELP carry the real names; do not let
-  a checker report the fragment as if it were an identifier, which is
-  what it did first.
-- **Draining a backlog can silently disarm the test that guards it.**
-  Any test that loops over the backlog becomes vacuous the moment the
-  backlog is empty — A14 already happened once this way. When you empty
-  one, re-express its test as a mechanism assertion with a temporary
-  entry, and fault-inject the rule the backlog exempted.
-- **§1 is the only place in this file that states the version.** This
-  bullet used to repeat it and went stale three times running (3.33.1 when
-  the tree was 3.34.0, then 3.34.0 when it was 3.34.1) — a duplicated fact
-  rots, which is the very rule (R1) the releases below enforce elsewhere.
-  Read the version from §1's table or from `Contents.m` line 2. The package
-  is `+shLowLevel`; any memory saying `shx.*` is stale.
-- The guide PDF is current (rebuilt at each bump) and its stamp is gated.
-  Building it needs `pip install reportlab matplotlib` — not present by
-  default in a fresh sandbox.
-- **A green gate is not a correct document.** Nine gates were green while 65
-  help blocks carried two contradictory sections and ELEVEN functions
-  documented struct fields that do not exist. Read what an instrument
-  inspects before trusting its silence — and prefer an instrument that
-  states its own reach, as `help_audit.py`'s last line now does.
-- **A new checker lies before it tells the truth.** The A12 checker produced
-  67 invented findings across three bugs, then five more classes of wrong
-  result during the conversion (MATLAB's `'` is transpose after a value;
-  `struct()` alternates name and value; a class method's source is not the
-  whole class file). Read its output against the source before acting on
-  it, and fault-inject every rule.
-- `doc_sync_audit.py` requires the top CHANGELOG heading to equal
-  `Contents.m` and rejects `Unreleased` headings: bump the version in the
-  same commit, then regenerate `apiReference.html`, `html/ref/` and the
-  guide PDF, all of which carry the stamp.
-- **Do not push while a CI run is in flight.** The self-hosted runner has
-  a persistent temp folder, and a superseding push CANCELS the running
-  MATLAB process, which then executes no `onCleanup`. That is how a
-  half-written `plain.gfc` survived into the next run and failed
-  `testProvenanceSidecarsDoNotBreakTheRoundTrip` with a bogus
-  `shSeries:sizeMismatch` (2026-09-08). Tests now use `tempname` so a
-  leftover cannot be found again, but a cancelled run still wastes an A8
-  slot and can leave litter. Batch the pushes.
-- **A gate's reach can be defined by the bug it should catch.** A17:
-  `refpages_audit`'s COVER check compared the generated pages against
-  `api_data.py` — the very artifact the broken extractor wrote. Zero
-  findings, one missing page. When two instruments read the same fact,
-  check them against ground truth (here: MATLAB's rule that a file defines
-  the function it is named after), never against each other. Two of this
-  repo's four surface parsers were blind the same way and agreed.
-- **Fault injection finds bugs in the fix, not only in the code.** The
-  first attempt at A17's continuation joiner happily joined a COMMENT line,
-  and a `(base MATLAB only)` in the help text supplied the closing paren —
-  a signature that parsed to nonsense instead of failing. That surfaced
-  only because the injected fault did NOT fire when it should have. An
-  injection that behaves unexpectedly is a finding about the instrument.
-- **mlint_lite is only as good as its rules, and a missing rule is a
-  silent CI failure.** WP1 moved `plotSHSpectrum`'s `arguments` block to
-  where `inputParser` had been - below the function's `if ~iscell(specs)`
-  guard. MATLAB requires the block to be FIRST, so the function stopped
-  parsing and five tests went red while mlint_lite reported zero
-  findings. R6 now checks it, with a self-test. When you convert a
-  preamble, check what was ABOVE the thing you replaced, not only what
-  you wrote.
-- **mlint_lite is the only MATLAB syntax check a Tier-B session has, and it
-  earns its keep.** It rejected fifteen `(gA + gB).C` lines: MATLAB cannot
-  index into a parenthesised expression. Method dot-chains (`ts.at(k).toGrid`)
-  are fine and the repo already uses them; parenthesised expressions and
-  plain function calls are not. Run it on every changed `.m`, and read the
-  new tests for the same shape it cannot see (`mk(1).FieldKind`).
-- **Read the delegate's GUARDS, not only its options.** `shSeries.compare`
-  goes to `compareSeries`, not `compareSolutions` like
-  `shCoefficients.compare`; `ts.climatology()` needs >= 6 epochs;
-  `compareSeries` needs >= 12 COMMON epochs; `shCoefficients` properties
-  are `SetAccess = private` so a test cannot set an epoch. The first three
-  were caught statically by reading the source; the fourth (12 epochs) was
-  NOT — its `arguments` block says nothing, the guard is an `error` a
-  hundred lines in, and it cost the one red test of v3.34.1. When writing
-  a test for a function you cannot run, grep it for `error(` and `assert(`
-  before choosing fixture sizes.
-- **Do not write a number into this file that you did not just read.** The
-  v3.34.1 per-class test counts were guessed (161/68) and were wrong
-  (159/70) — in the same edit that closed a finding about unmeasured facts.
-- **Run what CI runs, not what §3.4 lists — and if they differ, fix §3.4.**
-  v3.34.1 went out with eleven local gates green and `gates` red: CI also
-  runs `make_demos.py --check`, which §3.4 never named, and `demos.xml`
-  carries the version stamp so the bump alone made it stale. The list in
-  §3.4 is now the authority and must equal `ci.yml`; `doc_sync_audit.py`
-  gained the `demos.xml` VERSION check so the omission cannot cost a CI
-  round-trip again.
-- **A gate that cannot see a construct is not evidence about it.**
-  `nv_casing_audit` reads arguments blocks, so six functions using
-  `inputParser` sailed through v3.33.0's casing sweep with lowercase
-  options. Before trusting "0 findings", ask what the instrument
-  parses, not what it is named after.
-- **Check whether a rename actually breaks anything before calling it
-  breaking.** MATLAB matches Name-Value names case-insensitively
-  (measured, see `nv_casing_audit.py`'s header), so most of WP1's
-  option sweep is not a break at all. The MAJOR bump is earned by the
-  error identifiers and by `n0`/`N0` -> `Nmin`, nothing else.
-- **A mechanical refactor must not smuggle in validation.**
-  `inputParser` validated nothing; adding `mustBePositive` or
-  `mustBeMember` while converting would reject input the old code
-  accepted, under cover of a "no behaviour change" commit.
-- **Rename identifiers per file, never globally.** The same old id
-  (`shSynthesis:missingLoveNumbers`, `shSynthesis:badInput`) mapped to
-  two different owners depending on which file raised it. A repo-wide
-  sed would have produced confident nonsense.
-- Do not re-propose what §1.1 lists. The first audit draft did, without
-  repository access; that draft is superseded by this file.
-- Tier B sessions cannot measure B1–B3 or set WP2 budgets. Say so; do not
-  estimate speedups.
+
+One line per rule; the incident behind each, with its numbers, is in
+`tools/dev/RECORD.md` §3. Read the rule here, the story there when it bites.
+
+**Numbers and measurement**
+- Write no number into this file that you did not just read from the tree or a run; quote the shipped instrument, never its prototype.
+- A constant measured in a prototype (numpy) is not a constant of the product - re-measure it in MATLAB (A22's `ClenshawFrom`).
+- Capture references BEFORE an edit, even one that only moves code; "bitwise unchanged" is proven, not argued.
+- Measure a finding's defects before fixing them, and measure before asking for a decision - the measurement is sometimes the decision.
+- Run the control before explaining the treatment: the same failure on a valid input points elsewhere (A28).
+- Read the warnings of a failing run before its numbers; a warning's number can be the finding (A35).
+
+**Tests**
+- A static gate cannot see a raise that throws; only a test that DRIVES the guard can (A27, then twice more - hence DRIVEN and R8).
+- Code no test reaches can be broken in a way only a run shows: ask what the test must run before it gets there, and build that input (A41).
+- A statistic over two things cannot see one of them broken - test each half (A37); pin the half that is NOT true as well as the one that is.
+- An oracle finds an implementation's bug only on the configuration where the two differ - name what a test exercises against what the code admits (A35).
+- Assert an estimator's inverse; a sign error otherwise reads as a weak method.
+- `isequal` is false on NaN - compare structs that can carry NaN with `isequaln`.
+- A failing assertion may be the wrong assertion: ask what statistic a documented tolerance bounds. Never widen it (§3.6).
+- Before sizing a fixture, grep the function for `error(`/`assert(` and read its helpers' defaults (`shIndex`'s `Nmin` is 2).
+- A fixture can favour a method by construction (a uniform layer is exact for the method of scale) - name what it makes exact.
+- Identity tests need an identifiable, stationary model, asserted in the test; two rounding paths through an explosive one drift.
+- A dense product rounds differently for a different row count; compare routes where the product is exact.
+- Write error identifiers whole in tests - the PINS and DRIVEN rules read literals.
+- Tripwire counts in the self-tests (`EXPECTED_RUNS`, raising-method counts) move with the surface; bump them with a comment.
+
+**Gates and instruments**
+- A green gate is not a correct document: read what an instrument inspects before trusting its silence; prefer one that states its reach.
+- A new checker lies before it tells the truth - fault-inject every rule in both directions.
+- Two parsers of one fact will disagree, and the newer one is usually wrong; check both against ground truth (the filesystem), never against each other (A17).
+- A gate can be silenced by its own inputs - ask what a rule reads, and whether the checked thing is inside that set.
+- A reach or coverage check must blank strings as well as comments; reuse `mlint_lite.strip_tokens`.
+- A writer that satisfies a gate by inserting text where the gate looks will satisfy it anywhere - gate where the writer writes (A39).
+- Draining a backlog disarms any test that loops over it; assert the mechanism with a temporary entry instead.
+- One constant must answer one question; split a name that serves two purposes.
+- A character class is an enumeration: test a sweep's pattern on the awkward member (`noC30`), and verify a sweep by searching for what must be absent.
+- An identifier can be built at runtime; treat a concatenated literal as a prefix and let the help name the members.
+- Rename identifiers per raise site, never globally; an identifier must not name a private helper the user cannot see (A21b).
+
+**MATLAB in a Tier-B session**
+- `mlint_lite` on every changed `.m` is the only syntax check here: R3 dot on `(expr)`, R5 `name=value` before `{:}`, R6 arguments block first, R7 unterminated literal, R8 non-scalar `error` format argument.
+- `regexp(..., 'tokens', 'once')` drops the tokens of an optional group that did not take part; index by count.
+- Much of what a time-series method reaches for is a toolbox (`hilbert`) - check `toolbox_dependency_audit` before designing around it.
+- A mechanical refactor must not smuggle in validation; and check whether a rename breaks at all - Name-Value matching is case-insensitive.
+- Option names avoid every prefix of a house option (`R`, `Climatology`); `nv_casing_audit` refuses them.
+
+**Process and CI**
+- Read the branch before choosing a version: `git ls-remote` and `git log main..origin/<branch>`.
+- A pushed SHA is not a running CI: after a PR merges, a push to its branch raises no event - open a new PR.
+- Do not push while a run is in flight; the cancelled MATLAB process skips its `onCleanup`. A queued self-hosted job is not an offline runner.
+- A speed budget can fail on runner load: compare the neighbouring runs, never re-baseline from the slow one. Under ~3 ms a benchmark measures the timer; try one thread first; size on the path the budget times; retire the baseline an optimisation invalidates; write the stopping rule before tuning.
+- Profile the suite from the runner's per-test durations; a duration that repeats to 0.03 s is a sleep (A36).
+- The A8 log is the artifact: `get_job_logs` with a large tail saves a file you can grep; the suite runs alphabetically, so `testPerformance` sits mid-log.
+- With parallel agents, give each disjoint files and check the diff for non-comment lines before committing.
+- Shell: generator edits with raw strings or the Edit tool, scripts in files when a command carries `''`, chains with `&&`; `git log -S` on a shallow clone names the wrong commit.
+
+**Science and documentation**
+- A method's published description is not its equations; without the equations the row is STOPPED.
+- Check the units of every equation taken from a document, and confirm a correction against data (ESMGFZ eq. 2.8).
+- A file's name is not its content, and a file-name parser decides whether a series has epochs at all.
+- A promise in help outlives the path that kept it; correct a refuted claim everywhere it appears (grep the number).
+- A documentation gate reads constructs, not documents - list every place a call is written and check each is read.
+- Git's text detection looks at bytes: binaries are marked in `.gitattributes`. A check can pass a file the damage has broken - check the property the damage breaks.
+- A work package can contradict itself: resolve it by its own explicit rule and record the choice in 6.1.
+- §1 is the only place in this file that states the version; the package is `+shLowLevel` (`shx.*` is stale). Do not re-propose what §1.1 lists.
 
 ### 6.4 Next action
 
-**State, 2026-10-22.** v5.24.0 (the class-surface backlog, emptied) is
-PR #136, green on A8 with 448 runs (441 passed, 7 optional real-data
-fixtures filtered), awaiting merge; `main` is `ff901b4`, v5.23.4. Every finding in 4.1 is CLOSED except A42, which holds
-five low items that need data or a run, not effort. Read the version from
+**State, 2026-10-22.** v5.24.1 (five refinements) is on
+`claude/vigilant-cray-w79e72`, awaiting A8; `main` is `36e347d`, v5.24.0,
+green on A8 with 448 runs. Every finding in 4.1 is CLOSED except A42,
+which holds five low items that need data or a run, not effort. Read the version from
 1's table or `Contents.m` line 2, never from this paragraph.
 
 **Open, in the order of what they buy:**
@@ -2420,11 +862,18 @@ five low items that need data or a run, not effort. Read the version from
 3. **WP8 8f and 8g**, POSTPONED until the bridge returns (6.1,
    2026-10-21): they need ESA ESM output and full covariances that A8
    cannot hold.
-4. **WP6's topic categories** for the reference index: an editorial call
+4. **The DRIVEN backlog**, 108 identifiers in `tools/undriven_ids.txt`
+   that no test names - mostly file readers (`readDDK` 7, `readSINEX` 6,
+   `readMascon` 5, `readLoveNumbers` 5), the fetchers and `kalmanChain`.
+   Each needs a malformed file or a folder built for it; batches of about
+   20 per PATCH, smallest fixture first.
+5. **WP6's topic categories** for the reference index: an editorial call
    for Matthias (6.1, 2026-09-08).
 
-Nothing waits on a decision from Matthias today; the three calls of the
-review were merged as proposed (6.1, 2026-10-22).
+**Waiting on a decision from Matthias:** whether to rewrite the history
+to drop the 112 committed guide PDFs (43.5 MB of the 72 MB `.git`). It
+changes every commit SHA on `main` and needs a force-push (6.1,
+2026-10-22).
 
 **What a Tier-A session should know about running the suite here.** The
 MATLAB MCP tool times out on anything suite-sized. Run it detached and
@@ -2440,7 +889,7 @@ variables of 1's Tests row set for the run).
 To re-run the gates and the prediction from a fresh sandbox (the list
 of 3.4; `mlint_lite` takes the changed files as arguments):
 ```
-pip install reportlab matplotlib && \
+pip install -r tools/dev/guide-requirements.txt && python3 tools/dev/make_guide.py && \
   for g in tools/help_audit.py tools/doc_sync_audit.py \
       tools/dev/no_map_renderer.py tools/toolbox_dependency_audit.py \
       tools/nv_casing_audit.py tools/fixture_tag_audit.py \
@@ -2455,49 +904,6 @@ pip install reportlab matplotlib && \
 ```
 
 ---
-*shAnalysis v3.33.0 audited | 2026-09-08 18:30 UTC | Claude Fable 5.1 |
-WP0 (v3.33.1), A7/A8/A12/A13/A14/A16 + WP6.1-2 (v3.34.0),
-A10/A17/A18 (v3.34.1), WP1/A2/A3/A15 (v4.0.0), A19 (v4.0.1),
-A20 (v4.0.2), A21a (v4.0.3), A21b (v5.0.0)
-WP6 stage 3 (v5.0.1), WP2 step 1 (v5.0.2 + v5.0.3)
-WP2 step 2 B2 (v5.1.0 + v5.1.1)
-and WP5 5c (v5.2.0) |
-2026-09-08..09 | Claude Opus 5 |
-the first four releases green on A8 via CI — 4.0.0 at `5452938`:
-304 runs, 300 passed, 0 failed, 4 filtered.
-4.0.1 and 4.0.2 green on A8 at `0b4fb3b` via PR #97: 304 runs,
-300 passed, 0 failed, 4 filtered, no red round.
-4.0.3 green on A8 at `0d06e14` via PR #98: 305 runs, 301 passed,
-0 failed, 4 filtered - the fifth exact count prediction running.
-5.0.0 and 5.0.1 green on A8 at `631d524` via PR #99: 305 runs,
-301 passed, 0 failed, 4 filtered, after two red rounds.
-5.0.2 green on A8 at `f6d5529` via PR #99: 315 runs, 301 passed,
-0 failed, 14 filtered - the SEVENTH exact count prediction running,
-and the run that measured the ten speed baselines now committed in
-5.0.3.
-5.0.3 green on A8 at `b70c947` by workflow_dispatch: 315 runs,
-311 passed, 0 failed, 4 filtered - the EIGHTH, and the first run in
-which all ten speed budgets ASSERT rather than filter.
-5.1.0 green on A8 at `640f3be`: 319 runs, 313 passed, 6 filtered.
-5.1.1 green on A8 at `e8875fe` via PR #101: 320 runs, 315 passed,
-0 failed, 5 filtered - the TENTH exact count prediction running, and
-the run whose matched pair put clenshaw 4.5x ahead of direct at the
-same 200 points.
-5.2.0 green on A8 at `b65f9a2` by workflow_dispatch: 326 runs,
-320 passed, 0 failed, 6 filtered - the ELEVENTH, read back a release
-late because nobody looked at a green run.
-5.3.0 green BOTH ways: local Tier A on MATTHIASPC (328 runs, 326
-passed, 0 failed, 2 filtered) and A8 at `2a38d25` via PR #102 (328
-runs, 323 passed, 0 failed, 5 filtered) - the TWELFTH exact count
-prediction, and the first release since the bridge returned. With
-apply_ddk_n300's A8 baseline committed, `3c003e3` runs 328 with 324
-passed and only the 4 optional fixtures filtered: every speed budget
-asserts on both machines.
-5.4.0 (WP5 5b) green both ways: local 335 runs / 333 passed / 2
-filtered, and A8 at `c1dc1d3` via PR #103 with 335 / 331 / 0 failed /
-4 filtered - the THIRTEENTH exact count prediction. |
-5.23.1 to 5.23.4, the help-versus-code review (A37-A42), green on A8
-at `3d2682f`, `da3b29d`, `f7294fd` and `b8c487b` via PRs #131 to #134 -
-the last with 445 runs, 438 passed, 0 failed, 7 filtered |
-2026-10-21..22 |
-Developed by Matthias Weigelt with the help of Claude.*
+*Audit of shAnalysis v3.33.0, 2026-09-08, and every release since -
+the full provenance is in `tools/dev/RECORD.md` §4. Developed by
+Matthias Weigelt with the help of Claude.*
