@@ -3057,6 +3057,130 @@ verifyTrue(testCase, isequal(a1, a2) && isequal(r1, r2), ...
     'ts.slepianProject is not the lane');
 end
 
+function testCoefficientsLastBacklogRoutesAreTheirLanes(testCase)
+%TESTCOEFFICIENTSLASTBACKLOGROUTESARETHEIRLANES g.basinKernel,
+%   g.sensitivityKernel, g.designFilter and g.mcPropagate are their lanes,
+%   bitwise, with options and without (v5.24.0). The kernels are built in
+%   shIndex(nmax), the ordering g.basinAverage reads; designFilter reads
+%   the object's sigmas, and none of them when Noise is given.
+ts = wp7Series(12, 1, 121);
+g = ts.at(1);
+idx = shLowLevel.shIndex(12);
+cap = @(la, lo) double(la > 50);
+[b1, i1] = g.basinKernel(cap);
+[b2, i2] = shLowLevel.basinKernel(idx, cap);
+verifyTrue(testCase, isequaln(b1, b2) && isequaln(i1, i2), ...
+    'g.basinKernel is not the lane with its defaults');
+[b1, i1] = g.basinKernel(cap, BufferKm = 500, TaperKm = 300);
+[b2, i2] = shLowLevel.basinKernel(idx, cap, BufferKm = 500, TaperKm = 300);
+verifyTrue(testCase, isequaln(b1, b2) && isequaln(i1, i2), ...
+    'g.basinKernel is not the lane with options');
+verifyEqual(testCase, size(g.basinAverage(b1)), [1 1]);
+[k1, j1] = g.sensitivityKernel(cap);
+[k2, j2] = shLowLevel.sensitivityKernel(idx, cap);
+verifyTrue(testCase, isequaln(k1, k2) && isequaln(j1, j2), ...
+    'g.sensitivityKernel is not the lane with its defaults');
+[k1, j1] = g.sensitivityKernel(cap, Alpha = 0.5, TaperKm = 300);
+[k2, j2] = shLowLevel.sensitivityKernel(idx, cap, Alpha = 0.5, TaperKm = 300);
+verifyTrue(testCase, isequaln(k1, k2) && isequaln(j1, j2), ...
+    'g.sensitivityKernel is not the lane with options');
+% designFilter: the formal sigmas, then a full covariance that replaces them
+[W1, f1] = g.designFilter();
+[W2, f2] = shLowLevel.designFilter(g.sigmaC, g.sigmaS);
+verifyTrue(testCase, isequaln(W1, W2) && isequaln(f1, f2), ...
+    'g.designFilter is not the lane with its defaults');
+[W1, f1] = g.designFilter(Alpha = 0.5, Nmin = 3, Name = "mine");
+[W2, f2] = shLowLevel.designFilter(g.sigmaC, g.sigmaS, Alpha = 0.5, ...
+    Nmin = 3, Name = "mine");
+verifyTrue(testCase, isequaln(W1, W2) && isequaln(f1, f2), ...
+    'g.designFilter is not the lane with options');
+rng(122);
+A = randn(idx.P);
+M = (A * A' + idx.P * eye(idx.P)) * 1e-22;
+bare = shCoefficients(g.C, g.S);
+[W1, f1] = bare.designFilter(Noise = M, Idx = idx);
+[W2, f2] = shLowLevel.designFilter(g.sigmaC, g.sigmaS, Noise = M, Idx = idx);
+verifyTrue(testCase, isequaln(W1, W2) && isequaln(f1, f2), ...
+    'with Noise the sigmas must not matter, and a field without them must work');
+verifyError(testCase, @() bare.designFilter(), ...
+    'shLowLevel:designFilter:badSigma');
+% mcPropagate: same seed, same draws
+fun = @(gs) [gs.C(3, 1); gs.S(4, 2)];
+o1 = g.mcPropagate(fun, N = 50, Seed = 123);
+o2 = shLowLevel.mcPropagate(fun, g, N = 50, Seed = 123);
+verifyTrue(testCase, isequaln(o1, o2), 'g.mcPropagate is not the lane');
+o1 = g.mcPropagate(fun, N = 20, Seed = 124, KeepSamples = true);
+o2 = shLowLevel.mcPropagate(fun, g, N = 20, Seed = 124, KeepSamples = true);
+verifyTrue(testCase, isequaln(o1, o2), 'g.mcPropagate is not the lane with options');
+end
+
+function testSeriesLastBacklogRoutesAreTheirLanes(testCase)
+%TESTSERIESLASTBACKLOGROUTESARETHEIRLANES ts.basinKernel,
+%   ts.sensitivityKernel, ts.signalVarianceKaula, ts.basinScaling and
+%   ts.buildCondFun are their lanes, bitwise (v5.24.0). buildCondFun takes
+%   GM and R from the series - pinned on a series with a radius that is
+%   not the lane's default.
+ts = wp7Series(12, 24, 125);
+idx = shLowLevel.shIndex(12);
+cap = @(la, lo) double(la > 50);
+[b1, i1] = ts.basinKernel(cap, OverSample = 3);
+[b2, i2] = shLowLevel.basinKernel(idx, cap, OverSample = 3);
+verifyTrue(testCase, isequaln(b1, b2) && isequaln(i1, i2), 'ts.basinKernel is not the lane');
+verifyEqual(testCase, size(ts.basinAverage(b1)), [1 24]);
+[k1, j1] = ts.sensitivityKernel(cap, Alpha = 2);
+[k2, j2] = shLowLevel.sensitivityKernel(idx, cap, Alpha = 2);
+verifyTrue(testCase, isequaln(k1, k2) && isequaln(j1, j2), ...
+    'ts.sensitivityKernel is not the lane');
+% signalVarianceKaula: the lane's default LRange [10, 60] exceeds nmax 12,
+% so the bare call must meet the lane's refusal - the default is the lane's
+[a1, s1] = ts.signalVarianceKaula(LRange = [3, 10]);
+[a2, s2] = shLowLevel.signalVarianceKaula(ts.Cs, ts.Ss, ts.epochs, LRange = [3, 10]);
+verifyTrue(testCase, isequaln(a1, a2) && isequaln(s1, s2), ...
+    'ts.signalVarianceKaula is not the lane');
+verifyError(testCase, @() ts.signalVarianceKaula(), ...
+    'shLowLevel:signalVarianceKaula:badRange');
+% basinScaling: a Gaussian as a static operator in Nmin = 0 ordering, as in
+% testBasinScalingRecoversFactor
+idx0 = shLowLevel.shIndex(12, Nmin = 0);
+Wn = shLowLevel.shGaussianWeights(12, 500);
+W = diag(Wn(idx0.n + 1));
+b0 = shLowLevel.basinKernel(idx0, cap);
+ep = ts.epochs';
+[q1, r1] = ts.basinScaling(W, b0, Idx = idx0, TYears = ep);
+[q2, r2] = shLowLevel.basinScaling(W, b0, ts, Idx = idx0, TYears = ep);
+verifyTrue(testCase, isequaln(q1, q2) && isequaln(r1, r2), 'ts.basinScaling is not the lane');
+[q1, r1] = ts.basinScaling(W, b0, Idx = idx0, TYears = ep, PerMonth = true);
+[q2, r2] = shLowLevel.basinScaling(W, b0, ts, Idx = idx0, TYears = ep, ...
+    PerMonth = true);
+verifyTrue(testCase, isequaln(q1, q2) && isequaln(r1, r2), ...
+    'ts.basinScaling is not the lane with PerMonth');
+% buildCondFun on a series of another radius
+t6 = wp7Series(6, 3, 126);
+t6 = shSeries(t6.Cs, Ss = t6.Ss, Epochs = t6.epochs, R = 6371000);
+idx6 = shLowLevel.shIndex(6);
+kn = -0.3 * ones(7, 1);
+[c1, h1] = t6.buildCondFun(kn = kn, Psi0Km = 2000);
+[c2, h2] = shLowLevel.buildCondFun(idx6, kn = kn, Psi0Km = 2000, ...
+    GM = t6.GM, R = 6371000);
+rng(127);
+A = randn(idx6.P, 2 * idx6.P);
+C = A * A' / (2 * idx6.P);
+verifyTrue(testCase, isequaln(c1(C), c2(C)) && isequaln(h1, h2), ...
+    'ts.buildCondFun is not the lane with the series'' GM and R');
+end
+
+function testDesignFilterRefusesANaNSigma(testCase)
+%TESTDESIGNFILTERREFUSESANANSIGMA a NaN sigma failed "<= 0" as well, so
+%   before v5.24.0 it passed the guard and made its whole block NaN, with
+%   no error. It is refused as badSigma now, like a non-positive one.
+sc = 3e-11 * ones(5);
+sc(4, 2) = NaN;
+verifyError(testCase, @() shLowLevel.designFilter(sc, 3e-11 * ones(5)), ...
+    'shLowLevel:designFilter:badSigma');
+verifyError(testCase, @() shLowLevel.designFilter(nan(5), nan(5)), ...
+    'shLowLevel:designFilter:badSigma');
+end
+
 % ------------------------------------------- WP8 8a: the regional basis
 function testRegionalRoutesAreTheirLanes(testCase)
 %TESTREGIONALROUTESARETHEIRLANES ts/g.regionalBasis are

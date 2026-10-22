@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shCoefficients.designFilter &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shCoefficients.designFilter</nav>
+<h1>shCoefficients.designFilter</h1>
+<p class="h1line">A DDK-class filter built from this field&#x27;s own errors.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>[W, info] = shCoefficients.designFilter(obj)</code><code>[W, info] = shCoefficients.designFilter(obj, Alpha=..., Kaula=..., DegVar=..., ...)</code></div>
+<h2>Description</h2>
+<p>[W, INFO] = g.designFilter() is <a href="shLowLevel_designFilter.html"><code>shLowLevel.designFilter</code></a>(g.sigmaC, g.sigmaS): the Wiener-type decorrelation filter from G&#x27;s formal sigmas, in the block format g.applyDDK takes. With Noise (and Idx) a full covariance is used instead and the sigmas are not read. That function documents the construction. A field without formal sigmas passes NaN, which the lane refuses unless Noise is given.</p>
+<h2>Examples</h2>
+<details class="example"><summary>From the help block</summary><div><pre><code>    W = g.designFilter(Alpha = 1);
+    gF = g.applyDDK(W);</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>obj</code></td><td>n x m</td><td>-</td><td><code>required</code></td><td class="desc">the object the method is called on</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>Alpha</code></td><td>lane default</td><td>-</td><td><code>-</code></td><td class="desc">regularisation weight</td></tr><tr><td><code>Kaula</code></td><td>lane default</td><td>-</td><td><code>-</code></td><td class="desc">signal RMS of the Kaula rule</td></tr><tr><td><code>DegVar</code></td><td>lane default</td><td>-</td><td><code>-</code></td><td class="desc">per-degree signal variance</td></tr><tr><td><code>Noise</code></td><td>lane default</td><td>-</td><td><code>-</code></td><td class="desc">full noise covariance in Idx ordering</td></tr><tr><td><code>Signal</code></td><td>lane default</td><td>-</td><td><code>-</code></td><td class="desc">full signal covariance in Idx ordering</td></tr><tr><td><code>Idx</code></td><td>lane default</td><td>-</td><td><code>-</code></td><td class="desc"><a href="shLowLevel_shIndex.html"><code>shLowLevel.shIndex</code></a> struct of Noise/Signal</td></tr><tr><td><code>Nmin</code></td><td>lane default</td><td>-</td><td><code>-</code></td><td class="desc">first filtered degree</td></tr><tr><td><code>Name</code></td><td>lane default</td><td>-</td><td><code>-</code></td><td class="desc">label stored in W.name</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>W</code></td><td class="desc">(1,1) struct  the filter, as returned by <a href="shLowLevel_designFilter.html"><code>shLowLevel.designFilter</code></a>, which documents every field</td></tr><tr><td><code>info</code></td><td class="desc">(1,1) struct  as returned by <a href="shLowLevel_designFilter.html"><code>shLowLevel.designFilter</code></a></td></tr></table>
+<h2>Error Identifiers</h2>
+<p class="none">None documented in the help block. Argument validation raises the <code>MATLAB:*</code> identifiers of the <code>arguments</code> block.</p>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<ul class="seealso"><li><a href="shLowLevel_designFilter.html"><code>shLowLevel.designFilter</code></a></li></ul>
+<p class="prov">shAnalysis v5.24.0 (22-Oct-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

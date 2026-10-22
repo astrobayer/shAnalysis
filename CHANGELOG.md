@@ -1,5 +1,65 @@
 # Changelog
 
+## [5.24.0] - 2026-10-22 - the class-surface backlog, emptied
+
+A MINOR release: nine class methods, each a thin delegate pinned
+bitwise to its lane, and a decision for the six lanes that are not
+routed. The backlog in `tools/dev/class_surface_audit.py` is empty:
+every public `+shLowLevel` function is now reached from a class or
+named as an exception with its reason (94 reached, 40 exceptions, of
+134). One lane fix rides along.
+
+### Added
+- **`g.basinKernel(region)`, `ts.basinKernel(region)`** -
+  `shLowLevel.basinKernel` in `shLowLevel.shIndex(nmax)`, the ordering
+  `basinAverage` reads, so the kernel and the average cannot meet in
+  two orderings.
+- **`g.sensitivityKernel(region)`, `ts.sensitivityKernel(region)`** -
+  the Swenson-Wahr kernel, in the same ordering.
+- **`g.designFilter()`** - a DDK-class filter from the field's own
+  formal sigmas, ready for `g.applyDDK`. With `Noise` the sigmas are not
+  read; a field without sigmas passes NaN, which the lane refuses.
+- **`g.mcPropagate(fun)`** - Monte-Carlo propagation of any functional
+  of the field.
+- **`ts.signalVarianceKaula()`** - the VDK signal model of a series,
+  the `sigM` that `g.vdkApply` takes.
+- **`tsModel.basinScaling(op, b)`** - the scaling factor with the series
+  as the model.
+- **`tsModel.buildCondFun(kn = kn)`** - the `CondFun` conditioner in
+  the series' index, with the series' GM and R.
+
+Every option is declared without a default and forwarded only when
+given, so each default stays in its lane alone. All nine are pinned in
+`testContract` against the lane, with options and without.
+
+### Decided
+- **Six lanes stay off the classes, each with its reason in the gate.**
+  `eofSeparate`, `gridScaling`, `hydroExtremeIndex` and `oceanRMS` take
+  a grid or a pixel stack, not a field: a method would run `toGrid`
+  first and carry both option sets, which is more than a forward.
+  `resolutionMap` describes a filter operator; `seaLevelFingerprint`
+  solves for a load region. Neither reads a field.
+- **`buildCondFun` takes GM and R from the series, the kernels take R
+  from their lane.** GM and R are the field's constants in the EWH
+  kernel, as in `g.errorMap`; the kernels' R is the radius of a
+  great-circle buffer, as in `g.regionalBasis`.
+- **The kernels have no `Nmin` option.** `basinAverage` requires
+  `shIndex(nmax)`; a kernel in another index is one it refuses.
+
+### Fixed
+- **`designFilter`** let a NaN sigma through: its guard was
+  `any(sigma <= 0)`, which NaN fails. The block came out NaN with no
+  error. It is refused as `badSigma` now
+  (`testDesignFilterRefusesANaNSigma`). Found while writing
+  `g.designFilter`, whose most natural input - a field filtered by
+  `applyDDK`, which sets its sigmas to NaN - would have met it.
+- **`signalVarianceKaula`**'s documented `badRange` could never be
+  raised: its message passed the 1 x 2 `LRange` to `error`, which takes
+  scalar format arguments only, so `error` itself threw
+  `MATLAB:error:nonScalarInput` (the A27 shape). Found on A8 by
+  `testSeriesLastBacklogRoutesAreTheirLanes`, which drives the guard
+  through `ts.signalVarianceKaula`.
+
 ## [5.23.4] - 2026-10-21 - code defects of the help-versus-code review
 
 A PATCH release: fifteen defects that 5.23.3 recorded in the help as

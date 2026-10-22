@@ -57,7 +57,7 @@ nmax = size(Cs, 1) - 1;
 if opts.LRange(2) > nmax || opts.LRange(1) < 1
     error('shLowLevel:signalVarianceKaula:badRange', ...
         'LRange [%g, %g] outside the stack degrees 1..%d.', ...
-        opts.LRange, nmax);
+        opts.LRange(1), opts.LRange(2), nmax);   % error takes scalars only
 end
 T = numel(epochs);
 ls = (opts.LRange(1):opts.LRange(2))';

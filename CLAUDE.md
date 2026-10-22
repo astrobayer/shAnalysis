@@ -23,10 +23,10 @@ says whether it was *read* or *inferred*.
 
 | Fact | Value | Evidence |
 |---|---|---|
-| Version | **5.23.4**, 21-Oct-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
+| Version | **5.24.0**, 22-Oct-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
 | Branches | `main` only; `claude/getframe-recapture` and `claude/readshm` are gone (merged/deleted) | `GET /branches` |
-| Public surface | 3 classes / 97 methods, 134 `+shLowLevel` functions (+5 private), 3 root functions. 87 of the 134 are reachable from a class method; each of the other 47 is a named exception (34) or in a backlog that may only shrink (13) | `tools/dev/api_extract.py`; `tools/dev/class_surface_audit.py` |
-| Tests | 5 classes, **431 methods / 445 runs**: Correctness 221, Contract 127, Robustness 61, Science 9, Performance 13 methods (27 runs, `budgetCase` x14 + `nmaxP` x2). On A8 7 filter out without the optional real-data fixtures (the GravIS-grid test joined them in v5.8.0, the ESMGFZ check in v5.11.0, the HLSST check in v5.12.0); on MATTHIASPC only 2 do, because `E:\DATAPOOL` supplies the SINEX files, the GravIS folder and - with `SHX_EARTHROTATION_FOLDER` and `SHX_BRIDGE_FOLDER` set for the run, no preference is stored - the ESMGFZ and HLSST series. The counter has matched the runner EXACTLY on the last ten green A8 runs and on every local Tier-A run. | `python3 tools/dev/count_tests.py` |
+| Public surface | 3 classes / 106 methods, 134 `+shLowLevel` functions (+5 private), 3 root functions. 94 of the 134 are reachable from a class method; each of the other 40 is a named exception with its reason, and the backlog is empty (v5.24.0) | `tools/dev/api_extract.py`; `tools/dev/class_surface_audit.py` |
+| Tests | 5 classes, **434 methods / 448 runs**: Correctness 221, Contract 130, Robustness 61, Science 9, Performance 13 methods (27 runs, `budgetCase` x14 + `nmaxP` x2). On A8 7 filter out without the optional real-data fixtures (the GravIS-grid test joined them in v5.8.0, the ESMGFZ check in v5.11.0, the HLSST check in v5.12.0); on MATTHIASPC only 2 do, because `E:\DATAPOOL` supplies the SINEX files, the GravIS folder and - with `SHX_EARTHROTATION_FOLDER` and `SHX_BRIDGE_FOLDER` set for the run, no preference is stored - the ESMGFZ and HLSST series. The counter has matched the runner EXACTLY on the last ten green A8 runs and on every local Tier-A run. | `python3 tools/dev/count_tests.py` |
 | Python oracles | 31 `tools/dev/validate_*.py` (+ `regional_oracle_lib.py`, shared by the WP8 oracles) + `tools/audit/*` | listing |
 | Docs | **27** hand-written `html/*.html` (24 per-entity duplicates retired in v5.0.1, WP6 stage 3; `regionalBasis.html` added in v5.14.0) + **238 generated `html/ref/*.html`** (one per entity + index, `make_refpages.py`), one shared `html/shAnalysis.css`, `helptoc.xml`, `info.xml`, guide PDF, generated `html/apiReference.html`. `docs/` holds the PDF and `apiExamples.json` only - no HTML page lives outside `html/` (gated). | listing |
 | CI | `gates` job on ubuntu (help_audit, doc_sync_audit, no_map_renderer, toolbox_dependency_audit, nv_casing_audit, fixture_tag_audit, gate self-tests `tools/tests/`, `count_tests`, `name_coverage`, `class_surface_audit`, `error_id_audit`, `option_values_audit`, `refpages_audit`, `make_demos --check`, `perf_baseline_audit`) + `runAllTests (self-hosted)` on A8/R2026a; fixtures from tag `fixtures-2026-08` | `.github/workflows/ci.yml` |
@@ -575,7 +575,11 @@ exception list lives in the gate, not in this file.
 `g.gradientTensor`, `g.vdkApply` - so 18 lanes remain there; reach is 73
 of 125. **v5.13.0** took four more - `poleTideConvert` and
 `slepianProject` on both classes, `estimateDegree1` and `combineCenters`
-on the series - so 14 remain; reach is 79 of 128.
+on the series - so 14 remain; reach is 79 of 128. **v5.24.0** emptied
+it: seven lanes got nine routes (`basinKernel` and `sensitivityKernel`
+on both classes, `g.designFilter`, `g.mcPropagate`,
+`ts.signalVarianceKaula`, `ts.basinScaling`, `ts.buildCondFun`) and six
+became exceptions (6.1, 2026-10-22); reach is 94 of 134.
 
 - **Goal**: `Contents.m` promises "Classes (single point of access)", but the
   validated chains, the Kalman lane, EOF, leakage, error maps, deformation
@@ -660,6 +664,29 @@ shAnalysis, the basin is selectable, and otherwise a test area.
 ## 6. Records
 
 ### 6.1 Decisions (append-only; date, decision, evidence)
+- 2026-10-22 — **The class-surface backlog is empty, as 5.24.0**
+  (Matthias: "Go ahead with the class-surface backlog"). Thirteen lanes:
+  seven got nine thin delegates, pinned bitwise in `testContract`; six
+  became EXCEPTIONS with their reason in the gate. A new lane now goes
+  into a class or into EXCEPTIONS; there is no third list to park it in.
+- 2026-10-22 — **A lane is routed when a class object is its natural
+  input, and not when it takes a grid.** `eofSeparate`, `gridScaling`,
+  `hydroExtremeIndex` and `oceanRMS` read grids or pixel stacks; a method
+  would run `toGrid` first and carry two option sets - the
+  `writeGrid` reasoning of WP7. `resolutionMap` reads a filter operator,
+  `seaLevelFingerprint` a load region; neither reads a field.
+- 2026-10-22 — **Where a route fills an argument from the object, it is
+  the one the class already owns.** The kernels take `shIndex(nmax)`,
+  the index `basinAverage` refuses any other kernel in, and no `Nmin`
+  option for that reason; `buildCondFun` takes `shIndex(nmax)` with the
+  series' GM and R (the `errorMap` precedent - field constants), while
+  the kernels' R stays the lane's (the `regionalBasis` precedent - a
+  buffer radius). `g.designFilter` passes NaN for absent sigmas, so the
+  lane's own `badSigma` refuses them rather than a new identifier.
+- 2026-10-22 — **`designFilter`'s NaN guard fixed in the same release.**
+  `any(sigma <= 0)` let NaN through and built a NaN block silently; the
+  route made it reachable from the most natural input there is, a field
+  after `applyDDK`, whose sigmas are NaN. Refused as `badSigma`.
 - 2026-10-22 — **The review closed in four releases, 5.23.1 to 5.23.4**
   (Matthias: "Review the current status of the repo ... Review the
   documentation and help text of each function if it is in sync with
@@ -1862,6 +1889,7 @@ shAnalysis, the basin is selectable, and otherwise a test area.
 | v5.23.1 (A37, A38: `designFilter` C, `obpChain`, `readSINEX` estimate, `hydroExtremeIndex` category) | ☑ 17 gates + mlint + make_demos + 15 self-test suites, 0 findings | ◑ **Tier B locally**. ☑ **CI self-hosted (A8) at `3d2682f` via PR #131, green — 435 runs, 428 passed, 0 failed, 7 filtered**; the count prediction matched EXACTLY, per class as well as in total, and the four new tests passed on their first run | ☑ PR #131 | ☑ 2026-10-21 |
 | v5.23.2 (A39: 125 default markers removed; `help_audit` `misplaced_defaults`) | ☑ 17 gates + mlint + make_demos + 15 self-test suites (six new `help_audit` self-tests), 0 findings; the rule fired on a re-injected marker in the real tree | ◑ **Tier B locally**. ☑ **CI self-hosted (A8) at `da3b29d` via PR #132, green — 435 runs, 428 passed, 0 failed, 7 filtered**; comment-only, count unchanged | ☑ PR #132 | ☑ 2026-10-21 |
 | v5.23.3 (A40: about 80 help texts made to say what the code does) | ☑ 17 gates + mlint (69 files) + make_demos + 15 self-test suites, 0 findings; no executable line changed, checked on the diff | ◑ **Tier B locally**. ☑ **CI self-hosted (A8) at `f7294fd` via PR #133, green — 435 runs, 428 passed, 0 failed, 7 filtered** | ☑ PR #133 | ☑ 2026-10-21 |
+| v5.24.0 (the class-surface backlog: nine routes, six exceptions; `designFilter` NaN, `signalVarianceKaula` badRange) | ☑ 17 gates + mlint + make_demos + 15 self-test suites, 0 findings; reach 87 -> 94 of 134, backlog 13 -> 0 | ◑ **Tier B locally**. ☑ **CI self-hosted (A8) at `7b0d331` via PR #136, green — 448 runs, 441 passed, 0 failed, 7 filtered**; the count prediction matched EXACTLY, per class as well as in total (Contract 130). One red round first, at `962b4b8`: the new series test drove `signalVarianceKaula`'s range guard, whose `error` call threw `nonScalarInput` on its vector format argument - a lane defect of the A27 shape, fixed | ☑ PR #136 | ☐ |
 | v5.23.4 (A41: fifteen code defects recorded by A40) | ☑ 17 gates + mlint (21 files) + make_demos + 15 self-test suites, 0 findings | ◑ **Tier B locally**. ☑ **CI self-hosted (A8) at `b8c487b` via PR #134, green — 445 runs, 438 passed, 0 failed, 7 filtered**; the count prediction matched EXACTLY, and all ten new tests and the three extended ones passed on their first run - the `twsChain` one is the first to reach the DDK lookup on A8 | ☑ PR #134 | ☑ 2026-10-22 |
 | v5.0.3 (WP2 step 1 baselines) | ☑ 14 gates + mlint + make_demos + 13 self-test suites, 0 findings; `NO_BASELINE` empty | ☑ **CI self-hosted (A8) at `b70c947`, green — 315 runs, 311 passed, 0 failed, 4 filtered**; the EIGHTH exact count prediction running, per class as well as in total. All ten budgets PASSED (they filtered at `f6d5529`), and the only filtered are the four real-data fixtures. Triggered by `workflow_dispatch`, not a PR — #99 merged mid-session and `ci.yml` runs only on push-to-main, pull_request and workflow_dispatch. | ☐ no PR (#99 merged; not asked) | ☐ |
 
@@ -2367,9 +2395,9 @@ about the source.
 
 ### 6.4 Next action
 
-**State, 2026-10-22.** `main` is `5bd7bf9`, v5.23.4, green on A8 with
-445 runs (438 passed, 7 optional real-data fixtures filtered). No pull
-request is open. Every finding in 4.1 is CLOSED except A42, which holds
+**State, 2026-10-22.** v5.24.0 (the class-surface backlog, emptied) is
+PR #136, green on A8 with 448 runs (441 passed, 7 optional real-data
+fixtures filtered), awaiting merge; `main` is `ff901b4`, v5.23.4. Every finding in 4.1 is CLOSED except A42, which holds
 five low items that need data or a run, not effort. Read the version from
 1's table or `Contents.m` line 2, never from this paragraph.
 
@@ -2392,10 +2420,7 @@ five low items that need data or a run, not effort. Read the version from
 3. **WP8 8f and 8g**, POSTPONED until the bridge returns (6.1,
    2026-10-21): they need ESA ESM output and full covariances that A8
    cannot hold.
-4. **The class-surface backlog**, 13 lanes, named with a reason each in
-   `tools/dev/class_surface_audit.py`. Each needs more than a forward
-   (grids, regions, handles), so each is its own decision.
-5. **WP6's topic categories** for the reference index: an editorial call
+4. **WP6's topic categories** for the reference index: an editorial call
    for Matthias (6.1, 2026-09-08).
 
 Nothing waits on a decision from Matthias today; the three calls of the
