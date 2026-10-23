@@ -2251,7 +2251,7 @@ methods
         %
         %   Options
         %     Nmin (shIndex default)  first degree of the index
-        %     Type (lane default)  "rbf" | "slepian" | "sh"
+        %     Type (lane default)  "rbf" | "slepian" | "mascon" | "sh"
         %     BufferKm (lane default)  growth of the region [km]
         %     Grid (lane default)  "icosahedral" | "reuter"
         %     Level (lane default)  rbf grid level
@@ -2259,6 +2259,8 @@ methods
         %     DegreeAmplitude (lane default)  sigma_n for Kernel "amplitude"
         %     Threshold (lane default)  slepian concentration cut
         %     NKeep (lane default)  slepian taper count
+        %     CapRadiusKm (lane default)  mascon cap radius [km]
+        %     kn (lane default)  load Love numbers, required by "mascon"
         %     EigTol (lane default)  rbf projector eigenvalue cut
         %     R (lane default)  sphere radius [m]
         %     OverSample (lane default)  mask quadrature refinement
@@ -2279,6 +2281,8 @@ methods
             opts.DegreeAmplitude
             opts.Threshold
             opts.NKeep
+            opts.CapRadiusKm
+            opts.kn
             opts.EigTol
             opts.R
             opts.OverSample

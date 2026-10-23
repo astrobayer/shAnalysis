@@ -3476,6 +3476,50 @@ verifyError(testCase, @() shLowLevel.readBasin("Spot", File = f), ...
     'shLowLevel:readBasin:badGeometry');
 end
 
+function testRegionalBasisMasconRouteAndIDs(testCase)
+%TESTREGIONALBASISMASCONROUTEANDIDS The mascon type's two new
+%   identifiers, each driven by the guard it names, the badAmplitude guard
+%   it adds, the CM-frame Love numbers it accepts from degree 2, and the
+%   class routes forwarding CapRadiusKm and kn to the lane bitwise.
+idx = shLowLevel.shIndex(12);
+cap = @(la, lo) double(la > 60);
+n = (0:12)';
+kn = -0.30 * n ./ (n + 3.0);
+verifyError(testCase, @() shLowLevel.regionalBasis(idx, cap, Type = "mascon"), ...
+    'shLowLevel:regionalBasis:badLoveNumbers');
+verifyError(testCase, @() shLowLevel.regionalBasis(idx, cap, Type = "mascon", ...
+    kn = kn(1:12)), 'shLowLevel:regionalBasis:badLoveNumbers');
+knBad = kn; knBad(4) = -1;                        % 1 + k_3 = 0
+verifyError(testCase, @() shLowLevel.regionalBasis(idx, cap, Type = "mascon", ...
+    kn = knBad), 'shLowLevel:regionalBasis:badLoveNumbers');
+verifyError(testCase, @() shLowLevel.regionalBasis(idx, cap, kn = kn), ...
+    'shLowLevel:regionalBasis:badLoveNumbers');
+verifyError(testCase, @() shLowLevel.regionalBasis(idx, cap, CapRadiusKm = 300), ...
+    'shLowLevel:regionalBasis:badCapRadius');
+verifyError(testCase, @() shLowLevel.regionalBasis(idx, cap, Type = "mascon", ...
+    kn = kn, CapRadiusKm = 20100), 'shLowLevel:regionalBasis:badCapRadius');
+verifyError(testCase, @() shLowLevel.regionalBasis(idx, cap, Type = "mascon", ...
+    kn = kn, DegreeAmplitude = ones(13, 1)), ...
+    'shLowLevel:regionalBasis:badAmplitude');
+% a CM-frame set (k_1 = -1) is not read below the index's first degree
+knCM = kn; knCM(2) = -1;
+M1 = shLowLevel.regionalBasis(idx, cap, Type = "mascon", kn = knCM);
+M2 = shLowLevel.regionalBasis(idx, cap, Type = "mascon", kn = kn);
+verifyTrue(testCase, isequal(M1.T, M2.T), 'k_1 entered a basis without degree 1');
+verifyEqual(testCase, M2.type, "mascon");
+verifyTrue(testCase, all(isfinite(M2.T), 'all'));
+ts = wp7Series(12, 3, 120);
+g = ts.at(1);
+B1 = ts.regionalBasis(cap, Type = "mascon", kn = kn, CapRadiusKm = 500);
+B2 = shLowLevel.regionalBasis(idx, cap, Type = "mascon", kn = kn, CapRadiusKm = 500);
+verifyTrue(testCase, isequaln(B1, B2), 'ts.regionalBasis is not the lane for mascon');
+verifyTrue(testCase, isequaln(g.regionalBasis(cap, Type = "mascon", kn = kn, ...
+    CapRadiusKm = 500), B2), 'g.regionalBasis is not the lane for mascon');
+verifyEqual(testCase, B2.capRadiusKm, 500);
+R0 = shLowLevel.regionalBasis(idx, cap);
+verifyTrue(testCase, isnan(R0.capRadiusKm));
+end
+
 % ------------------------------------------- WP8 8b: the process model
 function testRegionalProcessModelRouteAndIDs(testCase)
 %TESTREGIONALPROCESSMODELROUTEANDIDS ts.regionalProcessModel is the lane,

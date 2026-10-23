@@ -12,7 +12,7 @@ function B = regionalBasis(idx, region, opts)
 %   regional Kalman filter of CLAUDE.md WP8 (Kurtenbach 2012, C-683,
 %   outlook; Woehnke et al. 2025; Steffen et al. 2026).
 %
-%   Three types (Type option):
+%   Four types (Type option):
 %     "rbf"      radial basis functions after Eicker (2008) and Woehnke et
 %                al. (2025, eqs. 5-7), centred on the nodes x_k of a global
 %                grid that fall into the region grown by BufferKm:
@@ -34,6 +34,33 @@ function B = regionalBasis(idx, region, opts)
 %                Shannon number (slepianBasis's default), NKeep tapers, or
 %                every taper whose concentration is >= Threshold (Steffen
 %                et al. use 0.5).
+%     "mascon"   mass concentrations (v5.27.0): spherical caps of angular
+%                radius psi0 = CapRadiusKm / R on the nodes of the rbf
+%                grid, each a uniform layer of 1 m equivalent water height,
+%                so that the coefficients a ARE the caps' EWH in metres.
+%                The cap indicator is the Legendre series
+%                  chi(psi) = sum_n c_n P_n(cos psi),  t0 = cos psi0,
+%                  c_0 = (1 - t0)/2,  c_n = (P_(n-1)(t0) - P_(n+1)(t0))/2,
+%                and its Stokes coefficients follow from the addition
+%                theorem and the EWH kernel f_n of shLowLevel.kernelFactors:
+%                  T(:, k) = c_n / ((2n+1) f_n) .* Ybar(x_k)',
+%                an rbf with the cap kernel phi_n = c_n / ((2n+1) f_n)
+%                (B.kernel; Python-validated to 9e-14 against the Legendre
+%                series, the c_n to 4e-17 against 40-digit values). Needs
+%                the load Love numbers kn; the densities are kernelFactors'
+%                defaults (5517 and 1000 kg/m^3). The default radius is
+%                equal-area, cos psi0 = 1 - 2/N for the N nodes of the
+%                GLOBAL grid, so the N caps have the sphere's area: 201.7
+%                km at nmax 60 (level 19), 403.1 km at nmax 30 (level 9).
+%                T is band-limited at Lmax, and a cap smaller than Lmax
+%                resolves is not a cap any more: its centre value is
+%                1 - (P_L(t0) + P_(L+1)(t0))/2, 0.73 for the default cap at
+%                nmax 60 and 1.32 for a 3 deg cap there. A coefficient is
+%                the EWH of the cap before band-limiting; a uniform 1 m
+%                layer over the region projects to caps of median 1.02
+%                EWH in the interior (0.53 to 1.20 at nmax 30, 5.2 deg
+%                caps - the caps neither tile the sphere nor are they
+%                orthogonal). Kernel and DegreeAmplitude are not read.
 %     "sh"       the global SH basis itself: T = Proj = I (sparse). The
 %                regional Kalman filter on this basis is the global one,
 %                which makes it the filter's oracle. REGION is optional.
@@ -52,13 +79,13 @@ function B = regionalBasis(idx, region, opts)
 %   Only grid points with a non-zero mask are formed, so the cost grows
 %   with the region, not with the sphere.
 %
-%   Node selection (rbf). A node belongs to the basis when the quadrature
+%   Node selection (rbf, mascon). A node belongs to the basis when the quadrature
 %   point nearest to it lies inside the buffered mask - one rule for
 %   every REGION form, and the same mask the projector weights with. The
 %   rule resolves the region edge to half a ring spacing, 90 /
 %   (OverSample*(Lmax+1)) degrees; raise OverSample to refine it.
 %
-%   Node grids (rbf). "icosahedral": the vertices of an icosahedron whose
+%   Node grids (rbf, mascon). "icosahedral": the vertices of an icosahedron whose
 %   faces are divided into f^2 triangles (f = Level + 1), projected
 %   centrally onto the sphere, 10 f^2 + 2 nodes - the count of the
 %   triangle vertex grid of Woehnke et al. (2025, eq. 8). "reuter": the
@@ -79,13 +106,15 @@ function B = regionalBasis(idx, region, opts)
 %             for Type = "sh"
 %
 %   Options
-%     Type ("rbf")  "rbf" | "slepian" | "sh"   the basis, see above
+%     Type ("rbf")  "rbf" | "slepian" | "mascon" | "sh"   the basis, see
+%           above
 %     BufferKm (600)  (1,1) double  growth of the region [km] before the
 %           nodes are selected, the tapers concentrated and the projector
 %           weighted: Woehnke's computation area is the region plus 2 x
 %           300 km; Steffen et al. tested 600 and 900 km
-%     Grid ("icosahedral")  "icosahedral" | "reuter"   rbf node grid
-%     Level ([])  (1,1) double  rbf grid level: j for "icosahedral"
+%     Grid ("icosahedral")  "icosahedral" | "reuter"   rbf and mascon node
+%           grid
+%     Level ([])  (1,1) double  rbf and mascon grid level: j for "icosahedral"
 %           (10 (j+1)^2 + 2 nodes), gamma for "reuter"; [] = the rule above
 %     Kernel ("kaula")  "kaula" | "shannon" | "amplitude"   rbf shape
 %           coefficients phi_n, see above
@@ -96,9 +125,17 @@ function B = regionalBasis(idx, region, opts)
 %           with concentration >= Threshold
 %     NKeep ([])  (1,1) double  slepian: keep this many tapers; give at
 %           most one of Threshold and NKeep ([] for both = Shannon number)
-%     EigTol (1e-10)  (1,1) double  rbf projector: relative eigenvalue
+%     CapRadiusKm ([])  (1,1) double  mascon: cap radius [km], below half
+%           the circumference; [] = the equal-area radius above. Refused
+%           for the other types
+%     kn ([])  (>=Lmax+1,1) double  mascon: load Love numbers k'_n, n =
+%           0..Lmax (kn(1) is degree 0); required for "mascon" and refused
+%           otherwise. Degrees below IDX's first degree are not read, so a
+%           CM-frame set with k1 = -1 is usable from degree 2
+%     EigTol (1e-10)  (1,1) double  rbf and mascon projector: relative eigenvalue
 %           cut of the pseudo-inverse
-%     R (6378136.3)  (1,1) double  sphere radius [m] for the km buffer
+%     R (6378136.3)  (1,1) double  sphere radius [m] for the km buffer,
+%           the cap radius and the EWH kernel
 %     OverSample (2)  (1,1) double  quadrature refinement of the mask, as
 %           in shLowLevel.evalMask
 %     BasinFile ("basins_rivbas.json")  (1,1) string  the GeoJSON a basin
@@ -106,7 +143,7 @@ function B = regionalBasis(idx, region, opts)
 %
 %   Outputs
 %     B  (1,1) struct  the basis, fields
-%        type        (1,1) string  "rbf", "slepian" or "sh"
+%        type        (1,1) string  "rbf", "slepian", "mascon" or "sh"
 %        idx         (1,1) struct  the IDX it maps to
 %        T           (P,K) double  basis coefficients -> SH coefficients
 %                    (sparse identity for "sh")
@@ -114,13 +151,16 @@ function B = regionalBasis(idx, region, opts)
 %                    region-weighted least squares (sparse identity for
 %                    "sh")
 %        K           (1,1) double  number of basis functions
-%        nodes       (K,2) double  rbf centres [latDeg lonDeg]; [] otherwise
-%        kernel      (Lmax+1,1) double  rbf phi_n for n = 0..Lmax; []
+%        nodes       (K,2) double  rbf or mascon centres [latDeg lonDeg];
+%                    [] otherwise
+%        kernel      (Lmax+1,1) double  phi_n for n = 0..Lmax (the cap
+%                    kernel for mascon); [] otherwise
+%        kernelName  (1,1) string  the Kernel option, "cap" for mascon; ""
 %                    otherwise
-%        kernelName  (1,1) string  the Kernel option; "" unless rbf
-%        grid        (1,1) string  the rbf node grid; "" otherwise
-%        level       (1,1) double  the rbf grid level used; NaN otherwise
-%        nGlobal     (1,1) double  nodes of the global rbf grid; NaN
+%        grid        (1,1) string  the node grid; "" otherwise
+%        level       (1,1) double  the grid level used; NaN otherwise
+%        nGlobal     (1,1) double  nodes of the global grid; NaN otherwise
+%        capRadiusKm (1,1) double  the mascon cap radius [km]; NaN
 %                    otherwise
 %        lambda      (K,1) double  slepian concentrations; [] otherwise
 %        rank        (1,1) double  eigenvalues kept in the projector (K
@@ -152,6 +192,9 @@ function B = regionalBasis(idx, region, opts)
 %     a = shLowLevel.regionalProject(ts.Cs, ts.Ss, B);      % K x T
 %     S = shLowLevel.regionalBasis(idx, "Elbe", Type = "slepian", ...
 %                                  Threshold = 0.5);
+%     M = shLowLevel.regionalBasis(idx, "Elbe", Type = "mascon", kn = kn);
+%     ewh = M.Proj * [C; S];      % cap EWH [m] of a field (C, S stacked
+%                                 % in idx order, as regionalProject does)
 %
 %   Error identifiers
 %     shLowLevel:regionalBasis:missingRegion
@@ -161,9 +204,16 @@ function B = regionalBasis(idx, region, opts)
 %         no taper reaches Threshold
 %     shLowLevel:regionalBasis:badAmplitude
 %         Kernel "amplitude" without a usable DegreeAmplitude, or a
-%         DegreeAmplitude given with another kernel
+%         DegreeAmplitude given with another kernel or with Type "mascon"
 %     shLowLevel:regionalBasis:badThreshold
 %         Threshold outside (0, 1], or both Threshold and NKeep given
+%     shLowLevel:regionalBasis:badLoveNumbers
+%         Type "mascon" without kn, kn shorter than Lmax+1 or with 1+kn
+%         zero or not finite at a degree IDX holds, or kn given with
+%         another type
+%     shLowLevel:regionalBasis:badCapRadius
+%         CapRadiusKm not below half the circumference (pi R), or given
+%         with a type other than "mascon"
 %
 %   References
 %     Eicker, A. (2008), Gravity field refinement by radial basis functions
@@ -173,17 +223,22 @@ function B = regionalBasis(idx, region, opts)
 %       gravity, GEM - Int. J. Geomath. 16:2, doi:10.1007/s13137-024-00260-1.
 %     Simons, F. J., Dahlen, F. A., Wieczorek, M. A. (2006), Spatiospectral
 %       concentration on a sphere, SIAM Review 48, 504-536.
+%     Watkins, M. M., Wiese, D. N., Yuan, D.-N., Boening, C., Landerer, F.
+%       W. (2015), Improved methods for observing Earth's time variable
+%       mass distribution with GRACE using spherical cap mascons, JGR
+%       Solid Earth 120, 2648-2671, doi:10.1002/2014JB011547.
 %     Reuter, R. (1982), Integralformeln der Einheitssphaere und
 %       harmonische Splinefunktionen, PhD thesis, RWTH Aachen.
 %
-%   Numerics pre-validated in Python (tools/dev/validate_regional_basis.py).
+%   Numerics pre-validated in Python (tools/dev/validate_regional_basis.py;
+%   the mascon type in tools/dev/validate_regional_mascon.py).
 %
 %   Developed by Matthias Weigelt with the help of Claude (Opus 5.5),
-%   2026-10-20.
+%   2026-10-20; the mascon type 2026-10-23.
 arguments
     idx (1,1) struct
     region = []
-    opts.Type (1,1) string {mustBeMember(opts.Type, ["rbf", "slepian", "sh"])} = "rbf"
+    opts.Type (1,1) string {mustBeMember(opts.Type, ["rbf", "slepian", "mascon", "sh"])} = "rbf"
     opts.BufferKm (1,1) double {mustBeNonnegative} = 600
     opts.Grid (1,1) string {mustBeMember(opts.Grid, ["icosahedral", "reuter"])} = "icosahedral"
     opts.Level double {mustBeScalarOrEmpty, mustBeInteger, mustBeNonnegative} = []
@@ -191,6 +246,8 @@ arguments
     opts.DegreeAmplitude double = []
     opts.Threshold double {mustBeScalarOrEmpty} = []
     opts.NKeep double {mustBeScalarOrEmpty} = []
+    opts.CapRadiusKm double {mustBeScalarOrEmpty, mustBePositive} = []
+    opts.kn double = []
     opts.EigTol (1,1) double {mustBePositive} = 1e-10
     opts.R (1,1) double {mustBePositive} = 6378136.3
     opts.OverSample (1,1) double {mustBeInteger, mustBePositive} = 2
@@ -209,10 +266,30 @@ if ~hasRegion && opts.Type ~= "sh"
         'Type "%s" needs a region: a basin name, a polygon, a handle or a mask.', ...
         opts.Type);
 end
+if opts.Type == "mascon" && ~isempty(opts.DegreeAmplitude)
+    error('shLowLevel:regionalBasis:badAmplitude', ...
+        'DegreeAmplitude is not used by Type = "mascon"; the cap sets the kernel.');
+end
 if ~isempty(opts.DegreeAmplitude) && opts.Kernel ~= "amplitude"
     error('shLowLevel:regionalBasis:badAmplitude', ...
         'DegreeAmplitude is used only with Kernel = "amplitude", not "%s".', ...
         opts.Kernel);
+end
+if opts.Type ~= "mascon" && ~isempty(opts.kn)
+    error('shLowLevel:regionalBasis:badLoveNumbers', ...
+        'kn is used only with Type = "mascon", not "%s".', opts.Type);
+end
+if opts.Type ~= "mascon" && ~isempty(opts.CapRadiusKm)
+    error('shLowLevel:regionalBasis:badCapRadius', ...
+        'CapRadiusKm is used only with Type = "mascon", not "%s".', opts.Type);
+end
+if opts.Type == "mascon"
+    knUsed = checkLoveNumbers(opts.kn, idx);
+    if ~isempty(opts.CapRadiusKm) && opts.CapRadiusKm * 1e3 >= pi * opts.R
+        error('shLowLevel:regionalBasis:badCapRadius', ...
+            'CapRadiusKm %g is not below half the circumference, %.1f km.', ...
+            opts.CapRadiusKm, pi * opts.R / 1e3);
+    end
 end
 
 % ---- the region on the quadrature grid
@@ -242,7 +319,7 @@ if hasRegion
 end
 
 nodes = []; phi = []; kernelName = ""; gridName = ""; level = NaN;
-nGlobal = NaN; lam = [];
+nGlobal = NaN; lam = []; capKm = NaN;
 switch opts.Type
     case "sh"
         T = speye(P);
@@ -274,7 +351,7 @@ switch opts.Type
         T = G;
         Proj = G';
         rnk = size(G, 2);
-    case "rbf"
+    case {"rbf", "mascon"}
         gridName = opts.Grid;
         level = opts.Level;
         if isempty(level), level = defaultLevel(opts.Grid, L); end
@@ -293,8 +370,22 @@ switch opts.Type
                 opts.Grid, level, opts.BufferKm);
         end
         nodes = [latG(sel), lonG(sel)];
-        kernelName = opts.Kernel;
-        phi = kernelCoefficients(opts, idx);
+        if opts.Type == "rbf"
+            kernelName = opts.Kernel;
+            phi = kernelCoefficients(opts, idx);
+        else
+            % equal-area default: N caps of 2 pi (1 - cos psi0) fill 4 pi
+            if isempty(opts.CapRadiusKm)
+                psi0 = acos(1 - 2 / nGlobal);
+            else
+                psi0 = opts.CapRadiusKm * 1e3 / opts.R;
+            end
+            capKm = psi0 * opts.R / 1e3;
+            kernelName = "cap";
+            % GM does not enter the EWH kernel; 1 stands in for it
+            fn = shLowLevel.kernelFactors('ewh', L, 1, opts.R, kn = knUsed);
+            phi = capCoefficients(L, cos(psi0)) ./ ((2 * (0:L)' + 1) .* fn);
+        end
         T = phi(idx.n + 1) .* shLowLevel.ylm(deg2rad(nodes(:, 1)), ...
             deg2rad(nodes(:, 2)), idx)';
         % projector over the buffered region, from its grid points only
@@ -317,7 +408,7 @@ end
 B = struct('type', opts.Type, 'idx', idx, 'T', T, 'Proj', Proj, ...
     'K', size(T, 2), 'nodes', nodes, 'kernel', phi, ...
     'kernelName', kernelName, 'grid', gridName, 'level', level, ...
-    'nGlobal', nGlobal, 'lambda', lam, 'rank', rnk, ...
+    'nGlobal', nGlobal, 'capRadiusKm', capKm, 'lambda', lam, 'rank', rnk, ...
     'eigTol', opts.EigTol, 'region', reg);
 end
 
@@ -340,6 +431,45 @@ switch opts.Kernel
         end
         phi = sig ./ sqrt(2 * nn + 1);
 end
+end
+
+function knUsed = checkLoveNumbers(kn, idx)
+% The Love numbers a mascon basis reads: degrees 0..Lmax, with the
+% degrees below IDX's first one set to 0 because T has no row for them.
+L = idx.Lmax;
+if isempty(kn)
+    error('shLowLevel:regionalBasis:badLoveNumbers', ...
+        'Type "mascon" needs the load Love numbers kn (n = 0..%d).', L);
+end
+kn = kn(:);
+if numel(kn) < L + 1
+    error('shLowLevel:regionalBasis:badLoveNumbers', ...
+        'kn has %d entries; degrees 0..%d need %d (kn(1) is degree 0).', ...
+        numel(kn), L, L + 1);
+end
+knUsed = kn(1:L + 1);
+knUsed(1:idx.minDegree) = 0;
+den = 1 + knUsed;
+bad = find(~isfinite(den) | den == 0, 1);
+if ~isempty(bad)
+    error('shLowLevel:regionalBasis:badLoveNumbers', ...
+        '1 + kn is %g at degree %d, which the EWH kernel divides by.', ...
+        den(bad), bad - 1);
+end
+end
+
+function c = capCoefficients(L, t0)
+% Legendre coefficients of the cap indicator, n = 0..L:
+% c_0 = (1 - t0)/2, c_n = (P_(n-1)(t0) - P_(n+1)(t0))/2.
+Pn = zeros(L + 2, 1);          % P_0 .. P_(L+1) at t0
+Pn(1) = 1;
+Pn(2) = t0;
+for n = 1:L
+    Pn(n + 2) = ((2 * n + 1) * t0 * Pn(n + 1) - n * Pn(n)) / (n + 1);
+end
+c = zeros(L + 1, 1);
+c(1) = (1 - t0) / 2;
+c(2:end) = (Pn(1:L) - Pn(3:L + 2)) / 2;
 end
 
 function level = defaultLevel(gridName, L)

@@ -1,5 +1,59 @@
 # Changelog
 
+## [5.27.0] - 2026-10-23 - WP9 9c: mascons as a regional basis
+
+A MINOR release: a fourth `Type` of `shLowLevel.regionalBasis`, two
+options, one output field. Every existing basis is unchanged: the rbf,
+Slepian and SH paths are not touched, and their structs gain only
+`capRadiusKm = NaN`.
+
+### Added
+- **`Type = "mascon"`** in `shLowLevel.regionalBasis`, `ts.regionalBasis`
+  and `g.regionalBasis`: spherical caps on the nodes of the rbf grids,
+  each a uniform layer of 1 m equivalent water height, so the basis
+  coefficients are the caps' EWH in metres - the quantity mascon products
+  report (Watkins et al. 2015). The cap's Legendre coefficients are the
+  closed form c_0 = (1 - t0)/2, c_n = (P_(n-1)(t0) - P_(n+1)(t0))/2, and
+  T(:, k) = c_n / ((2n+1) f_n) .* Ybar(x_k)' with f_n the EWH kernel of
+  `kernelFactors`: an rbf with the cap kernel, so node selection and the
+  projector are the rbf's, and the regional Kalman chain (8d-8i) takes it
+  without a change.
+- **`CapRadiusKm`** (default equal-area: cos psi0 = 1 - 2/N for the N
+  nodes of the global grid, so the caps have the sphere's area - 201.7 km
+  at nmax 60, 403.1 km at nmax 30) and **`kn`** (the load Love numbers,
+  required; degrees below the index's first are not read, so a CM-frame
+  set with k_1 = -1 works from degree 2). Both are refused for the other
+  types.
+- **`B.capRadiusKm`**, NaN for the other types.
+- Identifiers `shLowLevel:regionalBasis:badLoveNumbers` and
+  `shLowLevel:regionalBasis:badCapRadius`; `badAmplitude` also refuses a
+  `DegreeAmplitude` given with `Type = "mascon"`.
+- Oracle `tools/dev/validate_regional_mascon.py`: c_n against 40-digit
+  mpmath values to 4.3e-17 (Gauss-Legendre quadrature agrees to 2.8e-13,
+  its own rounding); the telescoping centre value
+  sum c_n = 1 - (P_L + P_(L+1))/2 to 2.2e-16; a column of T against
+  scipy's Legendre series to 9.4e-14; the cap's area through degree 0 to
+  5.7e-15; the projector at a level nmax resolves (Proj T = I to
+  1.1e-14); and a uniform layer's projection, measured.
+- Tests: `testRegionalBasisMasconIsTheCapSeries`,
+  `testRegionalBasisMasconMassAndCentre`,
+  `testRegionalBasisMasconProjector` (testCorrectness),
+  `testRegionalBasisMasconRouteAndIDs` (testContract).
+
+### What a mascon coefficient is not, stated in the help
+- Not the band-limited field's value: the centre of a cap band-limited at
+  nmax is 1 - (P_L(t0) + P_(L+1)(t0))/2 - 0.73 for the default cap at
+  nmax 60, 1.32 for a 3 deg cap there.
+- Not a tile: caps neither cover the sphere exactly nor are orthogonal,
+  so a uniform 1 m layer projects to interior caps of median 1.02 m with
+  a spread of 0.53 to 1.20 (nmax 30, 5.2 deg caps). A basin's mass is the
+  basin mean through T, not a sum of caps.
+
+### Not done
+- The comparison with a published mascon product (`readMascon`) the row
+  named: no product is reachable from this session. Debt for the
+  acceptance machine.
+
 ## [5.26.0] - 2026-10-23 - WP9 9b: the climatology from the normal equations
 
 A MINOR release: one new function. Nothing existing changes.
