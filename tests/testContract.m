@@ -2379,6 +2379,32 @@ verifyEqual(testCase, rg.second.sigma, [0; 0; 1e-11; 1e-11], ...
     'a given SecondNoise is used as given, 0 where the index holds no degree');
 end
 
+function testNeqClimatologyGuards(testCase)
+%TESTNEQCLIMATOLOGYGUARDS WP9 9b: each guard of shLowLevel.neqClimatology
+%   on records raises its own identifier.
+idx = shLowLevel.shIndex(2);
+P = idx.P;
+recs = struct('N', {}, 'b', {}, 'epoch', {});
+for k = 1:8
+    recs(k) = struct('N', eye(P), 'b', ones(P, 1), 'epoch', 2005 + k / 12);
+end
+verifyError(testCase, @() shLowLevel.neqClimatology(recs), ...
+    'shLowLevel:neqClimatology:noNmax');
+bad = recs;
+bad(2).N = eye(P + 1);
+verifyError(testCase, @() shLowLevel.neqClimatology(bad, Nmax = 2), ...
+    'shLowLevel:neqClimatology:badRecord');
+verifyError(testCase, @() shLowLevel.neqClimatology(recs, Nmax = 2, ...
+    DeviationCov = ones(P + 1, 1)), 'shLowLevel:neqClimatology:badDeviationCov');
+verifyError(testCase, @() shLowLevel.neqClimatology(recs(1:3), Nmax = 2), ...
+    'shLowLevel:neqClimatology:singular');
+verifyError(testCase, @() shLowLevel.neqClimatology(recs, Nmax = 2, ...
+    MaxMemGB = 1e-9), 'shLowLevel:neqClimatology:tooLarge');
+[clim, info] = shLowLevel.neqClimatology(recs, Nmax = 2);
+verifyEqual(testCase, clim.nmax, 2);
+verifyEqual(testCase, info.P, P);
+end
+
 function testSeriesEofIsEofAnalysis(testCase)
 %TESTSERIESEOFISEOFANALYSIS ts.eof is shLowLevel.eofAnalysis(ts), bitwise.
 ts = wp7Series(6, 20, 73);

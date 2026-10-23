@@ -1,5 +1,70 @@
 # Changelog
 
+## [5.26.0] - 2026-10-23 - WP9 9b: the climatology from the normal equations
+
+A MINOR release: one new function. Nothing existing changes.
+
+### Added
+- **`shLowLevel.neqClimatology`**: the six climatology terms (bias,
+  trend, annual and semi-annual cos/sin) of every coefficient, estimated
+  from the monthly normal equations - a SINEX folder, several, a file
+  list, or records with N, b and epoch - and returned as an
+  `shClimatology` with its sigmas in `coefSigma`. Month t observes
+  x_t = (d_t' kron I) theta + delta_t, with delta_t ~ N(0, Sigma_d) the
+  month's deviation from the climatology (`DeviationCov`). Reducing
+  delta_t leaves W_t = (I + N_t Sigma_d)^-1 N_t and r_t = (I + N_t
+  Sigma_d)^-1 b_t, which never invert N_t, so a rank-deficient month
+  enters as it is; `info.singular` names such months.
+- Options `Nmax` (read from the first file when not given), `DeviationCov`,
+  `T0`, `GM`, `R`, `Pattern` and `MaxMemGB` (8); seven identifiers, each
+  driven by a test.
+- `class_surface_audit`: `neqClimatology` is an exception - it reads
+  normal equations, which no class object holds (`kalmanChain`'s neq
+  mode is on the lane for the same reason).
+
+### Measured (`tools/dev/validate_neq_climatology.py`, new)
+- With Sigma_d = 0 it is the generalized least-squares fit of the
+  solutions with their full covariances (1.0e-15 relative); with
+  Sigma_d it is the Schur reduction of the joint normal equation in the
+  terms and every month's deviation (1.8e-14, covariance 1.6e-14); a
+  rank-deficient month changes neither (1.2e-14).
+- Closed loop, nmax 10, 120 months, a stripe in every order's
+  same-parity block whose direction changes from month to month: the
+  trend error is 0.44 of an equal-weight fit's and 0.66 for a fit
+  weighted by the formal sigmas, better than both in every seed; the
+  trend sigma is honest (0.98 pooled) with the true Sigma_d and too small
+  by about 1.2 without it.
+- **Where the gain comes from**: with a noise covariance of the same
+  shape every month the gain is nil (ratio 1.000) - identical regressors
+  for every coefficient and a time-invariant correlation make the
+  estimate a per-coefficient weighting. The first closed loop of the
+  oracle was built that way and showed no gain at all; the month-to-
+  month change of the noise pattern is the whole effect, and how large
+  it is for GRACE's orbits has not been measured on real normal
+  equations.
+- Memory: the solve holds three (6P x 6P) matrices, 0.81 GB each at
+  nmax 40 and 3.98 GB at 60 (25.5 at 96); `MaxMemGB` refuses beyond it.
+
+### Tests
+- `testNeqClimatologyIsTheGLSFitAndTheJointReduction`: both dense
+  references, terms and sigmas, bounds 3x the oracle's CLAIM 1-3b.
+- `testNeqClimatologyTrendBeatsAnEqualWeightFit`: the closed loop at
+  nmax 8, trend error below 0.8 of the equal-weight fit's (CLAIM 4b:
+  median 0.486, worst 0.583 over 20 seeds), with one singular month.
+- `testNeqClimatologyReadsSINEXLikeRecords`: a SINEX folder equals the
+  records `readSINEX` makes of it, bitwise, and `Nmax` is read from the
+  file; `noFiles` and `notNEQ`.
+- `testNeqClimatologyGuards` (contract): `noNmax`, `badRecord`,
+  `badDeviationCov`, `singular`, `tooLarge`.
+- 446 methods / 460 runs (Correctness 227, Contract 136).
+
+### Documentation
+- `shClimatology.html` gains "From the normal equations"; the guide
+  a subsection after the bridging chapter.
+
+Developed by Matthias Weigelt with the help of Claude (Opus 5.5),
+2026-10-23.
+
 ## [5.25.0] - 2026-10-23 - WP9 9a: a second observation group for the Kalman chain
 
 A MINOR release: five options on `shLowLevel.kalmanChain` and its route

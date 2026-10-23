@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shLowLevel.neqClimatology &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shLowLevel.neqClimatology</nav>
+<h1>shLowLevel.neqClimatology</h1>
+<p class="h1line">Climatology estimated from every month&#x27;s normal equation.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>[clim, info] = shLowLevel.neqClimatology(neqs)</code><code>[clim, info] = shLowLevel.neqClimatology(neqs, Nmax=[], DeviationCov=[], T0=NaN, ...)</code></div>
+<h2>Description</h2>
+<p>CLIM = shLowLevel.neqClimatology(NEQS) estimates the six climatology terms of <a href="shClimatology.html"><code>shClimatology</code></a> - bias, trend, annual and semi-annual cos/sin - for every coefficient from the monthly normal equations themselves, instead of fitting them to filtered solutions. Month t&#x27;s normal equation N_t x = b_t observes x_t = (d_t&#x27; kron I) theta + delta_t,   delta_t ~ N(0, Sigma_d), with d_t the six time functions at t (around T0) and delta_t the month&#x27;s deviation from the climatology. Reducing delta_t leaves the month&#x27;s contribution W_t = (I + N_t Sigma_d)^-1 N_t,   r_t = (I + N_t Sigma_d)^-1 b_t, which never inverts N_t, so a rank-deficient month enters as it is, and which is (N_t^-1 + Sigma_d)^-1 where N_t is regular. Then N_theta = sum_t (d_t d_t&#x27;) kron W_t,   b_theta = sum_t d_t kron r_t, theta = N_theta^-1 b_theta,   Cov(theta) = N_theta^-1. With DeviationCov = [] (Sigma_d = 0) this is the generalized least- squares fit of the solutions x_t = N_t^-1 b_t with their full covariances; with Sigma_d it is the Schur reduction of the joint normal equation in theta and every delta_t (tools/dev/validate_neq_climatology.py CLAIMs 1-3, 1.0e-15 to 1.8e-14 relative).</p>
+<h2>Examples</h2>
+<details class="example"><summary>From the help block</summary><div><pre><code>    [clim, info] = shLowLevel.neqClimatology(itsgFolder, Nmax = 40, ...
+        DeviationCov = sigd .^ 2);
+    tr = clim.trend;                  % per year, with tr.sigmaC</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>neqs</code></td><td>1 x n</td><td>-</td><td><code>required</code></td><td class="desc">string | (1,T) struct  a SINEX folder, or several, or a list of SINEX files, each read with <a href="shLowLevel_readSINEX.html"><code>shLowLevel.readSINEX</code></a> and required to carry a normal-equation block (kind &#x27;NEQ&#x27;, b = M x); or records with fields N (P x P), b (P x 1) and epoch (1,1) [decimal years] in <a href="shLowLevel_shIndex.html"><code>shLowLevel.shIndex</code></a>(Nmax) order</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>Nmax</code></td><td>n x m</td><td>double</td><td><code>[]</code></td><td class="desc">(1,1) double  the degree the coefficients are truncated to; [] takes it from the first file, and is required for records</td></tr><tr><td><code>DeviationCov</code></td><td>n x m</td><td>double</td><td><code>[]</code></td><td class="desc">(P x 1) | (P x P) double  Sigma_d, the covariance of a month&#x27;s deviation from the climatology, in shIndex(Nmax) order; [] is Sigma_d = 0 (the months are taken to lie on the climatology, and the sigmas are then too small). The signal covariance of a model series&#x27; residuals (<a href="shLowLevel_buildSignalCov.html"><code>shLowLevel.buildSignalCov</code></a>) is one source</td></tr><tr><td><code>T0</code></td><td>1 x 1</td><td>double</td><td><code>NaN</code></td><td class="desc">(1,1) double  reference epoch of the terms [decimal years]; NaN takes the mean epoch</td></tr><tr><td><code>GM</code></td><td>1 x 1</td><td>double</td><td><code>3.986004415e14</code></td><td class="desc">(1,1) double  constant of the output</td></tr><tr><td><code>R</code></td><td>1 x 1</td><td>double</td><td><code>6378136.3</code></td><td class="desc">(1,1) double  constant of the output [m]</td></tr><tr><td><code>Pattern</code></td><td>1 x 1</td><td>string</td><td><code>&quot;*.snx*&quot;</code></td><td class="desc">(1,1) string  file pattern inside a folder</td></tr><tr><td><code>MaxMemGB</code></td><td>1 x 1</td><td>double</td><td><code>8</code></td><td class="desc">(1,1) double  refuse when the three (6P x 6P) matrices of the solve would need more [GB]</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>clim</code></td><td class="desc">(1,1) <a href="shClimatology.html"><code>shClimatology</code></a>  the six terms, with their 1-sigma in coefSigma (so clim.trend.sigmaC is the trend&#x27;s sigma)</td></tr><tr><td><code>info</code></td><td class="desc">(1,1) struct  fields epochs    (T,1) double  the months used, sorted nEpochs   (1,1) double  their number t0        (1,1) double  the reference epoch nmax      (1,1) double  the degree P         (1,1) double  coefficients per term memGB     (1,1) double  memory of the three matrices of the solve [GB] singular  (1,T) logical  months whose normal equation is not positive definite (they still enter, as they are)</td></tr></table>
+<h2>Error Identifiers</h2>
+<table><tr><th>Identifier</th><th>Raised when</th></tr><tr><td><code>shLowLevel:neqClimatology:badDeviationCov</code></td><td class="desc">DeviationCov is neither P x 1 nor P x P, or not finite</td></tr><tr><td><code>shLowLevel:neqClimatology:badRecord</code></td><td class="desc">a record lacks N, b or epoch, or does not match the index</td></tr><tr><td><code>shLowLevel:neqClimatology:noFiles</code></td><td class="desc">no file matches Pattern in a folder</td></tr><tr><td><code>shLowLevel:neqClimatology:noNmax</code></td><td class="desc">records were given without Nmax</td></tr><tr><td><code>shLowLevel:neqClimatology:notNEQ</code></td><td class="desc">a SINEX file carries no normal-equation block</td></tr><tr><td><code>shLowLevel:neqClimatology:singular</code></td><td class="desc">N_theta is not positive definite: too few months for six terms, or a coefficient no month observes</td></tr><tr><td><code>shLowLevel:neqClimatology:tooLarge</code></td><td class="desc">the three matrices of the solve would exceed MaxMemGB</td></tr></table>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<ul class="seealso"><li><a href="shSeries_climatology.html"><code>shSeries.climatology</code></a></li><li><a href="shClimatology.html"><code>shClimatology</code></a></li><li><a href="shLowLevel_kalmanChain.html"><code>shLowLevel.kalmanChain</code></a></li><li><a href="shLowLevel_readSINEX.html"><code>shLowLevel.readSINEX</code></a></li></ul>
+<p class="prov">shAnalysis v5.26.0 (23-Oct-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>
