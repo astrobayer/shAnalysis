@@ -74,6 +74,23 @@ covariance inversion of the data needed</td></tr>
 background models. The chain takes them as-is and returns a <em>residual</em> series; restoring
 GAX / static field is your responsibility, exactly as in the rest of the toolbox.</div>
 
+<h2>A second observation group (v5.25.0)</h2>
+<p>In solution mode, <code class="inline">SecondSeries = tsB</code> adds a noisier series of the
+same field &mdash; an HLSST&nbsp;+&nbsp;SLR combination, Swarm &mdash; as a second observation of
+every epoch it has. It observes each coefficient of degree n as B = s<sub>n</sub> x + o + e: an
+offset o per coefficient, a scale s<sub>n</sub> per degree (a regularised series is damped) and a
+noise &sigma;<sub>n</sub> per degree, all calibrated on the months both series have. The scale
+corrects the regression for the primary's own noise (errors in variables), and
+&sigma;<sub>n</sub> comes from the overlap, not from the formal sigmas, which are too small for
+the Kalman-filtered HLSST series. Each epoch of tsB is added to the filter as a normal equation;
+where the primary has no month, tsB alone observes it, so the 2017&ndash;18 gap is bridged by the
+estimator itself rather than by a separate fill. The default grid is the primary's epochs plus
+every tsB epoch inside its span that it lacks, and <code class="inline">rep.observedBy</code> says
+which series observed each epoch. In the closed loop of
+<code class="inline">tools/dev/validate_kalman_bridge.py</code> the gap error at 750&nbsp;km is
+0.34 of the signal, against 0.46 for <a href="ref/shLowLevel_bridgeGaps.html">bridgeGaps</a>'
+calibrated fill and 0.69 for the chain without tsB.</p>
+
 <h2>Typical calls</h2>
 <pre>% smooth a noisy daily-type series with a GAX process prior
 tsm = shSeries.fromFolder(gaxFolder).truncate(40);
@@ -82,7 +99,11 @@ tsm = shSeries.fromFolder(gaxFolder).truncate(40);
 % bridge missing days: prediction-only epochs on a daily grid
 grid = (2017 + (0:364)'/365.25);
 [ts, rep] = shLowLevel.kalmanChain(tsObs, ModelSeries=tsm, Epochs=grid);
-plot(rep.epochs, rep.meanContribution)   % data share per epoch (Kurtenbach 3.3.2)</pre>
+plot(rep.epochs, rep.meanContribution)   % data share per epoch (Kurtenbach 3.3.2)
+
+% bridge the 2017-18 gap with an HLSST series as a second observation group
+[ts, rep] = tsG.kalman(ModelSeries=tsm, SecondSeries=tsH);
+ts.epochs(rep.observedBy == "second")    % the months only tsH observed</pre>
 
 <h2>What to watch</h2>
 <ul>

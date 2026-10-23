@@ -1,5 +1,79 @@
 # Changelog
 
+## [5.25.0] - 2026-10-23 - WP9 9a: a second observation group for the Kalman chain
+
+A MINOR release: five options on `shLowLevel.kalmanChain` and its route
+`ts.kalman`. A chain without `SecondSeries` is unchanged, bitwise - the
+new code runs only when that option is given.
+
+### Added
+- **`SecondSeries`** on `kalmanChain` and `ts.kalman` (solution mode): a
+  second, noisier series of the same field - an HLSST + SLR combination,
+  Swarm - observing every epoch it has. It observes each coefficient of
+  degree n as B = s_n x + o + e with an offset o per coefficient, a
+  scale s_n and a noise sigma_n per degree, calibrated on the months
+  both series have:
+  s_n = sum(dB dR) / (sum(dR^2) - sum(sR^2)) (the primary's own noise
+  variances sR^2 removed from the denominator - errors in variables),
+  o = mean(B) - s_n mean(R), sigma_n^2 = mean((dB - s_n dR)^2) -
+  s_n^2 mean(sR^2), floored at s_n^2 mean(sR^2). The second series'
+  formal sigmas are not used (too small for the Kalman-filtered HLSST
+  series by 3 to 6, measured in 5.12.0). Each of its epochs enters the
+  filter as a normal equation, added to the primary's information where
+  both observe the epoch, so a month only it has - the 2017-18 gap - is
+  bridged by the estimator rather than by a separate fill. The default
+  grid is the primary's epochs plus every second-series epoch inside the
+  primary's span that the primary lacks.
+- `SecondNoise` ("overlap" or per-degree sigmas), `SecondScale` (true;
+  false fixes s_n = 1), `SecondTolerance` (0.05 yr) and `MinOverlap`
+  (24).
+- `rep.observedBy` ("primary" | "second" | "both" | "none" per epoch)
+  and `rep.second` (scale, sigma, offsetC, offsetS, overlap), with
+  `SecondSeries` only.
+- Five identifiers, each driven by a test: `secondInNeqMode`,
+  `secondMismatch`, `secondNotFinite`, `noOverlap`, `badSecondNoise`.
+
+### Measured (`tools/dev/validate_kalman_bridge.py`, new)
+- With the process model fixed, the chain with both series is their
+  joint Gaussian posterior: states 1.4e-15, sigmas 3.3e-14 relative
+  against the dense solution (2.1e-15 / 1.2e-14 with an estimated model).
+- The calibration is consistent: on 20000 overlap epochs s_n within
+  0.8 percent and sigma_n within 0.5; the plain regression without the
+  noise correction reaches only 0.41 of s_n at degree 8.
+- Closed loop (nmax 12, 156 months, an 11-month gap and 8 scattered
+  missing months, a second series damped above degree 6 and 4 times
+  noisier), gap months at 750 km over degrees 3-12, median of 20 seeds:
+  0.34 of the signal with the second series, 0.46 for `bridgeGaps`'
+  calibrated fill, 0.69 for the chain without it - better than both in
+  every seed. Outside the gap it changes the error by 0.3 percent, and in
+  the gap the error is 0.98-1.13 of the predicted sigma. The scale wins
+  in 19 of 20 seeds (0.34 against 0.35), so `SecondScale` defaults to
+  true.
+- On real data it has not been measured: the comparison against
+  `bridgeGaps` on COST-G and HLSST needs the acceptance machine.
+
+### Tests
+- `testKalmanChainSecondSeriesIsTheJointPosterior`: the dense posterior,
+  bounds 3x the oracle's CLAIM 1b.
+- `testKalmanChainSecondSeriesCalibration`: consistency at 6000 epochs,
+  bounds 3x CLAIM 2b; the offset with `SecondScale = false` exact.
+- `testKalmanChainSecondSeriesBridgesAGap`: the closed loop at nmax 6,
+  gap error below 0.9 of the chain's without the second series (CLAIM 4:
+  median 0.674, worst 0.794 over 40 seeds).
+- `testKalmanSecondSeriesRouteAndGuards` (contract): `ts.kalman`
+  forwards bitwise, no second-series fields without the option, and the
+  five identifiers.
+- 442 methods / 456 runs (Correctness 224, Contract 135).
+
+### Documentation
+- `kalman.html` gains "A second observation group"; the guide's
+  chapter 32 the Kalman route beside the calibrated fill.
+- `CLAUDE.md` §5 records WP9, the rows proposed on 2026-10-22 and
+  approved in that order.
+
+Developed by Matthias Weigelt with the help of Claude (Opus 5.5),
+2026-10-23.
+
 ## [5.24.1] - 2026-10-22 - five refinements
 
 A PATCH release: one fix, two new gate rules with the first 56
