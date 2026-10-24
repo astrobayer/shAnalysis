@@ -1,5 +1,5 @@
-# THROWAWAY (WP8 8f, 2026-10-24): can A8 reach the ESA ESM host at all?
-# Downloads nothing beyond directory listings. Not meant to be merged.
+# THROWAWAY (WP8 8f, 2026-10-24): which GFZ hosts can A8 reach?
+# Not meant to be merged.
 name: probe-8f
 on:
   pull_request:
@@ -9,22 +9,13 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 10
     steps:
-      - name: Reach isdc-data.gfz.de
+      - name: TCP 443 to GFZ and other data hosts
         shell: powershell
         run: |
-          $h = 'isdc-data.gfz.de'
-          try { Resolve-DnsName $h | Format-Table Name, Type, IPAddress -AutoSize } catch { "DNS FAILED: $($_.Exception.Message)" }
-          try { Test-NetConnection $h -Port 443 | Format-List ComputerName, RemoteAddress, TcpTestSucceeded } catch { "TNC FAILED" }
-          try { Test-NetConnection $h -Port 80 | Format-List ComputerName, RemoteAddress, TcpTestSucceeded } catch { "TNC FAILED" }
-          "proxy env: HTTPS_PROXY=$env:HTTPS_PROXY HTTP_PROXY=$env:HTTP_PROXY"
-          netsh winhttp show proxy
-      - name: curl listings
-        shell: powershell
-        run: |
-          foreach ($d in @('mtmshc/', 'mtmdeal/')) {
-            foreach ($s in @('https', 'http')) {
-              $u = "${s}://isdc-data.gfz.de/future_missions/esaesm/ESAESM2/$d"
-              "===== $u"
-              & curl.exe -sS -m 60 -4 $u 2>&1 | ForEach-Object { ($_ -replace '<[^>]+>', ' ').Trim() } | Where-Object { $_ -ne '' } | Select-Object -First 60
-            }
+          foreach ($h in @('isdc-data.gfz.de', 'isdc.gfz.de', 'icgem.gfz-potsdam.de', 'icgem.gfz.de', 'esmdata.gfz.de', 'gravis.gfz.de', 'www.gfz.de', 'isdcftp.gfz.de', 'ftp.tugraz.at', 'github.com')) {
+            $r = Test-NetConnection $h -Port 443 -WarningAction SilentlyContinue
+            "{0,-24} {1,-16} tcp443={2}" -f $h, $r.RemoteAddress, $r.TcpTestSucceeded
           }
+          $r = Test-NetConnection 'isdcftp.gfz.de' -Port 21 -WarningAction SilentlyContinue
+          "isdcftp.gfz.de ftp21={0}" -f $r.TcpTestSucceeded
+          & tracert.exe -d -h 12 -w 800 139.17.228.112
