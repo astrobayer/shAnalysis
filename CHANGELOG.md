@@ -1,5 +1,60 @@
 # Changelog
 
+## [5.27.2] - 2026-10-24 - WP9 9d: the closed loop at full size, as an opt-in measurement
+
+A PATCH release: one opt-in test, a prediction script and two inputs of
+the CI workflow's manual run. No function, help block or default changes;
+an ordinary CI run filters the new test.
+
+### Added
+- **`testRegionalClosedLoopAtFullSize`** (testRobustness), opt-in by
+  Matthias's choice ("Make it opt-in"): the data flow of WP8 row 8f at
+  full size on synthetic data - per month one SH normal matrix
+  N_t = D + V_t V_t' (P x P, formal variances plus a rank-20 stripe
+  pattern that changes every month), the month's noise drawn through
+  chol(N_t), the normal equation carried into an RBF basis of the Elbe by
+  `regionalNEQ(B, "neq")` and released, then `regionalKalman` in records
+  mode with the process model from an independent realisation. It logs,
+  per degree, P, K, the predicted and the measured memory peak, the
+  largest allocatable array, seconds per month and for the filter, and
+  the RMS of (estimate - projected truth) / sigma - reported, not
+  asserted. It asserts that the loop completes with finite estimates and
+  positive sigmas, or fails with the statement that one P x P matrix
+  exceeds the largest array the machine can allocate. Switched on by
+  `SHX_CLOSEDLOOP_NMAX` (e.g. "60,96") or the preference
+  `ClosedLoopNmax`; `SHX_CLOSEDLOOP_MONTHS` sets the months (12).
+- **`tools/dev/closed_loop_budget.py`**: the prediction the measurement
+  is read against - three P x P matrices at the peak (the stripe update's
+  temporary, N_t, its factor), since no stack over months is formed:
+  0.31 GB at nmax 60, 1.98 GB at nmax 96, 4.79 GB at nmax 120.
+- **CI**: the workflow's manual run (`workflow_dispatch`) takes
+  `closed_loop_nmax` and `closed_loop_months` and passes them to the test
+  step as `SHX_CLOSEDLOOP_NMAX` / `SHX_CLOSEDLOOP_MONTHS`; pushes and pull
+  requests leave them empty. `tests/closedloop_log.csv` is archived with
+  `perf_log.csv` and ignored by git.
+
+### Count
+- 451 methods / 465 runs (Robustness 62). On A8 8 tests filter in an
+  ordinary run, 7 on a manual run that sets `closed_loop_nmax`.
+
+### Measured on A8 (manual run 40062134202, `closed_loop_nmax = 60,96`, 12 months)
+| nmax | P | K | peak, predicted | peak, measured | s / month | filter s |
+|---|---|---|---|---|---|---|
+| 60 | 3717 | 15 | 0.31 GB | 0.21 GB | 0.32 | 0.10 |
+| 96 | 9405 | 37 | 1.98 GB | 1.32 GB | 2.22 | 0.26 |
+- A8 has 27.8 GB of physical memory and allocates arrays up to 21.2 GB.
+  The measured peak is two P x P matrices (0.21 / 0.103, 1.32 / 0.659);
+  the prediction's third, the stripe update's temporary, lives between
+  two samples and is not seen. So **memory does not stop 8f on A8**:
+  even nmax 120 (4.8 GB predicted) is a quarter of the largest array.
+- **The closed loop is not honest yet**: RMS((estimate - projected truth)
+  / sigma) = 11.7 at nmax 60 and 5.6 at nmax 96. The synthetic truth has
+  signal everywhere and the normal equations observe the whole sphere,
+  so the part of it outside the basis's span enters the basis
+  coefficients, and their sigmas do not know it. That is what 8e's
+  remove-compute-restore is for, and this loop runs without a
+  background. Recorded, not asserted.
+
 ## [5.27.1] - 2026-10-24 - the README brought up to date
 
 A PATCH release: documentation only. No code, test or help block changes.

@@ -84,7 +84,20 @@ on:
   push:
     branches: [main]
   pull_request:
-  workflow_dispatch: {}
+  # A run by hand can switch on the opt-in full-size closed loop (WP9 9d,
+  # testRegionalClosedLoopAtFullSize): its inputs become the
+  # SHX_CLOSEDLOOP_* variables of the test step. Every other event leaves
+  # them empty, and the test filters.
+  workflow_dispatch:
+    inputs:
+      closed_loop_nmax:
+        description: "WP9 9d: degrees of the full-size closed loop, e.g. 60,96 (empty: skip)"
+        required: false
+        default: ""
+      closed_loop_months:
+        description: "WP9 9d: months of the closed loop (default 12)"
+        required: false
+        default: ""
 
 # One run per ref. Pushing twice in quick succession used to leave the
 # superseded run occupying the only runner.
@@ -293,6 +306,9 @@ jobs:
 
       - name: Run test suite
         uses: matlab-actions/run-command@bfa857648f4895aa98a446fe41c85e0788421ed5 # v3
+        env:
+          SHX_CLOSEDLOOP_NMAX: ${{ github.event.inputs.closed_loop_nmax }}
+          SHX_CLOSEDLOOP_MONTHS: ${{ github.event.inputs.closed_loop_months }}
         with:
           command: >
             fprintf('pwd: %s\n', pwd);
@@ -313,5 +329,7 @@ jobs:
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0 (node24)
         with:
           name: test-results-${{ matrix.os }}
-          path: tests/perf_log.csv
+          path: |
+            tests/perf_log.csv
+            tests/closedloop_log.csv
           if-no-files-found: ignore

@@ -346,6 +346,16 @@ story += [para("<font face='Courier'>SHX_SERIES_FOLDER</font> is the one "
                "keeps it). None of the seven is required: without their "
                "data the suite runs complete and each reports as "
                "filtered rather than passing silently."),
+          para("One more opt-in test needs no data, only time and memory "
+               "(v5.27.2): testRegionalClosedLoopAtFullSize (testRobustness) "
+               "runs the regional Kalman filter's closed loop at full size - "
+               "one full SH normal matrix per month, carried into an RBF "
+               "basis of the Elbe - and logs memory and wall time per degree "
+               "to tests/closedloop_log.csv. It runs when "
+               "<font face='Courier'>SHX_CLOSEDLOOP_NMAX</font> (e.g. "
+               "\"60,96\") or the ClosedLoopNmax preference is set; on CI, "
+               "run the workflow by hand with the input closed_loop_nmax. "
+               "tools/dev/closed_loop_budget.py prints the prediction."),
           PageBreak()]
 
 # ========================================================= Part I theory

@@ -1784,3 +1784,161 @@ verifyEqual(tc, info.missing, "2010-02");
 verifyEmpty(tc, info.products(1).missing);
 verifyEqual(tc, info.products(2).missing, "2010-02");
 end
+
+% ------------------------------------------- WP9 9d: the closed loop at full size
+function testRegionalClosedLoopAtFullSize(testCase)
+%TESTREGIONALCLOSEDLOOPATFULLSIZE Does the 8f closed loop fit this machine?
+%   WP9 row 9d, opt-in: a MEASUREMENT, not a check of numbers. WP8 row 8f
+%   (the closed loop of Woehnke et al. 2025 / Steffen et al. 2026: monthly
+%   full-covariance noise, the regional Kalman filter on a local basis)
+%   was postponed on 2026-10-21 because the CI machine's memory was in
+%   doubt. This runs the same data flow at full size on synthetic data
+%   and logs what it costs:
+%     - per month, an SH normal matrix N_t = D + V_t V_t' (P x P: formal
+%       variances plus a rank-20 stripe pattern that changes every month),
+%       the month's noise drawn through chol(N_t), and the normal equation
+%       carried into the RBF basis of the Elbe with
+%       shLowLevel.regionalNEQ(B, "neq") - after which the P x P matrices
+%       are released, so only one month is ever held;
+%     - shLowLevel.regionalKalman on those basis normal equations (records
+%       mode), the process model estimated from an independent
+%       realisation of the truth's process.
+%   One line per nmax goes to the log and to tests/closedloop_log.csv:
+%   P, K, the predicted peak (three P x P matrices,
+%   tools/dev/closed_loop_budget.py), the measured increase of MATLAB's
+%   memory (Windows `memory`; NaN elsewhere), the largest array the
+%   machine can allocate, seconds per month and for the filter, and the
+%   RMS of (estimate - projected truth) / predicted sigma, which includes
+%   the signal outside the region the basis cannot carry - reported, not
+%   asserted, because no oracle has measured it at this size.
+%
+%   Opt-in: SHX_CLOSEDLOOP_NMAX (e.g. "60" or "60,96") or the preference
+%   ClosedLoopNmax; SHX_CLOSEDLOOP_MONTHS (default 12) sets the months.
+%   On CI: run the workflow by hand (workflow_dispatch) with the input
+%   closed_loop_nmax. Without either, the test filters.
+%   Asserted: the loop completes with finite estimates and positive
+%   sigmas, or it states that one P x P matrix exceeds the largest array
+%   the machine can allocate - which is the answer the row asks for.
+nm = string(getenv('SHX_CLOSEDLOOP_NMAX'));
+if nm == "", nm = string(getpref('shAnalysis', 'ClosedLoopNmax', "")); end
+assumeTrue(testCase, nm ~= "", ...
+    ['set SHX_CLOSEDLOOP_NMAX (e.g. "60,96") or the preference ' ...
+     'ClosedLoopNmax to run the full-size closed loop (WP9 9d)']);
+nmaxList = str2double(split(nm, ","));
+assumeTrue(testCase, all(isfinite(nmaxList) & nmaxList >= 10), ...
+    sprintf('SHX_CLOSEDLOOP_NMAX is not a list of degrees: "%s"', nm));
+nMonths = str2double(getenv('SHX_CLOSEDLOOP_MONTHS'));
+if ~isfinite(nMonths) || nMonths < 3, nMonths = 12; end
+for L = nmaxList(:)'
+    closedLoopRun(testCase, L, nMonths);
+end
+end
+
+function closedLoopRun(testCase, L, nMonths)
+% One full-size closed loop at degree L; logs and asserts, see above.
+rng(96);
+idx = shLowLevel.shIndex(L);
+P = idx.P;
+r = 20;
+predGB = 3 * 8 * P^2 / 2^30;
+[~, maxArrayGB, physGB] = closedLoopMemGB();
+if isfinite(maxArrayGB) && 8 * P^2 / 2^30 > maxArrayGB
+    msg = sprintf(['CLOSEDLOOP nmax %d: one %d x %d matrix (%.2f GB) exceeds ' ...
+        'the largest array this machine can allocate (%.2f GB)'], ...
+        L, P, P, 8 * P^2 / 2^30, maxArrayGB);
+    fprintf('%s\n', msg);
+    verifyFail(testCase, msg);
+    return
+end
+t0 = tic;
+B = shLowLevel.regionalBasis(idx, "Elbe");
+tBasis = toc(t0);
+K = B.K;
+% the truth's process: a stationary AR(1) per coefficient, 1/(n+1)^2 signal
+sigX = 1e-9 ./ (idx.n + 1).^2;
+phi = 0.8;
+nModel = 120;
+X = zeros(P, nModel + nMonths);
+X(:, 1) = sigX .* randn(P, 1);
+for k = 2:size(X, 2)
+    X(:, k) = phi * X(:, k - 1) + sqrt(1 - phi^2) * sigX .* randn(P, 1);
+end
+% the model series: an independent realisation of the same process
+Xm = zeros(P, nModel);
+Xm(:, 1) = sigX .* randn(P, 1);
+for k = 2:nModel
+    Xm(:, k) = phi * Xm(:, k - 1) + sqrt(1 - phi^2) * sigX .* randn(P, 1);
+end
+n1 = L + 1;
+[Cs, Ss] = deal(zeros(n1, n1, nModel));
+for k = 1:nModel
+    [Cs(:, :, k), Ss(:, :, k)] = shLowLevel.csFromVec(Xm(:, k), idx);
+end
+tsm = shSeries(Cs, Ss = Ss, Epochs = 1990 + ((1:nModel)' - 0.5) / 12);
+clear Cs Ss Xm
+% the monthly normal equations, one P x P at a time
+sig = 1e-11 * (1 + idx.n / 10);
+D = 1 ./ sig.^2;
+ep = 2003 + ((1:nMonths)' - 0.5) / 12;
+recs = struct('N', {}, 'b', {}, 'epoch', {});
+mem0 = closedLoopMemGB();
+memPeak = mem0;
+tMonth = zeros(nMonths, 1);
+for t = 1:nMonths
+    tm = tic;
+    V = randn(P, r) .* (0.5 * sqrt(D));
+    N = V * V';
+    memPeak = max(memPeak, closedLoopMemGB());
+    N(1:P + 1:end) = N(1:P + 1:end) + D';
+    clear V
+    R = chol(N);
+    memPeak = max(memPeak, closedLoopMemGB());
+    y = X(:, nModel + t) + R \ randn(P, 1);   % noise ~ N(0, N^-1)
+    clear R
+    rec = shLowLevel.regionalNEQ(B, "neq", NEQ = struct('N', N, 'b', N * y));
+    memPeak = max(memPeak, closedLoopMemGB());
+    clear N
+    recs(t) = struct('N', rec.N, 'b', rec.b, 'epoch', ep(t)); %#ok<AGROW>
+    tMonth(t) = toc(tm);
+end
+tf = tic;
+[~, out] = shLowLevel.regionalKalman(recs, B, ModelSeries = tsm, Epochs = ep);
+tFilter = toc(tf);
+aTrue = B.Proj * X(:, nModel + (1:nMonths));
+z = (out.a - aTrue) ./ out.sigA;
+zRMS = sqrt(mean(z(:).^2));
+machine = upper(string(getenv('COMPUTERNAME')));
+if machine == "", [~, h] = system('hostname'); machine = upper(strtrim(string(h))); end
+line = sprintf(['CLOSEDLOOP,%s,%s,nmax=%d,P=%d,K=%d,months=%d,basisS=%.2f,' ...
+    'predPeakGB=%.3f,measPeakGB=%.3f,maxArrayGB=%.2f,physGB=%.2f,' ...
+    'sPerMonth=%.2f,filterS=%.2f,zRMS=%.3f'], ...
+    string(datetime('now', 'Format', 'yyyy-MM-dd HH:mm')), machine, L, P, K, ...
+    nMonths, tBasis, predGB, memPeak - mem0, maxArrayGB, physGB, ...
+    median(tMonth), tFilter, zRMS);
+fprintf('%s\n', line);
+log(testCase, 1, line);
+f = fullfile(fileparts(mfilename('fullpath')), 'closedloop_log.csv');
+fid = fopen(f, 'a');
+if fid > 0
+    fprintf(fid, '%s\n', line);
+    fclose(fid);
+end
+verifyEqual(testCase, out.K, K);
+verifySize(testCase, out.a, [K, nMonths]);
+verifyTrue(testCase, all(isfinite(out.a), 'all'), 'non-finite basis estimates');
+verifyTrue(testCase, all(out.sigA > 0, 'all'), 'non-positive sigmas');
+end
+
+function [usedGB, maxArrayGB, physGB] = closedLoopMemGB()
+% MATLAB's memory use, the largest array it can allocate and the physical
+% memory [GB] - Windows only (`memory`); NaN elsewhere.
+[usedGB, maxArrayGB, physGB] = deal(NaN);
+if ~ispc, return, end
+try
+    [u, s] = memory;
+    usedGB = u.MemUsedMATLAB / 2^30;
+    maxArrayGB = u.MaxPossibleArrayBytes / 2^30;
+    physGB = s.PhysicalMemory.Total / 2^30;
+catch
+end
+end

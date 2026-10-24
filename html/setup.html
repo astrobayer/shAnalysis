@@ -108,6 +108,15 @@ only appears on real data of real length: three bugs surfaced the first time the
 a full 24-year series, and the mascon reader's dimension order was only settled by a real product
 file. None of the seven is required &mdash; without their data the suite runs complete and each
 reports as filtered rather than passing silently.</div>
+<p>One more opt-in test needs no data, only time and memory <span class="tag">v5.27.2</span>:
+<code class="inline">testRegionalClosedLoopAtFullSize</code> (testRobustness) runs the regional
+Kalman filter's closed loop at full size &mdash; one full SH normal matrix per month, carried into an
+RBF basis of the Elbe with <a href="ref/shLowLevel_regionalNEQ.html">regionalNEQ</a> &mdash; and
+logs memory and wall time per degree to <code class="inline">tests/closedloop_log.csv</code>. It
+runs when <code class="inline">SHX_CLOSEDLOOP_NMAX</code> (e.g. <code class="inline">"60,96"</code>)
+or the <code class="inline">ClosedLoopNmax</code> preference is set; on CI, run the workflow by hand
+with the input <code class="inline">closed_loop_nmax</code>.
+<code class="inline">tools/dev/closed_loop_budget.py</code> prints the prediction it is read against.</p>
 <p><code class="inline">SHX_SERIES_FOLDER</code> is the one location read from the environment only, and only by
 the trend regression: a routine acceptance run must never reach for a network or archive drive, so
 that test runs only in a session that asked for it. <code class="inline">setenv</code> lasts for the session; put

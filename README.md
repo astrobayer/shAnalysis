@@ -204,6 +204,15 @@ setpref("shAnalysis", "BridgeFolder", "D:/grace/hlsst");
 | `testBridgeGapsAgainstGRACE` | an HLSST series such as HLSST_SLR_COMB2023s, and a series | `SHX_BRIDGE_FOLDER` or preference `BridgeFolder`, plus the series |
 | `testUserSuppliedSINEXFiles` | SINEX files of your own, up to ~30 MB | the test-data folder (`SHX_TESTDATA_FOLDER` or preference `TestDataFolder`) |
 
+One more opt-in test needs no data, only time and memory:
+`testRegionalClosedLoopAtFullSize` (testRobustness, v5.27.2) runs the
+regional Kalman filter's closed loop at full size - one full SH normal
+matrix per month, carried into an RBF basis of the Elbe - and logs memory
+and wall time per degree to `tests/closedloop_log.csv`. Switch it on with
+`SHX_CLOSEDLOOP_NMAX` (e.g. `"60,96"`) or the preference `ClosedLoopNmax`;
+on CI, run the workflow by hand with the input `closed_loop_nmax`.
+`tools/dev/closed_loop_budget.py` prints what it should find.
+
 They exist because the fixture suite cannot see the class of failure that
 only appears on real data of real length - three bugs surfaced the first
 time the toolbox ran against a full 24-year series.
