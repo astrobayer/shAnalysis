@@ -34,6 +34,27 @@ accessor's output: <code class="inline">clim.trend().sigmaC</code> etc. Typical 
 trend map: synthesize the trend and its sigma separately and blank grid cells where
 |trend| &lt; 2&sigma;.</p>
 
+<h2>From the normal equations <span class="tag">v5.26.0</span></h2>
+<p><code class="inline">shLowLevel.neqClimatology</code> estimates the same six terms from every month's
+normal equation instead of fitting them to solutions: month t observes x<sub>t</sub> =
+(d<sub>t</sub>&prime;&otimes;I)&theta; + &delta;<sub>t</sub>, where d<sub>t</sub> are the six time functions and
+&delta;<sub>t</sub> ~ N(0, &Sigma;<sub>d</sub>) is the month's deviation from the climatology
+(<code class="inline">DeviationCov</code>). Reducing &delta;<sub>t</sub> leaves
+W<sub>t</sub> = (I + N<sub>t</sub>&Sigma;<sub>d</sub>)<sup>-1</sup>N<sub>t</sub>, which never inverts N<sub>t</sub>, so a
+rank-deficient month enters as it is. With &Sigma;<sub>d</sub> = 0 it is the generalized least-squares fit of
+the solutions with their full covariances.</p>
+<p>The gain depends on how the noise changes from month to month. In the closed loop of
+<code class="inline">tools/dev/validate_neq_climatology.py</code>, where the direction of the stripes changes
+every month, the trend error is 0.44 of an equal-weight fit's (0.66 when weighting by the formal sigmas),
+and the trend sigma is honest only with &Sigma;<sub>d</sub> given. When the covariance has the same shape
+every month the gain is nil, because GLS with identical regressors and a time-invariant correlation is a
+per-coefficient weighting. On real data the gain has not been measured. The solve holds three
+(6P&times;6P) matrices: about 0.8&nbsp;GB each at nmax&nbsp;40 and 4&nbsp;GB at nmax&nbsp;60, so
+truncate with <code class="inline">Nmax</code>.</p>
+<pre>[clim, info] = shLowLevel.neqClimatology(itsgFolder, Nmax = 40, DeviationCov = sigd .^ 2);
+tr = clim.trend;          % per year, with tr.sigmaC
+info.singular             % months whose normal equation is singular</pre>
+
 <h2>Examples</h2>
 <pre>[clim, resid] = dts.climatology(Robust=true);
 tr = clim.trend;                          % shCoefficients, per year

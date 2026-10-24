@@ -1420,6 +1420,28 @@ story += code("""
 tsK.epochs(rep.observedBy == "second")                   % gap months
 rep.second.scale                                         % s_n per degree
 """)
+story += [para("The climatology from the normal equations (v5.26.0)", "h3"),
+          para("<font face='Courier'>shLowLevel.neqClimatology</font> estimates "
+               "the six terms of a climatology from every month's normal "
+               "equation rather than from filtered solutions. A month's "
+               "deviation from the climatology, with covariance Sigma_d "
+               "(DeviationCov), is reduced from its normal equation, which "
+               "leaves the contribution W = (I + N Sigma_d)^-1 N and never "
+               "inverts N. With Sigma_d = 0 the result is the generalized "
+               "least-squares fit of the solutions with their full "
+               "covariances. The gain comes from the month-to-month change "
+               "of the noise pattern. With stripes whose direction changes "
+               "every month the trend error is 0.44 of an equal-weight "
+               "fit's in the synthetic closed loop of "
+               "validate_neq_climatology.py; with a covariance of the same "
+               "shape every month it is nil. On real data the gain has not "
+               "been measured. The solve holds three (6P x 6P) matrices, "
+               "about 4 GB each at nmax 60, so truncate with Nmax.")]
+story += code("""
+[clim, info] = shLowLevel.neqClimatology(itsgFolder, Nmax = 40, ...
+    DeviationCov = sigd .^ 2);
+tr = clim.trend;                                         % with tr.sigmaC
+""")
 
 story += [para("33. Regional bases for a selectable basin (v5.14.0)", "h2"),
           para("The first step towards a regional Kalman filter after "

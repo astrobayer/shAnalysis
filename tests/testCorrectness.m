@@ -6850,3 +6850,191 @@ for k = 2:nt
 end
 X = amp .* X;
 end
+
+% ---------------------- WP9 9b: the climatology from the normal equations
+function testNeqClimatologyIsTheGLSFitAndTheJointReduction(testCase)
+%TESTNEQCLIMATOLOGYISTHEGLSFITANDTHEJOINTREDUCTION WP9 9b: with
+%   DeviationCov = [] the six terms are the generalized least-squares fit
+%   of the solutions x_t = N_t \ b_t with their full covariances N_t^-1;
+%   with a DeviationCov they are the Schur reduction of the joint normal
+%   equation in the terms and every month's deviation. Both references
+%   are solved densely here. nmax 3, 10 months, N = A'A with A of 2P rows:
+%   validate_neq_climatology.py CLAIM 1-3b measured this configuration
+%   over 10 seeds - terms 2.0e-15 and sigmas 4.4e-16 without Sigma_d,
+%   terms 2.0e-14 and sigmas 1.7e-14 with it; the bounds are 3x those.
+rng(94);
+idx = shLowLevel.shIndex(3);
+P = idx.P;
+T = 10;
+ep = 2010 + ((0:T - 1)' + 0.5) / 12 * 1.7;
+t0 = mean(ep);
+recs = struct('N', {}, 'b', {}, 'epoch', {});
+x = zeros(P, T);
+for k = 1:T
+    A = randn(2 * P, P);
+    N = A' * A;
+    b = N * randn(P, 1);
+    recs(k) = struct('N', N, 'b', b, 'epoch', ep(k));
+    x(:, k) = N \ b;
+end
+D = zeros(T * P, 6 * P);
+W = zeros(T * P);
+for k = 1:T
+    u = ep(k) - t0;
+    d = [1, u, cos(2 * pi * u), sin(2 * pi * u), cos(4 * pi * u), sin(4 * pi * u)];
+    rows = (k - 1) * P + (1:P);
+    D(rows, :) = kron(d, eye(P));
+    W(rows, rows) = recs(k).N;
+end
+Ng = D' * W * D;
+thG = Ng \ (D' * W * x(:));
+sG = sqrt(diag(inv(Ng)));
+clim0 = shLowLevel.neqClimatology(recs, Nmax = 3);
+[th0, s0] = climVectors(clim0, idx);
+verifyLessThan(testCase, max(abs(th0 - thG)) / max(abs(thG)), 3 * 2.0e-15);
+verifyLessThan(testCase, max(abs(s0 ./ sG - 1)), 3 * 4.4e-16);
+sd = 0.3 + rand(P, 1);
+[climS, info] = shLowLevel.neqClimatology(recs, Nmax = 3, DeviationCov = sd);
+[thS, sS] = climVectors(climS, idx);
+K = 6 * P + T * P;
+NN = zeros(K);
+bb = zeros(K, 1);
+for k = 1:T
+    J = zeros(P, K);
+    J(:, 1:6 * P) = D((k - 1) * P + (1:P), :);
+    J(:, 6 * P + (k - 1) * P + (1:P)) = eye(P);
+    NN = NN + J' * recs(k).N * J;
+    bb = bb + J' * recs(k).b;
+    sl = 6 * P + (k - 1) * P + (1:P);
+    NN(sl, sl) = NN(sl, sl) + diag(1 ./ sd);
+end
+a = 1:6 * P;
+dd = 6 * P + 1:K;
+Nr = NN(a, a) - NN(a, dd) * (NN(dd, dd) \ NN(dd, a));
+br = bb(a) - NN(a, dd) * (NN(dd, dd) \ bb(dd));
+thJ = Nr \ br;
+sJ = sqrt(diag(inv(Nr)));
+verifyLessThan(testCase, max(abs(thS - thJ)) / max(abs(thJ)), 3 * 2.0e-14);
+verifyLessThan(testCase, max(abs(sS ./ sJ - 1)), 3 * 1.7e-14);
+verifyEqual(testCase, info.nEpochs, T);
+verifyEqual(testCase, info.t0, t0, AbsTol = 1e-12);
+verifyFalse(testCase, any(info.singular));
+end
+
+function testNeqClimatologyTrendBeatsAnEqualWeightFit(testCase)
+%TESTNEQCLIMATOLOGYTRENDBEATSANEQUALWEIGHTFIT WP9 9b, the closed loop:
+%   nmax 8, 72 months, monthly deviations Sigma_d, noise rising with
+%   degree plus a stripe in every order's same-parity block whose
+%   direction changes from month to month. The trend from the normal
+%   equations, with the true Sigma_d, has below 0.8 of the error of an
+%   equal-weight fit to the solutions, degrees 3-8.
+%   validate_neq_climatology.py CLAIM 4b measured this configuration over
+%   20 seeds: median 0.486, worst 0.583. A month with a singular normal
+%   equation (one coefficient unobserved) enters as it is.
+rng(95);
+idx = shLowLevel.shIndex(8);
+P = idx.P;
+T = 72;
+ep = 2005 + ((0:T - 1)' + 0.5) / 12;
+t0 = mean(ep);
+amp = 1 ./ (idx.n + 1) .^ 2;
+sigN = 0.15 * amp .* (idx.n / 3) .^ 2;
+dev = 0.3 * amp;
+theta = amp .* randn(P, 6) .* [1 0.1 0.5 0.5 0.2 0.2];
+blocks = {};
+for mo = 0:8
+    for c = 0:1
+        for par = 0:1
+            bk = find(idx.m == mo & idx.cs == c & mod(idx.n, 2) == par);
+            if numel(bk) > 1, blocks{end + 1} = bk; end %#ok<AGROW>
+        end
+    end
+end
+recs = struct('N', {}, 'b', {}, 'epoch', {});
+X = zeros(P, T);
+Dt = zeros(T, 6);
+for k = 1:T
+    u = ep(k) - t0;
+    Dt(k, :) = [1, u, cos(2 * pi * u), sin(2 * pi * u), cos(4 * pi * u), sin(4 * pi * u)];
+    C = diag(sigN .^ 2);
+    for q = 1:numel(blocks)
+        bk = blocks{q};
+        v = randn(numel(bk), 1);
+        v = v / norm(v);
+        C(bk, bk) = C(bk, bk) + 10 * numel(bk) * (sigN(bk) .* v) * (sigN(bk) .* v)';
+    end
+    xh = theta * Dt(k, :)' + dev .* randn(P, 1) + chol(C, 'lower') * randn(P, 1);
+    N = inv(C);
+    N = (N + N') / 2;
+    if k == 30
+        N(1, :) = 0;
+        N(:, 1) = 0;
+    end
+    recs(k) = struct('N', N, 'b', N * xh, 'epoch', ep(k));
+    X(:, k) = xh;
+end
+[clim, info] = shLowLevel.neqClimatology(recs, Nmax = 8, DeviationCov = dev .^ 2);
+verifyEqual(testCase, find(info.singular), 30);
+g = clim.trend;
+tN = shLowLevel.vecFromCS(g.C, g.S, idx);
+thO = (Dt \ X')';
+k3 = idx.n >= 3;
+eN = sqrt(mean((tN(k3) - theta(k3, 2)) .^ 2));
+eO = sqrt(mean((thO(k3, 2) - theta(k3, 2)) .^ 2));
+verifyLessThan(testCase, eN / eO, 0.8);
+end
+
+function testNeqClimatologyReadsSINEXLikeRecords(testCase)
+%TESTNEQCLIMATOLOGYREADSSINEXLIKERECORDS WP9 9b: a folder of SINEX normal
+%   equations gives the same climatology as the records readSINEX makes
+%   of the same files, bit for bit, whether Nmax is given or read from
+%   the first file; the file guards raise their own identifiers.
+rng(96);
+idx = shLowLevel.shIndex(2);
+P = idx.P;
+dirN = tempname;
+mkdir(dirN);
+cleanup = onCleanup(@() rmdir(dirN, 's'));
+for k = 1:8
+    Araw = randn(P + 3, P);
+    xh = 1e-9 * randn(P, 1);
+    localWriteTestNEQ(fullfile(dirN, sprintf('m_%d.snx', k)), ...
+        sprintf("08:%03d:00000", 15 + 30 * (k - 1)), xh, Araw' * Araw, ...
+        1000, 1000 - P, idx);
+end
+climF = shLowLevel.neqClimatology(string(dirN));
+climF2 = shLowLevel.neqClimatology(string(dirN), Nmax = 2);
+files = dir(fullfile(dirN, '*.snx'));
+recs = struct('N', {}, 'b', {}, 'epoch', {});
+for k = 1:numel(files)
+    s = shLowLevel.readSINEX(fullfile(files(k).folder, files(k).name), Index = idx);
+    recs(k) = struct('N', s.M, 'b', s.M * s.x, 'epoch', s.epoch);
+end
+climR = shLowLevel.neqClimatology(recs, Nmax = 2);
+verifyTrue(testCase, isequaln(climF, climR), 'the folder route is not the record route');
+verifyTrue(testCase, isequaln(climF, climF2), 'the Nmax read from the file is not 2');
+dirE = tempname;
+mkdir(dirE);
+cleanE = onCleanup(@() rmdir(dirE, 's'));
+verifyError(testCase, @() shLowLevel.neqClimatology(string(dirE)), ...
+    'shLowLevel:neqClimatology:noFiles');
+src = readlines(fullfile(files(1).folder, files(1).name));
+cut = find(startsWith(src, "+SOLUTION/NORMAL_EQUATION_MATRIX"), 1);
+writelines(src(1:cut - 1), fullfile(dirE, 'est.snx'));
+verifyError(testCase, @() shLowLevel.neqClimatology(string(dirE), Nmax = 2), ...
+    'shLowLevel:neqClimatology:notNEQ');
+end
+
+function [th, sg] = climVectors(clim, idx)
+%CLIMVECTORS the six terms of CLIM and their sigmas as one vector, term
+%   by term in shClimatology's order, each in IDX order.
+gs = {clim.bias, clim.trend, clim.cosAnnual, clim.sinAnnual, ...
+    clim.cosSemiannual, clim.sinSemiannual};
+th = zeros(6 * idx.P, 1);
+sg = th;
+for i = 1:6
+    rows = (i - 1) * idx.P + (1:idx.P);
+    th(rows) = shLowLevel.vecFromCS(gs{i}.C, gs{i}.S, idx);
+    sg(rows) = shLowLevel.vecFromCS(gs{i}.sigmaC, gs{i}.sigmaS, idx);
+end
+end

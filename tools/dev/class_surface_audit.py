@@ -124,6 +124,10 @@ EXCEPTIONS = {
                       "half-widths - and reads no field"),
     "seaLevelFingerprint": ("solves the sea-level equation for a LOAD "
                             "region on an index; no field is its input"),
+    "neqClimatology": ("reads monthly NORMAL EQUATIONS - SINEX folders or "
+                       "records - which no class object holds; "
+                       "kalmanChain's neq mode stays on the lane for the "
+                       "same reason"),
 }
 
 # Numerical lanes with no class route YET, each with the route it would
