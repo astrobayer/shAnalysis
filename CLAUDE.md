@@ -657,7 +657,7 @@ shAnalysis, the basin is selectable, and otherwise a test area.
   numbers), `robustness` (dateline basins, polar regions, gaps).
 - **Size**: XL over the rows. **Version**: MINOR per row.
 
-### WP9 — More from existing observations   `[~] 9a DONE (v5.25.0), 9b DONE (v5.26.0), 9c DONE (v5.27.0), 9d INSTRUMENT BUILT (v5.27.2), measurement pending; 9e-9j open, in the order below` (approved 2026-10-23)
+### WP9 — More from existing observations   `[~] 9a DONE (v5.25.0), 9b DONE (v5.26.0), 9c DONE (v5.27.0), 9d MEASURED (v5.27.2); 9e-9j open, in the order below` (approved 2026-10-23)
 Approved by Matthias on 2026-10-23 ("Go ahead") on a ranked proposal of
 2026-10-22 whose premise was that the toolbox mostly consumes finished
 solutions, while much of the information sits in normal equations,
@@ -670,7 +670,7 @@ that need no new data first.
 | 9a `[x]` **DONE v5.25.0** | a second observation group on `kalmanChain` / `ts.kalman` (`SecondSeries`): an HLSST or Swarm series calibrated on the overlap (offset, per-degree scale with the errors-in-variables correction, per-degree noise) and added as a normal equation, so the gap is bridged by the estimator | `validate_kalman_bridge.py`: joint posterior, calibration consistency, closed loop against `bridgeGaps` | S-M |
 | 9b `[x]` **DONE v5.26.0** | `shLowLevel.neqClimatology`: the six climatology terms from ALL monthly normal equations, each month's deviation reduced (Schur complement, never inverting N) - instead of fitting filtered solutions. The gain is the month-to-month change of the noise pattern, nil for a constant one; not measured on real NEQs | `validate_neq_climatology.py`: GLS fit with full covariance, joint reduction, closed loop | M |
 | 9c `[x]` **DONE v5.27.0** | basin-scale mascons (spherical caps) as a fourth `regionalBasis` type; T analytic: an rbf with the cap kernel c_n / ((2n+1) f_n), coefficients in EWH metres, equal-area default radius. The `readMascon` comparison is debt (no product reachable) | `validate_regional_mascon.py`: c_n against 40-digit values, the column against scipy's Legendre series, area, telescoping centre, projector | S |
-| 9d `[~]` **INSTRUMENT v5.27.2** (opt-in, Matthias 2026-10-24); the A8 measurement is the dispatch run | 8f on A8: measure whether a truncated closed loop (nmax 60, 3721^2 doubles = 0.11 GB per month) or order-block covariance storage fits A8 - measured, then decided | memory and wall time on A8 | S |
+| 9d `[x]` **MEASURED v5.27.2** (opt-in, Matthias 2026-10-24): one month at a time, the peak is two P x P - 0.21 GB at nmax 60, 1.32 GB at nmax 96, 2.2 s/month - against A8's 21 GB largest array; memory does not stop 8f there. The loop's honesty RMS is 11.7 / 5.6 without a background (outside signal in the basis) | 8f on A8: measure whether a truncated closed loop (nmax 60, 3721^2 doubles = 0.11 GB per month) or order-block covariance storage fits A8 - measured, then decided | memory and wall time on A8 | S |
 | 9e | normal-equation combination of analysis centres with VCE: `neqCombine` does it already (inside `kalmanChain`'s multi-center mode too); what is missing is DATA - which centres besides ITSG publish usable NEQs. A check first; possibly nothing to build | COST-G combined solutions | M |
 | 9f | C20, C30 and degree 1 estimated jointly from SLR and GRACE normal equations instead of the TN-14 substitution | blocked on a source of SLR NEQs | M |
 | 9g | HB-STAR's non-stationary SPDE-Matern prior as a Q / Sigma0 option of `regionalKalman` (8i's block scales are its coarse form) | closed-form stationary Matern covariance on the sphere | M-L |
@@ -698,6 +698,17 @@ that need no new data first.
 Current entries only; every earlier one is in `tools/dev/RECORD.md` §1,
 verbatim. An entry moves there when it stops describing the current
 state; nothing is deleted.
+- 2026-10-24 — **9d's answer: memory does not stop 8f on A8.** Measured
+  on A8, one month at a time: 0.21 GB peak at nmax 60, 1.32 GB at nmax
+  96 (two P x P; the predicted third is a temporary between samples),
+  2.2 s per month at nmax 96, against 27.8 GB physical and a 21.2 GB
+  largest array. What still blocks 8f is the DATA - ESA ESM output and
+  the ITSG-Grace2018 monthly covariances - not the machine; whether A8
+  may fetch or hold them is Matthias's call. And the synthetic loop is
+  not honest yet (sigma ratio 11.7 / 5.6): without a background the
+  outside signal enters the basis. 8f must run with 8e's
+  remove-compute-restore, and the opt-in test can grow a background
+  before it does.
 - 2026-10-24 — **9d is an opt-in test** (Matthias: "Make it opt-in", on
   the choice between that and a one-off workflow). It is filtered in every
   ordinary run and switched on by `SHX_CLOSEDLOOP_NMAX`, the preference
@@ -896,7 +907,7 @@ The last releases only; the full board, in version order, is
 | v5.25.0 (WP9 9a: `SecondSeries` on `kalmanChain` and `ts.kalman`) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally** (no bridge). ☑ **CI self-hosted (A8) at `fe9fe24` via PR #138, green — 456 runs, 449 passed, 0 failed, 7 filtered** (the optional real-data fixtures); the count prediction matched EXACTLY, and the four 9a tests passed on their first run - no red round | ☑ PR #138 | ☑ 2026-10-24 |
 | v5.27.0 (WP9 9c: `Type = "mascon"` in `regionalBasis`) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally** (no bridge). ☑ **CI self-hosted (A8) at `de4e0c4` via PR #140, green — 464 runs, 457 passed, 0 failed, 7 filtered** (the optional real-data fixtures); the count prediction matched EXACTLY, and the four 9c tests passed on their first run - no red round | ☑ PR #140 | ☑ 2026-10-24 |
 | v5.27.1 (the README brought up to date; documentation only) | ☑ 17 gates + make_demos + 15 self-test suites, 0 findings; README fence contract-checked, fault-injected | ◑ **Tier B locally**; no MATLAB file changed. ☑ **CI self-hosted (A8) at `4552eab` via PR #141, green — 464 runs, 457 passed, 0 failed, 7 filtered** | ☑ PR #141 | ☑ 2026-10-24 |
-| v5.27.2 (WP9 9d: the opt-in full-size closed loop, `closed_loop_budget.py`, the manual-run inputs) | ☑ 17 gates + mlint + make_demos + 15 self-test suites, 0 findings | ◑ **Tier B locally**. ◐ CI self-hosted (A8) pending - predicted 465 runs, 8 filtered; the measurement itself is a manual run with `closed_loop_nmax` | ◐ pending | ◐ pending |
+| v5.27.2 (WP9 9d: the opt-in full-size closed loop, `closed_loop_budget.py`, the manual-run inputs) | ☑ 17 gates + mlint + make_demos + 15 self-test suites, 0 findings | ◑ **Tier B locally**. ☑ **CI self-hosted (A8) at `953fa26` via PR #142, green — 465 runs, 457 passed, 0 failed, 8 filtered** (prediction exact); ☑ **manual run 40062134202 with `closed_loop_nmax = 60,96`: 465 runs, 458 passed, 7 filtered**, the closed loop 31.7 s - numbers in CHANGELOG 5.27.2 | ☑ PR #142 | ◐ pending |
 | v5.26.0 (WP9 9b: `shLowLevel.neqClimatology`) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally** (no bridge). ☑ **CI self-hosted (A8) at `4aa3aa9` via PR #139, green — 460 runs, 453 passed, 0 failed, 7 filtered** (the optional real-data fixtures); the count prediction matched EXACTLY, and the four 9b tests passed on their first run - no red round | ☑ PR #139 | ☑ 2026-10-24 |
 
 ### 6.3 What the next session could be wrong for not reading
@@ -972,16 +983,18 @@ One line per rule; the incident behind each, with its numbers, is in
 **State, 2026-10-24.** `main` is `97c5dea`, v5.27.0 (#138-#140 merged
 2026-10-24); every release since v5.24.1 carries
 `shAnalysis_workflow_guide.pdf`. v5.27.1 (the README) merged as #141.
-v5.27.2 (9d's instrument) is on branch `wp9-closed-loop-size`; the
-measurement is a manual run of the CI workflow on that branch with
-`closed_loop_nmax = 60,96`, read from the log's `CLOSEDLOOP` lines. Every finding in 4.1 is CLOSED except A42,
+v5.27.2 (9d) is on branch `wp9-closed-loop-size` (#142), measured on A8
+(6.1: memory does not stop 8f). A re-measurement is a manual run of the
+CI workflow with `closed_loop_nmax`, read from the log's `CLOSEDLOOP`
+lines. Every finding in 4.1 is CLOSED except A42,
 which holds five low items that need data or a run, not effort. Read the version from
 1's table or `Contents.m` line 2, never from this paragraph.
 
 **Open, in the order of what they buy:**
-0. **WP9, in its table's order** (approved 2026-10-23): 9d's
-   measurement (the manual run above), then the decision it informs - 8f
-   on A8 or not - then 9e. Real-data
+0. **WP9, in its table's order** (approved 2026-10-23): 9e next (a data
+   check: who besides ITSG publishes usable monthly NEQs). Waiting on
+   Matthias: whether 8f now runs on A8 - memory is measured to suffice;
+   it needs ESA ESM output and the ITSG-Grace2018 covariances there. Real-data
    debt for the acceptance machine: 9a against `bridgeGaps` on COST-G and
    HLSST, 9b's gain on ITSG normal equations (it is the month-to-month
    change of their noise pattern, not measured), and 9c's mascons against

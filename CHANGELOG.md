@@ -37,6 +37,24 @@ an ordinary CI run filters the new test.
 - 451 methods / 465 runs (Robustness 62). On A8 8 tests filter in an
   ordinary run, 7 on a manual run that sets `closed_loop_nmax`.
 
+### Measured on A8 (manual run 40062134202, `closed_loop_nmax = 60,96`, 12 months)
+| nmax | P | K | peak, predicted | peak, measured | s / month | filter s |
+|---|---|---|---|---|---|---|
+| 60 | 3717 | 15 | 0.31 GB | 0.21 GB | 0.32 | 0.10 |
+| 96 | 9405 | 37 | 1.98 GB | 1.32 GB | 2.22 | 0.26 |
+- A8 has 27.8 GB of physical memory and allocates arrays up to 21.2 GB.
+  The measured peak is two P x P matrices (0.21 / 0.103, 1.32 / 0.659);
+  the prediction's third, the stripe update's temporary, lives between
+  two samples and is not seen. So **memory does not stop 8f on A8**:
+  even nmax 120 (4.8 GB predicted) is a quarter of the largest array.
+- **The closed loop is not honest yet**: RMS((estimate - projected truth)
+  / sigma) = 11.7 at nmax 60 and 5.6 at nmax 96. The synthetic truth has
+  signal everywhere and the normal equations observe the whole sphere,
+  so the part of it outside the basis's span enters the basis
+  coefficients, and their sigmas do not know it. That is what 8e's
+  remove-compute-restore is for, and this loop runs without a
+  background. Recorded, not asserted.
+
 ## [5.27.1] - 2026-10-24 - the README brought up to date
 
 A PATCH release: documentation only. No code, test or help block changes.
