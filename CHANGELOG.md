@@ -1,5 +1,33 @@
 # Changelog
 
+## [5.27.1] - 2026-10-24 - the README brought up to date
+
+A PATCH release: documentation only. No code, test or help block changes.
+
+### Changed
+- **README.md**, asked for by Matthias ("the readme of the repo is
+  outdated"):
+  - the opening run-on paragraph, which had grown release by release, is
+    split into "What it covers" (one item per area, now including the
+    Kalman chain's second observation group, the climatology from normal
+    equations, the regional Kalman filter and the mascon basis) and
+    "Validation";
+  - "Documentation" says plainly that the guide PDF is not committed, is
+    built by CI and attached to every release since v5.24.1, and gives
+    the `releases/latest/download` link and the local build command;
+  - "Layout" lists `setup_shAnalysis.m`, `Contents.m`, `CHANGELOG.md`,
+    `data/gravis/`, `docs/` and `html/ref/`;
+  - the quick start defines the `kn` and the basin kernel `B` it uses
+    (they were undefined), and adds a Kalman call - all of it
+    contract-checked by `doc_sync_audit` (fault-injected: a misspelled
+    option in the README fence is reported);
+  - "What is new" gains v5.14.0 to v5.27.0 (the regional Kalman filter,
+    the help-versus-code review, WP9 9a-9c);
+  - the gap-bridging figure is the held-out fill error, 38% of the GRACE
+    signal (CHANGELOG 5.12.0); the 41% the README quoted was the overlap
+    comparison of the Kalman variant with the scale, a different
+    statistic.
+
 ## [5.27.0] - 2026-10-23 - WP9 9c: mascons as a regional basis
 
 A MINOR release: a fourth `Type` of `shLowLevel.regionalBasis`, two

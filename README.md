@@ -10,8 +10,9 @@
 Class-based MATLAB toolbox for spherical harmonic (Stokes coefficient)
 analysis of GRACE/GRACE-FO, GOCE, and static gravity field models.
 Three user-facing classes cover the whole chain - reading, spectra,
-filtering, synthesis, climatology, basin averages - and every numerical
-building block is callable directly from the `+shLowLevel` package.
+filtering, synthesis, climatology, basin averages, Kalman smoothing,
+regional bases - and every numerical building block is callable directly
+from the `+shLowLevel` package.
 
 Requires MATLAB R2021a or newer (`arguments` name=value syntax) and
 **nothing beyond base MATLAB**: no toolboxes.
@@ -26,77 +27,96 @@ units, latitude convention and provenance so that any renderer - or a
 plain `imagesc` - can draw it honestly. Only the two drawing entry
 points ask for geoMap, and they say so before doing any work.
 
-Validated against the published GravIS Greenland ice-mass series: 2.8%
-on the mass trend over 2002-04..2023-02 (217 monthly solutions - the
-span of the auxiliary correction tables at the time of the
-reproduction), matching their documented processing step for step
-(see the guide's *Validation against GravIS* chapter). The span dates
-matter: the reference trend moves by ~10 Gt/yr over two years of end
-date, so the percentage is only meaningful together with them.
-An independent 2026-08 audit reproduced the chain end-to-end from
-public data (headline -225.7 vs -224.6 Gt/yr; the wrong-noise control
--201.0 exactly). The same chain reproduces the GravIS terrestrial
-water storage product over eleven major river basins to 0.032 cm/yr
-trend RMS and a 1.001 median amplitude ratio (DDK3 + ICE-6G_D GIA,
-full 252-month span), and locates the Antarctic one-map-inversion
-limit at 14% against the AWI joint-basin product - with a 0.905
-difference-pattern correlation to the official TU Dresden kernel grid,
-i.e. a method-class distance, not a chain defect (guide chapters
-V7/V8). All three validations are available as one-call methods with
-exchangeable inputs: `shLowLevel.greenlandChain`,
-`shLowLevel.antarcticaChain` and `shLowLevel.twsChain`, built on the
-shared `shLowLevel.gravisL2B` correction core. All downloads retry
-politely on 429/5xx honouring the server's Retry-After header
-(`shLowLevel.httpFetch`). Data locations persist across sessions via
-`setup_shAnalysis(SeriesFolder=..., GravisFolder=..., DDKFolder=...)`
-(setpref-backed); `Quantity = "none"` synthesizes raw coefficient
-fields. `shLowLevel.oceanChain` closes the chain family with the
-barystatic ocean series (measured GIA lever +0.89 mm/yr), and
-`slepianProject` turns the Slepian basis into well-posed regional
-analysis. `shLowLevel.fetchGAX` completes the ocean story:
-GAD/GAA from 2002 on, one call, full Chambers-&-Willis restoration in
-`oceanChain`. The ocean lane now forks: `obpChain` keeps the air
-column and delivers GravIS-style bottom-pressure fields, while
-`eofSeparate` splits residual circulation from noise (North rule) so
-`oceanChain`'s noise proxy stops blaming the ocean for being dynamic. The fetch family is complete and consistently named:
-series via `fetchITSG`/`fetchICGEM`, products via `fetchGAX`,
-`fetchITSGSINEX` (ITSG monthly normals - the only public per-month SINEX,
-~460 MB each) and `fetchITSGBackground`. Those normals feed `vdkApply` - the
-VDK/VADER decorrelation of Horvath et al. (2018) with true monthly
-covariance structure; `tools/dev/run_vdk_series.m` drives the full-series batch. And the hydrology story
-closes the loop from field to warning: `hydroExtremeIndex` delivers
-GRACE-DSI drought categories and the Reager flood-predisposition
-deficit for every cell or basin. And everything is offline by
-design: chains and filters consume local paths only (the GravIS
-correction tables ship frozen in `data/gravis`); the `fetch*` family
-provisions once with skip-if-present semantics, so a populated data
-folder never needs the network again. The barystatic chain now
-carries quantified coastal-leakage controls (`CoastBufferKm`,
-`RemoveLandLeakage`) - measured before built, defaults conservative.
-The temporal-smoothing lane is the Kurtenbach/Kvas Kalman chain that
-powers the ITSG daily solutions, implemented end to end
-(`estimateVAR` with measured full/diagonal/orderblock structures,
-`kalmanFilter` in solution AND normal-equation form with Joseph
-update and innovation QC, `rtsSmoother` with bounded lag,
-multi-center VCE via `neqCombine`) behind one entry point,
-`shLowLevel.kalmanChain`; the forward+smoother pass is test-pinned as
-an EXACT solver of the joint batch adjustment, and guide chapter 27
-develops the theory with live-measured figures.
+## What it covers
+
+- **Reading and fetching.** GFC, SHM (GravIS Level-2B), SINEX normal
+  equations, mascon and CF-netCDF grids, TN-13/TN-14, DDK matrices, Love
+  numbers, AOD1B products. The `fetch*` family provisions once with
+  skip-if-present semantics and retries politely on 429/5xx; chains and
+  filters then run offline on local paths (the GravIS correction tables
+  ship frozen in `data/gravis`). Data locations persist across sessions
+  via `setup_shAnalysis(SeriesFolder=..., GravisFolder=..., DDKFolder=...)`.
+- **Synthesis and analysis.** Holmes-Featherstone Legendre functions to
+  degree 2190, FFT grid synthesis, Clenshaw point synthesis, gradients and
+  the full tensor at altitude, evaluation on the sphere or the ellipsoid,
+  exact ring analysis and scattered least squares.
+- **Filtering.** Gaussian, fan, Swenson-Wahr destriping, DDK1-8,
+  DDK-class filters designed from your own covariances, VDK from the ITSG
+  monthly normals, and the time-variable anisotropic tvANS filter - one
+  filter vocabulary (`"gauss<km>"`, `"DDKn"`, a W struct) everywhere.
+- **Corrections.** TN-13/TN-14 substitution, self-consistent degree 1,
+  pole tide, GIA with its uncertainty, GAX/AOD restore, S2/K2/K1 alias
+  removal, GM/R rescaling.
+- **Basins and leakage.** Basin kernels and exact deconvolution,
+  forward-model and data-driven leakage correction, tailored sensitivity
+  kernels, scaling factors, Slepian projection.
+- **Time series.** Climatology with AR(1)-corrected sigmas, EOFs, trend
+  breaks, gap bridging from HLSST/SLR series, and the Kurtenbach/Kvas
+  Kalman chain (VAR process model, filter in solution and normal-equation
+  form, RTS smoother, multi-centre VCE) - including a second, noisier
+  observation group and the climatology estimated directly from the
+  monthly normal equations.
+- **Regional estimation.** A regional Kalman filter on local basis
+  functions - radial basis functions, Slepian tapers or mascons, for any
+  GravIS basin by name - fed by SH solutions, normal equations, grids,
+  point functionals or line-of-sight gravity differences, with
+  remove-compute-restore against a global background.
+- **Applications.** Validated Greenland, Antarctica, terrestrial-water
+  and ocean-mass chains, ocean bottom pressure, the elastic sea-level
+  fingerprint, GNSS loading deformation (forward), Earth-rotation
+  excitation, GRACE-DSI drought and flood indices, and a comparison suite
+  (Taylor diagrams, NSE, effective correlation, three-cornered hat).
+- **Uncertainty.** Monte-Carlo and analytic error propagation with full
+  SINEX covariances, posterior sigmas of the tvANS filter and of the
+  Kalman filter and smoother.
+
+## Validation
+
+Against the published GravIS Greenland ice-mass series: 2.8% on the mass
+trend over 2002-04..2023-02 (217 monthly solutions - the span of the
+auxiliary correction tables at the time of the reproduction), matching
+their documented processing step for step (see the guide's *Validation
+against GravIS* chapter). The span dates matter: the reference trend
+moves by ~10 Gt/yr over two years of end date, so the percentage is only
+meaningful together with them. An independent 2026-08 audit reproduced
+the chain end-to-end from public data (headline -225.7 vs -224.6 Gt/yr;
+the wrong-noise control -201.0 exactly). The same chain reproduces the
+GravIS terrestrial water storage product over eleven major river basins
+to 0.032 cm/yr trend RMS and a 1.001 median amplitude ratio (DDK3 +
+ICE-6G_D GIA, full 252-month span), and locates the Antarctic
+one-map-inversion limit at 14% against the AWI joint-basin product - with
+a 0.905 difference-pattern correlation to the official TU Dresden kernel
+grid, i.e. a method-class distance, not a chain defect (guide chapters
+V7/V8). All three are one-call methods with exchangeable inputs:
+`shLowLevel.greenlandChain`, `shLowLevel.antarcticaChain` and
+`shLowLevel.twsChain`.
+
+New numerics are pre-validated by an independent numpy oracle committed
+in the same release (`tools/dev/validate_*.py`), and the MATLAB suite
+runs on every pull request on a self-hosted R2026a runner.
 
 ## Documentation
 
-The complete **[workflow & theory guide (PDF)](https://github.com/astrobayer/shAnalysis/releases/latest/download/shAnalysis_workflow_guide.pdf)**
-covers the processing chain, filter theory, uncertainty propagation, worked
-recipes, and a full chapter reproducing the published GravIS Greenland
-series step by step. The generated API reference lists typed inputs and
-outputs with an executable example for every public function. HTML help
-for MATLAB's `doc` browser ships in `html/`, and
-`shLowLevel.makeTutorials` writes Live Scripts you can open and run.
-The guide is attached to every
-[release](https://github.com/astrobayer/shAnalysis/releases) rather than
-committed; to build it from a checkout, run
-`pip install -r tools/dev/guide-requirements.txt` and then
-`python3 tools/dev/make_guide.py`, which writes it to `docs/`.
+- **The workflow & theory guide (PDF)** is **not committed to the
+  repository**; since v5.24.1 CI builds it on every run and attaches it to
+  every [GitHub release](https://github.com/astrobayer/shAnalysis/releases).
+  The newest one is always at
+  **[releases/latest/download/shAnalysis_workflow_guide.pdf](https://github.com/astrobayer/shAnalysis/releases/latest/download/shAnalysis_workflow_guide.pdf)**.
+  It covers the processing chain, filter theory, uncertainty propagation,
+  the Kalman and regional chains, worked recipes, and a chapter reproducing
+  the GravIS Greenland series step by step. To build it from a checkout:
+  `pip install -r tools/dev/guide-requirements.txt`, then
+  `python3 tools/dev/make_guide.py`, which writes
+  `docs/shAnalysis_workflow_guide.pdf` (left untracked on purpose).
+- **MATLAB help.** Every public function and method carries a help block
+  with typed inputs and outputs; `doc` opens the pages in `html/` - a
+  reference page per entity under `html/ref/`, narrative pages for the
+  chains and the theory (`setup_shAnalysis(Docs=true)` builds the search
+  index).
+- **API reference.** `html/apiReference.html`, generated from the help
+  blocks, with an executable example per function.
+- **Live Scripts.** `shLowLevel.makeTutorials` writes them;
+  `demo_shAnalysis` runs 16 selectable demonstration cases.
 
 ## Layout
 
@@ -105,9 +125,16 @@ shAnalysis/
   shCoefficients.m   one coefficient set (value class, immutable)
   shSeries.m         time series of coefficient sets
   shClimatology.m    bias/trend/annual/semi-annual model
-  runAllTests.m      full validation suite
   +shLowLevel/       numerical internals (stable, package-qualified)
+  setup_shAnalysis.m path, downloads, data locations, doc search index
+  runAllTests.m      full validation suite
   demo_shAnalysis.m  16 selectable demonstration cases
+  Contents.m         product line and version (help shAnalysis)
+  CHANGELOG.md       every release with its reasoning
+  data/gravis/       GravIS correction tables, frozen
+  docs/              apiExamples.json; the guide PDF when built locally
+  html/              doc pages for MATLAB's `doc` browser (html/ref/:
+                     one generated page per public entity)
   tests/             correctness / contract / robustness / science /
                      performance (fixtures live OUTSIDE the repo: CI
                      checks out the pinned tag 'fixtures-YYYY-MM' of the
@@ -116,8 +143,8 @@ shAnalysis/
                      the newest tag; local machines point
                      setup_shAnalysis(TestDataFolder=...) at a copy -
                      CC-BY-4.0 contents, see NOTICE)
-  html/              doc pages for MATLAB's `doc` browser
-  tools/             CI gates; tools/dev/ the doc generators (see its README)
+  tools/             CI gates; tools/dev/ the doc generators and the
+                     Python oracles (see its README)
 ```
 
 ## Quick start
@@ -136,12 +163,19 @@ gad = shSeries.read("GAD-2_*.gfc");
 ts  = ts.restore(gad);                  % GSM+GAD, epoch-matched
 dts = ts - ts.mean;                     % anomalies about the mean field
 
+[~, li] = shLowLevel.fetchLoveNumbers();          % Love numbers are never built in
+kn = li.parsed(1).kn(1:ts.nmax + 1);              % degrees 0..nmax
+
 [clim, resid] = dts.climatology(Robust=true);   % shClimatology + residuals
 A = clim.amplitudeMap("annual", -89:89, 0:359, Quantity="ewh", kn=kn);
 
 tsA = dts.destripe(MinOrder=6).gaussian(300);   % classic chain
 [tsF, op] = dts.filter("tvANS", SignalMode="inhomogeneous");
+B   = dts.basinKernel(shLowLevel.readBasin("Elbe"));     % a GravIS basin
 avg = tsF.basinAverage(B, Deconvolve=true, Op=op);   % unbiased basin series
+
+tsm = shSeries.read("ESM_*.gfc");               % a model series: the process
+[tsK, rep] = dts.kalman(ModelSeries = tsm - tsm.mean);   % Kalman filter + smoother
 ```
 
 ## Opt-in test data
@@ -195,13 +229,44 @@ data is set up.
 The **[CHANGELOG](CHANGELOG.md)** carries the full history with the
 reasoning behind each change. The headlines since v3.0.0:
 
+**More from the observations (v5.25.0 - v5.27.0).** A second, noisier
+series - an HLSST + SLR combination, Swarm - enters `ts.kalman` as a
+second observation group (`SecondSeries`), calibrated on the overlap per
+degree with an errors-in-variables scale, so the 2017-18 gap is bridged
+by the estimator itself. `shLowLevel.neqClimatology` estimates bias,
+trend and the annual and semi-annual terms directly from every monthly
+normal equation, each month's deviation reduced without inverting N; it
+gains over a fit of the solutions when the noise pattern changes from
+month to month. And `regionalBasis(Type="mascon")` adds spherical-cap
+mascons, whose coefficients are equivalent water height in metres.
+
+**The regional Kalman filter (v5.14.0 - v5.22.0).** `ts.regionalKalman`
+runs Kurtenbach's filter and RTS smoother on the coefficients of a local
+basis - radial basis functions, Slepian tapers or the SH basis itself,
+which is its oracle - for any GravIS basin selected by name
+(`shLowLevel.readBasin("Elbe")`). The process model is estimated in the
+basis from a model series; observations enter as normal equations from SH
+solutions, SINEX normals, grids, point functionals or line-of-sight
+gravity differences; a global background is removed and restored; the
+process-noise scales can be estimated from the innovations. The output is
+the smoothed series, the EWH grid of the region and its basin mean with
+a sigma. `FitClimatology = "filtered"` fits the restored climatology to
+a first filter pass instead of the noisy observations.
+
+**A help-versus-code review (v5.23.x, v5.24.x).** Every help block was
+read against its code; about 80 contradictions and nineteen code defects
+were fixed, among them `designFilter`, which had never filtered C, and
+`twsChain`'s default DDK lookup. Every public function is now reachable
+from a class or is a named exception, and a new error identifier must
+arrive with a test that drives it.
+
 **Filling the mission gap (v5.12.0).** `ts.bridgeGaps(tsH)` fills the
 months a GRACE series lacks - the eleven between the missions and those
 lost to battery management - from a high-low SST + SLR series such as
 QuantumFrontiers HLSST_SLR_COMB2023s, calibrated per degree on the months
 both have (offset, scale and an empirical sigma). Each filled month is
-named `bridge:...`. Against COST-G at 750 km the fill's error is 41% of
-the GRACE signal over degrees 3-60.
+named `bridge:...`. Held out and bridged back against COST-G at 750 km,
+the fill's error is 38% of the GRACE signal over degrees 3-60.
 
 **Earth-rotation excitation (v5.10.0, v5.11.0).** `ts.excitation(kn = kn,
 TN14 = tn)` gives the polar-motion excitation chi1, chi2 [mas] of C21/S21
