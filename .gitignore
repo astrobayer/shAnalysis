@@ -1,6 +1,7 @@
 # generated at runtime
 tools/dev/api_data.py
 tests/perf_log.csv
+tests/closedloop_log.csv
 *.asv
 *.autosave
 *.bak
