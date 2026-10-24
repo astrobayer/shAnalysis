@@ -1400,6 +1400,26 @@ tsH = shSeries.read(fullfile(hlFolder, "*.gfc"));        % HLSST + SLR
 ts.names(info.bridged)                                   % "bridge:..." months
 [info.overlap, nnz(info.bridged)]
 """)
+story += [para("Since v5.25.0 the same HLSST series can enter the Kalman "
+               "chain instead, as a second observation group "
+               "(<font face='Courier'>SecondSeries</font> on "
+               "<font face='Courier'>shLowLevel.kalmanChain</font> and "
+               "<font face='Courier'>ts.kalman</font>). It is calibrated on "
+               "the overlap like the fill - an offset per coefficient, a "
+               "scale and a noise per degree, the scale corrected for the "
+               "reference's own noise - but then observes every month it "
+               "has, weighted by that noise, and the process model carries "
+               "the GRACE information into the gap from both sides. In the "
+               "closed loop of validate_kalman_bridge.py the gap error at "
+               "750 km is 0.34 of the signal against 0.46 for the "
+               "calibrated fill; on real data it has not been measured "
+               "yet. A Kalman run holds two full covariances per epoch, so "
+               "run it on a window around the gap.")]
+story += code("""
+[tsK, rep] = tsG.kalman(ModelSeries = tsm, SecondSeries = tsH);
+tsK.epochs(rep.observedBy == "second")                   % gap months
+rep.second.scale                                         % s_n per degree
+""")
 
 story += [para("33. Regional bases for a selectable basin (v5.14.0)", "h2"),
           para("The first step towards a regional Kalman filter after "

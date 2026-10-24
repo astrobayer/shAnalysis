@@ -46,6 +46,41 @@ function [ts, rep] = kalmanChain(obsIn, opts)
 %                   static field) is the caller's responsibility, as
 %                   everywhere else in the toolbox.
 %
+%   A second observation group (solution mode only, v5.25.0)
+%   SecondSeries = TSB adds a noisier series of the same field - an HLSST
+%   + SLR combination, Swarm - as a second observation of every epoch it
+%   has. It observes each coefficient of degree n as
+%       B = s_n x + o + e,   e ~ N(0, sigma_n^2),
+%   an offset o per coefficient (reference field, tide system), a scale
+%   s_n per degree (a regularised series is damped) and a noise sigma_n
+%   per degree, all calibrated on the months both series have (matched
+%   within SecondTolerance) against OBSIN and its noise variances sR^2,
+%   over all coefficients of degree n:
+%       dR = R - mean(R),  dB = B - mean(B)            over the overlap
+%       s_n = sum(dB dR) / (sum(dR^2) - sum(sR^2))     errors in variables;
+%                                                      0 where <= 0
+%       o = mean(B) - s_n mean(R)
+%       sigma_n^2 = mean((dB - s_n dR)^2) - s_n^2 mean(sR^2), floored at
+%                   s_n^2 mean(sR^2): never better than OBSIN
+%   B's formal sigmas are not used: for the Kalman-filtered HLSST series
+%   they are 3 to 6 times too small at low degrees (bridgeGaps). Each
+%   epoch of TSB enters the filter as a normal equation,
+%   N = diag(s^2/sigma^2), b = s (B - o - s c)/sigma^2 with c the
+%   climatology removed from OBSIN, added to OBSIN's information where
+%   both observe the epoch; an epoch only TSB has is an epoch the process
+%   model alone would otherwise bridge. With the process model fixed this
+%   is the joint posterior of both series
+%   (tools/dev/validate_kalman_bridge.py CLAIM 1, 3.3e-14). The default
+%   grid (Epochs = []) is OBSIN's epochs plus every TSB epoch inside
+%   OBSIN's span that OBSIN lacks - the months shLowLevel.bridgeGaps
+%   fills. In the closed loop of that file (nmax 12, an 11-month gap, a
+%   secondary damped above degree 6 and 4 times noisier) the gap error at
+%   750 km is 0.34 of the signal, against 0.46 for bridgeGaps' fill and
+%   0.69 for the chain without TSB; outside the gap it changes the error
+%   by 0.3 percent, and in the gap the error is 0.98-1.13 of the
+%   predicted sigma. A Kalman run holds two (P x P) covariances per epoch,
+%   so for a long series run it on a window around the gap (REP.memGB).
+%
 %   Inputs
 %     obsIn  (1 x 1) shSeries | (1 x 1) string  observations: series
 %            (solution mode) or SINEX folder (neq mode)
@@ -109,6 +144,21 @@ function [ts, rep] = kalmanChain(obsIn, opts)
 %            weights per center (skips per-epoch VCE); [] runs VCE,
 %            which requires STATISTICS on every file and errors loudly
 %            otherwise (neqCombine contract)
+%     SecondSeries      (1 x 1) shSeries  a second, noisier series of
+%            the same field at the same nmax, GM and R, observing every
+%            epoch it has (above); solution mode only. Not given: the
+%            chain is unchanged, bitwise
+%     SecondNoise ("overlap")  "overlap" | (nmax+1 x 1) double  the
+%            noise sigma_n of SecondSeries per degree: calibrated on the
+%            overlap, or given; the offset and scale are calibrated either
+%            way
+%     SecondScale (true)  calibrate the per-degree scale s_n; false fixes
+%            s_n = 1. In the closed loop the scale wins in 19 of 20 seeds
+%            (gap error 0.34 against 0.35 of the signal)
+%     SecondTolerance (0.05)  (1 x 1) double [yr]  an epoch of
+%            SecondSeries matches an OBSIN epoch, and a grid epoch, when
+%            they differ by less; one month's products sit within it
+%     MinOverlap (24)   the fewest matched months the calibration accepts
 %
 %   Outputs
 %     ts   (1 x 1) shSeries  smoothed series on the epoch grid, formal
@@ -133,6 +183,13 @@ function [ts, rep] = kalmanChain(obsIn, opts)
 %          gap        (1 x K) logical  which epochs were gaps
 %          model      (1,1) struct  the estimateVAR struct, for reuse
 %          memGB      (1,1) double  covariance storage actually used
+%          observedBy (1 x K) string  "primary" | "second" | "both" |
+%                     "none" per epoch; with SecondSeries only
+%          second     (1,1) struct  the calibration, with SecondSeries
+%                     only: scale (nmax+1 x 1) s_n, sigma (nmax+1 x 1)
+%                     sigma_n (both 0 at degrees the index does not hold),
+%                     offsetC, offsetS (nmax+1 x nmax+1) the offset o,
+%                     overlap (1,1) the matched months
 %
 %   Example  % daily-type smoothing of a noisy series with a GAX prior
 %     tsm = shSeries.fromFolder(gaxFolder).truncate(40);
@@ -151,6 +208,9 @@ function [ts, rep] = kalmanChain(obsIn, opts)
 %         OBSIN is neither an shSeries nor a SINEX folder path
 %     shLowLevel:kalmanChain:badNeqWeights
 %         NeqWeights does not have one entry per center
+%     shLowLevel:kalmanChain:badSecondNoise
+%         SecondNoise is neither "overlap" nor nmax+1 positive finite
+%         sigmas
 %     shLowLevel:kalmanChain:nmaxMismatch
 %         the observation series and the model differ in nmax - truncate
 %         first
@@ -159,12 +219,20 @@ function [ts, rep] = kalmanChain(obsIn, opts)
 %     shLowLevel:kalmanChain:noNoise
 %         an epoch has no formal sigmas and NoiseCov is empty - the update
 %         has no weight to use
+%     shLowLevel:kalmanChain:noOverlap
+%         fewer than MinOverlap epochs of SecondSeries match OBSIN
 %     shLowLevel:kalmanChain:notNEQ
 %         a SINEX file carries no normal-equation block
+%     shLowLevel:kalmanChain:secondInNeqMode
+%         SecondSeries was given with a SINEX folder
+%     shLowLevel:kalmanChain:secondMismatch
+%         SecondSeries differs from OBSIN in nmax, GM or R
+%     shLowLevel:kalmanChain:secondNotFinite
+%         SecondSeries holds NaN or Inf
 %
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5),
 %   2026-08-17, 20:10 UTC. FitClimatology: Claude (Opus 5.5), 2026-10-21
-%   (A34).
+%   (A34). SecondSeries: Claude (Opus 5.5), 2026-10-23 (WP9 9a).
 
 arguments
     obsIn
@@ -184,6 +252,18 @@ arguments
     opts.StoreCov (1,1) string {mustBeMember(opts.StoreCov, ["auto","full","matfile"])} = "auto"
     opts.Pattern (1,1) string = "*.snx*"
     opts.NeqWeights (:,1) double = []
+    opts.SecondSeries (1,1) shSeries
+    opts.SecondNoise = "overlap"
+    opts.SecondScale (1,1) logical = true
+    opts.SecondTolerance (1,1) double {mustBePositive} = 0.05
+    opts.MinOverlap (1,1) double {mustBeInteger, mustBePositive} = 24
+end
+hasSecond = isfield(opts, 'SecondSeries');
+if hasSecond && ~isa(obsIn, 'shSeries')
+    error('shLowLevel:kalmanChain:secondInNeqMode', ...
+        ['SecondSeries needs solution mode: a SINEX folder''s normal ' ...
+         'equations refer to their provider''s background, which a ' ...
+         'series does not share.']);
 end
 
 tsm = opts.ModelSeries;
@@ -296,8 +376,17 @@ else
         'OBSIN must be an shSeries or a SINEX folder path.');
 end
 
+if hasSecond
+    sec = secondCalibration(opts.SecondSeries, obsIn, idx, opts);
+end
 if isempty(opts.Epochs)
     epGrid = obsEpochs;
+    if hasSecond
+        dS = min(abs(sec.t - obsEpochs.'), [], 2);
+        add = sec.t(dS >= opts.SecondTolerance & sec.t >= min(obsEpochs) & ...
+            sec.t <= max(obsEpochs));
+        epGrid = sort([obsEpochs; add]);
+    end
 else
     epGrid = sort(opts.Epochs(:));
 end
@@ -309,6 +398,28 @@ for t = 1:T
         [obs(t), s2k, ck] = getObs(k);
         if ~solMode && ~isempty(s2k)
             sigma2Ep(ck, k) = s2k;
+        end
+    end
+end
+if hasSecond
+    % each epoch of the second series observes the grid epoch nearest it
+    by = repmat("none", 1, T);
+    for t = 1:T
+        if ~isempty(obs(t).l), by(t) = "primary"; end
+    end
+    [dS, tS] = min(abs(epGrid.' - sec.t), [], 2);
+    for kS = find(dS < opts.SecondTolerance).'
+        t = tS(kS);
+        c = zeros(P, 1);
+        if opts.Climatology
+            gc = climObs.eval(sec.t(kS));
+            c = shLowLevel.vecFromCS(gc.C, gc.S, idx);
+        end
+        obs(t) = addSecond(obs(t), sec, kS, idx, c);
+        if any(by(t) == ["primary", "both"])
+            by(t) = "both";
+        else
+            by(t) = "second";
         end
     end
 end
@@ -347,11 +458,16 @@ for t = 1:T
         Ss(:,:,t) = Ss(:,:,t) + gc.S;
     end
 end
-ts = shSeries(Cs, Ss=Ss, Epochs=epGrid, SigmaCs=sC, SigmaSs=sS, ...
-    ProductType="KALMAN", History=sprintf( ...
+hist = sprintf( ...
     "kalmanChain: %s mode, VAR(%d), %d epochs (%d gaps), smoother=%d", ...
     tern(solMode, "solution", "neq"), opts.Order, T, nnz(filt.gap), ...
-    opts.Smoother));
+    opts.Smoother);
+if hasSecond
+    hist = [hist, sprintf(", second series: %d epochs, %d of them alone", ...
+        nnz(by == "second" | by == "both"), nnz(by == "second"))];
+end
+ts = shSeries(Cs, Ss=Ss, Epochs=epGrid, SigmaCs=sC, SigmaSs=sS, ...
+    ProductType="KALMAN", History=hist);
 
 memGB = 8 * numel(epGrid) * (model.order * P)^2 * 2 * double(opts.Smoother) / 1e9;
 rep = struct('mode', tern(solMode, "solution", "neq"), ...
@@ -363,6 +479,12 @@ rep = struct('mode', tern(solMode, "solution", "neq"), ...
 if ~solMode
     rep.centers = folders(:);
     rep.sigma2 = sigma2Ep;
+end
+if hasSecond
+    [oc, os] = shLowLevel.csFromVec(sec.off, idx);
+    rep.observedBy = by;
+    rep.second = struct('scale', sec.scale, 'sigma', sec.sigma, ...
+        'offsetC', oc, 'offsetS', os, 'overlap', sec.overlap);
 end
 end
 
@@ -404,6 +526,121 @@ else
     s2 = NaN(numel(grp), 1);
 end
 o = struct('l', [], 'R', [], 'N', out.N, 'b', out.N * xc);
+end
+
+function sec = secondCalibration(tsB, tsR, idx, opts)
+%SECONDCALIBRATION offset, scale and noise of the second series against
+%   the observations, on the epochs both have (the help's equations).
+nmax = idx.Lmax;
+P = idx.P;
+if tsB.nmax ~= nmax || abs(tsB.GM - tsR.GM) > 1e-9 * tsR.GM || ...
+        abs(tsB.R - tsR.R) > 1e-9 * tsR.R
+    error('shLowLevel:kalmanChain:secondMismatch', ...
+        ['SecondSeries has nmax %d, GM %.10g, R %.10g; the observations ' ...
+         'nmax %d, GM %.10g, R %.10g - truncate or rescale it first.'], ...
+        tsB.nmax, tsB.GM, tsB.R, nmax, tsR.GM, tsR.R);
+end
+if ~all(isfinite(tsB.Cs(:))) || ~all(isfinite(tsB.Ss(:)))
+    error('shLowLevel:kalmanChain:secondNotFinite', ...
+        'SecondSeries holds NaN or Inf: drop those epochs first (ts.dropNaN).');
+end
+n1 = nmax + 1;
+given = ~(isstring(opts.SecondNoise) || ischar(opts.SecondNoise));
+if given
+    g = opts.SecondNoise;
+    if ~isnumeric(g) || numel(g) ~= n1 || ~all(isfinite(g(:))) || any(g(:) <= 0)
+        error('shLowLevel:kalmanChain:badSecondNoise', ...
+            'SecondNoise must be "overlap" or %d positive finite sigmas, one per degree.', n1);
+    end
+elseif string(opts.SecondNoise) ~= "overlap"
+    error('shLowLevel:kalmanChain:badSecondNoise', ...
+        'SecondNoise must be "overlap" or %d positive finite sigmas, one per degree.', n1);
+end
+tB = tsB.epochs(:);
+tR = tsR.epochs(:);
+XB = zeros(P, numel(tB));
+for k = 1:numel(tB)
+    gB = tsB.at(k);
+    XB(:, k) = shLowLevel.vecFromCS(gB.C, gB.S, idx);
+end
+[dmin, near] = min(abs(tR.' - tB), [], 2);
+matched = dmin < opts.SecondTolerance;
+if nnz(matched) < opts.MinOverlap
+    error('shLowLevel:kalmanChain:noOverlap', ...
+        ['Only %d epochs of SecondSeries match the observations within %g ' ...
+         'yr; the calibration needs at least %d (MinOverlap).'], ...
+        nnz(matched), opts.SecondTolerance, opts.MinOverlap);
+end
+iB = find(matched);
+iR = near(matched);
+M = numel(iB);
+XR = zeros(P, M);
+VR = zeros(P, M);
+for j = 1:M
+    rec = solutionRecord(tsR, iR(j), idx, opts.NoiseCov);
+    XR(:, j) = rec.l;
+    if isvector(rec.R)
+        VR(:, j) = rec.R(:);
+    else
+        VR(:, j) = diag(rec.R);
+    end
+end
+dR = XR - mean(XR, 2);
+dB = XB(:, iB) - mean(XB(:, iB), 2);
+s = zeros(n1, 1);
+sig = zeros(n1, 1);
+for n = 0:nmax
+    k = idx.n == n;
+    if ~any(k), continue; end
+    if opts.SecondScale
+        den = sum(dR(k, :).^2, 'all') - sum(VR(k, :), 'all');
+        if den > 0
+            s(n + 1) = max(sum(dB(k, :) .* dR(k, :), 'all') / den, 0);
+        end
+    else
+        s(n + 1) = 1;
+    end
+    fl = s(n + 1)^2 * mean(VR(k, :), 'all');
+    v = mean((dB(k, :) - s(n + 1) * dR(k, :)).^2, 'all') - fl;
+    sig(n + 1) = sqrt(max(v, fl));
+end
+if given
+    sig = opts.SecondNoise(:);
+    sig(setdiff(0:nmax, unique(idx.n)) + 1) = 0;
+end
+off = mean(XB(:, iB), 2) - s(idx.n + 1) .* mean(XR, 2);
+sec = struct('t', tB, 'X', XB, 'scale', s, 'sigma', sig, 'off', off, ...
+    'overlap', M);
+end
+
+function o = addSecond(o, sec, kS, idx, c)
+%ADDSECOND add epoch kS of the second series to record o as a normal
+%   equation, converting a solution record to its information form.
+P = idx.P;
+sv = sec.scale(idx.n + 1);
+gv = sec.sigma(idx.n + 1);
+use = sv > 0 & gv > 0;
+w = zeros(P, 1);
+w(use) = sv(use).^2 ./ gv(use).^2;
+bb = zeros(P, 1);
+bb(use) = sv(use) ./ gv(use).^2 .* (sec.X(use, kS) - sec.off(use) - sv(use) .* c(use));
+if ~isempty(o.N)
+    o.N = o.N + diag(w);
+    o.b = o.b + bb;
+elseif ~isempty(o.l)
+    if isvector(o.R)
+        N = diag(1 ./ o.R(:));
+        b = o.l ./ o.R(:);
+    else
+        Rc = chol(o.R);
+        N = Rc \ (Rc' \ eye(P));
+        N = (N + N') / 2;
+        b = N * o.l;
+    end
+    o = struct('l', [], 'R', [], 'N', N + diag(w), 'b', b + bb);
+else
+    o = struct('l', [], 'R', [], 'N', diag(w), 'b', bb);
+end
 end
 
 function out = tern(c, a, b)

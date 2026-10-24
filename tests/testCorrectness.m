@@ -6662,3 +6662,191 @@ verifyEqual(testCase, info.epochs, 2010.29, 'AbsTol', 1e-9);
 verifyError(testCase, @() shLowLevel.writeGrid(f, G, lat, lon, ...
     Epochs = [2010 2011], Sidecar = false), 'shLowLevel:writeGrid:badEpochs');
 end
+
+% ------------------------------------ WP9 9a: a second observation group
+function testKalmanChainSecondSeriesIsTheJointPosterior(testCase)
+%TESTKALMANCHAINSECONDSERIESISTHEJOINTPOSTERIOR WP9 9a: with SecondSeries
+%   the chain is the joint Gaussian posterior of both series under the
+%   joint process prior, solved densely here with the chain's own process
+%   model and calibration (rep.model, rep.second). 14 months, the primary
+%   missing 4 and the second series 2, so the grid holds epochs each
+%   observes alone and epochs both observe. validate_kalman_bridge.py
+%   CLAIM 1b measured this configuration over 10 seeds: states 2.1e-15,
+%   sigmas 1.2e-14 (relative); the bounds are 3x those.
+rng(91);
+idx = shLowLevel.shIndex(3);
+P = idx.P;
+A = 0.6 * eye(P) + 0.05 * randn(P);
+A = A * (0.7 / max(abs(eig(A))));
+X = zeros(P, 2014);
+for k = 2:2014
+    X(:, k) = A * X(:, k - 1) + randn(P, 1);
+end
+X = 1e-10 * X;
+tsm = vecSeries(X(:, 1:2000), 1800 + ((1:2000)' - 0.5) / 12, idx, []);
+x = X(:, 2001:2014);
+nt = 14;
+ep = 2005 + ((1:nt)' - 0.5) / 12;
+keepP = true(1, nt);
+keepP([5 6 7 11]) = false;
+haveB = true(1, nt);
+haveB([3 10]) = false;
+sR = 0.35e-10 * ones(P, 1);
+Ro = x + sR .* randn(P, nt);
+Bo = 0.7 * x + 0.1e-10 + 1.2e-10 * randn(P, nt);
+tsObs = vecSeries(Ro(:, keepP), ep(keepP), idx, sR);
+tsSec = vecSeries(Bo(:, haveB), ep(haveB), idx, sR);
+[ts, rep] = shLowLevel.kalmanChain(tsObs, ModelSeries = tsm, ...
+    Climatology = false, SecondSeries = tsSec, MinOverlap = 8);
+verifyEqual(testCase, ts.epochs, ep, AbsTol = 1e-12);
+want = repmat("both", 1, nt);
+want(~haveB) = "primary";
+want(~keepP) = "second";
+verifyEqual(testCase, rep.observedBy, want);
+verifyEqual(testCase, rep.second.overlap, 8);
+Phi = rep.model.Phi{1};
+S0 = rep.model.Sigma0;
+K = nt * P;
+C = zeros(K);
+for i = 1:nt
+    for j = 1:nt
+        if i >= j
+            blk = Phi^(i - j) * S0;
+        else
+            blk = S0 * (Phi^(j - i))';
+        end
+        C((i - 1) * P + (1:P), (j - 1) * P + (1:P)) = blk;
+    end
+end
+sv = rep.second.scale(idx.n + 1);
+gv = rep.second.sigma(idx.n + 1);
+off = shLowLevel.vecFromCS(rep.second.offsetC, rep.second.offsetS, idx);
+H = zeros(0, K);
+y = zeros(0, 1);
+v = zeros(0, 1);
+for t = 1:nt
+    cols = (t - 1) * P + (1:P);
+    if keepP(t)
+        Ht = zeros(P, K);
+        Ht(:, cols) = eye(P);
+        H = [H; Ht]; %#ok<AGROW>
+        y = [y; Ro(:, t)]; %#ok<AGROW>
+        v = [v; sR .^ 2]; %#ok<AGROW>
+    end
+    if haveB(t)
+        Ht = zeros(P, K);
+        Ht(:, cols) = diag(sv);
+        H = [H; Ht]; %#ok<AGROW>
+        y = [y; Bo(:, t) - off]; %#ok<AGROW>
+        v = [v; gv .^ 2]; %#ok<AGROW>
+    end
+end
+G = (C * H') / (H * C * H' + diag(v));
+xd = G * y;
+sd = sqrt(diag(C - G * H * C));
+[xc, sc] = seriesVectors(ts, idx);
+verifyLessThan(testCase, max(abs(xc(:) - xd)) / max(abs(xd)), 3 * 2.1e-15);
+verifyLessThan(testCase, max(abs(sc(:) ./ sd - 1)), 3 * 1.2e-14);
+end
+
+function testKalmanChainSecondSeriesCalibration(testCase)
+%TESTKALMANCHAINSECONDSERIESCALIBRATION WP9 9a: the overlap calibration is
+%   consistent. A second series B = s_n x + offset + noise against a noisy
+%   primary, 6000 overlap epochs at nmax 4: s_n and sigma_n come back
+%   within 6.4 and 3.1 percent - 3x the worst of 20 seeds of this
+%   configuration in validate_kalman_bridge.py CLAIM 2b (2.13 and 1.02
+%   percent); the errors-in-variables correction is what makes that
+%   possible (CLAIM 2). SecondScale = false fixes s_n = 1, and the offset
+%   follows the help's o = mean(B) - s_n mean(R).
+rng(92);
+idx = shLowLevel.shIndex(4);
+P = idx.P;
+M = 6000;
+a = (idx.n / 2) .^ -2;
+sR = 0.3 * a .* (idx.n / 4) .^ 2;
+sTrue = 1 ./ (1 + ((0:4)' / 3) .^ 4);
+gTrue = zeros(5, 1);
+gTrue(3:5) = 0.5 * (2:4)' / 3 .* ((2:4)' / 2) .^ -2;
+x = a .* randn(P, M);
+ep = 1500 + ((1:M)' - 0.5) / 12;
+tsObs = vecSeries(x + sR .* randn(P, M), ep, idx, sR);
+Bo = sTrue(idx.n + 1) .* x + 0.3 * a + gTrue(idx.n + 1) .* randn(P, M);
+tsSec = vecSeries(Bo, ep, idx, sR);
+tsm = vecSeries(a .* randn(P, 60), 2000 + ((1:60)' - 0.5) / 12, idx, []);
+[~, rep] = shLowLevel.kalmanChain(tsObs, ModelSeries = tsm, ...
+    Structure = "diagonal", Climatology = false, Smoother = false, ...
+    SecondSeries = tsSec);
+k = 3:5;
+verifyLessThan(testCase, max(abs(rep.second.scale(k) ./ sTrue(k) - 1)), 3 * 0.0213);
+verifyLessThan(testCase, max(abs(rep.second.sigma(k) ./ gTrue(k) - 1)), 3 * 0.0102);
+verifyEqual(testCase, rep.second.scale(1:2), [0; 0], ...
+    'degrees the index does not hold carry no scale');
+verifyEqual(testCase, rep.second.overlap, M);
+[~, rep1] = shLowLevel.kalmanChain(tsObs.select(1:200), ModelSeries = tsm, ...
+    Structure = "diagonal", Climatology = false, Smoother = false, ...
+    SecondSeries = tsSec.select(1:200), SecondScale = false);
+verifyEqual(testCase, rep1.second.scale(k), ones(3, 1));
+oc = shLowLevel.vecFromCS(rep1.second.offsetC, rep1.second.offsetS, idx);
+Xo = zeros(P, 200);
+Xb = Xo;
+for t = 1:200
+    g = tsObs.at(t);
+    Xo(:, t) = shLowLevel.vecFromCS(g.C, g.S, idx);
+    g = tsSec.at(t);
+    Xb(:, t) = shLowLevel.vecFromCS(g.C, g.S, idx);
+end
+% the same two means as the lane's, in the same order, and s_n = 1: exact
+verifyEqual(testCase, oc, mean(Xb, 2) - mean(Xo, 2));
+end
+
+function testKalmanChainSecondSeriesBridgesAGap(testCase)
+%TESTKALMANCHAINSECONDSERIESBRIDGESAGAP WP9 9a, the closed loop: a primary
+%   series lacking months 31-38 of 72, a second series damped above degree
+%   4 and 4 times noisier, observing all 72. The default grid is the 72
+%   months, the gap months are observed by the second series alone and
+%   the rest by both, and the gap error is below 0.9 of the chain's
+%   without the second series on the same grid. validate_kalman_bridge.py
+%   CLAIM 4 measured this configuration over 40 seeds: median 0.674,
+%   worst 0.794; 0.9 leaves room above the worst for this test's fixture,
+%   which is not one of those 40.
+rng(93);
+idx = shLowLevel.shIndex(6);
+P = idx.P;
+amp = 1e-9 ./ (idx.n + 1) .^ 2;
+sR = 0.1 * amp .* (idx.n / 2) .^ 2;
+ss = 1 ./ (1 + (idx.n / 4) .^ 4);
+nt = 72;
+ep = 2005 + ((1:nt)' - 0.5) / 12;
+gap = false(1, nt);
+gap(31:38) = true;
+truth = localAR(P, nt, amp) + amp .* randn(P, 1) .* cos(2 * pi * ep');
+Ro = truth + sR .* randn(P, nt);
+Bo = ss .* truth + 0.5 * amp .* randn(P, 1) + 4 * sR .* randn(P, nt);
+tsObs = vecSeries(Ro(:, ~gap), ep(~gap), idx, sR);
+tsSec = vecSeries(Bo, ep, idx, sR);
+tsm = vecSeries(localAR(P, 240, amp), 1980 + ((1:240)' - 0.5) / 12, idx, []);
+[tsB, rep] = shLowLevel.kalmanChain(tsObs, ModelSeries = tsm, ...
+    Structure = "diagonal", SecondSeries = tsSec);
+verifyEqual(testCase, tsB.epochs, ep, AbsTol = 1e-12);
+verifyTrue(testCase, all(rep.observedBy(gap) == "second") && ...
+    all(rep.observedBy(~gap) == "both"));
+tsA = shLowLevel.kalmanChain(tsObs, ModelSeries = tsm, ...
+    Structure = "diagonal", Epochs = ep);
+xB = seriesVectors(tsB, idx);
+xA = seriesVectors(tsA, idx);
+eB = sqrt(mean((xB(:, gap) - truth(:, gap)) .^ 2, 'all'));
+eA = sqrt(mean((xA(:, gap) - truth(:, gap)) .^ 2, 'all'));
+verifyLessThan(testCase, eB / eA, 0.9);
+verifyTrue(testCase, contains(tsB.history(end), "second series: 72 epochs, 8 of them alone"));
+end
+
+function X = localAR(P, nt, amp)
+%LOCALAR a diagonal AR(1) with coefficient 0.8 and unit stationary
+%   variance, scaled per coefficient by AMP - validate_kalman_bridge.py's
+%   CLAIM 4 process.
+X = zeros(P, nt);
+for k = 2:nt
+    X(:, k) = 0.8 * X(:, k - 1) + 0.6 * randn(P, 1);
+end
+X = amp .* X;
+end

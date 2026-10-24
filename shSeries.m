@@ -1665,9 +1665,20 @@ methods
         %     QC (lane default)  innovation-based quality control
         %     QCAlpha (lane default)  false-alarm level of that test
         %     StoreCov (lane default)  where the smoother's covariances live
+        %     SecondSeries  (1 x 1) shSeries  a second, noisier series of
+        %         the same field (an HLSST + SLR combination, Swarm) as a
+        %         second observation group, calibrated on the overlap
+        %         (WP9 9a); not given, nothing changes
+        %     SecondNoise (lane default)  "overlap" | per-degree sigmas
+        %     SecondScale (lane default)  calibrate the per-degree scale
+        %     SecondTolerance (lane default)  epoch matching of the second
+        %         series [yr]
+        %     MinOverlap (lane default)  fewest matched months
         %
         %   Example
         %     [tsk, rep] = ts.kalman(ModelSeries = tsm, Order = 1);
+        %     % bridge the 2017-18 gap with an HLSST series
+        %     [tsb, rep] = ts.kalman(ModelSeries = tsm, SecondSeries = hl);
         arguments
             obj
             opts.ModelSeries
@@ -1684,6 +1695,11 @@ methods
             opts.QC
             opts.QCAlpha
             opts.StoreCov
+            opts.SecondSeries
+            opts.SecondNoise
+            opts.SecondScale
+            opts.SecondTolerance
+            opts.MinOverlap
         end
         fwd = namedargs2cell(opts);
         [out, rep] = shLowLevel.kalmanChain(obj, fwd{:});
