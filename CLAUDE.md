@@ -26,11 +26,11 @@ says whether it was *read* or *inferred*.
 
 | Fact | Value | Evidence |
 |---|---|---|
-| Version | **5.26.0**, 23-Oct-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
+| Version | **5.27.0**, 23-Oct-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
 | Branches | `main` only; `claude/getframe-recapture` and `claude/readshm` are gone (merged/deleted) | `GET /branches` |
 | Public surface | 3 classes / 106 methods, 135 `+shLowLevel` functions (+5 private), 3 root functions. 94 of the 135 are reachable from a class method; each of the other 41 is a named exception with its reason, and the backlog is empty (v5.24.0) | `tools/dev/api_extract.py`; `tools/dev/class_surface_audit.py` |
-| Tests | 5 classes, **446 methods / 460 runs**: Correctness 227, Contract 136, Robustness 61, Science 9, Performance 13 methods (27 runs, `budgetCase` x14 + `nmaxP` x2). On A8 7 filter out without the optional real-data fixtures (the GravIS-grid test joined them in v5.8.0, the ESMGFZ check in v5.11.0, the HLSST check in v5.12.0); on MATTHIASPC only 2 do, because `E:\DATAPOOL` supplies the SINEX files, the GravIS folder and - with `SHX_EARTHROTATION_FOLDER` and `SHX_BRIDGE_FOLDER` set for the run, no preference is stored - the ESMGFZ and HLSST series. The counter has matched the runner EXACTLY on the last ten green A8 runs and on every local Tier-A run. | `python3 tools/dev/count_tests.py` |
-| Python oracles | 33 `tools/dev/validate_*.py` (+ `regional_oracle_lib.py`, shared by the WP8 oracles) + `tools/audit/*` | listing |
+| Tests | 5 classes, **450 methods / 464 runs**: Correctness 230, Contract 137, Robustness 61, Science 9, Performance 13 methods (27 runs, `budgetCase` x14 + `nmaxP` x2). On A8 7 filter out without the optional real-data fixtures (the GravIS-grid test joined them in v5.8.0, the ESMGFZ check in v5.11.0, the HLSST check in v5.12.0); on MATTHIASPC only 2 do, because `E:\DATAPOOL` supplies the SINEX files, the GravIS folder and - with `SHX_EARTHROTATION_FOLDER` and `SHX_BRIDGE_FOLDER` set for the run, no preference is stored - the ESMGFZ and HLSST series. The counter has matched the runner EXACTLY on the last ten green A8 runs and on every local Tier-A run. | `python3 tools/dev/count_tests.py` |
+| Python oracles | 34 `tools/dev/validate_*.py` (+ `regional_oracle_lib.py`, shared by the WP8 oracles) + `tools/audit/*` | listing |
 | Docs | **27** hand-written `html/*.html` (24 per-entity duplicates retired in v5.0.1, WP6 stage 3; `regionalBasis.html` added in v5.14.0) + **238 generated `html/ref/*.html`** (one per entity + index, `make_refpages.py`), one shared `html/shAnalysis.css`, `helptoc.xml`, `info.xml`, guide PDF (built by CI and attached to each GitHub release since v5.24.1, not committed - `doc_sync_audit` refuses a tracked copy), generated `html/apiReference.html`. `docs/` holds `apiExamples.json` and, where it was built, the PDF - no HTML page lives outside `html/` (gated). | listing |
 | CI | `gates` job on ubuntu (help_audit, doc_sync_audit, no_map_renderer, toolbox_dependency_audit, nv_casing_audit, fixture_tag_audit, gate self-tests `tools/tests/`, `count_tests`, `name_coverage`, `class_surface_audit`, `error_id_audit`, `option_values_audit`, `refpages_audit`, `make_demos --check`, `perf_baseline_audit`) + `runAllTests (self-hosted)` on A8/R2026a; fixtures from tag `fixtures-2026-08` | `.github/workflows/ci.yml` |
 | Namespace | `+shLowLevel` (renamed from `+shx` in v3.0.0). Any memory saying `shx.*` is stale. | README §History |
@@ -657,7 +657,7 @@ shAnalysis, the basin is selectable, and otherwise a test area.
   numbers), `robustness` (dateline basins, polar regions, gaps).
 - **Size**: XL over the rows. **Version**: MINOR per row.
 
-### WP9 — More from existing observations   `[~] 9a DONE (v5.25.0), 9b DONE (v5.26.0); 9c-9j open, in the order below` (approved 2026-10-23)
+### WP9 — More from existing observations   `[~] 9a DONE (v5.25.0), 9b DONE (v5.26.0), 9c DONE (v5.27.0); 9d-9j open, in the order below` (approved 2026-10-23)
 Approved by Matthias on 2026-10-23 ("Go ahead") on a ranked proposal of
 2026-10-22 whose premise was that the toolbox mostly consumes finished
 solutions, while much of the information sits in normal equations,
@@ -669,7 +669,7 @@ that need no new data first.
 |---|---|---|---|
 | 9a `[x]` **DONE v5.25.0** | a second observation group on `kalmanChain` / `ts.kalman` (`SecondSeries`): an HLSST or Swarm series calibrated on the overlap (offset, per-degree scale with the errors-in-variables correction, per-degree noise) and added as a normal equation, so the gap is bridged by the estimator | `validate_kalman_bridge.py`: joint posterior, calibration consistency, closed loop against `bridgeGaps` | S-M |
 | 9b `[x]` **DONE v5.26.0** | `shLowLevel.neqClimatology`: the six climatology terms from ALL monthly normal equations, each month's deviation reduced (Schur complement, never inverting N) - instead of fitting filtered solutions. The gain is the month-to-month change of the noise pattern, nil for a constant one; not measured on real NEQs | `validate_neq_climatology.py`: GLS fit with full covariance, joint reduction, closed loop | M |
-| 9c | basin-scale mascons (spherical caps) as a fourth `regionalBasis` type; T analytic | the cap's closed-form Legendre series; projector identities; comparison with `readMascon` products | S |
+| 9c `[x]` **DONE v5.27.0** | basin-scale mascons (spherical caps) as a fourth `regionalBasis` type; T analytic: an rbf with the cap kernel c_n / ((2n+1) f_n), coefficients in EWH metres, equal-area default radius. The `readMascon` comparison is debt (no product reachable) | `validate_regional_mascon.py`: c_n against 40-digit values, the column against scipy's Legendre series, area, telescoping centre, projector | S |
 | 9d | 8f on A8: measure whether a truncated closed loop (nmax 60, 3721^2 doubles = 0.11 GB per month) or order-block covariance storage fits A8 - measured, then decided | memory and wall time on A8 | S |
 | 9e | normal-equation combination of analysis centres with VCE: `neqCombine` does it already (inside `kalmanChain`'s multi-center mode too); what is missing is DATA - which centres besides ITSG publish usable NEQs. A check first; possibly nothing to build | COST-G combined solutions | M |
 | 9f | C20, C30 and degree 1 estimated jointly from SLR and GRACE normal equations instead of the TN-14 substitution | blocked on a source of SLR NEQs | M |
@@ -698,6 +698,28 @@ that need no new data first.
 Current entries only; every earlier one is in `tools/dev/RECORD.md` §1,
 verbatim. An entry moves there when it stops describing the current
 state; nothing is deleted.
+- 2026-10-23 — **9c shipped as 5.27.0**: `Type = "mascon"` in
+  `regionalBasis`, an rbf with the cap kernel, so every downstream
+  function (8b-8i) takes it unchanged. The coefficients are the caps' EWH
+  [m], which needs the EWH kernel and so `kn` - required, as everywhere
+  else Love numbers enter; degrees below the index's first are zeroed
+  before `kernelFactors` sees them, so a CM-frame k_1 = -1 is usable.
+- 2026-10-23 — **The default cap radius is equal-area** (cos psi0 = 1 -
+  2/N over the GLOBAL grid), one rule tied to the rbf level rule, rather
+  than a fixed 3 deg of the JPL product. At nmax 60 it gives 201.7 km
+  caps whose band-limited centre value is 0.73: smaller than nmax
+  resolves. Stated in the help with the closed form 1 - (P_L + P_L+1)/2,
+  not hidden by a coarser default; `Level` and `CapRadiusKm` change it.
+- 2026-10-23 — **CLAIM 0's first bound was the quadrature's error, not
+  the formula's.** Against Gauss-Legendre quadrature the closed form
+  missed 1e-12 by 2.9x; 40-digit mpmath values put the closed form at
+  4.3e-17 and the quadrature at 2.8e-13 (1200 terms times (2n+1)/2).
+  The reference became mpmath; the quadrature stays as a second route
+  with its own bound.
+- 2026-10-23 — **What a coefficient means for a smooth load is measured,
+  not promised**: a uniform 1 m layer projects to interior caps of median
+  1.02 m, 0.53 to 1.20 (nmax 30, level 6). The test asserts the median
+  within 0.1 of 1, the oracle's bound set before it ran.
 - 2026-10-23 — **9b shipped as 5.26.0**: `shLowLevel.neqClimatology`,
   without a class route (it reads normal equations; an exception in
   `class_surface_audit`, like `kalmanChain`'s neq mode).
@@ -846,6 +868,7 @@ The last releases only; the full board, in version order, is
 | v5.24.0 (the class-surface backlog: nine routes, six exceptions; `designFilter` NaN, `signalVarianceKaula` badRange) | ☑ 17 gates + mlint + make_demos + 15 self-test suites, 0 findings; reach 87 -> 94 of 134, backlog 13 -> 0 | ◑ **Tier B locally**. ☑ **CI self-hosted (A8) at `7b0d331` via PR #136, green — 448 runs, 441 passed, 0 failed, 7 filtered**; the count prediction matched EXACTLY, per class as well as in total (Contract 130). One red round first, at `962b4b8`: the new series test drove `signalVarianceKaula`'s range guard, whose `error` call threw `nonScalarInput` on its vector format argument - a lane defect of the A27 shape, fixed | ☑ PR #136 | ☑ 2026-10-22 |
 | v5.24.1 (`obpChain:emptyRefPeriod`; DRIVEN + R8 and 56 identifiers driven; the guide built by CI; Node 24 artifact action; this file split) | ☑ 17 gates + mlint + make_demos + 15 self-test suites, 0 findings; DRIVEN: 231 -> 287 of 395 raised identifiers named by a test, backlog 164 -> 108 | ◑ **Tier B locally**. ☑ **CI self-hosted (A8) at `392d9a6` via PR #137, green — 452 runs, 445 passed, 0 failed, 7 filtered**; the count prediction matched EXACTLY, per class as well as in total (Contract 134), and all five new or extended tests passed on their first run. The gates job built the guide (2.2 MB artifact) and `doc_sync_audit` checked it there; no Node 20 warning | ☑ PR #137 | ☑ 2026-10-22 |
 | v5.25.0 (WP9 9a: `SecondSeries` on `kalmanChain` and `ts.kalman`) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally** (no bridge). ☑ **CI self-hosted (A8) at `fe9fe24` via PR #138, green — 456 runs, 449 passed, 0 failed, 7 filtered** (the optional real-data fixtures); the count prediction matched EXACTLY, and the four 9a tests passed on their first run - no red round | ☑ PR #138 | ◐ pending |
+| v5.27.0 (WP9 9c: `Type = "mascon"` in `regionalBasis`) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally** (no bridge). ☑ **CI self-hosted (A8) at `de4e0c4` via PR #140, green — 464 runs, 457 passed, 0 failed, 7 filtered** (the optional real-data fixtures); the count prediction matched EXACTLY, and the four 9c tests passed on their first run - no red round | ☑ PR #140 | ◐ pending |
 | v5.26.0 (WP9 9b: `shLowLevel.neqClimatology`) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally** (no bridge). ☑ **CI self-hosted (A8) at `4aa3aa9` via PR #139, green — 460 runs, 453 passed, 0 failed, 7 filtered** (the optional real-data fixtures); the count prediction matched EXACTLY, and the four 9b tests passed on their first run - no red round | ☑ PR #139 | ◐ pending |
 
 ### 6.3 What the next session could be wrong for not reading
@@ -918,8 +941,10 @@ One line per rule; the incident behind each, with its numbers, is in
 
 ### 6.4 Next action
 
-**State, 2026-10-23.** v5.25.0 (WP9 9a, the Kalman chain's second
-observation group) is on branch `wp9-kalman-bridge`; `main` is
+**State, 2026-10-23.** Three stacked PRs: v5.25.0 (WP9 9a, the Kalman
+chain's second observation group) on `wp9-kalman-bridge` (#138),
+v5.26.0 (9b) on `wp9-neq-climatology` (#139, base #138), v5.27.0 (9c,
+mascons) on `wp9-mascon-basis` (base #139); merge in that order. `main` is
 `158bb6a`, v5.24.1 (PR #137 merged 2026-10-22). Check that the v5.24.1
 release carries `shAnalysis_workflow_guide.pdf` - its merge was the
 first run of `release.yml`'s guide step. Every finding in 4.1 is CLOSED except A42,
@@ -927,11 +952,12 @@ which holds five low items that need data or a run, not effort. Read the version
 1's table or `Contents.m` line 2, never from this paragraph.
 
 **Open, in the order of what they buy:**
-0. **WP9, in its table's order** (approved 2026-10-23): 9c next - the
-   mascon basis - then the 9d measurement on A8. Real-data debt for the
-   acceptance machine: 9a against `bridgeGaps` on COST-G and HLSST, and
-   9b's gain on ITSG normal equations (it is the month-to-month change
-   of their noise pattern, not measured).
+0. **WP9, in its table's order** (approved 2026-10-23): 9d next - the
+   measurement on A8 of whether a truncated 8f closed loop fits. Real-data
+   debt for the acceptance machine: 9a against `bridgeGaps` on COST-G and
+   HLSST, 9b's gain on ITSG normal equations (it is the month-to-month
+   change of their noise pattern, not measured), and 9c's mascons against
+   a `readMascon` product.
 1. **A42**, each a small, separate change once its input exists:
    - one look at `tests/test_data` on A8 or MATTHIASPC settles whether
      the TN-13 fixture spans 2017-07..2018-05, i.e. whether

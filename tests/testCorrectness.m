@@ -5127,6 +5127,125 @@ N = shLowLevel.regionalBasis(idx, cap, Type = "slepian", BufferKm = 0, NKeep = 3
 verifyEqual(testCase, N.K, 3);
 end
 
+% ------------------------------------------- WP9 9c: the mascon basis
+function testRegionalBasisMasconIsTheCapSeries(testCase)
+%TESTREGIONALBASISMASCONISTHECAPSERIES A mascon column of T, synthesised
+%   as EWH with the kernel f_n of kernelFactors, is the truncated cap
+%   series sum_n c_n P_n(cos psi), c_n = (P_(n-1)(t0) - P_(n+1)(t0))/2,
+%   evaluated here with MATLAB's own legendre() - not the recursion that
+%   built T. Configuration of validate_regional_mascon.py CLAIM 2 (nmax
+%   30, a 4 deg cap, both poles among the centres, 50 points), which
+%   measured 9.42e-14 relative; the bound is 3x that.
+L = 30;
+idx = shLowLevel.shIndex(L);
+n = (0:L)';
+kn = -0.30 * n ./ (n + 3.0);                     % synthetic Love numbers
+R = 6378136.3;
+B = shLowLevel.regionalBasis(idx, @(la, lo) ones(size(la)), Type = "mascon", ...
+    Grid = "reuter", Level = 12, BufferKm = 0, kn = kn, ...
+    CapRadiusKm = deg2rad(4) * R / 1e3);
+verifyEqual(testCase, B.kernelName, "cap");
+verifyEqual(testCase, B.capRadiusKm, deg2rad(4) * R / 1e3);
+t0 = cos(deg2rad(4));
+fn = shLowLevel.kernelFactors('ewh', L, 1, R, kn = kn);
+lat = linspace(-89.9, 89.9, 50)';
+lon = mod(137.508 * (0:49)', 360);
+Yp = shLowLevel.ylm(deg2rad(lat), deg2rad(lon), idx);
+cols = [find(B.nodes(:, 1) == 90, 1), find(B.nodes(:, 1) == -90, 1), ...
+        round(B.K / 3), round(2 * B.K / 3)];
+F = (Yp .* fn(idx.n + 1)') * B.T(:, cols);
+c = zeros(L + 1, 1);                 % legendre(n, t0)'s first row is P_n(t0)
+for k = 1:L
+    Pm = legendre(k - 1, t0); Pp = legendre(k + 1, t0);
+    c(k + 1) = (Pm(1) - Pp(1)) / 2;
+end
+c(1) = (1 - t0) / 2;
+worst = 0;
+for q = 1:numel(cols)
+    x0 = B.nodes(cols(q), :);
+    cpsi = sind(lat) * sind(x0(1)) + cosd(lat) .* cosd(x0(1)) .* cosd(lon - x0(2));
+    cpsi = min(max(cpsi, -1), 1);
+    ref = zeros(size(lat));
+    for k = 2:L
+        Pk = legendre(k, cpsi');
+        ref = ref + c(k + 1) * Pk(1, :)';
+    end
+    worst = max(worst, max(abs(F(:, q) - ref)) / max(abs(ref)));
+end
+verifyLessThan(testCase, worst, 3 * 9.42e-14);
+end
+
+function testRegionalBasisMasconMassAndCentre(testCase)
+%TESTREGIONALBASISMASCONMASSANDCENTRE With degree 0 in the index a
+%   mascon carries its own area: the global mean of the synthesised cap
+%   is (1 - t0)/2 (validate_regional_mascon.py CLAIM 3, 5.7e-15 relative;
+%   bound 3x). Its centre value telescopes to 1 - (P_L(t0) + P_(L+1)(t0))/2
+%   (CLAIM 1, exact for the sum of c_n; through the synthesis the bound is
+%   CLAIM 2's 3 x 9.42e-14). And the default radius is equal-area: cos
+%   psi0 = 1 - 2/N for the global grid's N nodes, 1002 at nmax 30 (CLAIM
+%   4: 403.1 km).
+L = 30;
+idx = shLowLevel.shIndex(L, Nmin = 0);
+n = (0:L)';
+kn = -0.30 * n ./ (n + 3.0);
+R = 6378136.3;
+psi0 = deg2rad(4);
+B = shLowLevel.regionalBasis(idx, @(la, lo) double(la > 20 & la < 60), ...
+    Type = "mascon", kn = kn, CapRadiusKm = psi0 * R / 1e3);
+fn = shLowLevel.kernelFactors('ewh', L, 1, R, kn = kn);
+[Y, w] = shLowLevel.synthesisMatrix(idx, NLat = 2 * (L + 1), NLon = 2 * (2 * L + 2));
+k = round(B.K / 2);
+field = (Y .* fn(idx.n + 1)') * B.T(:, k);
+area = (1 - cos(psi0)) / 2;
+verifyLessThan(testCase, abs(w' * field - area) / area, 3 * 5.7e-15);
+Yc = shLowLevel.ylm(deg2rad(B.nodes(k, 1)), deg2rad(B.nodes(k, 2)), idx);
+centre = (Yc .* fn(idx.n + 1)') * B.T(:, k);
+PL = legendre(L, cos(psi0)); PL1 = legendre(L + 1, cos(psi0));
+closed = 1 - (PL(1) + PL1(1)) / 2;
+verifyLessThan(testCase, abs(centre - closed) / abs(closed), 3 * 9.42e-14);
+D = shLowLevel.regionalBasis(shLowLevel.shIndex(L), @(la, lo) double(la > 50), ...
+    Type = "mascon", kn = kn);
+verifyEqual(testCase, D.nGlobal, 1002);
+verifyEqual(testCase, D.capRadiusKm, acos(1 - 2 / 1002) * R / 1e3);
+verifyEqual(testCase, D.capRadiusKm, 403.1, AbsTol = 0.05);
+end
+
+function testRegionalBasisMasconProjector(testCase)
+%TESTREGIONALBASISMASCONPROJECTOR At a level whose caps nmax resolves,
+%   the mascon projector is the exact inverse of T over the region: full
+%   rank, Proj T = I, and the region-weighted normal equations hold.
+%   Configuration of validate_regional_mascon.py CLAIM 5 (nmax 30, the
+%   cap north of 50 deg plus 600 km, icosahedral level 6, equal-area caps
+%   of 5.17 deg): 68 of 492 nodes, and the oracle measured 1.1e-14 for
+%   Proj T - I and 6.4e-15 for the normal equations; bounds 3x. CLAIM 6:
+%   a uniform 1 m layer over the buffered region projects to caps whose
+%   interior median EWH is within 0.1 of 1 (the oracle: 1.023) - the bound
+%   the oracle asserts, set before it ran.
+L = 30;
+idx = shLowLevel.shIndex(L);
+n = (0:L)';
+kn = -0.30 * n ./ (n + 3.0);
+R = 6378136.3;
+B = shLowLevel.regionalBasis(idx, @(la, lo) double(la > 50), ...
+    Type = "mascon", kn = kn, Level = 6);
+verifyEqual(testCase, B.nGlobal, 492);
+verifyEqual(testCase, B.K, 68);
+verifyEqual(testCase, B.rank, 68);
+verifyLessThan(testCase, max(abs(B.Proj * B.T - eye(B.K)), [], 'all'), 3 * 1.1e-14);
+[Y, w] = shLowLevel.synthesisMatrix(idx, NLat = 2 * (L + 1), NLon = 2 * (2 * L + 2));
+Kq = Y' * ((w .* B.region.mask) .* Y);
+rng(9);
+x = randn(idx.P, 1) ./ max(idx.n, 1).^2;
+ne = max(abs(B.T' * Kq * (x - B.T * (B.Proj * x)))) / max(abs(B.T' * Kq * x));
+verifyLessThan(testCase, ne, 3 * 6.4e-15);
+fn = shLowLevel.kernelFactors('ewh', L, 1, R, kn = kn);
+xLayer = (Y' * (w .* B.region.mask)) ./ fn(idx.n + 1);
+a = B.Proj * xLayer;
+interior = B.nodes(:, 1) > 50 + rad2deg(900e3 / R);
+verifyGreaterThan(testCase, nnz(interior), 5);
+verifyLessThan(testCase, abs(median(a(interior)) - 1), 0.1);
+end
+
 function g = randomFieldNmax(nmax)
 rng(11);
 C = tril(randn(nmax + 1)) ./ ((0:nmax)' + 1).^2;

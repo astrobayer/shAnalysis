@@ -1497,6 +1497,38 @@ S = shLowLevel.regionalBasis(idx, "Elbe", Type = "slepian", Threshold = 0.5);
 [a, rec] = ts.regionalProject(ts.regionalBasis("Elbe"));   % K x T state
 [B.K, B.nGlobal, S.K]
 """)
+story += [para("Mascons (v5.27.0)", "h3"),
+          para("<font face='Courier'>Type = \"mascon\"</font> puts "
+               "spherical caps of radius CapRadiusKm on the same nodes, each "
+               "a uniform layer of 1 m equivalent water height, so that the "
+               "coefficients are the caps' EWH in metres - the quantity "
+               "mascon products report (Watkins et al. 2015). The cap "
+               "indicator expands as")]
+story += eq(r"\chi(\psi)=\sum_n c_n P_n(\cos\psi),\quad "
+            r"c_0=\frac{1-t_0}{2},\quad c_n=\frac{P_{n-1}(t_0)-P_{n+1}(t_0)}{2},"
+            r"\quad T_{nm,k}=\frac{c_n}{(2n+1)\,f_n}\,\bar{Y}_{nm}(x_k),")
+story += [para("with t<sub>0</sub> = cos psi<sub>0</sub> and f<sub>n</sub> "
+               "the EWH kernel of <font face='Courier'>kernelFactors</font>, "
+               "so a mascon is a radial basis function with the cap kernel "
+               "and shares its node selection and projector; the load Love "
+               "numbers kn are required. The default radius is equal-area, "
+               "cos psi<sub>0</sub> = 1 - 2/N for the N nodes of the global "
+               "grid: 201.7 km at nmax 60. A band-limited cap is not a cap - "
+               "its centre value is 1 - (P<sub>L</sub>(t<sub>0</sub>) + "
+               "P<sub>L+1</sub>(t<sub>0</sub>))/2, 0.73 for that default "
+               "cap - and caps neither tile nor are orthogonal: a smooth 1 m "
+               "layer projects to interior caps of median 1.02 m with a "
+               "spread of 0.53 to 1.20 (nmax 30). Measured in "
+               "tools/dev/validate_regional_mascon.py: c<sub>n</sub> against "
+               "40-digit values to 4e-17, a column of T against scipy's "
+               "Legendre series to 9.4e-14, the projector at a resolvable "
+               "level to 1.1e-14.")]
+story += code("""
+LN = shLowLevel.readLoveNumbers(loveFile);  kn = LN.kn(1:61);
+M = ts.regionalBasis("Elbe", Type = "mascon", kn = kn);   % equal-area caps
+ewh = ts.regionalProject(M);                              % K x T cap EWH [m]
+M.capRadiusKm
+""")
 
 story += [para("34. The process model in a regional basis (v5.15.0)", "h2"),
           para("The second step towards the regional Kalman filter: "
