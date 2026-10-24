@@ -1,0 +1,43 @@
+# THROWAWAY (WP8 8f, 2026-10-24): what does running 8f on A8 cost?
+# Lists the ESA ESM archives and the ITSG-Grace2018 SINEX size, and A8's
+# free disk. Downloads nothing. This branch is not meant to be merged.
+name: probe-8f
+on:
+  pull_request:
+    paths: [".github/workflows/probe-8f.yml"]
+jobs:
+  probe:
+    runs-on: self-hosted
+    timeout-minutes: 10
+    steps:
+      - name: Disk and paths
+        shell: powershell
+        run: |
+          Get-PSDrive -PSProvider FileSystem | Format-Table Name, @{n='UsedGB';e={[math]::Round($_.Used/1GB,1)}}, @{n='FreeGB';e={[math]::Round($_.Free/1GB,1)}}, Root -AutoSize
+          "USERPROFILE=$env:USERPROFILE"
+          "RUNNER_WORKSPACE=$env:RUNNER_WORKSPACE"
+          "GITHUB_WORKSPACE=$env:GITHUB_WORKSPACE"
+          [Environment]::ProcessorCount
+      - name: ESA ESM listings
+        shell: powershell
+        run: |
+          $ProgressPreference = 'SilentlyContinue'
+          foreach ($d in @('', 'mtmshc/', 'mtmdeal/', 'mtmmisc/')) {
+            $u = "https://isdc-data.gfz.de/future_missions/esaesm/ESAESM2/$d"
+            "===== $u"
+            try {
+              $r = Invoke-WebRequest -Uri $u -UseBasicParsing -TimeoutSec 60
+              ($r.Content -replace '<[^>]+>', ' ' -split "`n") | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne '' } | Select-Object -First 80
+            } catch { "FAILED: $($_.Exception.Message)" }
+          }
+      - name: ITSG-Grace2018 SINEX 2008-01 size
+        shell: powershell
+        run: |
+          $ProgressPreference = 'SilentlyContinue'
+          foreach ($n in @(96, 120)) {
+            $u = "https://ftp.tugraz.at/pub/ITSG/GRACE/ITSG-Grace2018/monthly/normals_SINEX/monthly_n$n/ITSG-Grace2018_n${n}_2008-01.snx.gz"
+            try {
+              $r = Invoke-WebRequest -Uri $u -Method Head -UseBasicParsing -TimeoutSec 60
+              "$u  bytes=$($r.Headers['Content-Length'])"
+            } catch { "FAILED $u : $($_.Exception.Message)" }
+          }
