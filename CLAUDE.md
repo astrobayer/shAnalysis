@@ -26,7 +26,7 @@ says whether it was *read* or *inferred*.
 
 | Fact | Value | Evidence |
 |---|---|---|
-| Version | **5.27.0**, 23-Oct-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
+| Version | **5.27.1**, 24-Oct-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
 | Branches | `main` only; `claude/getframe-recapture` and `claude/readshm` are gone (merged/deleted) | `GET /branches` |
 | Public surface | 3 classes / 106 methods, 135 `+shLowLevel` functions (+5 private), 3 root functions. 94 of the 135 are reachable from a class method; each of the other 41 is a named exception with its reason, and the backlog is empty (v5.24.0) | `tools/dev/api_extract.py`; `tools/dev/class_surface_audit.py` |
 | Tests | 5 classes, **450 methods / 464 runs**: Correctness 230, Contract 137, Robustness 61, Science 9, Performance 13 methods (27 runs, `budgetCase` x14 + `nmaxP` x2). On A8 7 filter out without the optional real-data fixtures (the GravIS-grid test joined them in v5.8.0, the ESMGFZ check in v5.11.0, the HLSST check in v5.12.0); on MATTHIASPC only 2 do, because `E:\DATAPOOL` supplies the SINEX files, the GravIS folder and - with `SHX_EARTHROTATION_FOLDER` and `SHX_BRIDGE_FOLDER` set for the run, no preference is stored - the ESMGFZ and HLSST series. The counter has matched the runner EXACTLY on the last ten green A8 runs and on every local Tier-A run. | `python3 tools/dev/count_tests.py` |
@@ -698,6 +698,18 @@ that need no new data first.
 Current entries only; every earlier one is in `tools/dev/RECORD.md` §1,
 verbatim. An entry moves there when it stops describing the current
 state; nothing is deleted.
+- 2026-10-24 — **The README is a release, 5.27.1** (Matthias: "Where is
+  the pdf? It is not part of the repo. Also the readme of the repo is
+  outdated"). The PDF question was the README's fault as much as anyone's:
+  it said "attached to every release rather than committed" once, at the
+  end of a paragraph. It now says so first, with the `releases/latest`
+  link. The README's quick-start fence is contract-checked by
+  `doc_sync_audit` (a misspelled option fails it), so the two variables
+  it used undefined (`kn`, `B`) were invisible to the gate - it checks
+  calls, not that their arguments exist. Recorded, not gated.
+- 2026-10-24 — **#138-#140 merged in order** by Matthias; each release
+  carries the guide PDF (`release.yml`, confirmed on v5.25.0, v5.26.0,
+  v5.27.0).
 - 2026-10-23 — **9c shipped as 5.27.0**: `Type = "mascon"` in
   `regionalBasis`, an rbf with the cap kernel, so every downstream
   function (8b-8i) takes it unchanged. The coefficients are the caps' EWH
@@ -867,9 +879,10 @@ The last releases only; the full board, in version order, is
 | v5.23.4 (A41: fifteen code defects recorded by A40) | ☑ 17 gates + mlint (21 files) + make_demos + 15 self-test suites, 0 findings | ◑ **Tier B locally**. ☑ **CI self-hosted (A8) at `b8c487b` via PR #134, green — 445 runs, 438 passed, 0 failed, 7 filtered**; the count prediction matched EXACTLY, and all ten new tests and the three extended ones passed on their first run - the `twsChain` one is the first to reach the DDK lookup on A8 | ☑ PR #134 | ☑ 2026-10-22 |
 | v5.24.0 (the class-surface backlog: nine routes, six exceptions; `designFilter` NaN, `signalVarianceKaula` badRange) | ☑ 17 gates + mlint + make_demos + 15 self-test suites, 0 findings; reach 87 -> 94 of 134, backlog 13 -> 0 | ◑ **Tier B locally**. ☑ **CI self-hosted (A8) at `7b0d331` via PR #136, green — 448 runs, 441 passed, 0 failed, 7 filtered**; the count prediction matched EXACTLY, per class as well as in total (Contract 130). One red round first, at `962b4b8`: the new series test drove `signalVarianceKaula`'s range guard, whose `error` call threw `nonScalarInput` on its vector format argument - a lane defect of the A27 shape, fixed | ☑ PR #136 | ☑ 2026-10-22 |
 | v5.24.1 (`obpChain:emptyRefPeriod`; DRIVEN + R8 and 56 identifiers driven; the guide built by CI; Node 24 artifact action; this file split) | ☑ 17 gates + mlint + make_demos + 15 self-test suites, 0 findings; DRIVEN: 231 -> 287 of 395 raised identifiers named by a test, backlog 164 -> 108 | ◑ **Tier B locally**. ☑ **CI self-hosted (A8) at `392d9a6` via PR #137, green — 452 runs, 445 passed, 0 failed, 7 filtered**; the count prediction matched EXACTLY, per class as well as in total (Contract 134), and all five new or extended tests passed on their first run. The gates job built the guide (2.2 MB artifact) and `doc_sync_audit` checked it there; no Node 20 warning | ☑ PR #137 | ☑ 2026-10-22 |
-| v5.25.0 (WP9 9a: `SecondSeries` on `kalmanChain` and `ts.kalman`) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally** (no bridge). ☑ **CI self-hosted (A8) at `fe9fe24` via PR #138, green — 456 runs, 449 passed, 0 failed, 7 filtered** (the optional real-data fixtures); the count prediction matched EXACTLY, and the four 9a tests passed on their first run - no red round | ☑ PR #138 | ◐ pending |
-| v5.27.0 (WP9 9c: `Type = "mascon"` in `regionalBasis`) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally** (no bridge). ☑ **CI self-hosted (A8) at `de4e0c4` via PR #140, green — 464 runs, 457 passed, 0 failed, 7 filtered** (the optional real-data fixtures); the count prediction matched EXACTLY, and the four 9c tests passed on their first run - no red round | ☑ PR #140 | ◐ pending |
-| v5.26.0 (WP9 9b: `shLowLevel.neqClimatology`) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally** (no bridge). ☑ **CI self-hosted (A8) at `4aa3aa9` via PR #139, green — 460 runs, 453 passed, 0 failed, 7 filtered** (the optional real-data fixtures); the count prediction matched EXACTLY, and the four 9b tests passed on their first run - no red round | ☑ PR #139 | ◐ pending |
+| v5.25.0 (WP9 9a: `SecondSeries` on `kalmanChain` and `ts.kalman`) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally** (no bridge). ☑ **CI self-hosted (A8) at `fe9fe24` via PR #138, green — 456 runs, 449 passed, 0 failed, 7 filtered** (the optional real-data fixtures); the count prediction matched EXACTLY, and the four 9a tests passed on their first run - no red round | ☑ PR #138 | ☑ 2026-10-24 |
+| v5.27.0 (WP9 9c: `Type = "mascon"` in `regionalBasis`) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally** (no bridge). ☑ **CI self-hosted (A8) at `de4e0c4` via PR #140, green — 464 runs, 457 passed, 0 failed, 7 filtered** (the optional real-data fixtures); the count prediction matched EXACTLY, and the four 9c tests passed on their first run - no red round | ☑ PR #140 | ☑ 2026-10-24 |
+| v5.27.1 (the README brought up to date; documentation only) | ☑ 17 gates + make_demos + 15 self-test suites, 0 findings; README fence contract-checked, fault-injected | ◑ **Tier B locally**; no MATLAB file changed. ◐ CI self-hosted (A8) pending - predicted 464 runs, unchanged | ◐ pending | ◐ pending |
+| v5.26.0 (WP9 9b: `shLowLevel.neqClimatology`) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally** (no bridge). ☑ **CI self-hosted (A8) at `4aa3aa9` via PR #139, green — 460 runs, 453 passed, 0 failed, 7 filtered** (the optional real-data fixtures); the count prediction matched EXACTLY, and the four 9b tests passed on their first run - no red round | ☑ PR #139 | ☑ 2026-10-24 |
 
 ### 6.3 What the next session could be wrong for not reading
 
@@ -941,13 +954,11 @@ One line per rule; the incident behind each, with its numbers, is in
 
 ### 6.4 Next action
 
-**State, 2026-10-23.** Three stacked PRs: v5.25.0 (WP9 9a, the Kalman
-chain's second observation group) on `wp9-kalman-bridge` (#138),
-v5.26.0 (9b) on `wp9-neq-climatology` (#139, base #138), v5.27.0 (9c,
-mascons) on `wp9-mascon-basis` (base #139); merge in that order. `main` is
-`158bb6a`, v5.24.1 (PR #137 merged 2026-10-22). Check that the v5.24.1
-release carries `shAnalysis_workflow_guide.pdf` - its merge was the
-first run of `release.yml`'s guide step. Every finding in 4.1 is CLOSED except A42,
+**State, 2026-10-24.** `main` is `97c5dea`, v5.27.0 (#138-#140 merged
+2026-10-24); every release since v5.24.1 carries
+`shAnalysis_workflow_guide.pdf`. v5.27.1 (the README) is on branch
+`docs-readme`. 9d waits on Matthias's choice of instrument: an opt-in
+test or a one-off workflow on A8. Every finding in 4.1 is CLOSED except A42,
 which holds five low items that need data or a run, not effort. Read the version from
 1's table or `Contents.m` line 2, never from this paragraph.
 
