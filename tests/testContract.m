@@ -3896,3 +3896,763 @@ function leaveAndRemove(here, tmp)
 cd(here);
 rmIfFolder(tmp);
 end
+
+% ------------------------------------- v5.24.2: DRIVEN, the second batch
+% The rest of tools/undriven_ids.txt, written in five disjoint groups
+% (file readers, chains, fetchers, numerical lanes, writers and plots).
+% Every call was checked against the guards that run before its raise
+% site; the identifiers that no offline test can reach stay in the
+% backlog with their reason.
+
+% ------------------------------------------------ DRIVEN: group A (file readers)
+function testDrivenGuardsOfReadDDK(testCase)
+%TESTDRIVENGUARDSOFREADDDK Every readDDK guard no other test reaches.
+%   Each input passes the guards before its target and fails exactly that
+%   one: a missing .mat, a MAT file holding no variables (a bare v5 header,
+%   written byte by byte so no SAVE behaviour is assumed), a struct without
+%   nmax/blocks, a numeric source, an ASCII block with a short row, an
+%   ASCII file of comments only, and a binary whose endian marker passes
+%   isWbdBinary but whose matrix type is not block-diagonal.
+d = tempname; mkdir(d);
+cl = onCleanup(@() rmIfFolder(d)); %#ok<NASGU>
+
+verifyError(testCase, @() shLowLevel.readDDK(fullfile(d, 'nope.mat')), ...
+    'shLowLevel:readDDK:fileNotFound');
+
+fM = fullfile(d, 'empty.mat');          % 128-byte v5 header, no data elements
+fid = fopen(fM, 'w', 'ieee-le');
+fwrite(fid, sprintf('%-116s', 'MATLAB 5.0 MAT-file, written by testDrivenGuardsOfReadDDK'), 'char');
+fwrite(fid, zeros(1, 8), 'uint8');      % no subsystem data
+fwrite(fid, 256, 'uint16');             % version 0x0100
+fwrite(fid, 'IM', 'char');              % little-endian indicator
+fclose(fid);
+verifyEmpty(testCase, whos('-file', fM), 'fixture must hold no variables');
+verifyError(testCase, @() shLowLevel.readDDK(fM), 'shLowLevel:readDDK:emptyMat');
+
+verifyError(testCase, @() shLowLevel.readDDK(struct('a', 1)), ...
+    'shLowLevel:readDDK:badContainer');
+verifyError(testCase, @() shLowLevel.readDDK(42), 'shLowLevel:readDDK:badSource');
+
+fR = fullfile(d, 'shortrow.txt');       % block of 2 degrees, row 2 has 1 value
+drvAWriteText(fR, sprintf('block 0 0 2 3\n1 2\n3\n'));
+verifyError(testCase, @() shLowLevel.readDDK(fR), 'shLowLevel:readDDK:badMatrixRow');
+
+fN = fullfile(d, 'comments.txt');       % only comments: no blocks
+drvAWriteText(fN, sprintf('# nothing here\n# still nothing\n'));
+verifyError(testCase, @() shLowLevel.readDDK(fN), 'shLowLevel:readDDK:noData');
+
+fB = fullfile(d, 'notbd.bin');          % marker "BI", version 2.1, type FULL
+fid = fopen(fB, 'w', 'ieee-le');
+fwrite(fid, 'BI', 'char');              % uint16 18754 little-endian
+fwrite(fid, 'xx2.1 ', 'char');          % version(5:8) = '2.1 '
+fwrite(fid, 'FULLxxxx', 'char');        % matrix type: not BD*
+fwrite(fid, repmat(' ', 1, 80), 'char');% description
+fwrite(fid, zeros(1, 6), 'uint32');     % nints ndbls nval1 nval2, pval1 x2
+fclose(fid);
+verifyError(testCase, @() shLowLevel.readDDK(fB), 'shLowLevel:readDDK:badBinary');
+end
+
+function testDrivenGuardsOfReadSINEX(testCase)
+%TESTDRIVENGUARDSOFREADSINEX Every readSINEX guard no other test reaches.
+%   Synthetic SINEX files in the layout testSINEXCovaRoundTrip uses: a
+%   CORR matrix block, an estimate line without CN/SN and one without an
+%   order, a matrix line of two numbers, a non-positive-definite NEQ asked
+%   for as a covariance, an Index naming a coefficient the file lacks, and
+%   the streaming reader on a file with no estimate block.
+d = tempname; mkdir(d);
+cl = onCleanup(@() rmIfFolder(d)); %#ok<NASGU>
+head = sprintf('%%=SNX 2.02\n+SOLUTION/ESTIMATE\n');
+good = sprintf('  1 CN 2 0 X A 1 -4.84e-04 1.0e-11\n');
+endE = sprintf('-SOLUTION/ESTIMATE\n');
+
+f = fullfile(d, 'corr.snx');
+drvAWriteText(f, [head good endE sprintf('+SOLUTION/MATRIX_ESTIMATE L CORR\n 1 1 1.0\n')]);
+verifyError(testCase, @() shLowLevel.readSINEX(f), 'shLowLevel:readSINEX:badMatrixType');
+
+f = fullfile(d, 'nocn.snx');            % no CN/SN token
+drvAWriteText(f, [head sprintf('  1 XX 2 0 X A 1 1.0 1.0\n') endE]);
+verifyError(testCase, @() shLowLevel.readSINEX(f), 'shLowLevel:readSINEX:badEstimateLine');
+f = fullfile(d, 'noorder.snx');         % CN with a degree but no order
+drvAWriteText(f, [head sprintf('  1 CN 2 X\n') endE]);
+verifyError(testCase, @() shLowLevel.readSINEX(f), 'shLowLevel:readSINEX:badEstimateLine');
+
+f = fullfile(d, 'shortmat.snx');        % matrix line with two numbers only
+drvAWriteText(f, [head good endE sprintf('+SOLUTION/NORMAL_EQUATION_MATRIX U\n 1 1\n')]);
+verifyError(testCase, @() shLowLevel.readSINEX(f), 'shLowLevel:readSINEX:badMatrixLine');
+
+f = fullfile(d, 'neqneg.snx');          % 1x1 NEQ of -1: chol refuses
+drvAWriteText(f, [head good endE sprintf('+SOLUTION/NORMAL_EQUATION_MATRIX U\n 1 1 -1.0\n')]);
+verifyError(testCase, @() shLowLevel.readSINEX(f, Output = "covariance"), ...
+    'shLowLevel:readSINEX:neqNotPD');
+
+f = fullfile(d, 'one.snx');             % C20 only; the Index asks for C30
+drvAWriteText(f, [head good endE]);
+idx = struct('n', 3, 'm', 0, 'cs', 0, 'P', 1);
+verifyError(testCase, @() shLowLevel.readSINEX(f, Index = idx), ...
+    'shLowLevel:readSINEX:missingParam');
+
+f = fullfile(d, 'noest.snx');           % streaming reader, no estimate block
+drvAWriteText(f, sprintf('%%=SNX 2.02\n+SOME/BLOCK\n-SOME/BLOCK\n%%ENDSNX\n'));
+verifyError(testCase, @() shLowLevel.readSINEX(f, Only = "estimate"), ...
+    'shLowLevel:readSINEX:noEstimates');
+end
+
+function testDrivenGuardsOfReadMascon(testCase)
+%TESTDRIVENGUARDSOFREADMASCON Every readMascon guard no other test reaches.
+%   Small netCDF files written with nccreate/ncwrite, as
+%   testMasconRoundTrip does: no EWH variable; a time variable without
+%   units; and an EWH variable whose dimensions carry no lat/lon/time
+%   names, once square (cannot be oriented) and once matching neither
+%   lat x lon nor lon x lat.
+d = tempname; mkdir(d);
+cl = onCleanup(@() rmIfFolder(d)); %#ok<NASGU>
+verifyError(testCase, @() shLowLevel.readMascon(fullfile(d, 'nope.nc')), ...
+    'shLowLevel:readMascon:fileNotFound');
+
+f = fullfile(d, 'noewh.nc');            % lat/lon/time, no EWH candidate
+drvAWriteAxes(f, [1; 2], [10; 20], 100, "days since 2002-01-01");
+verifyError(testCase, @() shLowLevel.readMascon(f), 'shLowLevel:readMascon:unknownLayout');
+
+f = fullfile(d, 'nounits.nc');          % time carries no units attribute
+drvAWriteAxes(f, [1; 2], [10; 20; 30], 100, "");
+nccreate(f, 'lwe_thickness', 'Dimensions', {'lat', 2, 'lon', 3, 'time', 1});
+ncwrite(f, 'lwe_thickness', zeros(2, 3));
+verifyError(testCase, @() shLowLevel.readMascon(f), 'shLowLevel:readMascon:noTimeUnits');
+
+f = fullfile(d, 'square.nc');           % 2 lat = 2 lon, unnamed EWH dims
+drvAWriteAxes(f, [1; 2], [10; 20], 100, "days since 2002-01-01");
+nccreate(f, 'lwe_thickness', 'Dimensions', {'i', 2, 'j', 2, 'k', 1});
+ncwrite(f, 'lwe_thickness', zeros(2, 2));
+verifyError(testCase, @() shLowLevel.readMascon(f), 'shLowLevel:readMascon:ambiguousShape');
+
+f = fullfile(d, 'badshape.nc');         % 2 lat, 3 lon, EWH 4 x 5
+drvAWriteAxes(f, [1; 2], [10; 20; 30], 100, "days since 2002-01-01");
+nccreate(f, 'lwe_thickness', 'Dimensions', {'i', 4, 'j', 5, 'k', 1});
+ncwrite(f, 'lwe_thickness', zeros(4, 5));
+verifyError(testCase, @() shLowLevel.readMascon(f), 'shLowLevel:readMascon:badShape');
+end
+
+function testDrivenGuardsOfTextReaders(testCase)
+%TESTDRIVENGUARDSOFTEXTREADERS readLoveNumbers, readSHM, readTN13, readTN14.
+%   Love numbers: a missing file, InFrame without OutFrame, no numeric
+%   rows and rows of two widths, all three badColumns sites (Columns too
+%   long, Columns without k, a non-integer degree) and both needsDegree1
+%   sites (no degree 1; CE>CF on a table without h and l). SHM: a header
+%   with no records, field and rate records mixed, and a record short of
+%   its six numbers (textscan's shape check sends it to the line parser).
+%   TN-13: a short GRCOF2 line and a degree-2 line; TN-14: no 10-column
+%   rows.
+d = tempname; mkdir(d);
+cl = onCleanup(@() rmIfFolder(d)); %#ok<NASGU>
+
+% ---- readLoveNumbers
+verifyError(testCase, @() shLowLevel.readLoveNumbers(fullfile(d, 'nope.txt')), ...
+    'shLowLevel:readLoveNumbers:fileNotFound');
+fK = fullfile(d, 'kn.txt');             % 2-column [n kn] with degree 1
+drvAWriteText(fK, sprintf('0 0.000\n1 0.021\n2 -0.303\n'));
+verifyError(testCase, @() shLowLevel.readLoveNumbers(fK, InFrame = "CE"), ...
+    'shLowLevel:readLoveNumbers:badFrame');
+f = fullfile(d, 'comments.txt');
+drvAWriteText(f, sprintf('%% header only\n# nothing numeric\n'));
+verifyError(testCase, @() shLowLevel.readLoveNumbers(f), 'shLowLevel:readLoveNumbers:noData');
+f = fullfile(d, 'ragged.txt');          % 2 then 3 columns
+drvAWriteText(f, sprintf('0 0.0\n1 0.1 0.2\n'));
+verifyError(testCase, @() shLowLevel.readLoveNumbers(f), 'shLowLevel:readLoveNumbers:noData');
+verifyError(testCase, @() shLowLevel.readLoveNumbers(fK, Columns = "n k h"), ...
+    'shLowLevel:readLoveNumbers:badColumns');   % 3 names, 2 columns
+verifyError(testCase, @() shLowLevel.readLoveNumbers(fK, Columns = "n h"), ...
+    'shLowLevel:readLoveNumbers:badColumns');   % no k column
+f = fullfile(d, 'fracdeg.txt');
+drvAWriteText(f, sprintf('0.5 0.1\n1 0.2\n'));
+verifyError(testCase, @() shLowLevel.readLoveNumbers(f), ...
+    'shLowLevel:readLoveNumbers:badColumns');   % non-integer degree
+f = fullfile(d, 'nodeg1.txt');
+drvAWriteText(f, sprintf('0 0.000\n2 -0.303\n'));
+verifyError(testCase, @() shLowLevel.readLoveNumbers(f, InFrame = "CE", ...
+    OutFrame = "CM"), 'shLowLevel:readLoveNumbers:needsDegree1');
+verifyError(testCase, @() shLowLevel.readLoveNumbers(fK, InFrame = "CE", ...
+    OutFrame = "CF"), 'shLowLevel:readLoveNumbers:needsDegree1');   % needHL
+
+% ---- readSHM
+hdr = sprintf('# shm\n# End of YAML header\n');
+f = fullfile(d, 'norec.shm');
+drvAWriteText(f, hdr);
+verifyError(testCase, @() shLowLevel.readSHM(f), 'shLowLevel:readSHM:noRecords');
+f = fullfile(d, 'mixed.shm');
+drvAWriteText(f, [hdr sprintf('GRCOF2 0 0 1.0 0.0 0.0 0.0\nGRDOTA 2 0 1.0e-11 0.0\n')]);
+verifyError(testCase, @() shLowLevel.readSHM(f), 'shLowLevel:readSHM:mixedKinds');
+f = fullfile(d, 'short.shm');           % 3 of 6 numbers -> parseByLine refuses
+drvAWriteText(f, [hdr sprintf('GRCOF2 0 0 1.0 0.0 0.0 0.0\nGRCOF2 2 0 1.0\n')]);
+verifyError(testCase, @() shLowLevel.readSHM(f), 'shLowLevel:readSHM:badRecord');
+
+% ---- readTN13 / readTN14
+f = fullfile(d, 'tn13short.txt');
+drvAWriteText(f, sprintf('HEADER\nGRCOF2    1    0  1.2e-10\n'));
+verifyError(testCase, @() shLowLevel.readTN13(f), 'shLowLevel:readTN13:badLine');
+f = fullfile(d, 'tn13deg2.txt');
+drvAWriteText(f, sprintf(['HEADER\nGRCOF2    2    0  1.2e-10  0.0      3.0e-11  ' ...
+    '0.0      20080401.0000 20080430.2359\n']));
+verifyError(testCase, @() shLowLevel.readTN13(f), 'shLowLevel:readTN13:badDegree');
+f = fullfile(d, 'tn14.txt');
+drvAWriteText(f, sprintf('PRODUCT: TN-14\n1 2 3\n'));
+verifyError(testCase, @() shLowLevel.readTN14(f), 'shLowLevel:readTN14:noData');
+end
+
+function drvAWriteText(f, txt)
+% write TXT verbatim (no format interpretation of % in it)
+fid = fopen(f, 'w');
+fprintf(fid, '%s', txt);
+fclose(fid);
+end
+
+function drvAWriteAxes(f, lat, lon, tt, tUnits)
+% netCDF file with lat/lon/time variables; time units only if non-empty
+nccreate(f, 'lat', 'Dimensions', {'lat', numel(lat)});
+nccreate(f, 'lon', 'Dimensions', {'lon', numel(lon)});
+nccreate(f, 'time', 'Dimensions', {'time', numel(tt)});
+ncwrite(f, 'lat', lat); ncwrite(f, 'lon', lon); ncwrite(f, 'time', tt);
+if strlength(tUnits) > 0
+    ncwriteatt(f, 'time', 'units', char(tUnits));
+end
+end
+
+function testDrivenGuardsOfChainArguments(testCase)
+%TESTDRIVENGUARDSOFCHAINARGUMENTS DRIVEN, group B: the argument guards of
+%   the in-memory lanes - compareSeries, estimateDegree1, hydroExtremeIndex,
+%   leakageCorrect and kalmanChain in solution mode. Each input passes every
+%   earlier guard and fails exactly the one named; kalmanChain estimates its
+%   process model from ModelSeries before it looks at the observations, so
+%   every kalmanChain call here carries a model that estimates cleanly.
+ts12 = wp7Series(3, 12, 81);
+% Basin given without the Idx it is expanded in (12 common epochs pass)
+verifyError(testCase, @() shLowLevel.compareSeries({ts12, ts12}, ...
+    Basin = ones(5, 1)), 'shLowLevel:compareSeries:basinNeedsIdx');
+ts3 = wp7Series(3, 3, 82);
+ocean = @(la, lo) la < 0;
+% default grid is 90 x 180: a 2-D model of another size, then a 3-D one
+% with the wrong epoch count, reach the two raise sites of badModel
+verifyError(testCase, @() shLowLevel.estimateDegree1(ts3, ocean, ...
+    kn = zeros(4, 1), OceanModel = zeros(2, 2)), ...
+    'shLowLevel:estimateDegree1:badModel');
+verifyError(testCase, @() shLowLevel.estimateDegree1(ts3, ocean, ...
+    kn = zeros(4, 1), OceanModel = zeros(90, 180, 2)), ...
+    'shLowLevel:estimateDegree1:badModel');
+% kn holds degree 0 only: degree1Basis asserts before the noOceanModel warning
+verifyError(testCase, @() shLowLevel.estimateDegree1(ts3, @(la, lo) true(size(la)), ...
+    kn = 0, LatDeg = [-10 10], LonDeg = [0 180]), ...
+    'shLowLevel:estimateDegree1:shortLoveNumbers');
+ep = 2005 + ((1:24)' - 0.5) / 12;
+verifyError(testCase, @() shLowLevel.hydroExtremeIndex(randn(2, 24), ep, ...
+    Mode = "StorageDeficit", PrecipGrid = ones(3, 24)), ...
+    'shLowLevel:hydroExtremeIndex:badPrecip');               % 3 cells vs 2
+verifyError(testCase, @() shLowLevel.leakageCorrect(zeros(7, 12), ...
+    linspace(-80, 80, 7), 0:30:330, ResidualRegion = true(2, 2), Quiet = true), ...
+    'shLowLevel:leakageCorrect:badResidualRegion');
+tsModel = wp7Series(3, 36, 72);
+verifyError(testCase, @() shLowLevel.kalmanChain(5, ModelSeries = tsModel), ...
+    'shLowLevel:kalmanChain:badInput');
+verifyError(testCase, @() shLowLevel.kalmanChain(wp7Series(4, 36, 71), ...
+    ModelSeries = tsModel), 'shLowLevel:kalmanChain:nmaxMismatch');
+tsS = wp7Series(3, 36, 71);
+noSig = shSeries(tsS.Cs, Ss = tsS.Ss, Epochs = tsS.epochs);   % no formal sigmas
+verifyError(testCase, @() shLowLevel.kalmanChain(noSig, ModelSeries = tsModel, ...
+    Climatology = false), 'shLowLevel:kalmanChain:noNoise');
+end
+
+function testDrivenGuardsOfChainFolders(testCase)
+%TESTDRIVENGUARDSOFCHAINFOLDERS DRIVEN, group B: the folder plumbing of
+%   kalmanChain (NEQ mode) and standardChain. SINEX files
+%   are written in the ITSG layout readSINEX parses (testCorrectness'
+%   localWriteTestNEQ), for every coefficient of shIndex(3), so the Index
+%   reorder never refuses them first.
+tsModel = wp7Series(3, 36, 72);
+idx = shLowLevel.shIndex(3);
+eDir = tempname; mkdir(eDir); c1 = onCleanup(@() rmIfFolder(eDir)); %#ok<NASGU>
+verifyError(testCase, @() shLowLevel.kalmanChain(string(eDir), ...
+    ModelSeries = tsModel), 'shLowLevel:kalmanChain:noFiles');
+est = tempname; mkdir(est); c2 = onCleanup(@() rmIfFolder(est)); %#ok<NASGU>
+drvBWriteSnx(fullfile(est, 'e.snx'), idx, false);            % estimate only
+verifyError(testCase, @() shLowLevel.kalmanChain(string(est), ...
+    ModelSeries = tsModel), 'shLowLevel:kalmanChain:notNEQ');
+dA = tempname; mkdir(dA); c3 = onCleanup(@() rmIfFolder(dA)); %#ok<NASGU>
+dB = tempname; mkdir(dB); c4 = onCleanup(@() rmIfFolder(dB)); %#ok<NASGU>
+drvBWriteSnx(fullfile(dA, 'a.snx'), idx, true);
+drvBWriteSnx(fullfile(dB, 'b.snx'), idx, true);
+verifyError(testCase, @() shLowLevel.kalmanChain([string(dA), string(dB)], ...
+    ModelSeries = tsModel, NeqWeights = [1; 2; 3]), ...
+    'shLowLevel:kalmanChain:badNeqWeights');                 % 3 weights, 2 centers
+fol = drvBGsmFolder("2005001-2005031", strings(0, 1), 83);
+c5 = onCleanup(@() rmIfFolder(fol)); %#ok<NASGU>
+verifyError(testCase, @() shLowLevel.standardChain(fol, TN14 = false, ...
+    Degree1File = "no/such/tn13.txt", Quiet = true), ...
+    'shLowLevel:standardChain:noTN13');
+verifyError(testCase, @() shLowLevel.standardChain(fol, TN14 = false, ...
+    Degree1 = "none", GIA = 5, Filter = "none", Quiet = true), ...
+    'shLowLevel:standardChain:badGIA');
+end
+
+function testDrivenGuardsOfGravisChains(testCase)
+%TESTDRIVENGUARDSOFGRAVISCHAINS DRIVEN, group B: gravisL2B, twsChain and
+%   gravisRegionChain past their series read. Synthetic GSM-2 months of
+%   2005, which the correction tables shipped in data/gravis cover. Every
+%   twsChain guard sits after a full gravisL2B run; missingDDK looks in
+%   dataFolder() too, so the data folder is pointed at an empty temp folder
+%   for that call (and the user's preference restored after).
+spans = ["2005001-2005031", "2005032-2005059", "2005060-2005090"];
+d = drvBGsmFolder(spans, strings(0, 1), 84); c1 = onCleanup(@() rmIfFolder(d)); %#ok<NASGU>
+kn = zeros(7, 1);
+% a fourth file the series reads (ITSG-style _YYYY-MM epoch) but whose name
+% gravisL2B's GSM-2 span pattern does not parse: 3 file epochs vs 4
+dM = drvBGsmFolder(spans, "GSM-2_TEST_2005-04.gfc", 85);
+c2 = onCleanup(@() rmIfFolder(dM)); %#ok<NASGU>
+verifyError(testCase, @() shLowLevel.gravisL2B(dM, "", Quiet = true), ...
+    'shLowLevel:gravisL2B:epochMismatch');
+aux = tempname; mkdir(aux); c3 = onCleanup(@() rmIfFolder(aux)); %#ok<NASGU>
+verifyError(testCase, @() shLowLevel.gravisL2B(d, aux, Quiet = true), ...
+    'shLowLevel:gravisL2B:missingAux');                      % empty aux folder
+ld = fullfile(aux, 'ld3.dat');
+fid = fopen(ld, 'w'); fprintf(fid, '1 2005.0 0\n2 2005.1 0\n'); fclose(fid);
+verifyError(testCase, @() shLowLevel.gravisL2B(d, aux, LowDegreeFile = ld, ...
+    Quiet = true), 'shLowLevel:gravisL2B:badTable');         % 3 columns < 12
+ld12 = fullfile(aux, 'ld12.dat'); gc9 = fullfile(aux, 'gc9.dat');
+fid = fopen(ld12, 'w'); fprintf(fid, '%d 1990.0 0 0 0 0 0 0 0 0 0 0\n', 1:2); fclose(fid);
+fid = fopen(gc9, 'w'); fprintf(fid, '%d 1990.0 0 0 0 0 0 0 0\n', 1:2); fclose(fid);
+verifyError(testCase, @() shLowLevel.gravisL2B(d, aux, LowDegreeFile = ld12, ...
+    GeocenterFile = gc9, OnMissing = "error", Quiet = true), ...
+    'shLowLevel:gravisL2B:uncovered');                       % tables in 1990
+verifyError(testCase, @() shLowLevel.twsChain(d, kn = kn, Filter = "none", ...
+    BasinFile = "no_such_basins.json", Quiet = true), ...
+    'shLowLevel:twsChain:missingBasins');
+verifyError(testCase, @() shLowLevel.twsChain(d, kn = kn, Filter = "none", ...
+    Basins = "No Such River", Quiet = true), 'shLowLevel:twsChain:unknownBasin');
+% at GridStep 100 the Elbe's box (47..55 N) holds no grid latitude at all
+verifyError(testCase, @() shLowLevel.twsChain(d, kn = kn, Filter = "none", ...
+    Basins = "Elbe River", GridStep = 100, Quiet = true), ...
+    'shLowLevel:twsChain:emptyBasin');
+had = ispref('shAnalysis', 'dataFolder');
+if had
+    old = getpref('shAnalysis', 'dataFolder');
+    c4 = onCleanup(@() setpref('shAnalysis', 'dataFolder', old)); %#ok<NASGU>
+else
+    c4 = onCleanup(@() shLowLevel.dataFolder("reset")); %#ok<NASGU>
+end
+df = tempname; c5 = onCleanup(@() rmIfFolder(df)); %#ok<NASGU>
+shLowLevel.dataFolder(df);
+ddk = tempname; mkdir(ddk); c6 = onCleanup(@() rmIfFolder(ddk)); %#ok<NASGU>
+verifyError(testCase, @() shLowLevel.twsChain(d, kn = kn, Filter = "DDK3", ...
+    DDKFolder = ddk, Quiet = true), 'shLowLevel:twsChain:missingDDK');
+clear c4                                       % restore the data folder now
+nb = tempname; mkdir(nb); c7 = onCleanup(@() rmIfFolder(nb)); %#ok<NASGU>
+verifyError(testCase, @() shLowLevel.greenlandChain(nb, nb, kn = kn, Quiet = true), ...
+    'shLowLevel:gravisRegionChain:missingBasins');           % no basins_GIS.json
+% the default noise policy needs an ocean mask; reached after the trend fit
+verifyError(testCase, @() shLowLevel.greenlandChain(d, kn = kn, Quiet = true), ...
+    'shLowLevel:gravisRegionChain:noOcean');
+end
+
+function d = drvBGsmFolder(spans, extraNames, seed)
+%DRVBGSMFOLDER A temp folder of synthetic nmax-6 GSM-2 fields, one per
+%   span ("YYYYDDD-YYYYDDD"), plus one per extra file name as given.
+d = tempname; mkdir(d);
+n1 = 7;
+rng(seed);
+lowS = tril(ones(n1), -1); lowS(:, 1) = 0;
+names = ["GSM-2_" + spans(:) + "_TEST.gfc"; extraNames(:)];
+for k = 1:numel(names)
+    g = shCoefficients(1e-10 * tril(randn(n1)), 1e-10 * lowS .* randn(n1));
+    g.write(fullfile(d, names(k)), Sidecar = false);
+end
+end
+
+function drvBWriteSnx(fn, idx, withNeq)
+%DRVBWRITESNX ITSG-layout SINEX holding every coefficient of IDX in
+%   SOLUTION/ESTIMATE; with WITHNEQ, also a unit normal-equation matrix.
+tp = ["CN", "SN"];
+fid = fopen(fn, 'w');
+fprintf(fid, '%%=SNX 2.02 TUG 18:300:38958 TUG 08:092:00000 08:122:00000 C 00000 2\n');
+fprintf(fid, '+SOLUTION/ESTIMATE\n');
+for r = 1:idx.P
+    fprintf(fid, '%6d %s %8d -- %4d 08:107:00000 ---- 2 %20.14e 1.0e-12\n', ...
+        r, tp(idx.cs(r) + 1), idx.n(r), idx.m(r), 1e-10);
+end
+fprintf(fid, '-SOLUTION/ESTIMATE\n');
+if withNeq
+    fprintf(fid, '+SOLUTION/NORMAL_EQUATION_MATRIX U\n');
+    for r = 1:idx.P
+        fprintf(fid, '%d  %d  %.14e\n', r, r, 1);
+    end
+    fprintf(fid, '-SOLUTION/NORMAL_EQUATION_MATRIX U\n');
+end
+fclose(fid);
+end
+
+function testDrivenGuardsOfHttpPlumbing(testCase)
+%TESTDRIVENGUARDSOFHTTPPLUMBING DRIVEN, group C: the download plumbing's
+%   failure guards, offline. httpFetch gives up on a refused connection
+%   with one attempt and no websave fallback; fetchFileSet (through
+%   fetchITSGBackground, websave, one try per file) stops at
+%   MaxFailures = 1; fetchDDK keeps a present file when its update cannot
+%   reach an unreachable proxy; fetchTN records a file missing from a
+%   local mirror. 127.0.0.1:1 and the proxy 127.0.0.1:9 refuse, so no
+%   byte leaves the machine (about 3 s per refusal on Windows, A36).
+d = tempname; mkdir(d);
+cl = onCleanup(@() rmIfFolder(d)); %#ok<NASGU>
+% httpFetch: no HTTP status ever arrived, fallback off -> failed
+verifyError(testCase, @() shLowLevel.httpFetch("http://127.0.0.1:1/x", ...
+    string(fullfile(d, 'x.bin')), MaxTries = 1, Timeout = 2, ...
+    WebsaveFallback = false), 'shLowLevel:httpFetch:failed');
+% fetchFileSet: the first failure reaches MaxFailures = 1; the caller finishes
+verifyWarning(testCase, @() shLowLevel.fetchITSGBackground("2018-06", ...
+    Dest = string(fullfile(d, 'bg')), BaseURL = "http://127.0.0.1:1", ...
+    MaxFailures = 1, PauseSec = 0, Quiet = true), ...
+    'shLowLevel:fetchFileSet:tooManyFailures');
+% fetchDDK: a PRESENT file, Update = true, the proxy refuses -> the old
+% file is kept with a warning instead of the error a new file would raise
+dd = fullfile(d, 'DDK'); mkdir(dd);
+nm = shLowLevel.ddkNames();
+drvCWriteFile(fullfile(dd, char(nm(3))), sprintf('placeholder\n'));
+verifyWarning(testCase, @() shLowLevel.fetchDDK(3, Dest = string(dd), ...
+    Update = true, Proxy = "http://127.0.0.1:9", Timeout = 2, Quiet = true), ...
+    'shLowLevel:fetchDDK:updateFailed');
+verifyEqual(testCase, fileread(fullfile(dd, char(nm(3)))), sprintf('placeholder\n'), ...
+    'a failed update must leave the present file untouched');
+% fetchTN: an EMPTY local mirror. Its mirrorMissing guard is raised and
+% caught by fetchTN's own loop, so only the message reaches info.failed;
+% the identifier stays in the DRIVEN backlog for that reason
+mir = fullfile(d, 'mirror'); mkdir(mir);
+[f, iTN] = shLowLevel.fetchTN(Dest = string(fullfile(d, 'TN')), ...
+    BaseURL = string(mir), Providers = "CSR", TN14 = false, Quiet = true);
+verifyEmpty(testCase, f);
+verifyNumElements(testCase, iTN.failed, 1);
+verifyTrue(testCase, contains(iTN.failed, "not in mirror"), ...
+    ['the empty mirror was not the failure recorded: ' char(strjoin(iTN.failed, '; '))]);
+end
+
+function testDrivenGuardsOfCatalogues(testCase)
+%TESTDRIVENGUARDSOFCATALOGUES DRIVEN, group C: the catalogue readers and
+%   the fetchers' selection guards, on local files and folders only.
+%   listICGEM parses a saved page without a model or a series link;
+%   listITSG walks an empty mirror; fetchITSG takes "all" with the daily
+%   product, an empty release folder, and a mirror holding only a static
+%   folder (Catalog row 1 skipped, row 2 outside the table);
+%   fetchITSGBackground an empty month list; fetchICGEM a table that is not
+%   one listICGEM row, and a present model whose re-download (a local
+%   copy) does not parse; fetchLoveNumbers a present Love-number file that
+%   is neither layout, read back on the skip path (outside the fetch
+%   loop's try, so the error reaches the caller).
+d = tempname; mkdir(d);
+cl = onCleanup(@() rmIfFolder(d)); %#ok<NASGU>
+% listICGEM: a page with no rows / no /sp/ links
+pg = fullfile(d, 'page.html');
+drvCWriteFile(pg, sprintf('<html><body>nothing here</body></html>\n'));
+verifyError(testCase, @() shLowLevel.listICGEM(Source = string(pg)), ...
+    'shLowLevel:listICGEM:parseFailed');                         % static branch
+verifyError(testCase, @() shLowLevel.listICGEM(Type = "temporal", ...
+    Source = string(pg)), 'shLowLevel:listICGEM:parseFailed');   % catalogue branch
+% listITSG: no ITSG-Grace* folder under the mirror
+empt = fullfile(d, 'empty'); mkdir(empt);
+verifyError(testCase, @() shLowLevel.listITSG(BaseURL = string(empt)), ...
+    'shLowLevel:listITSG:empty');
+% fetchITSG: "all" with the daily product is refused before any listing
+verifyError(testCase, @() shLowLevel.fetchITSG("all", Product = "daily", ...
+    BaseURL = string(empt), Quiet = true), 'shLowLevel:fetchITSG:allDaily');
+% fetchITSG: "all" on a local release folder holding no .gfc
+verifyError(testCase, @() shLowLevel.fetchITSG("all", Release = "ITSG-Grace2018", ...
+    BaseURL = string(empt), Dest = string(fullfile(d, 'itsg')), Quiet = true), ...
+    'shLowLevel:fetchITSG:emptyFolder');
+% fetchITSG Catalog: the only catalogue row is a static model folder
+mir = fullfile(d, 'mir'); mkdir(fullfile(mir, 'ITSG-Grace2018', 'static'));
+T = shLowLevel.listITSG(BaseURL = string(mir));
+verifyEqual(testCase, height(T), 1);
+verifyEqual(testCase, T.product, "static");
+verifyWarning(testCase, @() shLowLevel.fetchITSG(Catalog = 1, ...
+    BaseURL = string(mir), Dest = string(fullfile(d, 'itsg')), Quiet = true), ...
+    'shLowLevel:fetchITSG:staticSkipped');
+verifyError(testCase, @() shLowLevel.fetchITSG(Catalog = 2, ...
+    BaseURL = string(mir), Dest = string(fullfile(d, 'itsg')), Quiet = true), ...
+    'shLowLevel:fetchITSG:badCatalog');
+% fetchITSGBackground: an empty month list passes badMonth, resolves to nothing
+verifyError(testCase, @() shLowLevel.fetchITSGBackground(strings(0, 1), ...
+    Dest = string(fullfile(d, 'bg')), Quiet = true), ...
+    'shLowLevel:fetchITSGBackground:noMonths');
+% fetchICGEM: a one-row table without a url column is not a listICGEM row
+verifyError(testCase, @() shLowLevel.fetchICGEM(table("m", ...
+    'VariableNames', {'name'}), Dest = string(d), Quiet = true), ...
+    'shLowLevel:fetchICGEM:badRow');
+% fetchICGEM: a present model, Update = true, the "download" (a local
+% copy, fetchWithBackoff's isfile path) is header-only -> shReadGFC refuses
+src = fullfile(d, 'src'); mkdir(src);
+bad = fullfile(src, 'bad.gfc');
+drvCWriteFile(bad, sprintf('product_type gravity_field\nend_of_head\n'));
+dst = fullfile(d, 'static'); mkdir(dst);
+drvCWriteFile(fullfile(dst, 'bad.gfc'), sprintf('kept\n'));
+row = table("bad", string(bad), 'VariableNames', {'name', 'url'});
+verifyWarning(testCase, @() shLowLevel.fetchICGEM(row, Dest = string(dst), ...
+    Update = true, Quiet = true), 'shLowLevel:fetchICGEM:updateFailed');
+verifyEqual(testCase, fileread(fullfile(dst, 'bad.gfc')), sprintf('kept\n'));
+% fetchLoveNumbers: a present file is re-read for info.parsed (nargout 2)
+lv = fullfile(d, 'love'); mkdir(lv);
+lf = fullfile(lv, 'loadLoveNumbers_Gegout97.txt');
+drvCWriteFile(lf, sprintf('not a love number table\n'));         % neither layout
+verifyError(testCase, @() drvCTwoOut(@() shLowLevel.fetchLoveNumbers( ...
+    "loadLoveNumbers_Gegout97.txt", Dest = string(lv), BaseURL = string(empt), ...
+    Quiet = true)), 'shLowLevel:fetchLoveNumbers:badFormat');
+drvCWriteFile(lf, sprintf('groops matrix version=1\nMatrix( 3 x 2 )\n1 2\n3 4\n5 6\n'));
+verifyError(testCase, @() drvCTwoOut(@() shLowLevel.fetchLoveNumbers( ...
+    "loadLoveNumbers_Gegout97.txt", Dest = string(lv), BaseURL = string(empt), ...
+    Quiet = true)), 'shLowLevel:fetchLoveNumbers:badFormat');   % 2 columns for a load file
+end
+
+function testDrivenGuardsOfLegacyLayouts(testCase)
+%TESTDRIVENGUARDSOFLEGACYLAYOUTS DRIVEN, group C: fetchICGEM and fetchITSG
+%   warn when Dest is left empty and the data folder still holds the
+%   pre-v3.16 folder ('icgem', 'itsg_series') but not the new one. The data
+%   folder preference is pointed at a fresh temporary folder and restored
+%   afterwards, as in testDataFolderAndDDKNames. fetchICGEM copies a valid
+%   local model (fetchWithBackoff's isfile path); fetchITSG reads an empty
+%   local mirror, so the month is only reported missing.
+had = ispref('shAnalysis', 'dataFolder');
+if had
+    old = getpref('shAnalysis', 'dataFolder');
+    restore = onCleanup(@() setpref('shAnalysis', 'dataFolder', old)); %#ok<NASGU>
+else
+    restore = onCleanup(@() shLowLevel.dataFolder("reset")); %#ok<NASGU>
+end
+d = tempname; mkdir(d);
+cl = onCleanup(@() rmIfFolder(d)); %#ok<NASGU>
+df = fullfile(d, 'data');
+shLowLevel.dataFolder(string(df));
+mkdir(fullfile(df, 'icgem')); mkdir(fullfile(df, 'itsg_series'));
+src = fullfile(d, 'src'); mkdir(src);
+good = fullfile(src, 'drvC.gfc');
+drvCWriteFile(good, sprintf(['product_type gravity_field\nmodelname drvC\n' ...
+    'earth_gravity_constant 3.986004415e14\nradius 6378136.3\n' ...
+    'max_degree 2\nnorm fully_normalized\nend_of_head\n' ...
+    'gfc 0 0 1.0 0.0\ngfc 2 0 -4.84e-4 0.0\n']));
+row = table("drvC", string(good), 'VariableNames', {'name', 'url'});
+verifyWarning(testCase, @() shLowLevel.fetchICGEM(row, Quiet = true), ...
+    'shLowLevel:fetchICGEM:legacyLayout');
+verifyTrue(testCase, isfile(fullfile(df, 'static', 'drvC.gfc')));
+mir = fullfile(d, 'mirror'); mkdir(mir);
+verifyWarning(testCase, @() shLowLevel.fetchITSG("2008-04", ...
+    BaseURL = string(mir), Quiet = true), 'shLowLevel:fetchITSG:legacyLayout');
+end
+
+function testDrivenGuardsOfTutorials(testCase)
+%TESTDRIVENGUARDSOFTUTORIALS DRIVEN, group C: makeTutorials refuses a
+%   tutorial path it cannot open (a folder sits where the .m goes), and
+%   warns when the Live Script conversion fails (a folder sits where the
+%   .mlx goes - or, in a MATLAB without the converter, it is missing; the
+%   warning is the same either way). The names come from a first run with
+%   Convert = false.
+d = tempname;
+cl = onCleanup(@() rmIfFolder(d)); %#ok<NASGU>
+out = shLowLevel.makeTutorials(Dest = string(d), Cases = "D01", ...
+    Convert = false, Quiet = true);
+fm = char(out.files(1));
+fx = [fm(1:end-2) '.mlx'];
+mkdir(fx);
+verifyWarning(testCase, @() shLowLevel.makeTutorials(Dest = string(d), ...
+    Cases = "D01", Quiet = true), 'shLowLevel:makeTutorials:noConverter');
+delete(fm); mkdir(fm);                       % fopen(folder, 'w') returns -1
+verifyError(testCase, @() shLowLevel.makeTutorials(Dest = string(d), ...
+    Cases = "D01", Convert = false, Quiet = true), ...
+    'shLowLevel:makeTutorials:cannotWrite');
+end
+
+function drvCTwoOut(fh)
+%DRVCTWOOUT Call FH with two outputs (fetchLoveNumbers parses info.parsed
+%   only when nargout > 1); verifyError calls its handle with none.
+[~, ~] = fh();
+end
+
+function drvCWriteFile(path, txt)
+%DRVCWRITEFILE Write TXT verbatim to PATH.
+fid = fopen(path, 'w');
+fprintf(fid, '%s', txt);
+fclose(fid);
+end
+
+function testDrivenGuardsOfDeconvolutionAndFilters(testCase)
+%TESTDRIVENGUARDSOFDECONVOLUTIONANDFILTERS drives the operator guards of
+%   basinDeconvolve, tvANSFilter and vdkApply. basinDeconvolve gets a
+%   hand-built full-layout operator (V = Ut = I) whose gain lam./(lam + s)
+%   is NaN (lam = s = 0), zero (lam = 0, s = 1) or whose s is NaN.
+%   tvANSFilter gets the 12-month random field of testTvANSBlocksUnavailableID
+%   with a wrong-size X, band edges that stop below Lmax, an all-zero
+%   external NoiseCov (the VCE divides by diag(N) = 0, so s is Inf), and
+%   a diagonal NoiseCov that is zero on the degree-2 rows only (below the
+%   VCE degree, so s stays finite; the singular block makes the
+%   generalised eig return Inf eigenvalues - the failure buildNoiseCov's
+%   PD-guard comment records from real MATLAB runs). vdkApply gets
+%   N + alpha*M = -I.
+B = [1; 1];
+op = struct('tYears', 2005, 'V', eye(2), 'Ut', eye(2), 'lam', [1; 1], ...
+    's', NaN, 'Xfres', zeros(2, 1), 'model', zeros(2, 1));
+verifyError(testCase, @() shLowLevel.basinDeconvolve(B, op), ...
+    'shLowLevel:basinDeconvolve:nonFiniteOperator');
+op.lam = [0; 0]; op.s = 0;                       % g = 0/0: A is NaN
+verifyError(testCase, @() shLowLevel.basinDeconvolve(B, op), ...
+    'shLowLevel:basinDeconvolve:nonFiniteA');
+op.s = 1;                                        % g = 0: A = 0, finite
+verifyError(testCase, @() shLowLevel.basinDeconvolve(B, op), ...
+    'shLowLevel:basinDeconvolve:zeroA');
+
+rng(31);
+idx = shLowLevel.shIndex(4);
+X = randn(idx.P, 12); t = 2002 + (0:11)'/12;
+verifyError(testCase, @() shLowLevel.tvANSFilter(X(:, 1:11), t, idx), ...
+    'shLowLevel:tvANSFilter:badSize');
+verifyError(testCase, @() shLowLevel.tvANSFilter(X, t, idx, VCEBands = [0 2]), ...
+    'shLowLevel:tvANSFilter:badBands');       % last edge 2 does not exceed Lmax 4
+verifyError(testCase, @() shLowLevel.tvANSFilter(X, t, idx, Blocks = 'off', ...
+    NoiseCov = zeros(idx.P)), 'shLowLevel:tvANSFilter:nonFiniteVCE');
+Nsing = diag(double(idx.n >= 3));               % degree-2 rows carry no noise
+verifyError(testCase, @() shLowLevel.tvANSFilter(X, t, idx, Blocks = 'on', ...
+    NoiseCov = Nsing), 'shLowLevel:tvANSFilter:nonFiniteEig');
+
+verifyError(testCase, @() shLowLevel.vdkApply(ones(2, 1), -2 * eye(2), ...
+    [2; 3], [1; 1]), 'shLowLevel:vdkApply:notSPD');   % N + M = -I
+end
+
+function testDrivenGuardsOfCovarianceBuilders(testCase)
+%TESTDRIVENGUARDSOFCOVARIANCEBUILDERS drives the guards of buildCondFun,
+%   buildNoiseCov, buildSignalCov, evalMask and shEvalGFCT. buildCondFun's
+%   zeroKernel is reached with R = 0 (kernelFactors refuses 1 + kn = 0
+%   before it, so a zero radius is the input that makes the EWH kernel
+%   vanish); buildNoiseCov gets constant residuals; buildSignalCov a block
+%   N with the inhomogeneous mode; evalMask a text region; shEvalGFCT a
+%   model with a term type it does not know, which it skips with a warning.
+idx = shLowLevel.shIndex(4);
+verifyError(testCase, @() shLowLevel.buildCondFun(idx, kn = zeros(5, 1), R = 0), ...
+    'shLowLevel:buildCondFun:zeroKernel');
+verifyError(testCase, @() shLowLevel.buildNoiseCov(zeros(idx.P, 3), idx), ...
+    'shLowLevel:buildNoiseCov:allZeroVariance');
+verifyError(testCase, @() shLowLevel.buildSignalCov(ones(idx.P, 3), ...
+    struct('layout', 'blocks'), idx, Mode = 'inhomogeneous'), ...
+    'shLowLevel:buildSignalCov:blocksIsotropicOnly');
+verifyError(testCase, @() shLowLevel.evalMask(idx, "Elbe"), ...
+    'shLowLevel:evalMask:badRegion');
+vt = struct('type', 'xyz', 'n', 2, 'm', 0, 'C', 1, 'S', 0, ...
+    't0', 2000, 't1', Inf, 'period', NaN);
+model = struct('C', zeros(3), 'S', zeros(3), 'variableTerms', vt);
+verifyWarning(testCase, @() shLowLevel.shEvalGFCT(model, 2010), ...
+    'shLowLevel:shEvalGFCT:unknownType');
+end
+
+function testDrivenGuardsOfKalmanLane(testCase)
+%TESTDRIVENGUARDSOFKALMANLANE drives the guards of estimateVAR,
+%   kalmanFilter, rtsSmoother and neqCombine. estimateVAR fits a scalar
+%   AR(1) to [1 1 1 1 0.5], whose lag-1 autocovariance 0.875 exceeds the
+%   variance 0.85 (Phi = 1.03), and finishes after its warning.
+%   kalmanFilter gets an epoch with both a solution and a NEQ, and one of
+%   each with the wrong size. rtsSmoother gets a "matfile" filter whose
+%   file does not exist. neqCombine gets one contribution with more
+%   parameters than observations (redundancy 1 - 2 < 0), an all-zero
+%   normal matrix (its inverse is Inf, the redundancy NaN, which the
+%   red <= 0 test lets through and the invariant catches), and two
+%   disagreeing contributions with MaxIter = 1.
+X = [1 1 1 1 0.5];
+verifyWarning(testCase, @() shLowLevel.estimateVAR(X), ...
+    'shLowLevel:estimateVAR:unstable');
+
+model = struct('Phi', {{0.5 * eye(2)}}, 'Q', eye(2), 'Sigma0', eye(2), ...
+    'order', 1, 'P', 2);
+both = struct('l', [1; 2], 'R', eye(2), 'N', eye(2), 'b', [1; 2]);
+verifyError(testCase, @() shLowLevel.kalmanFilter(model, both), ...
+    'shLowLevel:kalmanFilter:ambiguousObs');
+verifyError(testCase, @() shLowLevel.kalmanFilter(model, ...
+    struct('l', [1; 2; 3], 'R', eye(2))), 'shLowLevel:kalmanFilter:sizeMismatch');
+verifyError(testCase, @() shLowLevel.kalmanFilter(model, ...
+    struct('N', eye(3), 'b', [1; 2; 3])), 'shLowLevel:kalmanFilter:sizeMismatch');
+
+filt = struct('storeCov', "matfile", 'covFile', string(tempname) + ".mat");
+verifyError(testCase, @() shLowLevel.rtsSmoother(filt), ...
+    'shLowLevel:rtsSmoother:covFileMissing');
+
+verifyError(testCase, @() shLowLevel.neqCombine(struct('N', eye(2), ...
+    'b', [1; 1], 'ltpl', 1, 'nobs', 1)), 'shLowLevel:neqCombine:nonpositiveRedundancy');
+ws = warning('off', 'MATLAB:singularMatrix');
+cl = onCleanup(@() warning(ws)); %#ok<NASGU>
+verifyError(testCase, @() shLowLevel.neqCombine(struct('N', zeros(2), ...
+    'b', [0; 0], 'ltpl', 1, 'nobs', 10)), 'shLowLevel:neqCombine:redundancyInvariant');
+two = [struct('N', 1, 'b', 1, 'ltpl', 10, 'nobs', 5), ...
+       struct('N', 1, 'b', 2, 'ltpl', 50, 'nobs', 5)];
+verifyWarning(testCase, @() shLowLevel.neqCombine(two, MaxIter = 1), ...
+    'shLowLevel:neqCombine:noConvergence');   % s2 moves from 1 to 2.06 / 10.3
+end
+
+function testDrivenGuardsOfWritersAndPlots(testCase)
+%TESTDRIVENGUARDSOFWRITERSANDPLOTS DRIVEN: the input guards of writeGFC,
+%   writeFrames, plotCovariance, plotSHCoeffTriangle and plotSHSpectrum,
+%   each reached with an input that passes every earlier check and fails
+%   only the named one. The plots draw into an invisible figure's axes
+%   (passed as Ax, so no gca opens a visible window); nothing is written
+%   anywhere but a fresh temp folder, and every guard sits before fopen
+%   or VideoWriter, so no file is created.
+fig = figure('Visible', 'off');
+figCl = onCleanup(@() close(fig)); %#ok<NASGU>
+d = tempname; mkdir(d);
+cl = onCleanup(@() rmIfFolder(d)); %#ok<NASGU>
+
+% writeGFC: S one degree smaller than C (the square/size assert)
+verifyError(testCase, @() shLowLevel.writeGFC(fullfile(d, 'a.gfc'), ...
+    zeros(3), zeros(2), 3.986004415e14, 6378136.3), ...
+    'shLowLevel:writeGFC:badInput');
+% writeGFC: a folder that does not exist, so fopen returns -1
+verifyError(testCase, @() shLowLevel.writeGFC( ...
+    fullfile(d, 'noSuchFolder', 'a.gfc'), zeros(3), zeros(3), ...
+    3.986004415e14, 6378136.3), 'shLowLevel:writeGFC:cannotOpen');
+
+% writeFrames: H x W x 3 x 0 passes the size assert (ndims 4), T = 0
+verifyError(testCase, @() shLowLevel.writeFrames( ...
+    uint8(zeros(4, 4, 3, 0)), fullfile(d, 'a.avi')), ...
+    'shLowLevel:writeFrames:noFrames');
+
+% plotCovariance: M one row and column larger than idx.P
+idx = shLowLevel.shIndex(4);
+verifyError(testCase, @() shLowLevel.plotCovariance(eye(idx.P + 1), idx, ...
+    Ax = axes('Parent', fig)), 'shLowLevel:plotCovariance:badSize');
+
+% plotSHCoeffTriangle: RefC (difference mode) without RefS
+C = tril(ones(5)); S = tril(ones(5), -1);
+verifyError(testCase, @() shLowLevel.plotSHCoeffTriangle(C, S, ...
+    'RefC', 0 * C, 'Ax', axes('Parent', fig)), ...
+    'shLowLevel:plotSHCoeffTriangle:needRefS');
+
+% plotSHSpectrum: a degree-domain spectrum without degAmplitude, the
+% field the default Quantity "amplitude" reads
+verifyError(testCase, @() shLowLevel.plotSHSpectrum( ...
+    struct('degree', 0:5), 'Ax', axes('Parent', fig)), ...
+    'shLowLevel:plotSHSpectrum:missingField');
+end
+
+function testDrivenGuardsOfClassMethodsE(testCase)
+%TESTDRIVENGUARDSOFCLASSMETHODSE DRIVEN: addDegree1's two guards after
+%   the epoch check, toGrid's empty-series assert, and mean's sparse-window
+%   warning. addDegree1 gets a finite epoch so noEpoch stays silent; the
+%   empty series is a logical select that keeps nothing (the constructor
+%   refuses zero epochs itself); the window of mean holds 12 monthly
+%   epochs in a 6-year Range, coverage 12*(1/12)/6 = 0.17 < 0.5, with
+%   12 >= the 6 parameters "model" needs, so the call finishes.
+tn = struct('epoch', 2008.29, 'C10', 1e-10, 'C11', 2e-10, 'S11', 3e-10, ...
+    'sigC10', 1e-12, 'sigC11', 1e-12, 'sigS11', 1e-12);
+% nmax 0: a 1 x 1 model cannot hold degree 1
+g0 = shCoefficients(0, 0, Epoch = 2008.29);
+verifyError(testCase, @() g0.addDegree1(tn), ...
+    'shCoefficients:addDegree1:badIndex');
+% 2010.0 is 1.71 yr from the only record, over the 0.05 yr Tolerance
+g3 = shCoefficients(zeros(3), zeros(3), Epoch = 2010.0);
+verifyError(testCase, @() g3.addDegree1(tn), ...
+    'shCoefficients:addDegree1:epochNotInTable');
+
+t = 2004 + ((0:11)' + 0.5) / 12;
+ts = shSeries(ones(3, 3, 12), Ss = zeros(3, 3, 12), Epochs = t);
+ts0 = ts.select(false(1, ts.nEpochs));
+verifyEqual(testCase, ts0.nEpochs, 0);
+verifyError(testCase, @() ts0.toGrid(-60:60:60, 0:90:270), ...
+    'shSeries:toGrid:empty');
+
+verifyWarning(testCase, @() ts.mean(Range = [2004 2010], ...
+    Estimator = "model"), 'shSeries:mean:sparseWindow');
+end
