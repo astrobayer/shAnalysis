@@ -917,7 +917,7 @@ The last releases only; the full board, in version order, is
 | v5.27.0 (WP9 9c: `Type = "mascon"` in `regionalBasis`) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally** (no bridge). ☑ **CI self-hosted (A8) at `de4e0c4` via PR #140, green — 464 runs, 457 passed, 0 failed, 7 filtered** (the optional real-data fixtures); the count prediction matched EXACTLY, and the four 9c tests passed on their first run - no red round | ☑ PR #140 | ☑ 2026-10-24 |
 | v5.27.1 (the README brought up to date; documentation only) | ☑ 17 gates + make_demos + 15 self-test suites, 0 findings; README fence contract-checked, fault-injected | ◑ **Tier B locally**; no MATLAB file changed. ☑ **CI self-hosted (A8) at `4552eab` via PR #141, green — 464 runs, 457 passed, 0 failed, 7 filtered** | ☑ PR #141 | ☑ 2026-10-24 |
 | v5.27.2 (WP9 9d: the opt-in full-size closed loop, `closed_loop_budget.py`, the manual-run inputs) | ☑ 17 gates + mlint + make_demos + 15 self-test suites, 0 findings | ◑ **Tier B locally**. ☑ **CI self-hosted (A8) at `953fa26` via PR #142, green — 465 runs, 457 passed, 0 failed, 8 filtered** (prediction exact); ☑ **manual run 40062134202 with `closed_loop_nmax = 60,96`: 465 runs, 458 passed, 7 filtered**, the closed loop 31.7 s - numbers in CHANGELOG 5.27.2 | ☑ PR #142 | ◐ pending |
-| v5.27.3 (DRIVEN: 99 identifiers driven, 9 left with reasons; tests only) | ☑ 17 gates + mlint + make_demos + 15 self-test suites, 0 findings; DRIVEN 301 -> 400 of 409 | ◑ **Tier B locally**; predicted 481 runs (Contract 153) | ☐ | ☐ |
+| v5.27.3 (DRIVEN: 98 identifiers driven, 10 left with reasons; tests only) | ☑ 17 gates + mlint + make_demos + 15 self-test suites, 0 findings; DRIVEN 301 -> 399 of 409 | ◑ **Tier B locally**; predicted 481 runs (Contract 153). First A8 run at `809a071`: 1 failed - `makeTutorials:noConverter` not raised, the converter wrote through a folder at the `.mlx` target; the check removed and the identifier listed | ☐ | ☐ |
 | v5.26.0 (WP9 9b: `shLowLevel.neqClimatology`) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally** (no bridge). ☑ **CI self-hosted (A8) at `4aa3aa9` via PR #139, green — 460 runs, 453 passed, 0 failed, 7 filtered** (the optional real-data fixtures); the count prediction matched EXACTLY, and the four 9b tests passed on their first run - no red round | ☑ PR #139 | ☑ 2026-10-24 |
 
 ### 6.3 What the next session could be wrong for not reading
@@ -1026,7 +1026,7 @@ which holds five low items that need data or a run, not effort. Read the version
 3. **WP8 8f and 8g**, POSTPONED until the bridge returns (6.1,
    2026-10-21): they need ESA ESM output and full covariances that A8
    cannot hold.
-4. **The DRIVEN backlog** is 9 identifiers since v5.27.3, each with
+4. **The DRIVEN backlog** is 10 identifiers since v5.27.3, each with
    the reason no offline test reaches it (`tools/undriven_ids.txt`);
    it shrinks only when one of those reasons goes away.
 5. **WP6's topic categories** for the reference index: an editorial call

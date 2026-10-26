@@ -8,6 +8,7 @@ shAnalysis:setup:savepathFailed   # needs pathdef.m unwritable; calling savepath
 shLowLevel:fetchGAX:noFiles   # the catalogue always comes from listICGEM over the network; no Source/List option
 shLowLevel:fetchTN:mirrorMissing   # raised and CAUGHT inside fetchTN - only the message reaches info.failed (driven by testDrivenGuardsOfHttpPlumbing, not observable)
 shLowLevel:gravisDataFolder:missing   # fires only when the installation lacks data/gravis
+shLowLevel:makeTutorials:noConverter   # needs the internal Live Script converter to fail; on A8 it succeeded with a folder at the .mlx target
 shLowLevel:webFetch:httpError   # needs a server that answers non-200; base MATLAB has no local HTTP server
 shLowLevel:writeAnimation:captureMismatch   # raised inside frame capture after geoMap rendering
 shLowLevel:writeAnimation:frameSizeChanged   # raised after geoMap rendering, which CI does not have

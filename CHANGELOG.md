@@ -7,21 +7,24 @@ A PATCH release: tests only, no toolbox code changes. Written against
 already named by their own tests.
 
 ### Added (tests)
-- **Sixteen `testContract` methods drive 99 of the 108 identifiers**
+- **Sixteen `testContract` methods drive 98 of the 108 identifiers**
   that no test named. They cover the file readers, the chains and their
   folder plumbing, the fetchers on local mirrors and refused connections,
   the numerical lanes, and the writers, plots and class methods. Each
   call reaches its raise site with an input that passes every guard in
-  front of it: 400 of the 409 raised identifiers are now named by a
+  front of it: 399 of the 409 raised identifiers are now named by a
   test.
-- **The 9 left in `tools/undriven_ids.txt` each carry the reason** no
+- **The 10 left in `tools/undriven_ids.txt` each carry the reason** no
   offline test can reach them. Three need hardware or rendering that CI
   does not have: an MPEG-4-less platform, and geoMap frames for two
   `writeAnimation` checks. Two need a live server: `webFetch:httpError`,
   and `fetchGAX:noFiles`, whose catalogue always comes from the network.
   Two would change the machine they run on (`setup_shAnalysis`'s
-  savepath and docsearch failures). The ninth needs an installation
-  without its own `data/gravis`. `fetchTN:mirrorMissing` is in the list
+  savepath and docsearch failures). One needs an installation
+  without its own `data/gravis`, and one a Live Script converter that
+  fails: `makeTutorials:noConverter` was driven by a folder at the `.mlx`
+  target, and on A8 the converter wrote through it, so the first CI run
+  failed that check and the identifier went back on the list. `fetchTN:mirrorMissing` is in the list
   for a different reason: `fetchTN` catches it itself (below).
 
 ### Recorded, not changed

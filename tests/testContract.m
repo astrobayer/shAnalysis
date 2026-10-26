@@ -4440,20 +4440,15 @@ end
 
 function testDrivenGuardsOfTutorials(testCase)
 %TESTDRIVENGUARDSOFTUTORIALS DRIVEN, group C: makeTutorials refuses a
-%   tutorial path it cannot open (a folder sits where the .m goes), and
-%   warns when the Live Script conversion fails (a folder sits where the
-%   .mlx goes - or, in a MATLAB without the converter, it is missing; the
-%   warning is the same either way). The names come from a first run with
-%   Convert = false.
+%   tutorial path it cannot open (a folder sits where the .m goes). The
+%   name comes from a first run with Convert = false. The noConverter
+%   warning is not driven here: on A8 the converter wrote its .mlx even
+%   with a folder at the target (5.27.3, first CI run).
 d = tempname;
 cl = onCleanup(@() rmIfFolder(d)); %#ok<NASGU>
 out = shLowLevel.makeTutorials(Dest = string(d), Cases = "D01", ...
     Convert = false, Quiet = true);
 fm = char(out.files(1));
-fx = [fm(1:end-2) '.mlx'];
-mkdir(fx);
-verifyWarning(testCase, @() shLowLevel.makeTutorials(Dest = string(d), ...
-    Cases = "D01", Quiet = true), 'shLowLevel:makeTutorials:noConverter');
 delete(fm); mkdir(fm);                       % fopen(folder, 'w') returns -1
 verifyError(testCase, @() shLowLevel.makeTutorials(Dest = string(d), ...
     Cases = "D01", Convert = false, Quiet = true), ...
