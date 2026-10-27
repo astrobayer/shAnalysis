@@ -26,7 +26,7 @@ says whether it was *read* or *inferred*.
 
 | Fact | Value | Evidence |
 |---|---|---|
-| Version | **5.27.3**, 26-Oct-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
+| Version | **5.27.4**, 27-Oct-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
 | Branches | `main` only; `claude/getframe-recapture` and `claude/readshm` are gone (merged/deleted) | `GET /branches` |
 | Public surface | 3 classes / 106 methods, 135 `+shLowLevel` functions (+5 private), 3 root functions. 94 of the 135 are reachable from a class method; each of the other 41 is a named exception with its reason, and the backlog is empty (v5.24.0) | `tools/dev/api_extract.py`; `tools/dev/class_surface_audit.py` |
 | Tests | 5 classes, **467 methods / 481 runs**: Correctness 230, Contract 153, Robustness 62, Science 9, Performance 13 methods (27 runs, `budgetCase` x14 + `nmaxP` x2). On A8 8 filter out in an ordinary run - the optional real-data fixtures and the opt-in full-size closed loop (v5.27.2), 7 on a manual run that sets `closed_loop_nmax` (the GravIS-grid test joined them in v5.8.0, the ESMGFZ check in v5.11.0, the HLSST check in v5.12.0); on MATTHIASPC only 2 do, because `E:\DATAPOOL` supplies the SINEX files, the GravIS folder and - with `SHX_EARTHROTATION_FOLDER` and `SHX_BRIDGE_FOLDER` set for the run, no preference is stored - the ESMGFZ and HLSST series. The counter has matched the runner EXACTLY on the last ten green A8 runs and on every local Tier-A run. | `python3 tools/dev/count_tests.py` |
@@ -657,7 +657,7 @@ shAnalysis, the basin is selectable, and otherwise a test area.
   numbers), `robustness` (dateline basins, polar regions, gaps).
 - **Size**: XL over the rows. **Version**: MINOR per row.
 
-### WP9 — More from existing observations   `[~] 9a DONE (v5.25.0), 9b DONE (v5.26.0), 9c DONE (v5.27.0), 9d MEASURED (v5.27.2); 9e-9j open, in the order below` (approved 2026-10-23)
+### WP9 — More from existing observations   `[~] 9a DONE (v5.25.0), 9b DONE (v5.26.0), 9c DONE (v5.27.0), 9d MEASURED (v5.27.2), 9e CHECKED (v5.27.4, desk); 9f-9j open, in the order below` (approved 2026-10-23)
 Approved by Matthias on 2026-10-23 ("Go ahead") on a ranked proposal of
 2026-10-22 whose premise was that the toolbox mostly consumes finished
 solutions, while much of the information sits in normal equations,
@@ -671,7 +671,7 @@ that need no new data first.
 | 9b `[x]` **DONE v5.26.0** | `shLowLevel.neqClimatology`: the six climatology terms from ALL monthly normal equations, each month's deviation reduced (Schur complement, never inverting N) - instead of fitting filtered solutions. The gain is the month-to-month change of the noise pattern, nil for a constant one; not measured on real NEQs | `validate_neq_climatology.py`: GLS fit with full covariance, joint reduction, closed loop | M |
 | 9c `[x]` **DONE v5.27.0** | basin-scale mascons (spherical caps) as a fourth `regionalBasis` type; T analytic: an rbf with the cap kernel c_n / ((2n+1) f_n), coefficients in EWH metres, equal-area default radius. The `readMascon` comparison is debt (no product reachable) | `validate_regional_mascon.py`: c_n against 40-digit values, the column against scipy's Legendre series, area, telescoping centre, projector | S |
 | 9d `[x]` **MEASURED v5.27.2** (opt-in, Matthias 2026-10-24): one month at a time, the peak is two P x P - 0.21 GB at nmax 60, 1.32 GB at nmax 96, 2.2 s/month - against A8's 21 GB largest array; memory does not stop 8f there. The loop's honesty RMS is 11.7 / 5.6 without a background (outside signal in the basis) | 8f on A8: measure whether a truncated closed loop (nmax 60, 3721^2 doubles = 0.11 GB per month) or order-block covariance storage fits A8 - measured, then decided | memory and wall time on A8 | S |
-| 9e | normal-equation combination of analysis centres with VCE: `neqCombine` does it already (inside `kalmanChain`'s multi-center mode too); what is missing is DATA - which centres besides ITSG publish usable NEQs. A check first; possibly nothing to build | COST-G combined solutions | M |
+| 9e `[x]` **CHECKED v5.27.4, desk only** (approved 2026-10-27: "Go ahead with 9e"): besides ITSG, GFZ publishes monthly RL06/RL06.x NEQs in SINEX to d/o 96 at ISDC, and a Zenodo dataset (PyHawk) monthly reduced NEQs to d/o 60; CNES and AIUB give theirs to COST-G, with no public download found. Nothing built - no second centre's file has been read, and neither this sandbox nor A8 reaches the GFZ hosts (6.1) | normal-equation combination of analysis centres with VCE: `neqCombine` does it already (inside `kalmanChain`'s multi-center mode too); what is missing is DATA - which centres besides ITSG publish usable NEQs. A check first; possibly nothing to build | COST-G combined solutions | M |
 | 9f | C20, C30 and degree 1 estimated jointly from SLR and GRACE normal equations instead of the TN-14 substitution | blocked on a source of SLR NEQs | M |
 | 9g | HB-STAR's non-stationary SPDE-Matern prior as a Q / Sigma0 option of `regionalKalman` (8i's block scales are its coarse form) | closed-form stationary Matern covariance on the sphere | M-L |
 | 9h | land mass and sea-level fingerprint solved jointly: `seaLevelFingerprint` inside T, mass conserved by construction | closed loop with leakage across the coast | M |
@@ -698,6 +698,33 @@ that need no new data first.
 Current entries only; every earlier one is in `tools/dev/RECORD.md` §1,
 verbatim. An entry moves there when it stops describing the current
 state; nothing is deleted.
+- 2026-10-27 — **9e checked from the desk, as 5.27.4; nothing built**
+  (Matthias: "Go ahead with 9e"). Found by web search, no file opened:
+  GFZ's monthly RL06 (GRACE) and RL06.x (GRACE-FO) normal equations in
+  SINEX to d/o 96 at ISDC since 2020 (RL06.3 release notes:
+  `isdc-data.gfz.de/grace-fo/Level-2/GFZ/RL06.3_NEQs_SINEX/`, files
+  `GSM-2_..._GRFO_GFZOP_BB01_0603.snx`); a Zenodo dataset (record
+  22122647, PyHawk) with monthly reduced NEQs in SINEX, degrees 2-60,
+  2002-04 to 2026-06; CNES/GRGS and AIUB, both COST-G analysis centres,
+  provide unconstrained monthly NEQs to COST-G, with no public download
+  found for either. COST-G's own NEQ-level work (EGU26) uses AIUB, GFZ
+  and TUG NEQs. Nothing was built because no second centre's file was
+  read: `readSINEX` says "verify once against your provider's file", and
+  this sandbox reaches neither data host, nor does A8 reach
+  `isdc-data.gfz.de` or `isdcftp.gfz.de` (`probe-8f`, 2026-10-24,
+  tcp443 = False; `ftp.tugraz.at` and `isdc.gfz.de` do answer).
+- 2026-10-27 — **What a combination would meet first, read from the
+  code.** `neqCombine` requires every contribution on the SAME
+  `shIndex` and the SAME background models, and says no algebra will
+  warn if they are not. GFZ's d/o 96 matches ITSG's degree-96 product in
+  index; their backgrounds are not known to agree and were not checked.
+  The PyHawk NEQs stop at degree 60, so combining them with a degree-96
+  one needs the higher degrees reduced out (a Schur complement, as
+  `neqClimatology` does internally), which no public function does for a
+  SINEX NEQ today - the one build candidate, and only once a file is
+  read. A 2023 GJI paper notes that most providers' NEQ stochastic models
+  are unrealistic and need empirical scaling, which is what
+  `neqCombine`'s VCE estimates.
 - 2026-10-26 — **The DRIVEN tests ported onto 5.27.2 as 5.27.3; the
   history rewrite skipped** (Matthias: "Go ahead with 1 and 2, skip the
   rewrite"). The sixteen tests written as 5.24.2 on the rewritten
@@ -917,7 +944,8 @@ The last releases only; the full board, in version order, is
 | v5.27.0 (WP9 9c: `Type = "mascon"` in `regionalBasis`) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally** (no bridge). ☑ **CI self-hosted (A8) at `de4e0c4` via PR #140, green — 464 runs, 457 passed, 0 failed, 7 filtered** (the optional real-data fixtures); the count prediction matched EXACTLY, and the four 9c tests passed on their first run - no red round | ☑ PR #140 | ☑ 2026-10-24 |
 | v5.27.1 (the README brought up to date; documentation only) | ☑ 17 gates + make_demos + 15 self-test suites, 0 findings; README fence contract-checked, fault-injected | ◑ **Tier B locally**; no MATLAB file changed. ☑ **CI self-hosted (A8) at `4552eab` via PR #141, green — 464 runs, 457 passed, 0 failed, 7 filtered** | ☑ PR #141 | ☑ 2026-10-24 |
 | v5.27.2 (WP9 9d: the opt-in full-size closed loop, `closed_loop_budget.py`, the manual-run inputs) | ☑ 17 gates + mlint + make_demos + 15 self-test suites, 0 findings | ◑ **Tier B locally**. ☑ **CI self-hosted (A8) at `953fa26` via PR #142, green — 465 runs, 457 passed, 0 failed, 8 filtered** (prediction exact); ☑ **manual run 40062134202 with `closed_loop_nmax = 60,96`: 465 runs, 458 passed, 7 filtered**, the closed loop 31.7 s - numbers in CHANGELOG 5.27.2 | ☑ PR #142 | ◐ pending |
-| v5.27.3 (DRIVEN: 98 identifiers driven, 10 left with reasons; tests only) | ☑ 17 gates + mlint + make_demos + 15 self-test suites, 0 findings; DRIVEN 301 -> 399 of 409 | ◑ **Tier B locally**; predicted 481 runs (Contract 153). First A8 run at `809a071`: 1 failed - `makeTutorials:noConverter` not raised, the converter wrote through a folder at the `.mlx` target; the check removed and the identifier listed. ☑ **CI self-hosted (A8) at `780e4de` via PR #144, green — 481 runs, 473 passed, 0 failed, 8 filtered**; the count prediction matched EXACTLY | ☑ PR #144 | ☐ |
+| v5.27.3 (DRIVEN: 98 identifiers driven, 10 left with reasons; tests only) | ☑ 17 gates + mlint + make_demos + 15 self-test suites, 0 findings; DRIVEN 301 -> 399 of 409 | ◑ **Tier B locally**; predicted 481 runs (Contract 153). First A8 run at `809a071`: 1 failed - `makeTutorials:noConverter` not raised, the converter wrote through a folder at the `.mlx` target; the check removed and the identifier listed. ☑ **CI self-hosted (A8) at `780e4de` via PR #144, green — 481 runs, 473 passed, 0 failed, 8 filtered**; the count prediction matched EXACTLY | ☑ PR #144 | ☑ 2026-10-27 |
+| v5.27.4 (WP9 9e: the NEQ sources, a desk check; documentation only) | ☑ 17 gates + make_demos + 15 self-test suites, 0 findings | ◑ **Tier B**; no MATLAB file changed, predicted 481 runs | ☐ | ☐ |
 | v5.26.0 (WP9 9b: `shLowLevel.neqClimatology`) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally** (no bridge). ☑ **CI self-hosted (A8) at `4aa3aa9` via PR #139, green — 460 runs, 453 passed, 0 failed, 7 filtered** (the optional real-data fixtures); the count prediction matched EXACTLY, and the four 9b tests passed on their first run - no red round | ☑ PR #139 | ☑ 2026-10-24 |
 
 ### 6.3 What the next session could be wrong for not reading
@@ -990,18 +1018,22 @@ One line per rule; the incident behind each, with its numbers, is in
 
 ### 6.4 Next action
 
-**State, 2026-10-26.** `main` is `232289d`, v5.27.2 (#138-#142
-merged); every release since v5.24.1 carries
-`shAnalysis_workflow_guide.pdf`. v5.27.3 (the DRIVEN backlog) is on
-branch `claude/vigilant-cray-w79e72`. A re-measurement is a manual run of the
+**State, 2026-10-27.** `main` is `2663f9d`, v5.27.3 (#144, the DRIVEN
+backlog, merged); every release since v5.24.1 carries
+`shAnalysis_workflow_guide.pdf`. v5.27.4 (9e, the desk check) is on
+branch `wp9-neq-sources`. A re-measurement is a manual run of the
 CI workflow with `closed_loop_nmax`, read from the log's `CLOSEDLOOP`
 lines. Every finding in 4.1 is CLOSED except A42,
 which holds five low items that need data or a run, not effort. Read the version from
 1's table or `Contents.m` line 2, never from this paragraph.
 
 **Open, in the order of what they buy:**
-0. **WP9, in its table's order** (approved 2026-10-23): 9e next (a data
-   check: who besides ITSG publishes usable monthly NEQs). Waiting on
+0. **WP9, in its table's order** (approved 2026-10-23): 9e is checked
+   from the desk (6.1, 2026-10-27); what settles it is one GFZ RL06.3
+   `.snx` and the ITSG file of the same month read with `readSINEX` on
+   the acceptance machine (A8 does not reach the GFZ hosts) - if both
+   parse onto one `shIndex`, `kalmanChain`'s multi-center neq mode runs
+   them. 9f is next in the table, and blocked on SLR NEQs. Waiting on
    Matthias: whether 8f now runs on A8 - memory is measured to suffice;
    it needs ESA ESM output and the ITSG-Grace2018 covariances there. Real-data
    debt for the acceptance machine: 9a against `bridgeGaps` on COST-G and
