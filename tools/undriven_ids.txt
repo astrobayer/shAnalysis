@@ -1,112 +1,15 @@
-# DRIVEN backlog of tools/error_id_audit.py (v5.24.1): identifiers the
-# toolbox raises that no test names yet. It may only shrink - an entry a
-# test now names, or that nothing raises any more, fails the gate. Drive
-# the guard in a test and delete the line; never add one for new code.
-shAnalysis:setup:docsFailed
-shAnalysis:setup:savepathFailed
-shCoefficients:addDegree1:badIndex
-shCoefficients:addDegree1:epochNotInTable
-shLowLevel:basinDeconvolve:nonFiniteA
-shLowLevel:basinDeconvolve:nonFiniteOperator
-shLowLevel:basinDeconvolve:zeroA
-shLowLevel:buildCondFun:zeroKernel
-shLowLevel:buildNoiseCov:allZeroVariance
-shLowLevel:buildSignalCov:blocksIsotropicOnly
-shLowLevel:compareSeries:basinNeedsIdx
-shLowLevel:estimateDegree1:badModel
-shLowLevel:estimateDegree1:shortLoveNumbers
-shLowLevel:estimateVAR:unstable
-shLowLevel:evalMask:badRegion
-shLowLevel:fetchDDK:updateFailed
-shLowLevel:fetchFileSet:tooManyFailures
-shLowLevel:fetchGAX:noFiles
-shLowLevel:fetchICGEM:badRow
-shLowLevel:fetchICGEM:legacyLayout
-shLowLevel:fetchICGEM:updateFailed
-shLowLevel:fetchITSG:allDaily
-shLowLevel:fetchITSG:badCatalog
-shLowLevel:fetchITSG:emptyFolder
-shLowLevel:fetchITSG:legacyLayout
-shLowLevel:fetchITSG:staticSkipped
-shLowLevel:fetchITSGBackground:noMonths
-shLowLevel:fetchLoveNumbers:badFormat
-shLowLevel:fetchTN:mirrorMissing
-shLowLevel:gravisDataFolder:missing
-shLowLevel:gravisL2B:badTable
-shLowLevel:gravisL2B:epochMismatch
-shLowLevel:gravisL2B:missingAux
-shLowLevel:gravisL2B:uncovered
-shLowLevel:gravisRegionChain:missingBasins
-shLowLevel:gravisRegionChain:noOcean
-shLowLevel:httpFetch:failed
-shLowLevel:hydroExtremeIndex:badPrecip
-shLowLevel:kalmanChain:badInput
-shLowLevel:kalmanChain:badNeqWeights
-shLowLevel:kalmanChain:nmaxMismatch
-shLowLevel:kalmanChain:noFiles
-shLowLevel:kalmanChain:noNoise
-shLowLevel:kalmanChain:notNEQ
-shLowLevel:kalmanFilter:ambiguousObs
-shLowLevel:kalmanFilter:sizeMismatch
-shLowLevel:leakageCorrect:badResidualRegion
-shLowLevel:listICGEM:parseFailed
-shLowLevel:listITSG:empty
-shLowLevel:makeTutorials:cannotWrite
-shLowLevel:makeTutorials:noConverter
-shLowLevel:neqCombine:noConvergence
-shLowLevel:neqCombine:nonpositiveRedundancy
-shLowLevel:neqCombine:redundancyInvariant
-shLowLevel:plotCovariance:badSize
-shLowLevel:plotSHCoeffTriangle:needRefS
-shLowLevel:plotSHSpectrum:missingField
-shLowLevel:readDDK:badBinary
-shLowLevel:readDDK:badContainer
-shLowLevel:readDDK:badMatrixRow
-shLowLevel:readDDK:badSource
-shLowLevel:readDDK:emptyMat
-shLowLevel:readDDK:fileNotFound
-shLowLevel:readDDK:noData
-shLowLevel:readLoveNumbers:badColumns
-shLowLevel:readLoveNumbers:badFrame
-shLowLevel:readLoveNumbers:fileNotFound
-shLowLevel:readLoveNumbers:needsDegree1
-shLowLevel:readLoveNumbers:noData
-shLowLevel:readMascon:ambiguousShape
-shLowLevel:readMascon:badShape
-shLowLevel:readMascon:fileNotFound
-shLowLevel:readMascon:noTimeUnits
-shLowLevel:readMascon:unknownLayout
-shLowLevel:readSHM:badRecord
-shLowLevel:readSHM:mixedKinds
-shLowLevel:readSHM:noRecords
-shLowLevel:readSINEX:badEstimateLine
-shLowLevel:readSINEX:badMatrixLine
-shLowLevel:readSINEX:badMatrixType
-shLowLevel:readSINEX:missingParam
-shLowLevel:readSINEX:neqNotPD
-shLowLevel:readSINEX:noEstimates
-shLowLevel:readTN13:badDegree
-shLowLevel:readTN13:badLine
-shLowLevel:readTN14:noData
-shLowLevel:rtsSmoother:covFileMissing
-shLowLevel:shEvalGFCT:unknownType
-shLowLevel:standardChain:badGIA
-shLowLevel:standardChain:noTN13
-shLowLevel:tvANSFilter:badBands
-shLowLevel:tvANSFilter:badSize
-shLowLevel:tvANSFilter:nonFiniteEig
-shLowLevel:tvANSFilter:nonFiniteVCE
-shLowLevel:twsChain:emptyBasin
-shLowLevel:twsChain:missingBasins
-shLowLevel:twsChain:missingDDK
-shLowLevel:twsChain:unknownBasin
-shLowLevel:vdkApply:notSPD
-shLowLevel:webFetch:httpError
-shLowLevel:writeAnimation:captureMismatch
-shLowLevel:writeAnimation:frameSizeChanged
-shLowLevel:writeFrames:mp4Unsupported
-shLowLevel:writeFrames:noFrames
-shLowLevel:writeGFC:badInput
-shLowLevel:writeGFC:cannotOpen
-shSeries:mean:sparseWindow
-shSeries:toGrid:empty
+# DRIVEN backlog of tools/error_id_audit.py: identifiers the toolbox raises
+# that no test names. It may only shrink - an entry a test now names, or
+# that nothing raises any more, fails the gate. Since v5.24.2 every entry is
+# one no offline test can reach, with the reason after it; a new raise
+# arrives with its test, never as a new line here.
+shAnalysis:setup:docsFailed   # needs builddocsearchdb to fail; a success would write an index into html/
+shAnalysis:setup:savepathFailed   # needs pathdef.m unwritable; calling savepath in a test would change the saved path
+shLowLevel:fetchGAX:noFiles   # the catalogue always comes from listICGEM over the network; no Source/List option
+shLowLevel:fetchTN:mirrorMissing   # raised and CAUGHT inside fetchTN - only the message reaches info.failed (driven by testDrivenGuardsOfHttpPlumbing, not observable)
+shLowLevel:gravisDataFolder:missing   # fires only when the installation lacks data/gravis
+shLowLevel:makeTutorials:noConverter   # needs the internal Live Script converter to fail; on A8 it succeeded with a folder at the .mlx target
+shLowLevel:webFetch:httpError   # needs a server that answers non-200; base MATLAB has no local HTTP server
+shLowLevel:writeAnimation:captureMismatch   # raised inside frame capture after geoMap rendering
+shLowLevel:writeAnimation:frameSizeChanged   # raised after geoMap rendering, which CI does not have
+shLowLevel:writeFrames:mp4Unsupported   # platform check: fires only where VideoWriter lacks MPEG-4; A8 (Windows) has it

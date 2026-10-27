@@ -26,10 +26,10 @@ says whether it was *read* or *inferred*.
 
 | Fact | Value | Evidence |
 |---|---|---|
-| Version | **5.27.2**, 24-Oct-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
+| Version | **5.27.3**, 26-Oct-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
 | Branches | `main` only; `claude/getframe-recapture` and `claude/readshm` are gone (merged/deleted) | `GET /branches` |
 | Public surface | 3 classes / 106 methods, 135 `+shLowLevel` functions (+5 private), 3 root functions. 94 of the 135 are reachable from a class method; each of the other 41 is a named exception with its reason, and the backlog is empty (v5.24.0) | `tools/dev/api_extract.py`; `tools/dev/class_surface_audit.py` |
-| Tests | 5 classes, **451 methods / 465 runs**: Correctness 230, Contract 137, Robustness 62, Science 9, Performance 13 methods (27 runs, `budgetCase` x14 + `nmaxP` x2). On A8 8 filter out in an ordinary run - the optional real-data fixtures and the opt-in full-size closed loop (v5.27.2), 7 on a manual run that sets `closed_loop_nmax` (the GravIS-grid test joined them in v5.8.0, the ESMGFZ check in v5.11.0, the HLSST check in v5.12.0); on MATTHIASPC only 2 do, because `E:\DATAPOOL` supplies the SINEX files, the GravIS folder and - with `SHX_EARTHROTATION_FOLDER` and `SHX_BRIDGE_FOLDER` set for the run, no preference is stored - the ESMGFZ and HLSST series. The counter has matched the runner EXACTLY on the last ten green A8 runs and on every local Tier-A run. | `python3 tools/dev/count_tests.py` |
+| Tests | 5 classes, **467 methods / 481 runs**: Correctness 230, Contract 153, Robustness 62, Science 9, Performance 13 methods (27 runs, `budgetCase` x14 + `nmaxP` x2). On A8 8 filter out in an ordinary run - the optional real-data fixtures and the opt-in full-size closed loop (v5.27.2), 7 on a manual run that sets `closed_loop_nmax` (the GravIS-grid test joined them in v5.8.0, the ESMGFZ check in v5.11.0, the HLSST check in v5.12.0); on MATTHIASPC only 2 do, because `E:\DATAPOOL` supplies the SINEX files, the GravIS folder and - with `SHX_EARTHROTATION_FOLDER` and `SHX_BRIDGE_FOLDER` set for the run, no preference is stored - the ESMGFZ and HLSST series. The counter has matched the runner EXACTLY on the last ten green A8 runs and on every local Tier-A run. | `python3 tools/dev/count_tests.py` |
 | Python oracles | 34 `tools/dev/validate_*.py` (+ `regional_oracle_lib.py`, shared by the WP8 oracles) + `tools/audit/*` | listing |
 | Docs | **27** hand-written `html/*.html` (24 per-entity duplicates retired in v5.0.1, WP6 stage 3; `regionalBasis.html` added in v5.14.0) + **238 generated `html/ref/*.html`** (one per entity + index, `make_refpages.py`), one shared `html/shAnalysis.css`, `helptoc.xml`, `info.xml`, guide PDF (built by CI and attached to each GitHub release since v5.24.1, not committed - `doc_sync_audit` refuses a tracked copy), generated `html/apiReference.html`. `docs/` holds `apiExamples.json` and, where it was built, the PDF - no HTML page lives outside `html/` (gated). | listing |
 | CI | `gates` job on ubuntu (help_audit, doc_sync_audit, no_map_renderer, toolbox_dependency_audit, nv_casing_audit, fixture_tag_audit, gate self-tests `tools/tests/`, `count_tests`, `name_coverage`, `class_surface_audit`, `error_id_audit`, `option_values_audit`, `refpages_audit`, `make_demos --check`, `perf_baseline_audit`) + `runAllTests (self-hosted)` on A8/R2026a; fixtures from tag `fixtures-2026-08` | `.github/workflows/ci.yml` |
@@ -698,6 +698,15 @@ that need no new data first.
 Current entries only; every earlier one is in `tools/dev/RECORD.md` §1,
 verbatim. An entry moves there when it stops describing the current
 state; nothing is deleted.
+- 2026-10-26 — **The DRIVEN tests ported onto 5.27.2 as 5.27.3; the
+  history rewrite skipped** (Matthias: "Go ahead with 1 and 2, skip the
+  rewrite"). The sixteen tests written as 5.24.2 on the rewritten
+  history were re-applied to `main`; the WP9 releases between had not
+  touched a guard they drive (`kalmanChain`'s new guards sit behind
+  `SecondSeries`, which none of them passes). The branch was reset to
+  `main`. The 112 guide PDFs stay in `.git`; the rewrite script was not
+  committed, and the 5.24.2 commit that holds it (`50cf4dc`) is the
+  record if the question returns.
 - 2026-10-24 — **9d's answer: memory does not stop 8f on A8.** Measured
   on A8, one month at a time: 0.21 GB peak at nmax 60, 1.32 GB at nmax
   96 (two P x P; the predicted third is a temporary between samples),
@@ -908,6 +917,7 @@ The last releases only; the full board, in version order, is
 | v5.27.0 (WP9 9c: `Type = "mascon"` in `regionalBasis`) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally** (no bridge). ☑ **CI self-hosted (A8) at `de4e0c4` via PR #140, green — 464 runs, 457 passed, 0 failed, 7 filtered** (the optional real-data fixtures); the count prediction matched EXACTLY, and the four 9c tests passed on their first run - no red round | ☑ PR #140 | ☑ 2026-10-24 |
 | v5.27.1 (the README brought up to date; documentation only) | ☑ 17 gates + make_demos + 15 self-test suites, 0 findings; README fence contract-checked, fault-injected | ◑ **Tier B locally**; no MATLAB file changed. ☑ **CI self-hosted (A8) at `4552eab` via PR #141, green — 464 runs, 457 passed, 0 failed, 7 filtered** | ☑ PR #141 | ☑ 2026-10-24 |
 | v5.27.2 (WP9 9d: the opt-in full-size closed loop, `closed_loop_budget.py`, the manual-run inputs) | ☑ 17 gates + mlint + make_demos + 15 self-test suites, 0 findings | ◑ **Tier B locally**. ☑ **CI self-hosted (A8) at `953fa26` via PR #142, green — 465 runs, 457 passed, 0 failed, 8 filtered** (prediction exact); ☑ **manual run 40062134202 with `closed_loop_nmax = 60,96`: 465 runs, 458 passed, 7 filtered**, the closed loop 31.7 s - numbers in CHANGELOG 5.27.2 | ☑ PR #142 | ◐ pending |
+| v5.27.3 (DRIVEN: 98 identifiers driven, 10 left with reasons; tests only) | ☑ 17 gates + mlint + make_demos + 15 self-test suites, 0 findings; DRIVEN 301 -> 399 of 409 | ◑ **Tier B locally**; predicted 481 runs (Contract 153). First A8 run at `809a071`: 1 failed - `makeTutorials:noConverter` not raised, the converter wrote through a folder at the `.mlx` target; the check removed and the identifier listed. ☑ **CI self-hosted (A8) at `780e4de` via PR #144, green — 481 runs, 473 passed, 0 failed, 8 filtered**; the count prediction matched EXACTLY | ☑ PR #144 | ☐ |
 | v5.26.0 (WP9 9b: `shLowLevel.neqClimatology`) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally** (no bridge). ☑ **CI self-hosted (A8) at `4aa3aa9` via PR #139, green — 460 runs, 453 passed, 0 failed, 7 filtered** (the optional real-data fixtures); the count prediction matched EXACTLY, and the four 9b tests passed on their first run - no red round | ☑ PR #139 | ☑ 2026-10-24 |
 
 ### 6.3 What the next session could be wrong for not reading
@@ -980,11 +990,10 @@ One line per rule; the incident behind each, with its numbers, is in
 
 ### 6.4 Next action
 
-**State, 2026-10-24.** `main` is `97c5dea`, v5.27.0 (#138-#140 merged
-2026-10-24); every release since v5.24.1 carries
-`shAnalysis_workflow_guide.pdf`. v5.27.1 (the README) merged as #141.
-v5.27.2 (9d) is on branch `wp9-closed-loop-size` (#142), measured on A8
-(6.1: memory does not stop 8f). A re-measurement is a manual run of the
+**State, 2026-10-26.** `main` is `232289d`, v5.27.2 (#138-#142
+merged); every release since v5.24.1 carries
+`shAnalysis_workflow_guide.pdf`. v5.27.3 (the DRIVEN backlog) is on
+branch `claude/vigilant-cray-w79e72`. A re-measurement is a manual run of the
 CI workflow with `closed_loop_nmax`, read from the log's `CLOSEDLOOP`
 lines. Every finding in 4.1 is CLOSED except A42,
 which holds five low items that need data or a run, not effort. Read the version from
@@ -1017,18 +1026,11 @@ which holds five low items that need data or a run, not effort. Read the version
 3. **WP8 8f and 8g**, POSTPONED until the bridge returns (6.1,
    2026-10-21): they need ESA ESM output and full covariances that A8
    cannot hold.
-4. **The DRIVEN backlog**, 108 identifiers in `tools/undriven_ids.txt`
-   that no test names - mostly file readers (`readDDK` 7, `readSINEX` 6,
-   `readMascon` 5, `readLoveNumbers` 5), the fetchers and `kalmanChain`.
-   Each needs a malformed file or a folder built for it; batches of about
-   20 per PATCH, smallest fixture first.
+4. **The DRIVEN backlog** is 10 identifiers since v5.27.3, each with
+   the reason no offline test reaches it (`tools/undriven_ids.txt`);
+   it shrinks only when one of those reasons goes away.
 5. **WP6's topic categories** for the reference index: an editorial call
    for Matthias (6.1, 2026-09-08).
-
-**Waiting on a decision from Matthias:** whether to rewrite the history
-to drop the 112 committed guide PDFs (43.5 MB of the 72 MB `.git`). It
-changes every commit SHA on `main` and needs a force-push (6.1,
-2026-10-22).
 
 **What a Tier-A session should know about running the suite here.** The
 MATLAB MCP tool times out on anything suite-sized. Run it detached and

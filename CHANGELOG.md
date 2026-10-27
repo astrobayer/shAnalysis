@@ -1,5 +1,48 @@
 # Changelog
 
+## [5.27.3] - 2026-10-26 - the DRIVEN backlog, driven
+
+A PATCH release: tests only, no toolbox code changes. Written against
+5.24.1 and ported onto 5.27.2; the identifiers WP9 added since were
+already named by their own tests.
+
+### Added (tests)
+- **Sixteen `testContract` methods drive 98 of the 108 identifiers**
+  that no test named. They cover the file readers, the chains and their
+  folder plumbing, the fetchers on local mirrors and refused connections,
+  the numerical lanes, and the writers, plots and class methods. Each
+  call reaches its raise site with an input that passes every guard in
+  front of it: 399 of the 409 raised identifiers are now named by a
+  test.
+- **The 10 left in `tools/undriven_ids.txt` each carry the reason** no
+  offline test can reach them. Three need hardware or rendering that CI
+  does not have: an MPEG-4-less platform, and geoMap frames for two
+  `writeAnimation` checks. Two need a live server: `webFetch:httpError`,
+  and `fetchGAX:noFiles`, whose catalogue always comes from the network.
+  Two would change the machine they run on (`setup_shAnalysis`'s
+  savepath and docsearch failures). One needs an installation
+  without its own `data/gravis`, and one a Live Script converter that
+  fails: `makeTutorials:noConverter` was driven by a folder at the `.mlx`
+  target, and on A8 the converter wrote through it, so the first CI run
+  failed that check and the identifier went back on the list. `fetchTN:mirrorMissing` is in the list
+  for a different reason: `fetchTN` catches it itself (below).
+
+### Recorded, not changed
+- `fetchTN:mirrorMissing` is raised and caught inside `fetchTN`, as its
+  help says, so a caller sees only the message in `info.failed`;
+  `fetchLoveNumbers:badFormat` is caught the same way inside the fetch
+  loop and escapes only on the skip-and-reparse path, which the new test
+  drives.
+- `buildCondFun:zeroKernel` cannot fire for the reason its message gives:
+  `kernelFactors` refuses 1 + kn = 0 first; only R = 0 reaches it.
+- `neqCombine`'s `red <= 0` and `vceRescale`'s `max(s, eps)` let a NaN
+  through: the first is then reported as `redundancyInvariant`, the
+  second becomes eps silently.
+- `readDDK`'s big-endian `badBinary` assert and two `fileNotFound`
+  asserts after an `isfile` check cannot fire.
+- `fetchGAX` takes its catalogue from the network only; a `Source`
+  option would make `noFiles` testable.
+
 ## [5.27.2] - 2026-10-24 - WP9 9d: the closed loop at full size, as an opt-in measurement
 
 A PATCH release: one opt-in test, a prediction script and two inputs of
