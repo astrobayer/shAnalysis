@@ -1,5 +1,33 @@
 # Changelog
 
+## [5.27.4] - 2026-10-27 - WP9 9e: who publishes normal equations
+
+A PATCH release: documentation only, no MATLAB file changed. Row 9e
+asked a data question first - which analysis centres besides ITSG
+publish monthly normal equations that `neqCombine`, and `kalmanChain`'s
+multi-center neq mode, could combine. It was answered from the desk;
+nothing was built.
+
+### Recorded (CLAUDE.md 9e and 6.1)
+- **Found, by web search; no file was opened.** GFZ: monthly RL06
+  (GRACE) and RL06.x (GRACE-FO) normal equations in SINEX to d/o 96 at
+  ISDC, since 2020. A Zenodo dataset (record 22122647, PyHawk): monthly
+  reduced NEQs in SINEX, degrees 2 to 60, 2002-04 to 2026-06. CNES/GRGS
+  and AIUB provide unconstrained monthly NEQs to COST-G; no public
+  download was found for either.
+- **Why nothing was built.** `readSINEX` is verified against ITSG files
+  only and asks to be checked against each provider's file. This
+  sandbox reaches neither data host, and A8 does not reach
+  `isdc-data.gfz.de` or `isdcftp.gfz.de`, measured 2026-10-24. Reading
+  one GFZ file, on the acceptance machine, is the next step.
+- **What a combination meets first, read from the code.** `neqCombine`
+  needs one `shIndex` and one set of background models for every
+  contribution. GFZ's d/o 96 matches ITSG's degree-96 index; whether the
+  backgrounds agree was not checked. A degree-60 NEQ (PyHawk) would need
+  the higher degrees reduced out first, which no public function does
+  for a SINEX NEQ yet.
+- The 5.27.3 board row records its merge (#144, 2026-10-27).
+
 ## [5.27.3] - 2026-10-26 - the DRIVEN backlog, driven
 
 A PATCH release: tests only, no toolbox code changes. Written against
