@@ -1,5 +1,59 @@
 # Changelog
 
+## [5.28.0] - 2026-10-29 - WP9 9f: low degrees estimated jointly, not substituted
+
+A MINOR release: one new low-level function, no change to any existing
+call.
+
+### Added
+- **`shLowLevel.neqAddCoefficients(neq, idx, obs)`** adds independent
+  values of single coefficients - C20 and C30 from SLR (`readTN14`),
+  degree 1 from `readTN13` - to a normal equation as pseudo-observations
+  (value and 1-sigma), so they are estimated jointly with the rest
+  instead of substituted into the solution. Where the normal equation
+  lacks a coefficient (degree 1 in a GRACE NEQ), the index is extended
+  with zero rows and columns, and every coefficient the extension adds
+  must be observed. `ltpl` and `nobs` are updated where present, so the
+  result still enters `neqCombine`'s VCE. It takes `N`/`b` records or a
+  `readSINEX` NEQ.
+- **Oracle `tools/dev/validate_neq_low_degree.py`.** The result is the
+  stacked least-squares solution (2.2e-15) with a consistent l'Pl
+  (3.0e-16). Degree 1 is substitution, exactly: a GRACE NEQ carries no
+  degree-1 information, so the padded block is uncoupled.
+  - C20/C30 are joint. On a synthetic polar-gapped design the other
+    zonals' RMS error is 0.99 of substitution's at a C20 correlation of
+    0.12 and 0.75 at 0.77, as an exact covariance ratio, with a 40-seed
+    Monte Carlo agreeing.
+  - The claim was first written as the Monte Carlo ratio below 1. It
+    failed at 1.005 at correlation 0.12, where the expected gain is far
+    below what 40 seeds resolve, and moved to the exact ratio.
+- Three tests: `testNeqAddCoefficientsIsStackedLeastSquares`,
+  `testNeqAddCoefficientsDegreeOneIsSubstitution` and
+  `testNeqAddCoefficientsRefusesBadInput`. 484 runs predicted.
+
+### Why not SLR normal equations, as the row said
+- No public source of SLR gravity normal equations was found (desk
+  check, 2026-10-29). The ILRS weekly SINEX carry station coordinates and
+  EOP. The SLR NEQs that exist go to COST-G (AIUB, CNES) or stay inside
+  projects.
+- SLR solutions with sigmas are public, and they enter a normal equation
+  as pseudo-observations. That is what this release builds, by
+  Matthias's choice, with degree 1 included.
+- TN-13 is itself computed from GRACE, which would count GRACE's
+  information twice in a joint estimate. Here it cannot, because nothing
+  couples degree 1 to the rest, and for the same reason degree 1 gains
+  nothing over substitution.
+
+### Recorded, not measured
+- The gain on real normal equations is set by their C20/C30
+  correlations, which have not been measured. That needs an ITSG NEQ on
+  the acceptance machine.
+- The tide system, GM/R and full-value parametrization of the values must
+  match the normal equation's. The function cannot check them, and its
+  help says so.
+- The 5.27.4 board row records its A8 run (green on the third attempt,
+  after Windows Update) and its merge (#145).
+
 ## [5.27.4] - 2026-10-27 - WP9 9e: who publishes normal equations
 
 A PATCH release: documentation only, no MATLAB file changed. Row 9e

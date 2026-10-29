@@ -109,7 +109,7 @@ class TestCounting(unittest.TestCase):
         self.assertEqual(c["runs"], c["methods"])
 
 
-EXPECTED_RUNS = 481          # v5.27.3: 465 + sixteen Contract tests (the DRIVEN second batch)
+EXPECTED_RUNS = 484          # v5.28.0: 481 + three neqAddCoefficients tests (WP9 9f)
                              # (5 correctness, 4 contract, 2 robustness)
 
 
