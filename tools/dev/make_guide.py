@@ -1452,6 +1452,29 @@ story += code("""
     DeviationCov = sigd .^ 2);
 tr = clim.trend;                                         % with tr.sigmaC
 """)
+story += [para("Low degrees estimated jointly (v5.28.0)", "h3"),
+          para("<font face='Courier'>shLowLevel.neqAddCoefficients</font> "
+               "adds C20/C30 from TN-14 and degree 1 from TN-13 to a "
+               "monthly normal equation as pseudo-observations (value and "
+               "1-sigma), instead of substituting them into the solution. "
+               "It extends the index down to degree 1 when needed. C20 and "
+               "C30 are then estimated jointly: the normal equation's "
+               "correlations carry the SLR information into the other "
+               "coefficients. The gain is set by those correlations: 0.99 "
+               "of substitution's error for the other zonals at a C20 "
+               "correlation of 0.12, 0.75 at 0.77, in the synthetic design "
+               "of validate_neq_low_degree.py. On real normal equations it "
+               "has not been measured. Degree 1 is exactly substitution: a "
+               "GRACE normal equation holds no degree-1 information, so "
+               "TN-13 cannot count GRACE twice, and it adds nothing beyond "
+               "substitution either. The values must match the normal "
+               "equation's tide system, GM and R.")]
+story += code("""
+obs = struct('n', [2; 3], 'm', [0; 0], 'cs', [0; 0], ...
+    'value', [tn.C20(k); tn.C30(k)], 'sigma', [tn.sigmaC20(k); tn.sigmaC30(k)]);
+[neq, idx2] = shLowLevel.neqAddCoefficients(snx, idx, obs);
+x = neq.N \\ neq.b;                                         % in idx2 order
+""")
 
 story += [para("33. Regional bases for a selectable basin (v5.14.0)", "h2"),
           para("The first step towards a regional Kalman filter after "

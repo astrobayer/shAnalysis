@@ -7144,6 +7144,78 @@ verifyError(testCase, @() shLowLevel.neqClimatology(string(dirE), Nmax = 2), ...
     'shLowLevel:neqClimatology:notNEQ');
 end
 
+function testNeqAddCoefficientsIsStackedLeastSquares(testCase)
+%TESTNEQADDCOEFFICIENTSISSTACKEDLEASTSQUARES WP9 9f: C20 and C30 added
+%   to a normal equation as pseudo-observations give the solution of the
+%   stacked least-squares problem - the observation equations with the
+%   rows x_p = v (weight 1/s^2) appended - solved here by QR, an
+%   independent route; and ltpl - 2 x'b + x'N x is that problem's
+%   weighted residual sum of squares, with nobs grown by two. nmax 4, A
+%   of 2P rows: validate_neq_low_degree.py measured this configuration
+%   over 10 seeds - solution 4.4e-15, l'Pl 1.4e-15 relative; the bounds
+%   are 3x those.
+rng(96);
+idx = shLowLevel.shIndex(4);
+P = idx.P;
+A = randn(2 * P, P);
+l = randn(2 * P, 1);
+neq = struct('N', A' * A / 0.09, 'b', A' * l / 0.09, ...
+    'ltpl', l' * l / 0.09, 'nobs', 2 * P);
+obs = struct('n', [2; 3], 'm', [0; 0], 'cs', [0; 0], ...
+    'value', [0.7; -0.4], 'sigma', [0.05; 0.08]);
+[out, idxOut, info] = shLowLevel.neqAddCoefficients(neq, idx, obs);
+verifyEqual(testCase, idxOut.P, P);
+verifyFalse(testCase, info.extended);
+x = out.N \ out.b;
+R = zeros(2, P);
+R(1, idx.pos(3, 1, 1)) = 1 / 0.05;
+R(2, idx.pos(4, 1, 1)) = 1 / 0.08;
+As = [A / 0.3; R];
+ls = [l / 0.3; 0.7 / 0.05; -0.4 / 0.08];
+xs = As \ ls;
+verifyLessThan(testCase, max(abs(x - xs)) / max(abs(xs)), 3 * 4.4e-15);
+rss = sum((As * xs - ls) .^ 2);
+om = out.ltpl - 2 * x' * out.b + x' * out.N * x;
+verifyLessThan(testCase, abs(om - rss) / rss, 3 * 1.4e-15);
+verifyEqual(testCase, out.nobs, 2 * P + 2);
+verifyEqual(testCase, info.positions, [idx.pos(3, 1, 1); idx.pos(4, 1, 1)]);
+end
+
+function testNeqAddCoefficientsDegreeOneIsSubstitution(testCase)
+%TESTNEQADDCOEFFICIENTSDEGREEONEISSUBSTITUTION WP9 9f: a normal equation
+%   on shIndex(4) (degree 2 up) observes nothing of degree 1, so adding
+%   TN-13-like C10, C11, S11 extends the index to degree 1 with an
+%   uncoupled block. Each degree-1 estimate is its observed value - up to
+%   the one rounding of (v/s^2)/(1/s^2), bounded by 2 eps - and every
+%   other coefficient equals the solution without them, which
+%   validate_neq_low_degree.py measured at 6.0e-16 relative over 10
+%   seeds of this configuration (bound 3x). The extension alone, with a
+%   degree-1 coefficient left unobserved, is refused: it would leave N
+%   singular.
+rng(97);
+idx = shLowLevel.shIndex(4);
+P = idx.P;
+A = randn(2 * P, P);
+neq = struct('N', A' * A / 0.09, 'b', A' * randn(2 * P, 1) / 0.09);
+v = [0.11; -0.2; 0.05];                     % on the scale of N, as in
+obs = struct('n', [1; 1; 1], 'm', [0; 1; 1], 'cs', [0; 0; 1], ...   % real units
+    'value', v, 'sigma', [0.05; 0.05; 0.05]);
+[out, idx1, info] = shLowLevel.neqAddCoefficients(neq, idx, obs);
+verifyEqual(testCase, idx1.minDegree, 1);
+verifyEqual(testCase, idx1.P, P + 3);
+verifyTrue(testCase, info.extended);
+verifyEqual(testCase, sort(info.added), sort(info.positions));
+verifyFalse(testCase, isfield(out, 'ltpl'));
+x = out.N \ out.b;
+verifyLessThan(testCase, max(abs(x(info.positions) - v) ./ abs(v)), 2 * eps);
+map = idx1.pos(sub2ind(size(idx1.pos), idx.n + 1, idx.m + 1, idx.cs + 1));
+x0 = neq.N \ neq.b;
+verifyLessThan(testCase, max(abs(x(map) - x0)) / max(abs(x0)), 3 * 6.0e-16);
+part = struct('n', 1, 'm', 0, 'cs', 0, 'value', 0.1, 'sigma', 0.05);
+verifyError(testCase, @() shLowLevel.neqAddCoefficients(neq, idx, part), ...
+    'shLowLevel:neqAddCoefficients:unobserved');
+end
+
 function [th, sg] = climVectors(clim, idx)
 %CLIMVECTORS the six terms of CLIM and their sigmas as one vector, term
 %   by term in shClimatology's order, each in IDX order.

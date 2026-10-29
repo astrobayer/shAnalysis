@@ -128,6 +128,9 @@ EXCEPTIONS = {
                        "records - which no class object holds; "
                        "kalmanChain's neq mode stays on the lane for the "
                        "same reason"),
+    "neqAddCoefficients": ("adds coefficient observations to a NORMAL "
+                           "EQUATION, which no class object holds - the "
+                           "neqClimatology reason"),
 }
 
 # Numerical lanes with no class route YET, each with the route it would

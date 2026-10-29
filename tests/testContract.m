@@ -4577,6 +4577,42 @@ verifyWarning(testCase, @() shLowLevel.neqCombine(two, MaxIter = 1), ...
     'shLowLevel:neqCombine:noConvergence');   % s2 moves from 1 to 2.06 / 10.3
 end
 
+function testNeqAddCoefficientsRefusesBadInput(testCase)
+%TESTNEQADDCOEFFICIENTSREFUSESBADINPUT WP9 9f: each guard of
+%   shLowLevel.neqAddCoefficients, driven with an input that passes the
+%   guards before it - a normal equation that is not one or does not
+%   match the index, observations without a field, of unequal length, or
+%   naming no coefficient (an S at order 0), a non-positive or NaN sigma,
+%   a degree above Lmax or of 0, and an extension that leaves a degree-1
+%   coefficient unobserved.
+idx = shLowLevel.shIndex(3);
+P = idx.P;
+neq = struct('N', eye(P), 'b', zeros(P, 1));
+ok = struct('n', 2, 'm', 0, 'cs', 0, 'value', 1e-9, 'sigma', 1e-11);
+f = @(q, o) shLowLevel.neqAddCoefficients(q, idx, o);
+verifyError(testCase, @() f(struct('A', 1), ok), ...
+    'shLowLevel:neqAddCoefficients:badNeq');
+verifyError(testCase, @() f(struct('N', eye(P - 1), 'b', zeros(P - 1, 1)), ok), ...
+    'shLowLevel:neqAddCoefficients:badNeq');
+verifyError(testCase, @() f(neq, rmfield(ok, 'sigma')), ...
+    'shLowLevel:neqAddCoefficients:badObs');
+bad = ok; bad.m = [0; 0];
+verifyError(testCase, @() f(neq, bad), 'shLowLevel:neqAddCoefficients:badObs');
+bad = ok; bad.cs = 1;                               % S at order 0
+verifyError(testCase, @() f(neq, bad), 'shLowLevel:neqAddCoefficients:badObs');
+bad = ok; bad.sigma = 0;
+verifyError(testCase, @() f(neq, bad), 'shLowLevel:neqAddCoefficients:badSigma');
+bad = ok; bad.sigma = NaN;
+verifyError(testCase, @() f(neq, bad), 'shLowLevel:neqAddCoefficients:badSigma');
+bad = ok; bad.n = 4;                                % above Lmax 3
+verifyError(testCase, @() f(neq, bad), 'shLowLevel:neqAddCoefficients:outOfRange');
+bad = ok; bad.n = 0;
+verifyError(testCase, @() f(neq, bad), 'shLowLevel:neqAddCoefficients:outOfRange');
+bad = struct('n', [1; 1], 'm', [0; 1], 'cs', [0; 0], ...
+    'value', [1e-10; 1e-10], 'sigma', [1e-11; 1e-11]);   % S11 missing
+verifyError(testCase, @() f(neq, bad), 'shLowLevel:neqAddCoefficients:unobserved');
+end
+
 function testDrivenGuardsOfWritersAndPlots(testCase)
 %TESTDRIVENGUARDSOFWRITERSANDPLOTS DRIVEN: the input guards of writeGFC,
 %   writeFrames, plotCovariance, plotSHCoeffTriangle and plotSHSpectrum,
