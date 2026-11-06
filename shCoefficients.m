@@ -1639,7 +1639,12 @@ methods
         %     Threshold (lane default)  slepian concentration cut
         %     NKeep (lane default)  slepian taper count
         %     CapRadiusKm (lane default)  mascon cap radius [km]
-        %     kn (lane default)  load Love numbers, required by "mascon"
+        %     Ocean (lane default)  ocean region: land mass with its sea-level
+        %         fingerprint in every column (WP9 9h)
+        %     hn (lane default)  load Love numbers h'_n, with Ocean
+        %     SeaLevelTol (lane default)  sea-level equation convergence
+        %     SeaLevelMaxIter (lane default)  its iteration limit
+        %     kn (lane default)  load Love numbers, required by "mascon" and Ocean
         %     EigTol (lane default)  rbf projector eigenvalue cut
         %     R (lane default)  sphere radius [m]
         %     OverSample (lane default)  mask quadrature refinement
@@ -1662,6 +1667,10 @@ methods
             opts.NKeep
             opts.CapRadiusKm
             opts.kn
+            opts.Ocean
+            opts.hn
+            opts.SeaLevelTol
+            opts.SeaLevelMaxIter
             opts.EigTol
             opts.R
             opts.OverSample

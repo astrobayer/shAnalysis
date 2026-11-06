@@ -3520,6 +3520,50 @@ R0 = shLowLevel.regionalBasis(idx, cap);
 verifyTrue(testCase, isnan(R0.capRadiusKm));
 end
 
+function testRegionalBasisOceanRouteAndIDs(testCase)
+%TESTREGIONALBASISOCEANROUTEANDIDS WP9 9h: the class routes forward
+%   Ocean and hn to the lane - bitwise - regionalKalman reports the land
+%   mean the coefficients carry, and the new and widened guards are driven
+%   by the identifiers they name.
+idx = shLowLevel.shIndex(6);
+cap = @(la, lo) double(la > 50);
+ocean = @(la, lo) la < 40;
+n = (0:6)';
+kn = -0.30 * n ./ (n + 3.0);
+hn = -0.90 * n ./ (n + 2.0) - 0.1;
+ts = wp7Series(6, 30, 156);
+tsm = wp7Series(6, 120, 157);
+g = ts.at(1);
+B1 = ts.regionalBasis(cap, Ocean = ocean, kn = kn, hn = hn);
+B2 = shLowLevel.regionalBasis(idx, cap, Ocean = ocean, kn = kn, hn = hn);
+verifyTrue(testCase, isequaln(B1, B2), 'ts.regionalBasis is not the lane with Ocean');
+verifyTrue(testCase, isequaln(g.regionalBasis(cap, Ocean = ocean, kn = kn, ...
+    hn = hn), B2), 'g.regionalBasis is not the lane with Ocean');
+[~, out] = ts.regionalKalman(B2, ModelSeries = tsm, Climatology = false);
+verifyTrue(testCase, isequal(out.landMean.mean, B2.fingerprint.coreLandEWH * out.a), ...
+    'landMean is not coreLandEWH * a');
+fL = B2.fingerprint.coreLandEWH;
+% 1e-10: the same smoothed covariance through two products (rounding)
+verifyLessThan(testCase, abs(out.landMean.sigma(end) - sqrt(fL * out.covLast * fL')) / ...
+    out.landMean.sigma(end), 1e-10);
+[~, o0] = ts.regionalKalman(shLowLevel.regionalBasis(idx, cap), ModelSeries = tsm, ...
+    Climatology = false);
+verifyTrue(testCase, isempty(o0.landMean));
+verifyError(testCase, @() shLowLevel.regionalBasis(idx, [], Type = "sh", ...
+    Ocean = ocean, kn = kn, hn = hn), 'shLowLevel:regionalBasis:badOcean');
+verifyError(testCase, @() shLowLevel.regionalBasis(idx, cap, ...
+    Ocean = @(la, lo) true(size(la)), kn = kn, hn = hn), ...
+    'shLowLevel:regionalBasis:badOcean');
+verifyError(testCase, @() shLowLevel.regionalBasis(idx, cap, Ocean = ocean, ...
+    kn = kn), 'shLowLevel:regionalBasis:badLoveNumbers');
+verifyError(testCase, @() shLowLevel.regionalBasis(idx, cap, hn = hn), ...
+    'shLowLevel:regionalBasis:badLoveNumbers');
+knCM = kn;
+knCM(2) = -1;                                   % 1 + k_1 = 0
+verifyError(testCase, @() shLowLevel.regionalBasis(idx, cap, Ocean = ocean, ...
+    kn = knCM, hn = hn), 'shLowLevel:regionalBasis:badLoveNumbers');
+end
+
 % ------------------------------------------- WP8 8b: the process model
 function testRegionalProcessModelRouteAndIDs(testCase)
 %TESTREGIONALPROCESSMODELROUTEANDIDS ts.regionalProcessModel is the lane,

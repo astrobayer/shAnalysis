@@ -240,6 +240,16 @@ function [ts, out] = regionalKalman(obsIn, B, opts)
 %          qScale           (nB,1) double  the alphas used (estimated
 %                           with EstimateQScale)
 %          qBlocks          (K,1) double  the block of every coefficient
+%          landMean         (1,1) struct  for a basis built with Ocean
+%                           (shLowLevel.regionalBasis, the sea-level
+%                           fingerprint in T): the mean land EWH over the
+%                           region core that the coefficients carry,
+%                           B.fingerprint.coreLandEWH * a, with its sigma
+%                           from the full smoothed covariance; [] for any
+%                           other basis. The background is not in it.
+%                           Fields
+%                           mean   (1,E) double  [m]
+%                           sigma  (1,E) double  its 1-sigma [m]
 %          processCov       (1,1) logical  whether ProcessCov replaced Q
 %          startCov         (1,1) logical  whether StartCov replaced
 %                           Sigma0
@@ -319,7 +329,7 @@ function [ts, out] = regionalKalman(obsIn, B, opts)
 %   Developed by Matthias Weigelt with the help of Claude (Opus 5.5),
 %   2026-10-21 (Background: 2026-10-21, WP8 8e; process-noise scales:
 %   2026-10-21, WP8 8i; FitClimatology: 2026-10-21, A34; ProcessCov and
-%   StartCov: 2026-11-06, WP9 9g).
+%   StartCov: 2026-11-06, WP9 9g; landMean: 2026-11-06, WP9 9h).
 arguments
     obsIn
     B (1,1) struct
@@ -484,6 +494,10 @@ filt = shLowLevel.kalmanFilter(model, obs, StoreCov = opts.StoreCov, ...
     QC = opts.QC, QCAlpha = opts.QCAlpha, Likelihood = true);
 [fB, Fg, gLat, gLon, areaFrac, wc, fEwh] = regionFunctionals(B, opts.kn, tsm);
 F = [B.T; fB; Fg];
+hasLand = isfield(B, 'fingerprint') && ~isempty(B.fingerprint);
+if hasLand                                      % 9h: land mass of the coefficients
+    F = [F; B.fingerprint.coreLandEWH];
+end
 smo = shLowLevel.rtsSmoother(filt, Lag = opts.Lag, Functionals = F);
 if opts.StoreCov == "matfile" && isfile(filt.covFile)
     delete(filt.covFile);                      % chain-internal
@@ -540,6 +554,11 @@ if ~isempty(fB)
     gridOut = struct('latDeg', gLat, 'lonDeg', gLon, 'ewh', ewh, ...
         'sigma', smo.sigF(P + 2:end, :));
 end
+landMean = [];
+if hasLand
+    landMean = struct('mean', B.fingerprint.coreLandEWH * a, ...
+        'sigma', smo.sigF(end, :));
+end
 memGB = 8 * nE * (model.order * K)^2 * 2 / 1e9;
 out = struct('mode', modeName, 'basisType', B.type, 'K', K, ...
     'order', opts.Order, 'epochs', epGrid, 'nEpochs', nE, ...
@@ -550,7 +569,8 @@ out = struct('mode', modeName, 'basisType', B.type, 'K', K, ...
     'representation', pinfo.representation, 'model', model, ...
     'basin', basin, 'grid', gridOut, 'memGB', memGB, 'background', hasBg, ...
     'negLogLik', sum(filt.negLogLik), 'qScale', qs, 'qBlocks', blocks, ...
-    'qEstimate', qEst, 'processCov', hasProc, 'startCov', hasStart);
+    'qEstimate', qEst, 'processCov', hasProc, 'startCov', hasStart, ...
+    'landMean', landMean);
 end
 
 function Cb = basisCov(C, B, P)

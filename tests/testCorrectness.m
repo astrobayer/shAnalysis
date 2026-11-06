@@ -5128,6 +5128,101 @@ verifyEqual(testCase, N.K, 3);
 end
 
 % ------------------------------------------- WP9 9c: the mascon basis
+function testRegionalBasisOceanIsTheSeaLevelEquation(testCase)
+%TESTREGIONALBASISOCEANISTHESEALEVELEQUATION WP9 9h: with Ocean, a
+%   column of T is the land part of the basis function plus its elastic
+%   sea-level response - the same as shLowLevel.seaLevelFingerprint gives
+%   for that land load. The nodes are unchanged, every column conserves
+%   mass (validate_sea_level_basis.py CLAIM 2: 1.2e-15) and the rebuilt
+%   projector reproduces the basis (CLAIM 6: 2.5e-11).
+L = 12;
+[kn, hn] = slbLove(L);
+box = @(la, lo) la > 60 & lo > 300 & lo < 340;
+ocean = @(la, lo) ~(box(la, lo) | (la > 10 & la < 50 & lo < 100));
+idx = shLowLevel.shIndex(L);
+B0 = shLowLevel.regionalBasis(idx, @(la, lo) double(box(la, lo)));
+B1 = shLowLevel.regionalBasis(idx, @(la, lo) double(box(la, lo)), ...
+    Ocean = ocean, kn = kn, hn = hn);
+verifyEqual(testCase, B1.nodes, B0.nodes);
+verifyTrue(testCase, isempty(B0.fingerprint) && B1.fingerprint.converged);
+verifyLessThan(testCase, B1.fingerprint.massResidual, 1e-12);
+[sigL, Y0, w0, fSD, map] = slbLandPart(B0.T, idx, ocean, kn);
+[~, k] = max(abs(w0' * sigL));
+[S, ~, info] = shLowLevel.seaLevelFingerprint(sigL(:, k), ocean, ...
+    shLowLevel.shIndex(L, Nmin = 0), kn = kn, hn = hn, Tol = 1e-13, MaxIter = 500);
+verifyTrue(testCase, info.converged);
+xref = (Y0' * (w0 .* (sigL(:, k) + 1000 * S))) ./ fSD;
+xref = xref(map);
+% 1e-9: two iterations stopped at 1e-12 and 1e-13 of the eustatic rise;
+% the converged solves agree with a dense solve to 7.5e-15 (CLAIM 1)
+verifyLessThan(testCase, norm(B1.T(:, k) - xref) / norm(xref), 1e-9);
+verifyEqual(testCase, B1.rank, B1.K);
+% 1e-8: the claim's bound on the projector identity (oracle at this
+% configuration: rank 4 of 4, 1.5e-12)
+verifyLessThan(testCase, max(abs(B1.Proj * B1.T - eye(B1.K)), [], 'all'), 1e-8);
+end
+
+function testRegionalBasisOceanClosesTheCoastalLoop(testCase)
+%TESTREGIONALBASISOCEANCLOSESTHECOASTALLOOP WP9 9h: a -100 kg/m^2 land
+%   loss in a box whose edge is the coast, with its sea-level response,
+%   observed to Lmax 30. The land mass the fingerprint basis' coefficients
+%   carry is within 2% of the truth (validate_sea_level_basis.py at the
+%   same configuration, 600 km: -1.23%, and within 1.51% with 5% noise,
+%   CLAIM 5). The same rbf basis without Ocean recovers 0.83 of it in the
+%   oracle - the leakage across the coast; asserted below 0.9, the margin
+%   left to the node selection of the two implementations.
+L = 30;
+[kn, hn] = slbLove(L);
+box = @(la, lo) la > 60 & lo > 300 & lo < 340;
+ocean = @(la, lo) ~(box(la, lo) | (la > 10 & la < 50 & lo < 100));
+idx = shLowLevel.shIndex(L);
+idx0 = shLowLevel.shIndex(L, Nmin = 0);
+reg = @(la, lo) double(box(la, lo));
+B1 = shLowLevel.regionalBasis(idx, reg, Ocean = ocean, kn = kn, hn = hn);
+B0 = shLowLevel.regionalBasis(idx, reg);
+[~, Y0, w0, fSD, map, grid] = slbLandPart(B0.T, idx, ocean, kn);
+latRow = repelem(grid.latDeg(:), numel(grid.lonDeg));
+lonRow = repmat(grid.lonDeg(:), numel(grid.latDeg), 1);
+sigT = -100 * double(box(latRow, lonRow));
+S = shLowLevel.seaLevelFingerprint(sigT, ocean, idx0, kn = kn, hn = hn, ...
+    Tol = 1e-13, MaxIter = 500);
+x = (Y0' * (w0 .* (sigT + 1000 * S))) ./ fSD;
+x = x(map);
+cw = w0 .* B1.region.core;
+truth = (cw' * sigT) / (1000 * sum(cw));
+a1 = B1.T \ x;
+verifyLessThan(testCase, abs(B1.fingerprint.coreLandEWH * a1 / truth - 1), 0.02);
+a0 = B0.T \ x;
+X0 = zeros(idx0.P, 1);
+X0(map) = B0.T * a0;
+r0 = (cw' * (Y0 * (fSD .* X0))) / (1000 * sum(cw)) / truth;
+verifyLessThan(testCase, r0, 0.9);
+end
+
+function [kn, hn] = slbLove(L)
+% The synthetic load Love numbers of testFingerprintConservation and the
+% 9h oracle.
+n = (0:L)';
+kn = -0.30 * n ./ (n + 3.0);
+hn = -0.90 * n ./ (n + 2.0) - 0.1;
+end
+
+function [sigL, Y0, w0, fSD, map, grid] = slbLandPart(T, idx, ocean, kn)
+% The land part of each column of T as surface density on the OverSample
+% 2 grid of the sea-level solver, and what converts back.
+L = idx.Lmax;
+idx0 = shLowLevel.shIndex(L, Nmin = 0);
+[Y0, w0, grid] = shLowLevel.synthesisMatrix(idx0, NLat = 2 * (L + 1), ...
+    NLon = 2 * (2 * L + 2));
+O = shLowLevel.evalMask(idx0, ocean, OverSample = 2);
+f = shLowLevel.kernelFactors('surface_density', L, 1, 6378136.3, kn = kn);
+fSD = f(idx0.n + 1);
+map = idx0.pos(sub2ind(size(idx0.pos), idx.n + 1, idx.m + 1, idx.cs + 1));
+X0 = zeros(idx0.P, size(T, 2));
+X0(map, :) = full(T);
+sigL = (1 - O(:)) .* (Y0 * (fSD .* X0));
+end
+
 function testRegionalBasisMasconIsTheCapSeries(testCase)
 %TESTREGIONALBASISMASCONISTHECAPSERIES A mascon column of T, synthesised
 %   as EWH with the kernel f_n of kernelFactors, is the truncated cap

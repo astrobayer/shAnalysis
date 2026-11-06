@@ -79,6 +79,39 @@ function B = regionalBasis(idx, region, opts)
 %   Only grid points with a non-zero mask are formed, so the cost grows
 %   with the region, not with the sphere.
 %
+%   Land mass with its sea-level fingerprint (Ocean, v5.30.0 - WP9 9h).
+%   With Ocean = an ocean region, every column of T becomes the land
+%   part of its basis function together with the elastic sea-level
+%   response that land mass causes - so the coefficients are LAND mass
+%   and GRACE's view of the ocean's answer to it is inside the model:
+%       sigma_k  = the surface density of T(:, k),  sigmaL_k = (1 - O) sigma_k,
+%       S_k      = the sea-level equation for the land load sigmaL_k
+%                  (shLowLevel.seaLevelFingerprint's equations, Farrell &
+%                  Clark 1976, elastic, no rotation, fixed coastlines),
+%       T(:, k) <- the Stokes coefficients of sigmaL_k + rho_w S_k,
+%   all K columns solved at once on the OverSample grid, and B.Proj
+%   rebuilt from the new T (for "slepian" too, which then is no longer
+%   G'). Each column's total mass is zero BY CONSTRUCTION: the ocean
+%   gains what the land loses. B.fingerprint.coreLandEWH (1 x K) is the
+%   mean land EWH of each column over the unbuffered region, so the
+%   region's land mass change is coreLandEWH * a. The surface density
+%   uses kernelFactors' densities (5517 and 1000 kg/m^3), as mascon does.
+%   Validated in tools/dev/validate_sea_level_basis.py: the iterated solve
+%   equals a dense solve of the same equation to 7.5e-15, every column
+%   conserves mass to 1.2e-15 and the solve is linear to 8.0e-16; in a
+%   closed loop (Lmax 30, a Greenland-like box whose edge is the coast,
+%   -100 kg/m^2 of land loss plus its sea-level response, rbf Kaula) the
+%   ocean response the masked basis ignores shifts its land mass by +5.7%
+%   (300 km buffer) and +6.6% (600 km); with the fingerprint the
+%   estimate is within 0.6% and 0.2% of what the same basis gives for a
+%   truth without ocean response - its own representation error, -6.1%
+%   and -1.5%. Without the coastal masking an rbf basis recovers 0.64
+%   and 0.83 of the land loss (leakage across the coast). Needs kn and
+%   hn for degrees 0..Lmax, the degree-1 numbers in the CE frame (1 + k1
+%   must not vanish). A function whose land part is empty contributes
+%   nothing; B.rank then says so. Memory: the solver's synthesis matrix,
+%   OverSample^2 (Lmax+1)^2 x 2 x (Lmax+1)^2 doubles - 0.9 GB at Lmax 60.
+%
 %   Node selection (rbf, mascon). A node belongs to the basis when the quadrature
 %   point nearest to it lies inside the buffered mask - one rule for
 %   every REGION form, and the same mask the projector weights with. The
@@ -132,6 +165,17 @@ function B = regionalBasis(idx, region, opts)
 %           0..Lmax (kn(1) is degree 0); required for "mascon" and refused
 %           otherwise. Degrees below IDX's first degree are not read, so a
 %           CM-frame set with k1 = -1 is usable from degree 2
+%     Ocean ([])  the ocean region in any shLowLevel.evalMask form (handle,
+%           polygon, mask on the OverSample grid): every column becomes
+%           land mass with its sea-level fingerprint, see above. Refused
+%           for Type "sh"
+%     hn ([])  (>=Lmax+1,1) double  load Love numbers h'_n, n = 0..Lmax;
+%           required with Ocean and refused without it. With Ocean, kn is
+%           required for every type and read at every degree
+%     SeaLevelTol (1e-12)  (1,1) double  convergence of the sea-level
+%           equation: max |dS| below SeaLevelTol times the largest
+%           column's eustatic rise
+%     SeaLevelMaxIter (200)  (1,1) double  its iteration limit
 %     EigTol (1e-10)  (1,1) double  rbf and mascon projector: relative eigenvalue
 %           cut of the pseudo-inverse
 %     R (6378136.3)  (1,1) double  sphere radius [m] for the km buffer,
@@ -185,6 +229,17 @@ function B = regionalBasis(idx, region, opts)
 %                    overSample           (1,1) double  the OverSample
 %                                         option
 %                    R                    (1,1) double  the R option
+%        fingerprint (1,1) struct  [] without Ocean; with it, fields
+%                    ocean          (Ngrid,1) double  the ocean mask on
+%                                   the OverSample grid
+%                    oceanFraction  (1,1) double  ocean area / 4pi
+%                    iterations     (1,1) double  sea-level sweeps run
+%                    converged      (1,1) logical  SeaLevelTol reached
+%                    massResidual   (1,1) double  the largest |total
+%                                   mass| of a column, relative to its
+%                                   land mass
+%                    coreLandEWH    (1,K) double  mean land EWH [m] of
+%                                   each column over the region core
 %
 %   Example
 %     idx = shLowLevel.shIndex(60);
@@ -210,7 +265,11 @@ function B = regionalBasis(idx, region, opts)
 %     shLowLevel:regionalBasis:badLoveNumbers
 %         Type "mascon" without kn, kn shorter than Lmax+1 or with 1+kn
 %         zero or not finite at a degree IDX holds, or kn given with
-%         another type
+%         another type and no Ocean; with Ocean, kn or hn missing, short,
+%         not finite, or 1+kn zero at any degree; hn given without Ocean
+%     shLowLevel:regionalBasis:badOcean
+%         Ocean given with Type "sh", or an ocean that covers none or all
+%         of the sphere
 %     shLowLevel:regionalBasis:badCapRadius
 %         CapRadiusKm not below half the circumference (pi R), or given
 %         with a type other than "mascon"
@@ -227,14 +286,17 @@ function B = regionalBasis(idx, region, opts)
 %       W. (2015), Improved methods for observing Earth's time variable
 %       mass distribution with GRACE using spherical cap mascons, JGR
 %       Solid Earth 120, 2648-2671, doi:10.1002/2014JB011547.
+%     Farrell, W. E., Clark, J. A. (1976), On postglacial sea level,
+%       Geophys. J. R. astr. Soc. 46, 647-667.
 %     Reuter, R. (1982), Integralformeln der Einheitssphaere und
 %       harmonische Splinefunktionen, PhD thesis, RWTH Aachen.
 %
 %   Numerics pre-validated in Python (tools/dev/validate_regional_basis.py;
-%   the mascon type in tools/dev/validate_regional_mascon.py).
+%   the mascon type in tools/dev/validate_regional_mascon.py; Ocean in
+%   tools/dev/validate_sea_level_basis.py).
 %
 %   Developed by Matthias Weigelt with the help of Claude (Opus 5.5),
-%   2026-10-20; the mascon type 2026-10-23.
+%   2026-10-20; the mascon type 2026-10-23; Ocean 2026-11-06 (WP9 9h).
 arguments
     idx (1,1) struct
     region = []
@@ -248,6 +310,10 @@ arguments
     opts.NKeep double {mustBeScalarOrEmpty} = []
     opts.CapRadiusKm double {mustBeScalarOrEmpty, mustBePositive} = []
     opts.kn double = []
+    opts.Ocean = []
+    opts.hn double = []
+    opts.SeaLevelTol (1,1) double {mustBePositive} = 1e-12
+    opts.SeaLevelMaxIter (1,1) double {mustBeInteger, mustBePositive} = 200
     opts.EigTol (1,1) double {mustBePositive} = 1e-10
     opts.R (1,1) double {mustBePositive} = 6378136.3
     opts.OverSample (1,1) double {mustBeInteger, mustBePositive} = 2
@@ -275,9 +341,22 @@ if ~isempty(opts.DegreeAmplitude) && opts.Kernel ~= "amplitude"
         'DegreeAmplitude is used only with Kernel = "amplitude", not "%s".', ...
         opts.Kernel);
 end
-if opts.Type ~= "mascon" && ~isempty(opts.kn)
+hasOcean = ~(isnumeric(opts.Ocean) && isempty(opts.Ocean));
+if hasOcean && opts.Type == "sh"
+    error('shLowLevel:regionalBasis:badOcean', ...
+        ['Ocean is not used by Type = "sh": the SH basis stays the identity, ' ...
+         'the regional filter''s oracle.']);
+end
+if opts.Type ~= "mascon" && ~hasOcean && ~isempty(opts.kn)
     error('shLowLevel:regionalBasis:badLoveNumbers', ...
-        'kn is used only with Type = "mascon", not "%s".', opts.Type);
+        'kn is used only with Type = "mascon" or with Ocean, not "%s" alone.', opts.Type);
+end
+if ~hasOcean && ~isempty(opts.hn)
+    error('shLowLevel:regionalBasis:badLoveNumbers', ...
+        'hn is used only with Ocean (the sea-level fingerprint).');
+end
+if hasOcean
+    [knSL, hnSL] = checkSeaLevelLove(opts.kn, opts.hn, idx);
 end
 if opts.Type ~= "mascon" && ~isempty(opts.CapRadiusKm)
     error('shLowLevel:regionalBasis:badCapRadius', ...
@@ -388,28 +467,109 @@ switch opts.Type
         end
         T = phi(idx.n + 1) .* shLowLevel.ylm(deg2rad(nodes(:, 1)), ...
             deg2rad(nodes(:, 2)), idx)';
-        % projector over the buffered region, from its grid points only
-        nLon = numel(qgrid.lonDeg);
-        im = find(mb > 0);
-        latRow = qgrid.latDeg(ceil(im / nLon));
-        lonRow = qgrid.lonDeg(mod(im - 1, nLon) + 1);
-        Ym = shLowLevel.ylm(deg2rad(latRow(:)), deg2rad(lonRow(:)), idx);
-        wm = w(im) .* mb(im);
-        YT = Ym * T;
-        M = YT' * (wm .* YT);
-        M = (M + M') / 2;
-        [V, D] = eig(M);
-        mu = diag(D);
-        keep = mu > opts.EigTol * max(mu);
-        Vk = V(:, keep);
-        Proj = (Vk ./ mu(keep)') * (Vk' * (YT' * (wm .* Ym)));
-        rnk = nnz(keep);
+        if ~hasOcean
+            [Proj, rnk] = lsProjector(T, idx, mb, w, qgrid, opts.EigTol);
+        end
+end
+fp = [];
+if hasOcean                                     % 9h: the sea-level fingerprint
+    [T, fp] = fingerprintColumns(full(T), idx, opts.Ocean, knSL, hnSL, opts, ...
+        reg.core, w);
+    [Proj, rnk] = lsProjector(T, idx, mb, w, qgrid, opts.EigTol);
 end
 B = struct('type', opts.Type, 'idx', idx, 'T', T, 'Proj', Proj, ...
     'K', size(T, 2), 'nodes', nodes, 'kernel', phi, ...
     'kernelName', kernelName, 'grid', gridName, 'level', level, ...
     'nGlobal', nGlobal, 'capRadiusKm', capKm, 'lambda', lam, 'rank', rnk, ...
-    'eigTol', opts.EigTol, 'region', reg);
+    'eigTol', opts.EigTol, 'region', reg, 'fingerprint', fp);
+end
+
+function [Proj, rnk] = lsProjector(T, idx, mb, w, qgrid, eigTol)
+% Region-weighted least-squares projector over the buffered mask, from
+% its grid points only: Proj = (T'KT)^+ T'K.
+nLon = numel(qgrid.lonDeg);
+im = find(mb > 0);
+latRow = qgrid.latDeg(ceil(im / nLon));
+lonRow = qgrid.lonDeg(mod(im - 1, nLon) + 1);
+Ym = shLowLevel.ylm(deg2rad(latRow(:)), deg2rad(lonRow(:)), idx);
+wm = w(im) .* mb(im);
+YT = Ym * T;
+M = YT' * (wm .* YT);
+M = (M + M') / 2;
+[V, D] = eig(M);
+mu = diag(D);
+keep = mu > eigTol * max(mu);
+Vk = V(:, keep);
+Proj = (Vk ./ mu(keep)') * (Vk' * (YT' * (wm .* Ym)));
+rnk = nnz(keep);
+end
+
+function [T2, fp] = fingerprintColumns(T, idx, ocean, kn, hn, opts, core, w)
+% Every column's land part with its elastic sea-level response (the
+% equations of shLowLevel.seaLevelFingerprint, applied to all K columns
+% at once), as Stokes coefficients in IDX order.
+rhoW = 1000;                                    % kernelFactors' default
+L = idx.Lmax;
+os = opts.OverSample;
+idx0 = shLowLevel.shIndex(L, Nmin = 0);
+[Y0, w0] = shLowLevel.synthesisMatrix(idx0, NLat = os * (L + 1), ...
+    NLon = os * (2 * L + 2));
+O = shLowLevel.evalMask(idx0, ocean, R = opts.R, OverSample = os);
+O = O(:);
+Aoc = w0' * O;
+if ~(Aoc > 0 && Aoc < 1)
+    error('shLowLevel:regionalBasis:badOcean', ...
+        'The ocean covers %.3g of the sphere; it must cover some, and not all.', Aoc);
+end
+fSD = shLowLevel.kernelFactors('surface_density', L, 1, opts.R, kn = kn);
+fSDr = fSD(idx0.n + 1);
+fNU = opts.R - opts.R * hn(idx0.n + 1) ./ (1 + kn(idx0.n + 1));
+map = idx0.pos(sub2ind(size(idx0.pos), idx.n + 1, idx.m + 1, idx.cs + 1));
+X0 = zeros(idx0.P, size(T, 2));
+X0(map, :) = T;
+sigL = (1 - O) .* (Y0 * (fSDr .* X0));          % the land part of each column
+Ml = w0' * sigL;
+eust = -Ml / (rhoW * Aoc);
+S = O .* eust;
+tolAbs = opts.SeaLevelTol * max(max(abs(eust)), realmin);
+dS = Inf;
+for it = 1:opts.SeaLevelMaxIter
+    c = (Y0' * (w0 .* (sigL + rhoW * S))) ./ fSDr;
+    NU = Y0 * (fNU .* c);
+    kap = (-Ml / rhoW - w0' * (O .* NU)) / Aoc;
+    Snew = O .* (NU + kap);
+    dS = max(abs(Snew - S), [], 'all');
+    S = Snew;
+    if dS < tolAbs, break; end
+end
+tot = sigL + rhoW * S;
+c = (Y0' * (w0 .* tot)) ./ fSDr;
+T2 = c(map, :);
+massRes = max(abs(w0' * tot) ./ max(abs(Ml), realmin));
+cw = w .* core;
+fp = struct('ocean', O, 'oceanFraction', Aoc, 'iterations', it, ...
+    'converged', dS < tolAbs, 'massResidual', massRes, ...
+    'coreLandEWH', (cw' * sigL) / (rhoW * sum(cw)));
+end
+
+function [kn, hn] = checkSeaLevelLove(kn, hn, idx)
+L = idx.Lmax;
+if isempty(kn) || isempty(hn) || numel(kn) < L + 1 || numel(hn) < L + 1
+    error('shLowLevel:regionalBasis:badLoveNumbers', ...
+        ['Ocean needs the load Love numbers kn and hn for degrees 0..%d ' ...
+         '(the sea-level equation reads every degree).'], L);
+end
+kn = kn(:);
+hn = hn(:);
+kn = kn(1:L + 1);
+hn = hn(1:L + 1);
+den = 1 + kn;
+bad = find(~isfinite(den) | den == 0 | ~isfinite(hn), 1);
+if ~isempty(bad)
+    error('shLowLevel:regionalBasis:badLoveNumbers', ...
+        ['kn and hn must be finite and 1 + kn non-zero at every degree; ' ...
+         'degree %d fails (a CM-frame k1 = -1 does: use the CE frame).'], bad - 1);
+end
 end
 
 function phi = kernelCoefficients(opts, idx)

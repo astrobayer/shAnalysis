@@ -1820,6 +1820,30 @@ C = tsESM.maternCovariance(PracticalRangeKm = rho, Sigma = 0.02, kn = kn);
     EstimateQScale = true);
 """)
 
+story += [para("Land mass with its sea-level fingerprint (v5.30.0)", "h3"),
+          para("GRACE sees a land mass change together with the ocean's "
+               "answer to it: the sea-level fingerprint. regionalBasis(..., "
+               "Ocean = oceanMask, kn = kn, hn = hn) builds that answer into "
+               "every column of T. The land part of each basis function and "
+               "its elastic sea-level response (the equations of "
+               "seaLevelFingerprint) are solved for all columns at once, and "
+               "the projector is rebuilt. The coefficients are then land "
+               "mass, and each column's total mass is zero by construction. "
+               "B.fingerprint.coreLandEWH * a is the region's mean land EWH, "
+               "which regionalKalman returns as out.landMean with its sigma. "
+               "In the closed loop of tools/dev/validate_sea_level_basis.py "
+               "(Lmax 30, a box whose edge is the coast), the ocean response a "
+               "coastal-masked basis ignores shifts its land mass by +5.7 to "
+               "+6.6%. With the fingerprint the estimate is within 0.6% of what "
+               "the same basis gives for a truth without ocean response. "
+               "Without the masking an RBF basis recovers 0.64 to 0.83 of the "
+               "land loss. kn must be in the CE frame at degree 1.")]
+story += code("""
+B = ts.regionalBasis("Greenland", Ocean = oceanMask, kn = kn, hn = hn);
+[tsK, out] = ts.regionalKalman(B, ModelSeries = tsm, kn = kn);
+plot(out.epochs, out.landMean.mean)
+""")
+
 story += [para("40. References", "h2"),
           *bullets([
     "Chambers, D.P., Willis, J.K. (2010): A global evaluation of ocean "
@@ -1836,6 +1860,9 @@ story += [para("40. References", "h2"),
     "Eicker, A. (2008): Gravity field refinement by radial basis "
     "functions from in-situ satellite data. PhD thesis, University of "
     "Bonn. (Chapter 33.)",
+    "Farrell, W.E., Clark, J.A. (1976): On postglacial sea level. "
+    "Geophys. J. R. astr. Soc. 46, 647&ndash;667. (The sea-level "
+    "fingerprint of chapter 39.)",
     "Gerchberg, R.W. (1974): Super-resolution through error energy "
     "reduction. Optica Acta 21, 709&ndash;720. (With Papoulis 1975, the "
     "support-projection principle behind Section 24.)",
