@@ -26,11 +26,11 @@ says whether it was *read* or *inferred*.
 
 | Fact | Value | Evidence |
 |---|---|---|
-| Version | **5.28.0**, 29-Oct-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
+| Version | **5.28.1**, 06-Nov-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
 | Branches | `main` only; `claude/getframe-recapture` and `claude/readshm` are gone (merged/deleted) | `GET /branches` |
 | Public surface | 3 classes / 106 methods, 136 `+shLowLevel` functions (+5 private), 3 root functions. 94 of the 136 are reachable from a class method; each of the other 42 is a named exception with its reason, and the backlog is empty (v5.24.0) | `tools/dev/api_extract.py`; `tools/dev/class_surface_audit.py` |
-| Tests | 5 classes, **470 methods / 484 runs**: Correctness 232, Contract 154, Robustness 62, Science 9, Performance 13 methods (27 runs, `budgetCase` x14 + `nmaxP` x2). On A8 8 filter out in an ordinary run - the optional real-data fixtures and the opt-in full-size closed loop (v5.27.2), 7 on a manual run that sets `closed_loop_nmax` (the GravIS-grid test joined them in v5.8.0, the ESMGFZ check in v5.11.0, the HLSST check in v5.12.0); on MATTHIASPC only 2 do, because `E:\DATAPOOL` supplies the SINEX files, the GravIS folder and - with `SHX_EARTHROTATION_FOLDER` and `SHX_BRIDGE_FOLDER` set for the run, no preference is stored - the ESMGFZ and HLSST series. The counter has matched the runner EXACTLY on the last ten green A8 runs and on every local Tier-A run. | `python3 tools/dev/count_tests.py` |
-| Python oracles | 35 `tools/dev/validate_*.py` (+ `regional_oracle_lib.py`, shared by the WP8 oracles) + `tools/audit/*` | listing |
+| Tests | 5 classes, **472 methods / 486 runs**: Correctness 234, Contract 154, Robustness 62, Science 9, Performance 13 methods (27 runs, `budgetCase` x14 + `nmaxP` x2). On A8 8 filter out in an ordinary run - the optional real-data fixtures and the opt-in full-size closed loop (v5.27.2), 7 on a manual run that sets `closed_loop_nmax` (the GravIS-grid test joined them in v5.8.0, the ESMGFZ check in v5.11.0, the HLSST check in v5.12.0); on MATTHIASPC only 2 do, because `E:\DATAPOOL` supplies the SINEX files, the GravIS folder and - with `SHX_EARTHROTATION_FOLDER` and `SHX_BRIDGE_FOLDER` set for the run, no preference is stored - the ESMGFZ and HLSST series. The counter has matched the runner EXACTLY on the last ten green A8 runs and on every local Tier-A run. | `python3 tools/dev/count_tests.py` |
+| Python oracles | 36 `tools/dev/validate_*.py` (+ `regional_oracle_lib.py`, shared by the WP8 oracles) + `tools/audit/*` | listing |
 | Docs | **27** hand-written `html/*.html` (24 per-entity duplicates retired in v5.0.1, WP6 stage 3; `regionalBasis.html` added in v5.14.0) + **238 generated `html/ref/*.html`** (one per entity + index, `make_refpages.py`), one shared `html/shAnalysis.css`, `helptoc.xml`, `info.xml`, guide PDF (built by CI and attached to each GitHub release since v5.24.1, not committed - `doc_sync_audit` refuses a tracked copy), generated `html/apiReference.html`. `docs/` holds `apiExamples.json` and, where it was built, the PDF - no HTML page lives outside `html/` (gated). | listing |
 | CI | `gates` job on ubuntu (help_audit, doc_sync_audit, no_map_renderer, toolbox_dependency_audit, nv_casing_audit, fixture_tag_audit, gate self-tests `tools/tests/`, `count_tests`, `name_coverage`, `class_surface_audit`, `error_id_audit`, `option_values_audit`, `refpages_audit`, `make_demos --check`, `perf_baseline_audit`) + `runAllTests (self-hosted)` on A8/R2026a; fixtures from tag `fixtures-2026-08` | `.github/workflows/ci.yml` |
 | Namespace | `+shLowLevel` (renamed from `+shx` in v3.0.0). Any memory saying `shx.*` is stale. | README §History |
@@ -609,7 +609,7 @@ became exceptions (6.1, 2026-10-22); reach is 94 of 134.
 - **Oracle**: none (delegation).
 - **Size**: M. **Version**: MINOR.
 
-### WP8 — Regional Kalman with local basis functions   `[~] 8a DONE (v5.14.0), 8b DONE (v5.15.0), 8c DONE (v5.16.0), 8d DONE (v5.17.0), 8e DONE (v5.18.0), 8h DONE (v5.19.0), 8i DONE (v5.20.0); 8f, 8g POSTPONED` (approved 2026-10-20)
+### WP8 — Regional Kalman with local basis functions   `[~] 8a DONE (v5.14.0), 8b DONE (v5.15.0), 8c DONE (v5.16.0), 8d DONE (v5.17.0), 8e DONE (v5.18.0), 8h DONE (v5.19.0), 8i DONE (v5.20.0), 8j MEASURED (v5.28.1); 8f, 8g POSTPONED` (approved 2026-10-20)
 Approved by Matthias on 2026-10-20 in four answers to the review of
 Kurtenbach (DGK C-683) and the work since: (1) the state is a set of
 LOCAL basis functions (RBF, Slepian), not global SH; (2) the existing
@@ -647,6 +647,7 @@ shAnalysis, the basin is selectable, and otherwise a test area.
 | 8g `[-]` **POSTPONED** with 8f (needs the same data machine) | daily real data: ITSG daily NEQs (SINEX) in the basis; the Elbe (2013) and the September 2024 central-European flood as test cases | ITSG daily Kalman product, GravIS basin series |
 | 8h `[x]` **DONE v5.19.0** (approved 2026-10-21: "Go ahead in this order: 8h, 8i, A33 and A34") | LGD observations: the point-functional design here; along-track preprocessing, transfer function and noise PSD stay in lgdToolbox, which hands over records (toolboxes stay independent) | lgdToolbox forward model |
 | 8i `[x]` **DONE v5.20.0** (approved 2026-10-21 with 8h; the closed loop synthetic, 8f being postponed - 6.1; A35, `estimateVAR`'s Order >= 2, fixed on the way) | adaptive process noise (VCE of Q per block from the innovations, replacing Kurtenbach's hand-tuned alpha), VAR(p > 1), space-domain conditioning through `CondFun` | closed loop of 8f |
+| 8j `[x]` **MEASURED v5.28.1** (lgdToolbox D141, Matthias 2026-11-06: "Go ahead with all three of them") | LGD records in a mascon basis with a model-series prior: does the chain give a localised load an honest sigma, and how does it fail (lgdToolbox F171/F175 in this chain). Without a background NO - the global signal the regional basis cannot carry makes sigma too small even for the right model; with 80% of it as `Background`, yes. Isotropic and 5x-too-small models stay overconfident at the point, `EstimateQScale` repairs part, a wrong footprint nothing | `validate_regional_lgd_mascon.py`: filter = dense posterior; 20-seed closed loop |
 
 - **GNSS and terrestrial gravimetry** enter as SH NEQs or point
   records built OUTSIDE shAnalysis: WP4's decision of 2026-09-10 put
@@ -698,6 +699,22 @@ that need no new data first.
 Current entries only; every earlier one is in `tools/dev/RECORD.md` §1,
 verbatim. An entry moves there when it stops describing the current
 state; nothing is deleted.
+- 2026-11-06 — **8j measured, as 5.28.1** (lgdToolbox R-049, Matthias on
+  its D138: "Go ahead with all three of them"; (c) is this row). No
+  function changed: the chain already had what the row needed (mascon
+  basis 9c, LGD records 8h, Background 8e, EstimateQScale 8i). lgdToolbox
+  decided in the same release that it hands over records, not a Route C
+  state (its D141).
+- 2026-11-06 — **CLAIM 2 refuted, recorded, not moved.** Written before
+  the run as "the right model is calibrated"; it gave basin z-rms 1.80.
+  An exploratory run (8 seeds) placed the cause in the global broad
+  field, which the regional basis represents only partly; the amendment
+  (claims 7-10, written before their run) adds the 8e background at 80%.
+  The refuted claim stays in the oracle and fails if it ever holds.
+- 2026-11-06 — **The MATLAB test's E first ran on model A's series**, a
+  test bug (the oracle's E is C with EstimateQScale); its alpha came out
+  0.24 and the alpha check failed. Fixed to C; alpha median 2.42 (oracle
+  2.08). Recorded because the first red was the test's, not the chain's.
 - 2026-10-29 — **9f built as pseudo-observations, 5.28.0** (Matthias:
   "Go ahead with 9f"; asked how, given no public SLR normal equations:
   "Also include degree 1"). `shLowLevel.neqAddCoefficients` adds a
@@ -968,7 +985,8 @@ The last releases only; the full board, in version order, is
 | v5.27.2 (WP9 9d: the opt-in full-size closed loop, `closed_loop_budget.py`, the manual-run inputs) | ☑ 17 gates + mlint + make_demos + 15 self-test suites, 0 findings | ◑ **Tier B locally**. ☑ **CI self-hosted (A8) at `953fa26` via PR #142, green — 465 runs, 457 passed, 0 failed, 8 filtered** (prediction exact); ☑ **manual run 40062134202 with `closed_loop_nmax = 60,96`: 465 runs, 458 passed, 7 filtered**, the closed loop 31.7 s - numbers in CHANGELOG 5.27.2 | ☑ PR #142 | ◐ pending |
 | v5.27.3 (DRIVEN: 98 identifiers driven, 10 left with reasons; tests only) | ☑ 17 gates + mlint + make_demos + 15 self-test suites, 0 findings; DRIVEN 301 -> 399 of 409 | ◑ **Tier B locally**; predicted 481 runs (Contract 153). First A8 run at `809a071`: 1 failed - `makeTutorials:noConverter` not raised, the converter wrote through a folder at the `.mlx` target; the check removed and the identifier listed. ☑ **CI self-hosted (A8) at `780e4de` via PR #144, green — 481 runs, 473 passed, 0 failed, 8 filtered**; the count prediction matched EXACTLY | ☑ PR #144 | ☑ 2026-10-27 |
 | v5.27.4 (WP9 9e: the NEQ sources, a desk check; documentation only) | ☑ 17 gates + make_demos + 15 self-test suites, 0 findings | ◑ **Tier B**; no MATLAB file changed. ☑ **CI self-hosted (A8) at `590b322` via PR #145, green on the third attempt — 481 runs, 473 passed, 0 failed, 8 filtered**; the first two failed three speed budgets (`legendre_n360`/`n720`, `apply_ddk_n300`, 1.4-1.6x) while Windows Update ran on A8, and the post-update run matched the baselines to 2% | ☑ PR #145 | ☑ 2026-10-27 |
-| v5.28.0 (WP9 9f: `neqAddCoefficients`, low degrees as pseudo-observations) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally**; predicted 484 runs (Correctness 232, Contract 154). ☑ **CI self-hosted (A8) at `8801b4a` via PR #146, green — 484 runs, 476 passed, 0 failed, 8 filtered**; the count prediction matched EXACTLY, and the three new tests passed on their first run | ☑ PR #146 | ☐ |
+| v5.28.0 (WP9 9f: `neqAddCoefficients`, low degrees as pseudo-observations) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally**; predicted 484 runs (Correctness 232, Contract 154). ☑ **CI self-hosted (A8) at `8801b4a` via PR #146, green — 484 runs, 476 passed, 0 failed, 8 filtered**; the count prediction matched EXACTLY, and the three new tests passed on their first run | ☑ PR #146 | ☑ 2026-10-29 |
+| v5.28.1 (WP8 8j: LGD records in a mascon basis, oracle + two tests) | ☐ pending | ◑ **Tier A on MATTHIASPC** (temp clone, R2026a): the two 8j tests 2 of 2 at `8325964` (77 s); full suite pending | ☐ PR #147 | ☐ |
 | v5.26.0 (WP9 9b: `shLowLevel.neqClimatology`) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally** (no bridge). ☑ **CI self-hosted (A8) at `4aa3aa9` via PR #139, green — 460 runs, 453 passed, 0 failed, 7 filtered** (the optional real-data fixtures); the count prediction matched EXACTLY, and the four 9b tests passed on their first run - no red round | ☑ PR #139 | ☑ 2026-10-24 |
 
 ### 6.3 What the next session could be wrong for not reading
@@ -1041,10 +1059,10 @@ One line per rule; the incident behind each, with its numbers, is in
 
 ### 6.4 Next action
 
-**State, 2026-10-29.** `main` is `d0edebd`, v5.27.4 (#145, 9e,
+**State, 2026-11-06.** `main` is `9f32607`, v5.28.0 (#146, 9f,
 merged); every release since v5.24.1 carries
-`shAnalysis_workflow_guide.pdf`. v5.28.0 (9f, `neqAddCoefficients`) is
-on branch `wp9-slr-low-degrees`. A re-measurement is a manual run of the
+`shAnalysis_workflow_guide.pdf`. v5.28.1 (8j, the LGD-mascon closed
+loop) is on branch `wp8-lgd-mascon`, PR #147. A re-measurement is a manual run of the
 CI workflow with `closed_loop_nmax`, read from the log's `CLOSEDLOOP`
 lines. Every finding in 4.1 is CLOSED except A42,
 which holds five low items that need data or a run, not effort. Read the version from
