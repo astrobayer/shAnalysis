@@ -59,6 +59,32 @@ Statistics pooled over 20 seeds x 30 epochs.
   CLAIM 6  model D: the point value's error rms above 1.2 x A's - a
            footprint that does not fit costs accuracy (F175).
 
+AMENDMENT (2026-11-06, after the first judged run; claims 1-6 kept as
+written). CLAIM 2 FAILED: with the right model the basin mean's z-rms was
+1.80 and the point value's 1.41 - the sigma too small. An exploratory
+run (8 seeds, printed in CHANGELOG 5.28.1) placed the cause: the broad
+field is global, the basis is regional (it represents a median 0.67 of
+the truth's energy over the buffered region), and what it cannot carry
+reaches the LGD records as signal that neither the state nor the noise
+model holds. With the field at 0.1 of its size the z-rms is 1.02 / 1.06;
+with a background holding 80 % of it removed from the records and
+restored (regionalKalman's Background, row 8e) 0.96 / 1.00. The cases are
+therefore run a second time (CLAIM 2 itself is reported as REFUTED, and
+the oracle fails if it ever holds, since the record would be stale), every record reduced by 0.8 of the broad
+field's LGD and the outputs restored by 0.8 of its basin mean and point
+value, the process model from the full model series (8e CLAIM 4); the
+claims below were written before that judged pass (the exploratory run
+covered model A only):
+  CLAIM 7  with the background, model A: z-rms of both outputs in
+           [0.8, 1.25], |z| <= 2 in [0.88, 0.99] (CLAIM 2's bounds), and
+           the basin mean's error rms below the first pass's.
+  CLAIM 8  with the background, models B and C: the point value's z-rms
+           above 1.5 (CLAIMS 3 and 4 again, now against a calibrated A).
+  CLAIM 9  with the background, model E: alpha median above 2, the point
+           value's z-rms below C's.
+  CLAIM 10 with the background, model D: the point value's error rms
+           above 1.2 x A's.
+
 Printed beside the claims, not claimed: every case's error rms and z-rms
 for both outputs, the share of the truth the basis represents, and the
 alphas of E.
@@ -169,10 +195,11 @@ def ar1(rng, sd, n, shape=()):
     return x[SPIN:]
 
 
-def realise(rng, n, sd_load, load, field_scale):
+def realise(rng, n, sd_load, load, field_scale, parts=False):
     a = ar1(rng, sd_load, n)
     f = ar1(rng, 1.0, n, (P,)) * FIELD_SD[None, :] * field_scale
-    return (a[:, None] * load[None, :] + f).T          # (P, n)
+    X = (a[:, None] * load[None, :] + f).T             # (P, n)
+    return (X, f.T) if parts else X
 
 
 # ------------------------------------------------------------- LGD design
@@ -309,59 +336,69 @@ def dense(Phi, Q, S0, recs):
 
 # ------------------------------------------------------------- the loop
 cases = ["A", "B", "C", "D", "E"]
-zb = {c: [] for c in cases}; zp = {c: [] for c in cases}
-eb = {c: [] for c in cases}; ep = {c: [] for c in cases}
-alphas, represent = [], []
-for seed in range(SEEDS):
-    rng = np.random.default_rng(20261106 + seed)
-    X = realise(rng, NEPOCH, SD_LOAD, LOAD, 1.0)
-    Hs = [lgd_pairs(rng, NREC) for _ in range(NEPOCH)]
-    ytrue = [H @ X[:, k] for k, H in enumerate(Hs)]
-    sig = NOISE_FRAC * np.sqrt(np.mean(np.concatenate(ytrue) ** 2))
-    ys = [y + sig * rng.standard_normal(y.size) for y in ytrue]
-    recs = []
-    for H, y in zip(Hs, ys):
-        HT = H @ T
-        recs.append((HT.T @ HT / sig ** 2, HT.T @ y / sig ** 2, HT, y, sig))
-    reg = mask
-    res = X - T @ (Proj @ X)
-    Er = np.sum(W[reg][:, None] * (Yg[reg] @ (FN[NN][:, None] * res)) ** 2)
-    Es = np.sum(W[reg][:, None] * (Yg[reg] @ (FN[NN][:, None] * X)) ** 2)
-    represent.append(1 - Er / Es)
-    tb, tp = Fb @ X, Fp @ X
-    # model series, one per model
-    XmA = realise(rng, NMODEL, SD_LOAD, LOAD, 1.0)
-    rms_true = np.sqrt(np.mean((Yg[core] @ (FN[NN][:, None] * XmA)) ** 2))
-    XmF = realise(rng, NMODEL, 0.0, LOAD, 1.0)
-    rms_f = np.sqrt(np.mean((Yg[core] @ (FN[NN][:, None] * XmF)) ** 2))
-    models = {"A": XmA, "B": XmF * (rms_true / rms_f),
-              "C": realise(rng, NMODEL, SD_LOAD / 5, LOAD, 1.0),
-              "D": realise(rng, NMODEL, SD_LOAD, WIDE, 1.0)}
-    for c in cases:
-        Phi, Q, S0 = process_model(models["C" if c == "E" else c])
-        al = 1.0
-        if c == "E":
-            f = lambda la: smooth(Phi, np.exp(la) * Q, S0, recs, True)[2]  # noqa: E731
-            r = minimize_scalar(f, bounds=(np.log(1e-4), np.log(1e4)), method="bounded",
-                                options={"xatol": 1e-4})
-            al = float(np.exp(r.x))
-            alphas.append(al)
-        xs, Ps, _ = smooth(Phi, al * Q, S0, recs)
-        if c == "A" and seed == 0:
-            xd, Pd = dense(Phi, Q, S0, recs)
-            xsv = np.concatenate(xs)
-            Psd = np.array([Ps[k] for k in range(NEPOCH)])
-            Pdd = np.array([Pd[k * K:(k + 1) * K, k * K:(k + 1) * K] for k in range(NEPOCH)])
-            e1 = np.abs(xsv - xd).max() / np.abs(xd).max()
-            e2 = np.abs(Psd - Pdd).max() / np.abs(Pdd).max()
-            claim(e1 < 1e-9 and e2 < 1e-9, "CLAIM 1  filter + RTS = dense joint posterior: "
-                  "states %.1e, covariances %.1e relative" % (e1, e2))
-        for k in range(NEPOCH):
-            mb, mp = Fb @ T @ xs[k], Fp @ T @ xs[k]
-            sb = np.sqrt((Fb @ T) @ Ps[k] @ (Fb @ T))
-            sp_ = np.sqrt((Fp @ T) @ Ps[k] @ (Fp @ T))
-            eb[c].append(mb - tb[k]); ep[c].append(mp - tp[k])
-            zb[c].append((mb - tb[k]) / sb); zp[c].append((mp - tp[k]) / sp_)
+
+
+def loop(cbg, check_dense):
+    """Every case over every seed; records reduced by cbg x the broad
+    field's LGD, outputs restored by cbg x its functionals."""
+    zb = {c: [] for c in cases}; zp = {c: [] for c in cases}
+    eb = {c: [] for c in cases}; ep = {c: [] for c in cases}
+    alphas, represent = [], []
+    for seed in range(SEEDS):
+        rng = np.random.default_rng(20261106 + seed)
+        X, Fld = realise(rng, NEPOCH, SD_LOAD, LOAD, 1.0, parts=True)
+        Hs = [lgd_pairs(rng, NREC) for _ in range(NEPOCH)]
+        ytrue = [H @ X[:, k] for k, H in enumerate(Hs)]
+        sig = NOISE_FRAC * np.sqrt(np.mean(np.concatenate(ytrue) ** 2))
+        ys = [y + sig * rng.standard_normal(y.size) - cbg * (H @ Fld[:, k])
+              for k, (H, y) in enumerate(zip(Hs, ytrue))]
+        recs = []
+        for H, y in zip(Hs, ys):
+            HT = H @ T
+            recs.append((HT.T @ HT / sig ** 2, HT.T @ y / sig ** 2, HT, y, sig))
+        reg = mask
+        res = X - T @ (Proj @ X)
+        Er = np.sum(W[reg][:, None] * (Yg[reg] @ (FN[NN][:, None] * res)) ** 2)
+        Es = np.sum(W[reg][:, None] * (Yg[reg] @ (FN[NN][:, None] * X)) ** 2)
+        represent.append(1 - Er / Es)
+        tb, tp = Fb @ X, Fp @ X
+        # model series, one per model
+        XmA = realise(rng, NMODEL, SD_LOAD, LOAD, 1.0)
+        rms_true = np.sqrt(np.mean((Yg[core] @ (FN[NN][:, None] * XmA)) ** 2))
+        XmF = realise(rng, NMODEL, 0.0, LOAD, 1.0)
+        rms_f = np.sqrt(np.mean((Yg[core] @ (FN[NN][:, None] * XmF)) ** 2))
+        models = {"A": XmA, "B": XmF * (rms_true / rms_f),
+                  "C": realise(rng, NMODEL, SD_LOAD / 5, LOAD, 1.0),
+                  "D": realise(rng, NMODEL, SD_LOAD, WIDE, 1.0)}
+        for c in cases:
+            Phi, Q, S0 = process_model(models["C" if c == "E" else c])
+            al = 1.0
+            if c == "E":
+                f = lambda la: smooth(Phi, np.exp(la) * Q, S0, recs, True)[2]  # noqa: E731
+                r = minimize_scalar(f, bounds=(np.log(1e-4), np.log(1e4)), method="bounded",
+                                    options={"xatol": 1e-4})
+                al = float(np.exp(r.x))
+                alphas.append(al)
+            xs, Ps, _ = smooth(Phi, al * Q, S0, recs)
+            if c == "A" and seed == 0 and check_dense:
+                xd, Pd = dense(Phi, Q, S0, recs)
+                xsv = np.concatenate(xs)
+                Psd = np.array([Ps[k] for k in range(NEPOCH)])
+                Pdd = np.array([Pd[k * K:(k + 1) * K, k * K:(k + 1) * K] for k in range(NEPOCH)])
+                e1 = np.abs(xsv - xd).max() / np.abs(xd).max()
+                e2 = np.abs(Psd - Pdd).max() / np.abs(Pdd).max()
+                claim(e1 < 1e-9 and e2 < 1e-9, "CLAIM 1  filter + RTS = dense joint posterior: "
+                      "states %.1e, covariances %.1e relative" % (e1, e2))
+            for k in range(NEPOCH):
+                mb = Fb @ T @ xs[k] + cbg * (Fb @ Fld[:, k])
+                mp = Fp @ T @ xs[k] + cbg * (Fp @ Fld[:, k])
+                sb = np.sqrt((Fb @ T) @ Ps[k] @ (Fb @ T))
+                sp_ = np.sqrt((Fp @ T) @ Ps[k] @ (Fp @ T))
+                eb[c].append(mb - tb[k]); ep[c].append(mp - tp[k])
+                zb[c].append((mb - tb[k]) / sb); zp[c].append((mp - tp[k]) / sp_)
+
+
+    return zb, zp, eb, ep, alphas, represent
 
 
 def zrms(v):
@@ -372,19 +409,28 @@ def cov2(v):
     return float(np.mean(np.abs(v) <= 2))
 
 
-print("representation (share of the truth's energy over the buffered region): "
-      "median %.3f, %.3f..%.3f" % (np.median(represent), min(represent), max(represent)))
-print("case   basin: err rms [cm]  z-rms  |z|<=2    point: err rms [cm]  z-rms  |z|<=2")
-for c in cases:
-    print("  %s          %7.3f        %5.2f  %5.3f            %7.3f        %5.2f  %5.3f"
-          % (c, 100 * zrms(eb[c]), zrms(zb[c]), cov2(zb[c]),
-             100 * zrms(ep[c]), zrms(zp[c]), cov2(zp[c])))
-print("E: alpha median %.2f, range %.2f..%.2f" % (np.median(alphas), min(alphas), max(alphas)))
+def table(zb, zp, eb, ep, alphas, represent):
+    print("representation (share of the truth's energy over the buffered region): "
+          "median %.3f, %.3f..%.3f" % (np.median(represent), min(represent), max(represent)))
+    print("case   basin: err rms [cm]  z-rms  |z|<=2    point: err rms [cm]  z-rms  |z|<=2")
+    for c in cases:
+        print("  %s          %7.3f        %5.2f  %5.3f            %7.3f        %5.2f  %5.3f"
+              % (c, 100 * zrms(eb[c]), zrms(zb[c]), cov2(zb[c]),
+                 100 * zrms(ep[c]), zrms(zp[c]), cov2(zp[c])))
+    print("E: alpha median %.2f, range %.2f..%.2f" % (np.median(alphas), min(alphas), max(alphas)))
 
-claim(0.8 <= zrms(zb["A"]) <= 1.25 and 0.8 <= zrms(zp["A"]) <= 1.25
-      and 0.88 <= cov2(zb["A"]) <= 0.99 and 0.88 <= cov2(zp["A"]) <= 0.99,
-      "CLAIM 2  model A: z-rms basin %.2f, point %.2f; |z| <= 2 basin %.3f, point %.3f"
-      % (zrms(zb["A"]), zrms(zp["A"]), cov2(zb["A"]), cov2(zp["A"])))
+
+
+zb, zp, eb, ep, alphas, represent = loop(0.0, True)
+print("--- first pass, no background")
+table(zb, zp, eb, ep, alphas, represent)
+ok2 = (0.8 <= zrms(zb["A"]) <= 1.25 and 0.8 <= zrms(zp["A"]) <= 1.25
+       and 0.88 <= cov2(zb["A"]) <= 0.99 and 0.88 <= cov2(zp["A"]) <= 0.99)
+# refuted by the first judged run and recorded (AMENDMENT): it is reported,
+# and the record goes stale - a failure - if it ever holds
+print(("REFUTED " if not ok2 else "HOLDS   ") + "CLAIM 2  model A: z-rms basin %.2f, point %.2f; "
+      "|z| <= 2 basin %.3f, point %.3f" % (zrms(zb["A"]), zrms(zp["A"]), cov2(zb["A"]), cov2(zp["A"])))
+claim(not ok2, "CLAIM 2  stays refuted without a background (the amendment's record)")
 claim(zrms(zp["B"]) > 1.5, "CLAIM 3  model B (isotropic): point z-rms %.2f > 1.5" % zrms(zp["B"]))
 claim(zrms(zp["C"]) > 1.5, "CLAIM 4  model C (amp / 5): point z-rms %.2f > 1.5" % zrms(zp["C"]))
 claim(np.median(alphas) > 2 and zrms(zp["E"]) < zrms(zp["C"]),
@@ -392,6 +438,28 @@ claim(np.median(alphas) > 2 and zrms(zp["E"]) < zrms(zp["C"]),
       % (np.median(alphas), zrms(zp["E"]), zrms(zp["C"])))
 claim(zrms(ep["D"]) > 1.2 * zrms(ep["A"]),
       "CLAIM 6  model D (footprint 1000 km): point error %.3f cm > 1.2 x A's %.3f cm"
+      % (100 * zrms(ep["D"]), 100 * zrms(ep["A"])))
+
+
+basin_err_first = zrms(eb["A"])
+zb, zp, eb, ep, alphas, represent = loop(0.8, False)
+print("--- second pass (amendment): background 0.8 of the broad field")
+table(zb, zp, eb, ep, alphas, represent)
+claim(0.8 <= zrms(zb["A"]) <= 1.25 and 0.8 <= zrms(zp["A"]) <= 1.25
+      and 0.88 <= cov2(zb["A"]) <= 0.99 and 0.88 <= cov2(zp["A"]) <= 0.99
+      and zrms(eb["A"]) < basin_err_first,
+      "CLAIM 7  background, model A: z-rms basin %.2f, point %.2f; |z| <= 2 basin %.3f, "
+      "point %.3f; basin error %.3f cm (first pass %.3f)"
+      % (zrms(zb["A"]), zrms(zp["A"]), cov2(zb["A"]), cov2(zp["A"]),
+         100 * zrms(eb["A"]), 100 * basin_err_first))
+claim(zrms(zp["B"]) > 1.5 and zrms(zp["C"]) > 1.5,
+      "CLAIM 8  background, models B, C: point z-rms %.2f, %.2f > 1.5"
+      % (zrms(zp["B"]), zrms(zp["C"])))
+claim(np.median(alphas) > 2 and zrms(zp["E"]) < zrms(zp["C"]),
+      "CLAIM 9  background, model E: alpha median %.2f > 2, point z-rms %.2f < C's %.2f"
+      % (np.median(alphas), zrms(zp["E"]), zrms(zp["C"])))
+claim(zrms(ep["D"]) > 1.2 * zrms(ep["A"]),
+      "CLAIM 10 background, model D: point error %.3f cm > 1.2 x A's %.3f cm"
       % (100 * zrms(ep["D"]), 100 * zrms(ep["A"])))
 
 if FAIL:
