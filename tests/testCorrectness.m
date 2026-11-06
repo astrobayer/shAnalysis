@@ -6458,6 +6458,75 @@ verifyTrue(testCase, isequal(oS.model.Sigma0, Cb) && isequal(oS.model.Q, o0.mode
 verifyTrue(testCase, oS.startCov && ~oS.processCov);
 end
 
+function testBackgroundErrorCovIsTheHalfDifferenceCovariance(testCase)
+%TESTBACKGROUNDERRORCOVISTHEHALFDIFFERENCECOVARIANCE WP9 9i: the estimate
+%   is half the sample covariance of the release differences, mean
+%   removed; "degree" is the per-degree mean of its diagonal and Split
+%   scales it. With 2000 epochs of two independent releases of an error
+%   with known covariance it lies within 3 sqrt(P/T) of the truth
+%   (validate_background_error.py CLAIM 1: 0.064 at P 77, T 4000), and a
+%   constant offset between the releases does not enter it.
+rng(161);
+idx = shLowLevel.shIndex(4);
+P = idx.P;
+T = 2000;
+G = randn(P) / sqrt(P);
+Dg = diag(1 ./ (idx.n + 1) .^ 2);
+Ct = Dg * (0.3 * (G * G') + eye(P)) * Dg;
+Ct = (Ct + Ct') / 2;
+Lc = chol(Ct, 'lower');
+sig = (1 ./ (idx.n + 1)) .* randn(P, T);
+Xa = sig + Lc * randn(P, T);
+Xb = sig + Lc * randn(P, T);
+ep = 2000 + ((1:T)' - 0.5) / 12;
+tsA = vecSeries(Xa, ep, idx, []);
+tsB = vecSeries(Xb, ep, idx, []);
+[C, info] = shLowLevel.backgroundErrorCov(tsA, tsB);
+D = Xa - Xb;
+D = D - mean(D, 2);
+Cref = 0.5 * (D * D') / (T - 1);
+Cref = (Cref + Cref') / 2;
+% 1e-12: the same sums through csFromVec/vecFromCS round trips (exact)
+% and one subtraction order
+verifyLessThan(testCase, norm(C - Cref, 'fro') / norm(Cref, 'fro'), 1e-12);
+verifyEqual(testCase, info.nEpochs, T);
+verifyLessThan(testCase, norm(C - Ct, 'fro') / norm(Ct, 'fro'), 3 * sqrt(P / T));
+C1 = shLowLevel.backgroundErrorCov(tsA, tsB, Split = 1);
+verifyLessThan(testCase, norm(C1 - 2 * C, 'fro') / norm(C, 'fro'), 1e-12);
+Cd = shLowLevel.backgroundErrorCov(tsA, tsB, Structure = "degree");
+v = diag(C);
+for n = 2:4
+    sel = idx.n == n;
+    verifyLessThan(testCase, max(abs(diag(Cd(sel, sel)) - mean(v(sel)))) / mean(v(sel)), 1e-12);
+end
+verifyEqual(testCase, nnz(Cd - diag(diag(Cd))), 0);
+tsB2 = vecSeries(Xb + 0.3, ep, idx, []);
+C2 = shLowLevel.backgroundErrorCov(tsA, tsB2);
+% 1e-10: the offset is removed with the mean (rounding of 0.3 against
+% differences of order 1e-2)
+verifyLessThan(testCase, norm(C2 - C, 'fro') / norm(C, 'fro'), 1e-10);
+end
+
+function testRegionalKalmanAddNoiseCovIsAddedToEveryEpoch(testCase)
+%TESTREGIONALKALMANADDNOISECOVISADDEDTOEVERYEPOCH WP9 9i: AddNoiseCov =
+%   C makes every epoch's noise covariance diag(sigma^2) + C - the chain is
+%   bitwise the one given NoiseCov = diag(sigma^2) + C directly.
+[tsm, tsObs, ~, idx] = scaleFixture(95, 1);
+B = shLowLevel.regionalBasis(idx, [], Type = "sh");
+P = idx.P;
+G = randn(P) / sqrt(P);
+Cb = 1e-22 * (G * G' + eye(P));
+Cb = (Cb + Cb') / 2;
+sig = 1e-11 * ones(P, 1);
+args = {"ModelSeries", tsm, "Climatology", false};
+[t1, o1] = shLowLevel.regionalKalman(tsObs, B, args{:}, AddNoiseCov = Cb);
+[t2, o2] = shLowLevel.regionalKalman(tsObs, B, args{:}, NoiseCov = diag(sig .^ 2) + Cb);
+verifyTrue(testCase, isequaln(t1, t2) && isequaln(o1, o2), ...
+    'AddNoiseCov is not the formal variances plus C');
+[~, o0] = shLowLevel.regionalKalman(tsObs, B, args{:});
+verifyGreaterThan(testCase, mean(o1.sigA(:)), mean(o0.sigA(:)));
+end
+
 function testRegionalKalmanOrderTwoOnTheSHBasisIsKalmanChain(testCase)
 %TESTREGIONALKALMANORDERTWOONTHESHBASISISKALMANCHAIN VAR(2) through the
 %   regional chain: on the SH basis it is kalmanChain at Order 2 - the same

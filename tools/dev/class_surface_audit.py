@@ -173,6 +173,7 @@ DELEGATES = {
     ("shSeries", "basinScaling"): "basinScaling",
     ("shSeries", "buildCondFun"): "buildCondFun",
     ("shSeries", "maternCovariance"): "maternCovariance",
+    ("shSeries", "backgroundErrorCov"): "backgroundErrorCov",
 }
 
 
