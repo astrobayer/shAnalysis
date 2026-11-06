@@ -6442,6 +6442,9 @@ function testRegionalKalmanLgdMasconNeedsTheBackground(testCase)
 %   the background, within [0.7, 1.35] with it.
 S0 = lgdMasconLoop(4, 0.0, "A");
 S8 = lgdMasconLoop(4, 0.8, "A");
+log(testCase, matlab.unittest.Verbosity.Concise, sprintf(['8j, model A: basin z-rms %.2f / %.2f, ' ...
+    'point %.2f / %.2f, basin error %.3f / %.3f cm (no background / 0.8)'], S0.zBasin, S8.zBasin, ...
+    S0.zPoint, S8.zPoint, 100 * S0.eBasin, 100 * S8.eBasin));
 verifyGreaterThan(testCase, S0.zBasin, 1.3, 'without a background the basin sigma covers the error');
 verifyGreaterThan(testCase, S8.zBasin, 0.7); verifyLessThan(testCase, S8.zBasin, 1.35);
 verifyGreaterThan(testCase, S8.zPoint, 0.7); verifyLessThan(testCase, S8.zPoint, 1.35);
@@ -6463,6 +6466,9 @@ Bm = lgdMasconLoop(4, 0.8, "B");
 C = lgdMasconLoop(4, 0.8, "C");
 E = lgdMasconLoop(4, 0.8, "E");
 D = lgdMasconLoop(4, 0.8, "D");
+log(testCase, matlab.unittest.Verbosity.Concise, sprintf(['8j, background 0.8, point z-rms ' ...
+    'A %.2f B %.2f C %.2f E %.2f D %.2f; point error A %.3f D %.3f cm; E alpha median %.2f'], ...
+    A.zPoint, Bm.zPoint, C.zPoint, E.zPoint, D.zPoint, 100 * A.ePoint, 100 * D.ePoint, median(E.alpha)));
 verifyGreaterThan(testCase, Bm.zPoint, 1.3 * A.zPoint, 'isotropic model');
 verifyGreaterThan(testCase, C.zPoint, 1.3 * A.zPoint, 'mass scale 5x small');
 verifyGreaterThan(testCase, median(E.alpha), 1, 'EstimateQScale');
