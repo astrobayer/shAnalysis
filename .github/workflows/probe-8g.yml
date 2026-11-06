@@ -1,0 +1,73 @@
+# TEMPORARY probe for WP8 row 8g (real data): what the A8 DATAPOOL holds and
+# which data hosts A8 reaches. Not merged - the pull request carrying it is
+# closed once the log is read (CLAUDE.md 6.1, 2026-11-06).
+name: probe-8g
+on:
+  pull_request:
+    paths: ['.github/workflows/probe-8g.yml']
+jobs:
+  probe:
+    runs-on: self-hosted
+    timeout-minutes: 15
+    steps:
+      - name: DATAPOOL inventory
+        shell: powershell
+        run: |
+          $roots = @("C:\Users\Matthias Weigelt\Documents\DATAPOOL", "E:\DATAPOOL", "D:\DATAPOOL")
+          foreach ($r in $roots) {
+            if (-not (Test-Path $r)) { Write-Output "ABSENT $r"; continue }
+            Write-Output "=== $r"
+            Get-ChildItem $r -Directory -Recurse -Depth 3 -ErrorAction SilentlyContinue | ForEach-Object {
+              $f = Get-ChildItem $_.FullName -File -ErrorAction SilentlyContinue
+              $n = ($f | Measure-Object).Count
+              $s = [math]::Round((($f | Measure-Object -Property Length -Sum).Sum)/1MB, 1)
+              $ex = ($f | Select-Object -First 2 | ForEach-Object { $_.Name }) -join ", "
+              Write-Output ("{0}  files={1}  MB={2}  e.g. {3}" -f $_.FullName.Substring($r.Length), $n, $s, $ex)
+            }
+          }
+      - name: GRACE-FO L1B days by year and month
+        shell: powershell
+        run: |
+          $l1b = "C:\Users\Matthias Weigelt\Documents\DATAPOOL\GRACEFO\L1B"
+          if (Test-Path $l1b) {
+            Get-ChildItem $l1b -Directory -Recurse -Depth 3 | Where-Object { $_.Name -match '^\d{4}-\d{2}-\d{2}$' } |
+              Group-Object { $_.FullName.Substring($l1b.Length + 1, $_.FullName.Length - $l1b.Length - 4) } |
+              ForEach-Object { Write-Output ("{0}  days={1}" -f $_.Name, $_.Count) }
+          }
+      - name: Data hosts reachable from A8
+        shell: powershell
+        run: |
+          $ProgressPreference = 'SilentlyContinue'
+          $urls = @(
+            "https://ftp.tugraz.at/pub/ITSG/GRACE/",
+            "https://ftp.tugraz.at/pub/ITSG/GRACE/ITSG-Grace_operational/",
+            "https://ftp.tugraz.at/pub/ITSG/GRACE/ITSG-Grace2018/",
+            "https://ftp.tugraz.at/pub/ITSG/GRACE/ITSG-Grace2018/daily_kalman/",
+            "https://ftp.tugraz.at/pub/ITSG/GRACE/ITSG-Grace2018/monthly/normals_SINEX/",
+            "https://dataservices.gfz-potsdam.de/",
+            "https://isdc-data.gfz.de/",
+            "https://gravis.gfz.de/",
+            "https://podaac-tools.jpl.nasa.gov/",
+            "https://archive.podaac.earthdata.nasa.gov/"
+          )
+          foreach ($u in $urls) {
+            try {
+              $r = Invoke-WebRequest -Uri $u -UseBasicParsing -TimeoutSec 20
+              $links = ($r.Links | ForEach-Object { $_.href } | Where-Object { $_ -and $_ -notmatch '^\?|^/$|^\.\./' } | Select-Object -First 40) -join " "
+              Write-Output ("OK   {0}  {1}  {2}" -f $r.StatusCode, $u, $links)
+            } catch { Write-Output ("FAIL {0}  {1}" -f $u, $_.Exception.Message) }
+          }
+      - name: ITSG operational subfolders (two levels)
+        shell: powershell
+        run: |
+          $ProgressPreference = 'SilentlyContinue'
+          $base = "https://ftp.tugraz.at/pub/ITSG/GRACE/ITSG-Grace_operational/"
+          try {
+            $top = (Invoke-WebRequest -Uri $base -UseBasicParsing -TimeoutSec 20).Links | ForEach-Object { $_.href } | Where-Object { $_ -match '/$' -and $_ -notmatch '^\.\./|^/' }
+            foreach ($d in $top) {
+              try {
+                $sub = (Invoke-WebRequest -Uri ($base + $d) -UseBasicParsing -TimeoutSec 20).Links | ForEach-Object { $_.href } | Where-Object { $_ -notmatch '^\?|^\.\./|^/' } | Select-Object -First 30
+                Write-Output ("{0}: {1}" -f $d, ($sub -join " "))
+              } catch { Write-Output ("{0}: FAIL {1}" -f $d, $_.Exception.Message) }
+            }
+          } catch { Write-Output "FAIL $base" }
