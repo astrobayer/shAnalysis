@@ -6516,8 +6516,8 @@ for s = 1:nSeeds
         recs(k) = struct('N', r.N, 'b', r.b, 'epoch', epO(k));
     end
     switch model
-        case {"A", "E"}, Xm = realiseLoad(400, 0.20, load300, sdField);
-        case "C",        Xm = realiseLoad(400, 0.04, load300, sdField);
+        case "A",        Xm = realiseLoad(400, 0.20, load300, sdField);
+        case {"C", "E"}, Xm = realiseLoad(400, 0.04, load300, sdField);
         case "D",        Xm = realiseLoad(400, 0.20, load1000, sdField);
         case "B"
             XA = realiseLoad(400, 0.20, load300, sdField);
