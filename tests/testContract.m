@@ -3785,6 +3785,49 @@ verifyError(testCase, @() shLowLevel.buildCondFun(shLowLevel.shIndex(6), kn = kn
     Basis = struct('T', 1)), 'shLowLevel:buildCondFun:badBasis');
 end
 
+function testMaternCovarianceRouteAndIDs(testCase)
+%TESTMATERNCOVARIANCEROUTEANDIDS WP9 9g: ts.maternCovariance is the lane
+%   on shLowLevel.shIndex(ts.nmax) with the series' GM and R - bitwise -
+%   ts.regionalKalman forwards ProcessCov and StartCov - bitwise - and
+%   every new identifier is driven by the guard it names.
+tsObs = wp7Series(6, 30, 154);
+tsm = wp7Series(6, 120, 155);
+idx = shLowLevel.shIndex(6);
+kn = -0.3 ./ (1 + (0:6)');
+rho = @(la, lo) 2000 + 1000 * (la > 0);
+[C1, i1] = tsObs.maternCovariance(PracticalRangeKm = rho, Sigma = 0.02, kn = kn);
+[C2, i2] = shLowLevel.maternCovariance(idx, PracticalRangeKm = rho, Sigma = 0.02, ...
+    kn = kn, GM = tsObs.GM, R = tsObs.R);
+verifyTrue(testCase, isequal(C1, C2) && isequaln(i1, i2), ...
+    'ts.maternCovariance is not the lane');
+verifyEqual(testCase, i1.units, "ewh-stokes");
+B = tsObs.regionalBasis(@(la, lo) double(la > 50));
+opt = {"ProcessCov", C1, "StartCov", C1, "Climatology", false};
+[a1, o1] = tsObs.regionalKalman(B, opt{:}, ModelSeries = tsm);
+[a2, o2] = shLowLevel.regionalKalman(tsObs, B, opt{:}, ModelSeries = tsm);
+verifyTrue(testCase, isequaln(a1, a2) && isequaln(o1, o2), ...
+    'ts.regionalKalman with ProcessCov is not the lane');
+verifyTrue(testCase, o1.processCov && o1.startCov);
+verifyError(testCase, @() shLowLevel.maternCovariance(idx), ...
+    'shLowLevel:maternCovariance:badRange');
+verifyError(testCase, @() shLowLevel.maternCovariance(idx, ...
+    PracticalRangeKm = @(la, lo) -1 + 0 * la), 'shLowLevel:maternCovariance:badRange');
+verifyError(testCase, @() shLowLevel.maternCovariance(idx, ...
+    PracticalRangeKm = @(la, lo) 1000), 'shLowLevel:maternCovariance:badRange');
+verifyError(testCase, @() shLowLevel.maternCovariance(idx, PracticalRangeKm = 1000, ...
+    Sigma = 0), 'shLowLevel:maternCovariance:badSigma');
+verifyError(testCase, @() shLowLevel.maternCovariance(idx, PracticalRangeKm = 1000, ...
+    Sigma = @(la, lo) NaN(size(la))), 'shLowLevel:maternCovariance:badSigma');
+verifyError(testCase, @() shLowLevel.maternCovariance(idx, PracticalRangeKm = 1000, ...
+    MaxMemGB = 1e-6), 'shLowLevel:maternCovariance:tooLarge');
+verifyError(testCase, @() shLowLevel.regionalKalman(tsObs, B, ModelSeries = tsm, ...
+    ProcessCov = C1(1:end - 1, 1:end - 1)), 'shLowLevel:regionalKalman:badPrior');
+Cn = C1;
+Cn(1, 1) = NaN;
+verifyError(testCase, @() shLowLevel.regionalKalman(tsObs, B, ModelSeries = tsm, ...
+    StartCov = Cn), 'shLowLevel:regionalKalman:badPrior');
+end
+
 function testApplyDDKRefusesAnUnknownBlockType(testCase)
 %TESTAPPLYDDKREFUSESANUNKNOWNBLOCKTYPE v5.23.1: a block whose cs is not
 %   0 or 1 is refused. A W saved from designFilter before v5.23.1 carries

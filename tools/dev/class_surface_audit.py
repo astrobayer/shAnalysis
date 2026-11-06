@@ -172,6 +172,7 @@ DELEGATES = {
     ("shSeries", "signalVarianceKaula"): "signalVarianceKaula",
     ("shSeries", "basinScaling"): "basinScaling",
     ("shSeries", "buildCondFun"): "buildCondFun",
+    ("shSeries", "maternCovariance"): "maternCovariance",
 }
 
 
