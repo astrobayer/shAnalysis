@@ -109,7 +109,7 @@ class TestCounting(unittest.TestCase):
         self.assertEqual(c["runs"], c["methods"])
 
 
-EXPECTED_RUNS = 490          # v5.29.0: 486 + the four 9g tests (Matern prior)
+EXPECTED_RUNS = 493          # v5.30.0: 490 + the three 9h tests (sea-level fingerprint basis)
                              # (5 correctness, 4 contract, 2 robustness)
 
 

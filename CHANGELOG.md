@@ -1,5 +1,77 @@
 # Changelog
 
+## [5.30.0] - 2026-11-06 - WP9 9h: land mass and its sea-level fingerprint, solved jointly
+
+A MINOR release: new options on `regionalBasis` and a new output of
+`regionalKalman` (Matthias: "Merge and go ahead with 9h").
+
+### Added
+- `regionalBasis(..., Ocean = ocean, kn = kn, hn = hn)` (and the
+  `ts.`/`g.regionalBasis` routes): every column of T becomes the land
+  part of its basis function plus the elastic sea-level response that
+  land mass causes.
+  - The response uses the equations of `seaLevelFingerprint` (Farrell &
+    Clark 1976, elastic, no rotation, fixed coastlines), solved for all K
+    columns at once on the OverSample grid.
+  - B.Proj is rebuilt from the new T. For "slepian" it is then no longer
+    G'.
+  - The coefficients are LAND mass, and each column's total mass is zero
+    by construction.
+  - New field `B.fingerprint` carries the ocean mask, the iterations,
+    `converged`, `massResidual` and `coreLandEWH` (1 x K, each column's
+    mean land EWH over the region core).
+  - New options `SeaLevelTol` (1e-12) and `SeaLevelMaxIter` (200).
+  - `kn` is now accepted with any type when `Ocean` is given, and `hn`
+    only then. Both must cover degrees 0..Lmax, with 1 + k1 non-zero
+    (the CE frame).
+  - New identifier `regionalBasis:badOcean`: Ocean with Type "sh", or an
+    ocean that covers none or all of the sphere.
+- `regionalKalman` output `out.landMean` (mean, sigma): the region's mean
+  land EWH the coefficients carry, `coreLandEWH * a`, with its sigma
+  from the full smoothed covariance. It is [] for a basis without Ocean,
+  and the background is not in it.
+
+### Validated
+`tools/dev/validate_sea_level_basis.py` (numpy):
+- CLAIM 1: the iterated column solve equals a dense solve of the same
+  equation to 7.5e-15.
+- CLAIM 2: every column conserves mass to 1.2e-15.
+- CLAIM 3: the solve is linear to 8.0e-16.
+- CLAIM 4: a closed loop with leakage across the coast. Lmax 30, a
+  Greenland-like box whose edge is the coast plus a second continent;
+  the truth is -100 kg/m^2 of land loss and its sea-level response, fit
+  with an rbf Kaula basis.
+  - Without the fingerprint, the ocean response shifts the land mass of
+    a coastal-masked basis by +5.7% (300 km buffer) and +6.6% (600 km).
+  - With the fingerprint, the estimate is within 0.6% and 0.2% of the
+    same basis on a truth without ocean response. That baseline is the
+    basis' own representation error, -6.1% and -1.5%.
+  - The unmasked rbf basis recovers 0.64 and 0.83 of the loss: the
+    leakage across the coast.
+- CLAIM 5: with 5% noise at 600 km, the estimate stays within 1.51% of
+  the truth over 20 seeds.
+- CLAIM 6: the rebuilt projector reproduces the basis to 2.5e-11.
+
+### Recorded
+- CLAIM 4 was amended after its first run. It was written as "the
+  fingerprint basis within 2% of the TRUTH, the masked basis biased
+  >= 3%" for one buffer, with bounds from an exploratory run on a coarser
+  node selection.
+  - At 300 km that form is refuted: the representation error (-6.1%) is
+    larger than the bias and cancels it in the masked basis (-0.36%).
+  - The claim is now made against the representation error, at both
+    buffers. CLAIM 4R keeps the refuted form and fails if it ever holds.
+- The sea-level equation now has two implementations:
+  `seaLevelFingerprint` for one load, and `regionalBasis`'s column solve.
+  - The second is a vectorised copy of the first. It was not merged
+    into it, because that would change `seaLevelFingerprint` without a
+    captured reference, and this is a Tier-B session.
+  - The two are pinned against each other by
+    `testRegionalBasisOceanIsTheSeaLevelEquation`.
+- The rbf/mascon projector moved into a local function, `lsProjector`,
+  that the Ocean path also calls. The statements are unchanged.
+- Tests: +3 (Correctness 239, Contract 156), 493 runs predicted.
+
 ## [5.29.0] - 2026-11-06 - WP9 9g: a non-stationary SPDE-Matern prior for the regional Kalman filter
 
 A MINOR release: one new function, two options on `regionalKalman` and
