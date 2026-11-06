@@ -1049,7 +1049,7 @@ The last releases only; the full board, in version order, is
 | v5.28.0 (WP9 9f: `neqAddCoefficients`, low degrees as pseudo-observations) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally**; predicted 484 runs (Correctness 232, Contract 154). ☑ **CI self-hosted (A8) at `8801b4a` via PR #146, green — 484 runs, 476 passed, 0 failed, 8 filtered**; the count prediction matched EXACTLY, and the three new tests passed on their first run | ☑ PR #146 | ☑ 2026-10-29 |
 | v5.28.1 (WP8 8j: LGD records in a mascon basis, oracle + two tests) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle (claims 1, 3-10 pass, CLAIM 2 refuted as recorded), 0 findings | ☑ **Tier A on MATTHIASPC** (temp clone, R2026a): the two 8j tests 2 of 2 at `8325964` (77 s; one red round first at `f37a4e7`, the test's own case E on the wrong series). ☑ **CI self-hosted (A8) at `c0d43b9` via PR #147, green — 486 runs, 478 passed, 0 failed, 8 filtered**; the count prediction matched EXACTLY; the 8j tests 27 s and 65 s | ☑ PR #147 | ☑ 2026-11-06 |
 | v5.29.0 (WP9 9g: `maternCovariance`, `ProcessCov` / `StartCov` on `regionalKalman`) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally**; predicted 490 runs (Correctness 237, Contract 155). ☑ **CI self-hosted (A8) at `d1e82e0` via PR #149, green — 490 runs, 482 passed, 0 failed, 8 filtered**; the count prediction matched EXACTLY, and the four 9g tests passed on their first run (1.6, 2.6, 0.55 and 0.23 s) | ☑ PR #149 | ☑ 2026-11-06 |
-| v5.30.0 (WP9 9h: `regionalBasis(Ocean = ...)`, `out.landMean`) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally**; predicted 493 runs (Correctness 239, Contract 156). ☑ **CI self-hosted (A8) at `47dd85e` via PR #150, green — 493 runs, 485 passed, 0 failed, 8 filtered**; the count prediction matched EXACTLY, and the three 9h tests passed on their first run (0.07, 0.45 and 0.30 s) | ☑ PR #150 | ☐ |
+| v5.30.0 (WP9 9h: `regionalBasis(Ocean = ...)`, `out.landMean`) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally**; predicted 493 runs (Correctness 239, Contract 156). ☑ **CI self-hosted (A8) at `47dd85e` via PR #150, green — 493 runs, 485 passed, 0 failed, 8 filtered**; the count prediction matched EXACTLY, and the three 9h tests passed on their first run (0.07, 0.45 and 0.30 s) | ☑ PR #150 | ☑ 2026-11-06 |
 | v5.31.0 (WP9 9i: `backgroundErrorCov`, `AddNoiseCov`) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally**; predicted 496 runs (Correctness 241, Contract 157) | ☐ | ☐ |
 | v5.26.0 (WP9 9b: `shLowLevel.neqClimatology`) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally** (no bridge). ☑ **CI self-hosted (A8) at `4aa3aa9` via PR #139, green — 460 runs, 453 passed, 0 failed, 7 filtered** (the optional real-data fixtures); the count prediction matched EXACTLY, and the four 9b tests passed on their first run - no red round | ☑ PR #139 | ☑ 2026-10-24 |
 
@@ -1123,11 +1123,10 @@ One line per rule; the incident behind each, with its numbers, is in
 
 ### 6.4 Next action
 
-**State, 2026-11-06.** `main` is `4ab650c`, v5.29.0 (#149, 9g,
+**State, 2026-11-06.** `main` is `1005fc7`, v5.30.0 (#150, 9h,
 merged); every release since v5.24.1 carries
-`shAnalysis_workflow_guide.pdf`. v5.30.0 (9h, #150) is green
-and merges next; v5.31.0 (9i, background-model error) is on branch
-`wp9-background-error`. A re-measurement is a manual run of the
+`shAnalysis_workflow_guide.pdf`. v5.31.0 (9i, background-model error)
+is on branch `wp9-background-error`. A re-measurement is a manual run of the
 CI workflow with `closed_loop_nmax`, read from the log's `CLOSEDLOOP`
 lines. Every finding in 4.1 is CLOSED except A42,
 which holds five low items that need data or a run, not effort. Read the version from
