@@ -2417,6 +2417,9 @@ methods
         %     StoreCov (lane default)  "full" | "matfile"
         %     Background (lane default)  global background series, removed
         %         from the observations and restored (remove-compute-restore)
+        %     ProcessCov (lane default)  SH covariance replacing the process
+        %         noise, e.g. from ts.maternCovariance
+        %     StartCov (lane default)  SH covariance replacing the start
         %
         %   Example
         %     B = ts.regionalBasis("Elbe", Type = "slepian", Threshold = 0.5);
@@ -2448,9 +2451,54 @@ methods
             opts.QCAlpha
             opts.StoreCov
             opts.Background
+            opts.ProcessCov
+            opts.StartCov
         end
         args = namedargs2cell(opts);
         [tsK, out] = shLowLevel.regionalKalman(obj, B, args{:});
+    end
+
+    function [C, info] = maternCovariance(obj, opts)
+        %MATERNCOVARIANCE An SPDE-Matern prior covariance for this index.
+        %   [C, INFO] = ts.maternCovariance(PracticalRangeKm = RHO) is
+        %   shLowLevel.maternCovariance(shLowLevel.shIndex(ts.nmax),
+        %   PracticalRangeKm = RHO, GM = ts.GM, R = ts.R): the covariance
+        %   of the coefficients of a (non-)stationary Matern field in the
+        %   index ts.regionalKalman takes as ProcessCov or StartCov. That
+        %   function documents the SPDE, its discretisation and INFO.
+        %
+        %   Inputs
+        %     none beyond the object
+        %
+        %   Outputs
+        %     C     (P,P) double  the covariance in shLowLevel.shIndex(ts.nmax)
+        %           order
+        %     info  (1,1) struct  as returned by shLowLevel.maternCovariance,
+        %           which documents every field
+        %
+        %   Options
+        %     PracticalRangeKm (required by the lane)  local practical range
+        %         [km], a scalar or a handle f(latDeg, lonDeg)
+        %     Sigma (lane default)  local pointwise standard deviation
+        %     kn (lane default)  load Love numbers: Sigma in metres EWH
+        %     OverSample (lane default)  grid over-sampling
+        %     MaxMemGB (lane default)  memory limit of the solve
+        %
+        %   Example
+        %     C = tsModel.maternCovariance(PracticalRangeKm = 500, ...
+        %         Sigma = 0.02, kn = kn);
+        %     tsK = ts.regionalKalman(B, ModelSeries = tsModel, ProcessCov = C);
+        arguments
+            obj
+            opts.PracticalRangeKm
+            opts.Sigma
+            opts.kn
+            opts.OverSample
+            opts.MaxMemGB
+        end
+        args = namedargs2cell(opts);
+        [C, info] = shLowLevel.maternCovariance(shLowLevel.shIndex(obj.nmax), ...
+            "GM", obj.GM, "R", obj.R, args{:});
     end
 
     function [b, info] = basinKernel(obj, region, opts)

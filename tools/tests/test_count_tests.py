@@ -109,7 +109,7 @@ class TestCounting(unittest.TestCase):
         self.assertEqual(c["runs"], c["methods"])
 
 
-EXPECTED_RUNS = 486          # v5.28.1: 484 + the two 8j LGD-mascon closed-loop tests
+EXPECTED_RUNS = 490          # v5.29.0: 486 + the four 9g tests (Matern prior)
                              # (5 correctness, 4 contract, 2 robustness)
 
 

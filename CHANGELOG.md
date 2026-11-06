@@ -1,5 +1,77 @@
 # Changelog
 
+## [5.29.0] - 2026-11-06 - WP9 9g: a non-stationary SPDE-Matern prior for the regional Kalman filter
+
+A MINOR release: one new function, two options on `regionalKalman` and
+one class route (Matthias: "Go ahead with 9g").
+
+### Added
+- `shLowLevel.maternCovariance(idx, PracticalRangeKm = rho, Sigma = s)`:
+  the covariance of the SH coefficients of the Gaussian field of the
+  stochastic PDE of Lindgren, Rue and Lindstroem (2011), alpha = 2:
+  (kappa(x)^2 - Laplace)(tau(x) u) = W, kappa = sqrt(8) / rho. The two
+  fields are the LOCAL practical range [km] and the LOCAL pointwise
+  standard deviation. Scalars give the stationary Matern field, and
+  function handles f(latDeg, lonDeg) give a non-stationary one.
+  - It is discretised by Galerkin in the SH of degrees 0..Lmax in place
+    of Lindgren's finite elements. The multiplications by kappa^2 and
+    1/tau are quadrature Gram matrices on an over-sampled Gauss-Legendre
+    grid, built one ring at a time: Cov = M A^-1 A^-1 M / (4 pi). The
+    index' degrees are taken as the sub-matrix.
+  - tau is set so that a constant Sigma is the pointwise standard
+    deviation EXACTLY.
+  - With `kn`, Sigma is in metres EWH and C is the covariance of Stokes
+    coefficients. Without `kn` the field is the coefficients' own SH
+    expansion.
+  - `MaxMemGB` (8) refuses beyond the five (Lmax+1)^2 square matrices of
+    the solve: 0.55 GB at Lmax 60, 3.5 GB at Lmax 96.
+- `ts.maternCovariance(...)`: the route on `shIndex(ts.nmax)` with the
+  series' GM and R (the `buildCondFun` precedent).
+- `regionalKalman` / `ts.regionalKalman`, new options:
+  - `ProcessCov = C` replaces the process noise the model series gives
+    with Proj C Proj'. The VAR coefficients still come from the model
+    series. QScale, QBlocks and EstimateQScale scale the prior as they
+    scale an estimated Q, so 8i's block scales are the coarse form of a
+    Sigma that varies in space.
+  - `StartCov = C` replaces Sigma0, the filter's start.
+  - The new fields `out.processCov` and `out.startCov` say which was
+    used, and a matrix of the wrong size or a non-finite one is refused
+    as `regionalKalman:badPrior`.
+  - Without either option the chain is unchanged.
+
+### Validated
+`tools/dev/validate_matern_prior.py` (numpy, mpmath):
+- CLAIM 1: the stationary covariance's Legendre series equals the closed
+  form d/dlambda [P_nu(-cos psi) / (4 sin(pi nu))], nu (nu + 1) =
+  -lambda, to 1.1e-14 of C(0).
+- CLAIM 2: constant fields give the diagonal Matern degree variances to
+  3.0e-14 and the pointwise std to 5.4e-13.
+- CLAIM 3: a pair covariance is the truncated series to 3.0e-16.
+- CLAIM 4: a range of 1500 / 3000 km and Sigma 2 / 1 in the two
+  hemispheres give, deep in each half, the local Sigma within 0.34% and
+  the local correlation distance within 0.47%.
+- CLAIM 5: the covariance is symmetric and positive definite.
+- CLAIM 6: a VAR(1) closed loop with the true non-stationary prior as Q
+  gives z-rms 0.98-1.02 over 20 seeds. A diagonal Q from a 60-epoch
+  model series gives 1.14, and the stationary prior of the mean
+  parameters 1.08. The true prior has 0.94 of their error in every seed.
+
+The gain is modest, and it is honesty more than accuracy: a model series
+cannot estimate the structure, and a prior supplies it.
+
+### Recorded
+- HB-STAR's own parameterisation of the two fields was not found (a web
+  search returned Lindgren et al., R-INLA and Fuglstad et al., not
+  HB-STAR). What is built is the published SPDE with log-range and
+  log-sigma fields the caller supplies, the form R-INLA uses. Choosing
+  or estimating the fields from data is not part of this release.
+- CLAIM 4's bounds (1 and 2 percent) were set after one exploratory run
+  at the same configuration (0.2 and 0.7 percent).
+- The closed loop runs in the oracle only. The MATLAB tests pin the
+  covariance (CLAIMs 2, 4, 5) and the identities of the chain: Q =
+  Proj C Proj' bitwise, QScale on top of it, StartCov on Sigma0 alone.
+- Tests: +4 (Correctness 237, Contract 155), 490 runs predicted.
+
 ## [5.28.1] - 2026-11-06 - WP8 8j: LGD records in a mascon basis, closed loop
 
 A PATCH release: an oracle and two tests, no change to any function.

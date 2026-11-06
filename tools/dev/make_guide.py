@@ -1787,6 +1787,38 @@ story += code("""
 cf = shLowLevel.buildCondFun(B.idx, kn = kn, Psi0Km = 1100, Basis = B);
 [tsK, out] = tsGrace.regionalKalman(B, ModelSeries = tsESM, CondFun = cf, Order = 2);
 """)
+story += [para("A Matern prior in place of Q (v5.29.0)", "h3"),
+          para("A model series of a few years cannot estimate a full process "
+               "noise in K unknowns. shLowLevel.maternCovariance builds one "
+               "from two fields instead: the stochastic PDE of Lindgren, Rue "
+               "and Lindstroem (2011) with alpha = 2,")]
+story += eq(r"\left(\kappa(x)^2-\Delta\right)\left(\tau(x)\,u(x)\right)=W(x),\qquad \kappa=\sqrt{8}/\rho,")
+story += [para("rho the local practical range and tau set so that the pointwise "
+               "standard deviation is the local Sigma. Scalars give the "
+               "stationary Matern field, function handles a non-stationary "
+               "one. It is discretised by Galerkin in the SH up to the band "
+               "limit, with the multiplications as quadrature Gram matrices. "
+               "regionalKalman takes the result as ProcessCov (Q = Proj C "
+               "Proj', the dynamics still from the model series) or StartCov, "
+               "and QScale, QBlocks and EstimateQScale scale it: the block "
+               "scales are the coarse form of a Sigma that varies in space. "
+               "Checked in tools/dev/validate_matern_prior.py: the stationary "
+               "series equals the closed form through the Legendre function of "
+               "complex degree to 1.1e-14; constant fields give the Matern "
+               "degree variances to 3.0e-14; with two hemispheres of different "
+               "range and Sigma the local std and correlation distance match "
+               "the stationary field's with the local parameters within 0.5%. "
+               "As the process noise of a VAR(1) closed loop the true prior "
+               "gives honest smoothed sigmas (z-rms 0.98-1.02 over 20 seeds) "
+               "where a diagonal Q from a 60-epoch model series gives 1.14, "
+               "at 0.94 of its error. HB-STAR's own parameterisation of the "
+               "fields was not available; this is the published SPDE.")]
+story += code("""
+rho = @(lat, lon) 300 + 500 * (abs(lat) > 60);                  % km
+C = tsESM.maternCovariance(PracticalRangeKm = rho, Sigma = 0.02, kn = kn);
+[tsK, out] = tsGrace.regionalKalman(B, ModelSeries = tsESM, ProcessCov = C, ...
+    EstimateQScale = true);
+""")
 
 story += [para("40. References", "h2"),
           *bullets([
@@ -1828,6 +1860,10 @@ story += [para("40. References", "h2"),
     "Daten der Satellitenmission GRACE. DGK Reihe C, Nr. 683, Bonn. "
     "(The VAR(1) closed form and the contribution diagnostic of "
     "chapter 27.)",
+    "Lindgren, F., Rue, H., Lindstroem, J. (2011): An explicit link "
+    "between Gaussian fields and Gaussian Markov random fields: the "
+    "stochastic partial differential equation approach. J. R. Stat. Soc. "
+    "B 73, 423&ndash;498. (The Matern prior of chapter 39.)",
     "Kvas, A. (2019): Estimation of high-frequency mass variations "
     "from GRACE inter-satellite ranging. PhD thesis, TU Graz. (The "
     "batch-equivalence, innovation QC and EWH conditioning of "

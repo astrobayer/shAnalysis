@@ -6253,6 +6253,116 @@ verifyTrue(testCase, isequaln(t3, t4) && isequaln(rmfield(o3, 'qBlocks'), ...
     rmfield(o4, 'qBlocks')), 'one block is not the plain chain');
 end
 
+function testMaternCovarianceStationaryIsTheMaternSpectrum(testCase)
+%TESTMATERNCOVARIANCESTATIONARYISTHEMATERNSPECTRUM WP9 9g: with constant
+%   fields the Galerkin covariance of the SPDE is the diagonal of the
+%   Matern degree variances (kappa~^2 + n(n+1))^-2 / (4 pi tau^2), and the
+%   pointwise standard deviation over the index' degrees is Sigma at every
+%   point (validate_matern_prior.py CLAIM 2: 3.0e-14 and 5.4e-13). With kn
+%   the covariance is that of Stokes coefficients, C_field / (f_i f_j).
+L = 30;
+idx = shLowLevel.shIndex(L);
+rho = 1500;
+sig = 2;
+R = 6378136.3;
+[C, info] = shLowLevel.maternCovariance(idx, PracticalRangeKm = rho, Sigma = sig, R = R);
+k = sqrt(8) * (R / 1000) / rho;
+nn = (2:L);
+tau2 = sum((2 * nn + 1) ./ (k^2 + nn .* (nn + 1)).^2) / (4 * pi) / sig^2;
+D = 1 ./ (k^2 + idx.n .* (idx.n + 1)).^2 / (4 * pi * tau2);
+% 1e-12: the claim's bound on the rounding of the Gram matrices and the
+% solve (oracle 3.0e-14)
+verifyLessThan(testCase, max(abs(C - diag(D)), [], 'all') / max(D), 1e-12);
+verifyTrue(testCase, info.stationary && info.units == "field");
+latD = [10; -40; 70; 89];
+lonD = [30; 200; 300; 0];
+Y = shLowLevel.ylm(deg2rad(latD), deg2rad(lonD), idx);
+sd = sqrt(sum((Y * C) .* Y, 2));
+% 2e-12: 4x the oracle's 5.4e-13, the Legendre recursion near the pole
+verifyLessThan(testCase, max(abs(sd / sig - 1)), 2e-12);
+kn = -0.3 ./ (1 + (0:L)');
+f = shLowLevel.kernelFactors("ewh", L, 3.986004415e14, R, kn = kn);
+fi = f(idx.n + 1);
+Ck = shLowLevel.maternCovariance(idx, PracticalRangeKm = rho, Sigma = sig, ...
+    R = R, kn = kn);
+% 4 eps: one division per element and the symmetrisation
+verifyLessThan(testCase, max(abs(Ck .* (fi(:) .* fi(:).') - C), [], 'all') / max(D), 4 * eps);
+end
+
+function testMaternCovarianceNonStationaryIsLocal(testCase)
+%TESTMATERNCOVARIANCENONSTATIONARYISLOCAL WP9 9g: a range of 1500 / 3000
+%   km and a Sigma of 2 / 1 in the eastern / western hemisphere (tanh
+%   transition, Lmax 30). Deep in each half the pointwise std is the local
+%   Sigma within 1 percent and the 0.139-correlation distance that of the
+%   stationary field with the local parameters within 2 percent
+%   (validate_matern_prior.py CLAIM 4, measured 0.34 and 0.47 percent;
+%   the bounds were set from one exploratory run, recorded in 6.1). The
+%   covariance is symmetric and positive definite (CLAIM 5).
+L = 30;
+idx = shLowLevel.shIndex(L);
+tr = @(lo) tanh(sind(lo) / 0.3);
+rho = @(la, lo) 1500 * sqrt(2) * exp(-0.5 * log(2) * tr(lo));
+sig = @(la, lo) sqrt(2) * exp(0.5 * log(2) * tr(lo));
+[C, info] = shLowLevel.maternCovariance(idx, PracticalRangeKm = rho, Sigma = sig);
+verifyFalse(testCase, info.stationary);
+verifyTrue(testCase, isequal(C, C.'), 'not symmetric');
+[~, flag] = chol(C);
+verifyEqual(testCase, flag, 0, 'not positive definite');
+for lon0 = [90, 270]
+    rl = rho(0, lon0);
+    sl = sig(0, lon0);
+    Cl = shLowLevel.maternCovariance(idx, PracticalRangeKm = rl, Sigma = sl);
+    [dn, sdn] = maternCorrDistance(C, idx, lon0);
+    dl = maternCorrDistance(Cl, idx, lon0);
+    verifyLessThan(testCase, abs(sdn / sl - 1), 0.01);
+    verifyLessThan(testCase, abs(dn / dl - 1), 0.02);
+end
+end
+
+function [d0, sd0] = maternCorrDistance(C, idx, lon0)
+% The distance north of (0, lon0) where the correlation with (0, lon0)
+% first falls below 0.139, interpolated linearly, and the std there.
+RKM = 6378.1363;
+d = linspace(0, 6000, 1201)';
+lat = rad2deg(d / RKM);
+Y = shLowLevel.ylm(deg2rad(lat), deg2rad(lon0 + 0 * lat), idx);
+cv = Y * (C * Y(1, :).');
+v = sum((Y * C) .* Y, 2);
+r = cv ./ sqrt(v * v(1));
+j = find(r < 0.139, 1);
+d0 = d(j - 1) + (r(j - 1) - 0.139) / (r(j - 1) - r(j)) * (d(j) - d(j - 1));
+sd0 = sqrt(v(1));
+end
+
+function testRegionalKalmanProcessCovReplacesQ(testCase)
+%TESTREGIONALKALMANPROCESSCOVREPLACESQ WP9 9g: ProcessCov = C makes the
+%   process noise Proj C Proj' - bitwise - with the VAR coefficients and
+%   Sigma0 still the model series'; QScale scales it as D Q D. StartCov
+%   replaces Sigma0 the same way and leaves Q alone. Without either, the
+%   chain is unchanged.
+[tsm, tsObs, ~, idx] = scaleFixture(94, 1);
+B = shLowLevel.regionalBasis(idx, [], Type = "sh");
+args = {"ModelSeries", tsm, "Climatology", false};
+[~, o0] = shLowLevel.regionalKalman(tsObs, B, args{:});
+C = shLowLevel.maternCovariance(idx, PracticalRangeKm = 4000, Sigma = 1e-9);
+Cb = full(B.Proj * C * B.Proj.');
+Cb = (Cb + Cb.') / 2;
+[~, oP] = shLowLevel.regionalKalman(tsObs, B, args{:}, ProcessCov = C);
+verifyTrue(testCase, isequal(oP.model.Q, Cb), 'Q is not Proj C Proj''');
+verifyTrue(testCase, isequal(oP.model.Phi, o0.model.Phi) && ...
+    isequal(oP.model.Sigma0, o0.model.Sigma0), 'the dynamics or Sigma0 changed');
+verifyTrue(testCase, oP.processCov && ~oP.startCov && ~o0.processCov && ~o0.startCov);
+[~, o3] = shLowLevel.regionalKalman(tsObs, B, args{:}, ProcessCov = C, QScale = 3);
+d = sqrt(3) * ones(B.K, 1);
+Q3 = d .* Cb .* d.';
+Q3 = (Q3 + Q3.') / 2;
+verifyTrue(testCase, isequal(o3.model.Q, Q3), 'QScale does not scale the prior');
+[~, oS] = shLowLevel.regionalKalman(tsObs, B, args{:}, StartCov = C);
+verifyTrue(testCase, isequal(oS.model.Sigma0, Cb) && isequal(oS.model.Q, o0.model.Q), ...
+    'StartCov did not replace Sigma0 alone');
+verifyTrue(testCase, oS.startCov && ~oS.processCov);
+end
+
 function testRegionalKalmanOrderTwoOnTheSHBasisIsKalmanChain(testCase)
 %TESTREGIONALKALMANORDERTWOONTHESHBASISISKALMANCHAIN VAR(2) through the
 %   regional chain: on the SH basis it is kalmanChain at Order 2 - the same

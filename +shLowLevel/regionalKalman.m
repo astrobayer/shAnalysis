@@ -104,6 +104,21 @@ function [ts, out] = regionalKalman(obsIn, B, opts)
 %   shLowLevel.buildCondFun(..., Basis = B) turns Kvas' space-domain
 %   conditioner into one of basis covariances.
 %
+%   A prior in place of the model series' Q (ProcessCov, StartCov). An SH
+%   covariance C (P x P, B.idx order) - the non-stationary SPDE-Matern
+%   prior of shLowLevel.maternCovariance, or any other - replaces the
+%   process noise the model series gives: Q0 = Proj C Proj', the VAR
+%   coefficients still estimated from ModelSeries. QScale, QBlocks and
+%   EstimateQScale then scale it as they scale the estimated Q, so the
+%   block scales of 8i are the coarse form of a prior whose sigma varies
+%   in space. StartCov likewise replaces Sigma0, the filter's start. A
+%   model series of a few years cannot estimate a full Q in K unknowns;
+%   a prior has K x K structure from two fields. In the closed loop of
+%   tools/dev/validate_matern_prior.py (CLAIM 6) the true non-stationary
+%   prior gives smoothed sigmas that are honest (z-rms 0.98-1.02 over 20
+%   seeds) where a diagonal Q from a 60-epoch model series gives 1.14, at
+%   0.94 of its error.
+%
 %   Inputs
 %     obsIn  (1,1) shSeries | (1,M) struct  the observations, see above;
 %            a series must reach exactly degree B.idx.Lmax
@@ -163,6 +178,11 @@ function [ts, out] = regionalKalman(obsIn, B, opts)
 %     StoreCov ("full")  "full" | "matfile"   where the filter keeps the
 %                    covariances the smoother needs (see kalmanFilter); a
 %                    matfile is deleted after smoothing
+%     ProcessCov ([])  (P,P) double  SH covariance in B.idx order that
+%                    replaces the process noise: Q0 = Proj C Proj', then
+%                    scaled by QScale / EstimateQScale, see above
+%     StartCov ([])  (P,P) double  SH covariance in B.idx order that
+%                    replaces Sigma0, the filter's start: Proj C Proj'
 %     Background ([]) (1,1) shSeries  global background, nmax =
 %                    B.idx.Lmax, with an epoch within Tolerance of every
 %                    observation and every output epoch: removed from the
@@ -220,6 +240,9 @@ function [ts, out] = regionalKalman(obsIn, B, opts)
 %          qScale           (nB,1) double  the alphas used (estimated
 %                           with EstimateQScale)
 %          qBlocks          (K,1) double  the block of every coefficient
+%          processCov       (1,1) logical  whether ProcessCov replaced Q
+%          startCov         (1,1) logical  whether StartCov replaced
+%                           Sigma0
 %          qEstimate        (1,1) struct  the search, fields
 %                           estimated    (1,1) logical  EstimateQScale
 %                           start        (nB,1) double  QScale given
@@ -265,6 +288,9 @@ function [ts, out] = regionalKalman(obsIn, B, opts)
 %     shLowLevel:regionalKalman:badQBlocks
 %         QBlocks is not one label 1..nB per basis coefficient with every
 %         block used, or QScale has neither 1 nor nB entries
+%     shLowLevel:regionalKalman:badPrior
+%         ProcessCov or StartCov is not a finite P x P matrix in the
+%         basis' index
 %
 %   References
 %     Kurtenbach, E. (2012), Entwicklung eines Kalman-Filters zur
@@ -281,14 +307,19 @@ function [ts, out] = regionalKalman(obsIn, B, opts)
 %     Shumway, R.H., Stoffer, D.S. (1982), An approach to time series
 %       smoothing and forecasting using the EM algorithm, J. Time Ser.
 %       Anal. 3, 253-264.
+%     Lindgren, F., Rue, H., Lindstroem, J. (2011), An explicit link
+%       between Gaussian fields and Gaussian Markov random fields: the
+%       stochastic partial differential equation approach, J. R. Stat.
+%       Soc. B 73, 423-498.
 %
 %   Numerics pre-validated in Python (tools/dev/validate_regional_kalman.py,
 %   tools/dev/validate_regional_rcr.py, tools/dev/validate_regional_
-%   adaptive.py).
+%   adaptive.py, tools/dev/validate_matern_prior.py).
 %
 %   Developed by Matthias Weigelt with the help of Claude (Opus 5.5),
 %   2026-10-21 (Background: 2026-10-21, WP8 8e; process-noise scales:
-%   2026-10-21, WP8 8i; FitClimatology: 2026-10-21, A34).
+%   2026-10-21, WP8 8i; FitClimatology: 2026-10-21, A34; ProcessCov and
+%   StartCov: 2026-11-06, WP9 9g).
 arguments
     obsIn
     B (1,1) struct
@@ -311,6 +342,8 @@ arguments
     opts.QC (1,1) string {mustBeMember(opts.QC, ["none", "flag", "reject"])} = "none"
     opts.QCAlpha (1,1) double {mustBeInRange(opts.QCAlpha, 0, 1, "exclusive")} = 1e-3
     opts.StoreCov (1,1) string {mustBeMember(opts.StoreCov, ["full", "matfile"])} = "full"
+    opts.ProcessCov double = []
+    opts.StartCov double = []
     opts.Background = []
 end
 if ~all(isfield(B, {'T', 'Proj', 'idx', 'type', 'region', 'K'}))
@@ -349,15 +382,23 @@ elseif numel(qs0) ~= nB
         'QScale has %d entries for %d blocks; give one, or one per block.', ...
         numel(qs0), nB);
 end
-plain = nB == 1 && ~opts.EstimateQScale;        % v5.18.0's path, bitwise
+hasProc = ~isempty(opts.ProcessCov);
+hasStart = ~isempty(opts.StartCov);
+plain = nB == 1 && ~opts.EstimateQScale && ~hasProc;   % v5.18.0's path, bitwise
 qModel = 1;
 if plain, qModel = qs0; end
 [model, pinfo] = shLowLevel.regionalProcessModel(tsm, B, Order = opts.Order, ...
     Shrink = opts.Shrink, Structure = opts.Structure, CondFun = opts.CondFun, ...
     QScale = qModel, GroundNoise = opts.GroundNoise, kn = opts.kn);
 Q0 = model.Q;
+if hasProc                                      % 9g: a prior as Q
+    Q0 = basisCov(opts.ProcessCov, B, P);
+end
 if ~plain
     model.Q = scaleQ(Q0, qs0, blocks);
+end
+if hasStart                                     % 9g: a prior as the start
+    model.Sigma0 = basisCov(opts.StartCov, B, P);
 end
 
 % ---- 2. observation records
@@ -509,7 +550,17 @@ out = struct('mode', modeName, 'basisType', B.type, 'K', K, ...
     'representation', pinfo.representation, 'model', model, ...
     'basin', basin, 'grid', gridOut, 'memGB', memGB, 'background', hasBg, ...
     'negLogLik', sum(filt.negLogLik), 'qScale', qs, 'qBlocks', blocks, ...
-    'qEstimate', qEst);
+    'qEstimate', qEst, 'processCov', hasProc, 'startCov', hasStart);
+end
+
+function Cb = basisCov(C, B, P)
+% An SH covariance (P x P, B.idx order) in the basis: Proj C Proj'.
+if ~isequal(size(C), [P P]) || ~all(isfinite(C(:)))
+    error('shLowLevel:regionalKalman:badPrior', ...
+        'ProcessCov and StartCov must be finite %d x %d matrices in B.idx order.', P, P);
+end
+Cb = full(B.Proj * C * B.Proj.');
+Cb = (Cb + Cb.') / 2;
 end
 
 function [blocks, nB] = qBlocks(lab, K)
