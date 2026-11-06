@@ -1,5 +1,73 @@
 # Changelog
 
+## [5.28.1] - 2026-11-06 - WP8 8j: LGD records in a mascon basis, closed loop
+
+A PATCH release: an oracle and two tests, no change to any function.
+This is the shAnalysis half of lgdToolbox's decision D141 (its R-049,
+Matthias: "Go ahead with all three of them"). lgdToolbox hands a regional
+filter its LGD records (`regionalNEQ` kind "lgd", row 8h), not a Route C
+state. Its R-048 study had found, with Route C's estimator, that an
+isotropic prior cannot give a localised load an honest sigma, and that
+mascons at the right mass scale can. The question here is whether this
+toolbox's own chain - `regionalBasis(Type = "mascon")`, the process model
+from a model series, `regionalKalman` with LGD records - does the same,
+and how it fails.
+
+### Added
+- **Oracle `tools/dev/validate_regional_lgd_mascon.py`.** A closed loop
+  written independently of the MATLAB code, with its claims committed
+  before the run (`0d3ccec`).
+  - Set-up: nmax 30; a 300 km Gaussian load at 51 N 12 E (AR(1), sd
+    0.20 m); a broad global field of about 2 cm; 30 daily epochs of 400
+    LGD records; 16 mascons of 403 km over a 1200 km cap plus 600 km.
+  - Model series: the right one (A), an isotropic one (B), amplitude / 5
+    (C), C with `EstimateQScale` (E), and a 1000 km footprint (D).
+  - The filter and smoother equal the dense joint posterior (states
+    9.7e-16, covariances 3.1e-15).
+- **`testRegionalKalmanLgdMasconNeedsTheBackground`** and
+  **`testRegionalKalmanLgdMasconFailureModes`** in `testCorrectness`.
+  They run the same loop through the MATLAB chain over four seeds.
+  On MATTHIASPC (Tier A), with the 0.8 background:
+  - model A: point z-rms 1.15; without the background, basin z-rms
+    1.65, falling to 0.99 with it;
+  - point z-rms B 1.86, C 2.08, E 1.46, D 5.51;
+  - E's alpha median 2.42;
+  - D's point error 4.0x A's.
+  486 runs predicted.
+
+### Measured (20 seeds, the oracle)
+- **CLAIM 2 was refuted: without a background even the right model is
+  overconfident.** The basin mean's z-rms is 1.80 and the point value's
+  1.41.
+  - The basis represents a median 0.67 of the truth's energy over the
+    buffered region. The broad field is global, and the part the
+    regional basis cannot carry reaches the records as signal that
+    neither the state nor the noise model holds.
+  - An exploratory run placed the cause. With the field at 0.1 of its
+    size the z-rms is 1.02 / 1.06.
+  - The claim stays in the oracle as REFUTED. It fails if it ever holds,
+    because the record would then be stale.
+- **With 80% of the broad field as `Background` (row 8e) the right model
+  is calibrated:** z-rms 0.96 basin and 0.97 point, 96% within 2 sigma.
+  The basin error falls from 0.198 to 0.109 cm. These claims (7-10) were
+  written before their run.
+- **The failure modes F175 named hold in this chain**, all at the point
+  value. The basin mean stays calibrated for B and C (z-rms 0.99, 1.01).
+  - isotropic model (B): z-rms 1.65;
+  - amplitude 5x too small (C): z-rms 1.85;
+  - `EstimateQScale` (E) sees part of C's scale: alpha median 2.08 where
+    the load part's truth is 25, and z-rms 1.31;
+  - a 1000 km footprint (D): 4.4x the point error and z-rms 5.23.
+
+### What it means for a user
+LGD records into `regionalKalman` need a global background: remove-
+compute-restore of what the regional basis cannot hold, as for SH
+solutions in 8e. With it, a mascon basis and a model series of the right
+footprint and scale give an honest sigma for a localised load. A wrong
+scale is only partly repaired by `EstimateQScale`, because Q is scaled
+as one block and Sigma(0) is not scaled at all. A wrong footprint is not
+repaired by anything here.
+
 ## [5.28.0] - 2026-10-29 - WP9 9f: low degrees estimated jointly, not substituted
 
 A MINOR release: one new low-level function, no change to any existing
