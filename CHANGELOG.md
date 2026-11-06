@@ -1,5 +1,58 @@
 # Changelog
 
+## [5.31.0] - 2026-11-06 - WP9 9i: background-model error as an additive SH covariance
+
+A MINOR release: one new function, one class route and one option of
+`regionalKalman` (Matthias: "Merge and go ahead with 9i").
+
+### Added
+- `shLowLevel.backgroundErrorCov(tsA, tsB)` estimates the covariance of
+  the error of a background model from two releases or two models of it.
+  Examples are AOD1B and ocean tide models: products a GRACE solution has
+  had removed, whose error is not in its formal covariance.
+  - The estimate is taken at the common epochs, with the mean difference
+    removed: C = Split * S_d, where S_d is the sample covariance of the
+    differences. `Split` defaults to 1/2 for two independent errors of
+    equal size; use 1 for a much better reference.
+  - `Structure` is "full", "diagonal" or "degree" (isotropic), with
+    `Shrink` toward the diagonal.
+  - `info` carries the epochs, the rank, the per-degree RMS and the mean
+    difference removed.
+  - New identifiers: `badSeries`, `tooFewEpochs`.
+- `ts.backgroundErrorCov(tsB)`, the class route.
+- `regionalKalman(..., AddNoiseCov = C)` (and `ts.regionalKalman`):
+  - In solution mode, C is added to every epoch's noise covariance, the
+    formal sigmas' or NoiseCov's.
+  - It is refused in record mode, where it belongs in the records'
+    covariances.
+  - New identifier `regionalKalman:badAddNoiseCov`.
+
+### Validated
+`tools/dev/validate_background_error.py` (numpy):
+- CLAIM 1: with 4000 epochs and P 77, the full estimate is within 0.064
+  of the truth (bound 3 sqrt(P/T) = 0.416), the diagonal within 5.0%
+  (bound 6.7%), and an offset between the releases is removed.
+- CLAIM 2: the degree form is unbiased for an isotropic error.
+- CLAIM 3: two releases sharing an error with correlation 0.5 give
+  0.501 of it. This is the stated limitation: (1 - rho) C.
+- CLAIM 4: a closed loop with Lmax 12, VAR(1), 60 epochs and 20 seeds.
+  The background error is four times the formal variance at degrees 2-4.
+  - Formal noise only: pooled z-rms 1.378.
+  - Formal noise plus C from 60 months of release differences: 0.973,
+    with the lower error in 20 of 20 seeds.
+
+### Recorded
+- It is L2 only, as the row says. An error both releases make alike is
+  invisible to it, and the full answer is an L1B inversion (HB-STAR),
+  which is not this toolbox's.
+- No real release pair was read: neither AOD1B RL06/RL07 nor two tide
+  models are reachable from this session. The real-data size of the
+  effect is debt for the acceptance machine.
+- `kalmanChain` did not get `AddNoiseCov`. With constant formal sigmas,
+  `NoiseCov = diag(sigma^2) + C` does the same there, which is exactly
+  the identity the new MATLAB test pins for `regionalKalman`.
+- Tests: +3 (Correctness 241, Contract 157), 496 runs predicted.
+
 ## [5.30.0] - 2026-11-06 - WP9 9h: land mass and its sea-level fingerprint, solved jointly
 
 A MINOR release: new options on `regionalBasis` and a new output of

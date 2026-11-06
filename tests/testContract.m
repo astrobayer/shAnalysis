@@ -3564,6 +3564,40 @@ verifyError(testCase, @() shLowLevel.regionalBasis(idx, cap, Ocean = ocean, ...
     kn = knCM, hn = hn), 'shLowLevel:regionalBasis:badLoveNumbers');
 end
 
+function testBackgroundErrorCovRouteAndIDs(testCase)
+%TESTBACKGROUNDERRORCOVROUTEANDIDS WP9 9i: ts.backgroundErrorCov is the
+%   lane - bitwise, with options and without - ts.regionalKalman forwards
+%   AddNoiseCov, and every new identifier is driven by its guard.
+tsA = wp7Series(6, 30, 158);
+tsB = wp7Series(6, 30, 159);
+[C1, i1] = tsA.backgroundErrorCov(tsB, Shrink = 0.2, Structure = "full");
+[C2, i2] = shLowLevel.backgroundErrorCov(tsA, tsB, Shrink = 0.2, Structure = "full");
+verifyTrue(testCase, isequal(C1, C2) && isequaln(i1, i2), ...
+    'ts.backgroundErrorCov is not the lane');
+verifyTrue(testCase, isequal(tsA.backgroundErrorCov(tsB), ...
+    shLowLevel.backgroundErrorCov(tsA, tsB)), 'the default route is not the lane');
+tsm = wp7Series(6, 120, 160);
+B = tsA.regionalBasis(@(la, lo) double(la > 50));
+[a1, o1] = tsA.regionalKalman(B, ModelSeries = tsm, Climatology = false, AddNoiseCov = C1);
+[a2, o2] = shLowLevel.regionalKalman(tsA, B, ModelSeries = tsm, Climatology = false, ...
+    AddNoiseCov = C1);
+verifyTrue(testCase, isequaln(a1, a2) && isequaln(o1, o2), ...
+    'ts.regionalKalman with AddNoiseCov is not the lane');
+verifyError(testCase, @() shLowLevel.backgroundErrorCov(tsA, 1), ...
+    'shLowLevel:backgroundErrorCov:badSeries');
+verifyError(testCase, @() shLowLevel.backgroundErrorCov(tsA, wp7Series(5, 30, 161)), ...
+    'shLowLevel:backgroundErrorCov:badSeries');
+tsLate = shSeries(tsB.Cs, Ss = tsB.Ss, Epochs = tsB.epochs + 50);
+verifyError(testCase, @() shLowLevel.backgroundErrorCov(tsA, tsLate), ...
+    'shLowLevel:backgroundErrorCov:tooFewEpochs');
+verifyError(testCase, @() shLowLevel.regionalKalman(tsA, B, ModelSeries = tsm, ...
+    AddNoiseCov = C1(1:end - 1, 1:end - 1)), 'shLowLevel:regionalKalman:badAddNoiseCov');
+K = B.K;
+rec = struct('N', eye(K), 'b', zeros(K, 1), 'epoch', 2010);
+verifyError(testCase, @() shLowLevel.regionalKalman(rec, B, ModelSeries = tsm, ...
+    AddNoiseCov = C1), 'shLowLevel:regionalKalman:badAddNoiseCov');
+end
+
 % ------------------------------------------- WP8 8b: the process model
 function testRegionalProcessModelRouteAndIDs(testCase)
 %TESTREGIONALPROCESSMODELROUTEANDIDS ts.regionalProcessModel is the lane,

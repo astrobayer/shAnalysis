@@ -2429,6 +2429,8 @@ methods
         %     ProcessCov (lane default)  SH covariance replacing the process
         %         noise, e.g. from ts.maternCovariance
         %     StartCov (lane default)  SH covariance replacing the start
+        %     AddNoiseCov (lane default)  SH covariance added to every epoch's
+        %         noise, e.g. from ts.backgroundErrorCov
         %
         %   Example
         %     B = ts.regionalBasis("Elbe", Type = "slepian", Threshold = 0.5);
@@ -2462,9 +2464,52 @@ methods
             opts.Background
             opts.ProcessCov
             opts.StartCov
+            opts.AddNoiseCov
         end
         args = namedargs2cell(opts);
         [tsK, out] = shLowLevel.regionalKalman(obj, B, args{:});
+    end
+
+    function [C, info] = backgroundErrorCov(obj, other, opts)
+        %BACKGROUNDERRORCOV Background-model error covariance from two releases.
+        %   [C, INFO] = tsA.backgroundErrorCov(TSB) is
+        %   shLowLevel.backgroundErrorCov(tsA, TSB): the error covariance
+        %   of a background product (AOD1B, an ocean tide model) estimated
+        %   from the differences of two of its releases at their common
+        %   epochs, in shLowLevel.shIndex(nmax, Nmin = Nmin) order. Pass it
+        %   to ts.regionalKalman as AddNoiseCov. That function documents
+        %   the estimator, its limits and INFO.
+        %
+        %   Inputs
+        %     other  (1,1) shSeries  the other release, same nmax
+        %
+        %   Outputs
+        %     C     (P,P) double  the covariance
+        %     info  (1,1) struct  as returned by
+        %           shLowLevel.backgroundErrorCov, which documents every field
+        %
+        %   Options
+        %     Structure (lane default)  "full" | "diagonal" | "degree"
+        %     Split (lane default)  the share of the difference variance
+        %     Shrink (lane default)  shrinkage toward the diagonal
+        %     RemoveMean (lane default)  remove the mean difference
+        %     Nmin (lane default)  first degree of the index
+        %     Tolerance (lane default)  epoch matching tolerance [yr]
+        %
+        %   Example
+        %     C = tsAOD06.backgroundErrorCov(tsAOD07, Shrink = 0.1);
+        arguments
+            obj
+            other
+            opts.Structure
+            opts.Split
+            opts.Shrink
+            opts.RemoveMean
+            opts.Nmin
+            opts.Tolerance
+        end
+        args = namedargs2cell(opts);
+        [C, info] = shLowLevel.backgroundErrorCov(obj, other, args{:});
     end
 
     function [C, info] = maternCovariance(obj, opts)

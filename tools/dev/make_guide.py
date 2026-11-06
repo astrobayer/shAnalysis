@@ -1844,6 +1844,30 @@ B = ts.regionalBasis("Greenland", Ocean = oceanMask, kn = kn, hn = hn);
 plot(out.epochs, out.landMean.mean)
 """)
 
+story += [para("Background-model error from release differences (v5.31.0)", "h3"),
+          para("A GRACE solution has had background models removed: AOD1B "
+               "and the ocean tides. Their error is not in the solution's "
+               "formal covariance. shLowLevel.backgroundErrorCov estimates it "
+               "from two releases or two models of the product, at their "
+               "common epochs. The difference holds both errors and none of "
+               "the signal, so with the mean removed and the two errors "
+               "independent and of equal size, C = S_d / 2 (Structure full, "
+               "diagonal or degree; Shrink toward the diagonal). "
+               "regionalKalman's AddNoiseCov adds C to every epoch's noise. "
+               "Checked in tools/dev/validate_background_error.py: consistent "
+               "to 0.064 with 4000 epochs. In a closed loop with a background "
+               "error four times the formal variance at degrees 2-4, the "
+               "formal-only filter is overconfident (z-rms 1.38). With C from "
+               "60 months of release differences it gives 0.97 and the lower "
+               "error in 20 of 20 seeds. The limit is stated: an error the two "
+               "releases share is invisible to it (correlation rho leaves "
+               "(1 - rho) C). The full answer is an L1B inversion, which is "
+               "not this toolbox's.")]
+story += code("""
+C = tsAOD06.backgroundErrorCov(tsAOD07, Shrink = 0.1);
+[tsK, out] = tsGrace.regionalKalman(B, ModelSeries = tsESM, AddNoiseCov = C);
+""")
+
 story += [para("40. References", "h2"),
           *bullets([
     "Chambers, D.P., Willis, J.K. (2010): A global evaluation of ocean "

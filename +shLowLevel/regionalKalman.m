@@ -178,6 +178,11 @@ function [ts, out] = regionalKalman(obsIn, B, opts)
 %     StoreCov ("full")  "full" | "matfile"   where the filter keeps the
 %                    covariances the smoother needs (see kalmanFilter); a
 %                    matfile is deleted after smoothing
+%     AddNoiseCov ([])  (P,P) double  solution mode: an SH covariance in
+%                    B.idx order added to every epoch's noise covariance
+%                    (the formal sigmas' or NoiseCov's) - the error of a
+%                    background model the series had removed, e.g. from
+%                    shLowLevel.backgroundErrorCov; refused in record mode
 %     ProcessCov ([])  (P,P) double  SH covariance in B.idx order that
 %                    replaces the process noise: Q0 = Proj C Proj', then
 %                    scaled by QScale / EstimateQScale, see above
@@ -298,6 +303,9 @@ function [ts, out] = regionalKalman(obsIn, B, opts)
 %     shLowLevel:regionalKalman:badQBlocks
 %         QBlocks is not one label 1..nB per basis coefficient with every
 %         block used, or QScale has neither 1 nor nB entries
+%     shLowLevel:regionalKalman:badAddNoiseCov
+%         AddNoiseCov is not a finite P x P matrix in the basis' index, or
+%         was given in record mode
 %     shLowLevel:regionalKalman:badPrior
 %         ProcessCov or StartCov is not a finite P x P matrix in the
 %         basis' index
@@ -329,7 +337,8 @@ function [ts, out] = regionalKalman(obsIn, B, opts)
 %   Developed by Matthias Weigelt with the help of Claude (Opus 5.5),
 %   2026-10-21 (Background: 2026-10-21, WP8 8e; process-noise scales:
 %   2026-10-21, WP8 8i; FitClimatology: 2026-10-21, A34; ProcessCov and
-%   StartCov: 2026-11-06, WP9 9g; landMean: 2026-11-06, WP9 9h).
+%   StartCov: 2026-11-06, WP9 9g; landMean: 2026-11-06, WP9 9h;
+%   AddNoiseCov: 2026-11-06, WP9 9i).
 arguments
     obsIn
     B (1,1) struct
@@ -352,6 +361,7 @@ arguments
     opts.QC (1,1) string {mustBeMember(opts.QC, ["none", "flag", "reject"])} = "none"
     opts.QCAlpha (1,1) double {mustBeInRange(opts.QCAlpha, 0, 1, "exclusive")} = 1e-3
     opts.StoreCov (1,1) string {mustBeMember(opts.StoreCov, ["full", "matfile"])} = "full"
+    opts.AddNoiseCov double = []
     opts.ProcessCov double = []
     opts.StartCov double = []
     opts.Background = []
@@ -441,8 +451,18 @@ if solMode
         [climObs, tsObs] = tsObs.climatology;
     end
     obsEpochs = tsObs.epochs(:);
-    getObs = @(k) solutionRecord(tsObs, k, B, opts.NoiseCov);
+    addC = opts.AddNoiseCov;
+    if ~isempty(addC) && ~(isequal(size(addC), [P P]) && all(isfinite(addC(:))))
+        error('shLowLevel:regionalKalman:badAddNoiseCov', ...
+            'AddNoiseCov must be a finite %d x %d matrix in B.idx order.', P, P);
+    end
+    getObs = @(k) solutionRecord(tsObs, k, B, opts.NoiseCov, addC);
 elseif isstruct(obsIn)
+    if ~isempty(opts.AddNoiseCov)
+        error('shLowLevel:regionalKalman:badAddNoiseCov', ...
+            ['AddNoiseCov is a solution-mode option; add it to the records'' ' ...
+             'covariances before forming their normal equations.']);
+    end
     recs = obsIn(:).';
     if ~all(isfield(recs, {'N', 'b', 'epoch'}))
         error('shLowLevel:regionalKalman:badRecord', ...
@@ -642,7 +662,7 @@ qEst.exitFlag = flag;
 end
 
 % ---------------------------------------------------------------- local
-function o = solutionRecord(tsObs, k, B, noiseCov)
+function o = solutionRecord(tsObs, k, B, noiseCov, addC)
 % One epoch of the series as a basis normal equation (regionalNEQ).
 g = tsObs.at(k);
 l = shLowLevel.vecFromCS(g.C, g.S, B.idx);
@@ -657,6 +677,10 @@ elseif isvector(noiseCov) || size(noiseCov, 2) == size(noiseCov, 1)
     C = noiseCov;
 else
     C = noiseCov(:, k);
+end
+if ~isempty(addC)                               % 9i: background-model error
+    if isvector(C), C = diag(C); end
+    C = C + addC;
 end
 rec = shLowLevel.regionalNEQ(B, "solution", Solution = l, Cov = C);
 o = struct('l', [], 'R', [], 'N', rec.N, 'b', rec.b);
