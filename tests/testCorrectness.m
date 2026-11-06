@@ -6426,6 +6426,188 @@ verifyEqual(testCase, rR.epochs, tsObs.epochs);
 verifyTrue(testCase, all(isfinite(rR.Cs), 'all'));
 end
 
+% ------------------------- WP8 8j: LGD records in a mascon basis (D141)
+function testRegionalKalmanLgdMasconNeedsTheBackground(testCase)
+%TESTREGIONALKALMANLGDMASCONNEEDSTHEBACKGROUND The closed loop of
+%   tools/dev/validate_regional_lgd_mascon.py (lgdToolbox D141; row 8j):
+%   a 300 km Gaussian load under LGD records, mascons over a 1200 km cap,
+%   the process model from a model series of the right process. Without a
+%   background the broad global field - which the regional basis cannot
+%   carry - reaches the records unmodelled and the basin mean's sigma is
+%   too small (oracle, 20 seeds: z-rms 1.80, its CLAIM 2 refuted); with a
+%   background holding 80 % of that field removed from the records and
+%   restored, both outputs are calibrated (z-rms 0.96 basin, 0.97 point,
+%   CLAIM 7) and the basin error falls from 0.198 to 0.109 cm. Four seeds
+%   here, so the bounds leave room for sampling: z-rms above 1.3 without
+%   the background, within [0.7, 1.35] with it.
+S0 = lgdMasconLoop(4, 0.0, "A");
+S8 = lgdMasconLoop(4, 0.8, "A");
+verifyGreaterThan(testCase, S0.zBasin, 1.3, 'without a background the basin sigma covers the error');
+verifyGreaterThan(testCase, S8.zBasin, 0.7); verifyLessThan(testCase, S8.zBasin, 1.35);
+verifyGreaterThan(testCase, S8.zPoint, 0.7); verifyLessThan(testCase, S8.zPoint, 1.35);
+verifyLessThan(testCase, S8.eBasin, S0.eBasin, 'the background does not lower the basin error');
+end
+
+function testRegionalKalmanLgdMasconFailureModes(testCase)
+%TESTREGIONALKALMANLGDMASCONFAILUREMODES lgdToolbox F175's three ways to
+%   fail, in this toolbox's chain (validate_regional_lgd_mascon.py CLAIMS
+%   8-10, background 0.8, 20 seeds): an isotropic model (B) and a mass
+%   scale 5x too small (C) leave the point value overconfident (z-rms 1.65
+%   and 1.85 against A's 0.97); EstimateQScale (E) sees part of C's scale
+%   (alpha median 2.08) and lowers its z-rms to 1.31; a footprint of
+%   1000 km for a 300 km load (D) multiplies the point error by 4.4. Four
+%   seeds here: B and C above 1.3 x A's z-rms, E's alpha above 1 and its
+%   z-rms below C's, D's error above 2 x A's.
+A = lgdMasconLoop(4, 0.8, "A");
+Bm = lgdMasconLoop(4, 0.8, "B");
+C = lgdMasconLoop(4, 0.8, "C");
+E = lgdMasconLoop(4, 0.8, "E");
+D = lgdMasconLoop(4, 0.8, "D");
+verifyGreaterThan(testCase, Bm.zPoint, 1.3 * A.zPoint, 'isotropic model');
+verifyGreaterThan(testCase, C.zPoint, 1.3 * A.zPoint, 'mass scale 5x small');
+verifyGreaterThan(testCase, median(E.alpha), 1, 'EstimateQScale');
+verifyLessThan(testCase, E.zPoint, C.zPoint, 'EstimateQScale');
+verifyGreaterThan(testCase, D.ePoint, 2 * A.ePoint, 'footprint 1000 km');
+end
+
+function S = lgdMasconLoop(nSeeds, cbg, model)
+%LGDMASCONLOOP The 8j closed loop for one model, pooled over seeds: the
+%   configuration of validate_regional_lgd_mascon.py (nmax 30; truth a
+%   300 km Gaussian load, AR(1) rho 0.9 daily, sd 0.20 m, plus a broad
+%   field of sd 0.007/n m per EWH coefficient; 30 daily epochs of 400 LGD
+%   records within 1800 km of 51 N 12 E, noise 0.5 x the true LGD rms;
+%   model series of 400 days). The point output is the region grid point
+%   nearest to the load's centre. Records are reduced by CBG x the broad
+%   field's LGD and the field is passed as Background, so the outputs
+%   carry it back.
+L = 30; R = 6378136.3;
+idx = shLowLevel.shIndex(L);
+n = (0:L)';
+kn = -0.30 * n ./ (n + 3.0);
+lat0 = 51; lon0 = 12;
+dKm = @(la, lo) acos(min(1, sind(la) * sind(lat0) + cosd(la) * cosd(lat0) .* cosd(lo - lon0))) * R / 1e3;
+B = shLowLevel.regionalBasis(idx, @(la, lo) double(dKm(la, lo) <= 1200), Type = "mascon", kn = kn);
+Bsh = shLowLevel.regionalBasis(idx, [], Type = "sh");
+f = shLowLevel.kernelFactors("ewh", L, 1, R, kn = kn);
+fP = f(idx.n + 1);
+load300 = gaussLoadStokes(300, idx, fP, lat0, lon0, R);
+load1000 = gaussLoadStokes(1000, idx, fP, lat0, lon0, R);
+sdField = 0.007 ./ idx.n ./ fP;
+epO = 2012 + ((1:30)' - 0.5) / 365.25;
+epM = 2010 + ((1:400)' - 0.5) / 365.25;
+[zb, zp, eb, ep, al] = deal([]);
+for s = 1:nSeeds
+    rng(8100 + s);
+    [X, F] = realiseLoad(30, 0.20, load300, sdField);
+    recs = struct('N', {}, 'b', {}, 'epoch', {});
+    yT = cell(30, 1); P2 = cell(30, 2); Fl = cell(30, 1);
+    for k = 1:30
+        [rA, rB] = lgdPairsNear(400, lat0, lon0, 1800, R);
+        [~, ish] = shLowLevel.regionalNEQ(Bsh, "lgd", Values = zeros(400, 1), ...
+            PositionA = rA, PositionB = rB, Cov = 1);
+        yT{k} = ish.A * X(:, k); P2(k, :) = {rA, rB};
+        Fl{k} = ish.A * F(:, k);
+    end
+    sig = 0.5 * rms(vertcat(yT{:}));
+    for k = 1:30
+        y = yT{k} + sig * randn(400, 1) - cbg * Fl{k};
+        r = shLowLevel.regionalNEQ(B, "lgd", Values = y, PositionA = P2{k, 1}, ...
+            PositionB = P2{k, 2}, Cov = sig ^ 2);
+        recs(k) = struct('N', r.N, 'b', r.b, 'epoch', epO(k));
+    end
+    switch model
+        case {"A", "E"}, Xm = realiseLoad(400, 0.20, load300, sdField);
+        case "C",        Xm = realiseLoad(400, 0.04, load300, sdField);
+        case "D",        Xm = realiseLoad(400, 0.20, load1000, sdField);
+        case "B"
+            XA = realiseLoad(400, 0.20, load300, sdField);
+            XF = realiseLoad(400, 0, load300, sdField);
+            Xm = XF * (regionRms(XA, B, idx, fP) / regionRms(XF, B, idx, fP));
+    end
+    tsm = vecSeries(Xm, epM, idx, []);
+    bg = vecSeries(cbg * F, epO, idx, []);
+    args = {"ModelSeries", tsm, "kn", kn};
+    if cbg > 0, args = [args, {"Background", bg}]; end %#ok<AGROW>
+    if model == "E", args = [args, {"EstimateQScale", true}]; end %#ok<AGROW>
+    [~, out] = shLowLevel.regionalKalman(recs, B, args{:});
+    al(end + 1) = out.qScale(1); %#ok<AGROW>
+    g = out.grid;
+    [~, ip] = min(dKm(g.latDeg, g.lonDeg));
+    Yg = shLowLevel.ylm(deg2rad(g.latDeg), deg2rad(g.lonDeg), idx) .* fP.';
+    [~, w] = shLowLevel.synthesisMatrix(idx, NLat = B.region.overSample * (L + 1), ...
+        NLon = B.region.overSample * (2 * L + 2), GridOnly = true);
+    im = find(B.region.core > 0);
+    wc = w(im) .* B.region.core(im);
+    tGrid = Yg * X;
+    tBasin = (wc.' * tGrid) / sum(wc);
+    eb = [eb, out.basin.mean - tBasin]; %#ok<AGROW>
+    zb = [zb, (out.basin.mean - tBasin) ./ out.basin.sigma]; %#ok<AGROW>
+    ep = [ep, g.ewh(ip, :) - tGrid(ip, :)]; %#ok<AGROW>
+    zp = [zp, (g.ewh(ip, :) - tGrid(ip, :)) ./ g.sigma(ip, :)]; %#ok<AGROW>
+end
+S = struct('zBasin', rms(zb), 'zPoint', rms(zp), 'eBasin', rms(eb), ...
+    'ePoint', rms(ep), 'alpha', al);
+end
+
+function x = gaussLoadStokes(sKm, idx, fP, lat0, lon0, R)
+% Stokes coefficients of EWH = exp(-d^2 / (2 s^2)) about (lat0, lon0):
+% g(psi) = sum (2n+1) g_n P_n(cos psi), coefficients g_n Ybar_nm(c) / f_n.
+L = idx.Lmax;
+psi = linspace(0, pi, 40001)';
+xg = cos(psi);
+g = exp(-(psi * R / 1e3) .^ 2 / (2 * sKm ^ 2));
+Pn = zeros(numel(psi), L + 1); Pn(:, 1) = 1; Pn(:, 2) = xg;
+for k = 2:L
+    Pn(:, k + 1) = ((2 * k - 1) * xg .* Pn(:, k) - (k - 1) * Pn(:, k - 1)) / k;
+end
+gn = 0.5 * trapz(psi, g .* sin(psi) .* Pn).';
+Yc = shLowLevel.ylm(deg2rad(lat0), deg2rad(lon0), idx);
+x = (gn(idx.n + 1) .* Yc(:)) ./ fP;
+end
+
+function [X, F] = realiseLoad(nE, sdLoad, load, sdField)
+% AR(1) amplitude times a fixed load plus an AR(1) broad field, after a
+% 100-epoch spin-up; X total and F the field, (P, nE).
+rho = 0.9; nS = 100;
+a = zeros(nE + nS, 1); a(1) = sdLoad * randn;
+Fz = zeros(numel(sdField), nE + nS); Fz(:, 1) = randn(numel(sdField), 1);
+for k = 2:nE + nS
+    a(k) = rho * a(k - 1) + sdLoad * sqrt(1 - rho ^ 2) * randn;
+    Fz(:, k) = rho * Fz(:, k - 1) + sqrt(1 - rho ^ 2) * randn(numel(sdField), 1);
+end
+F = Fz(:, nS + 1:end) .* sdField;
+X = load * a(nS + 1:end).' + F;
+end
+
+function v = regionRms(X, B, idx, fP)
+% rms EWH of the columns of X over the region's core quadrature points.
+L = idx.Lmax;
+[~, ~, q] = shLowLevel.synthesisMatrix(idx, NLat = B.region.overSample * (L + 1), ...
+    NLon = B.region.overSample * (2 * L + 2), GridOnly = true);
+nLon = numel(q.lonDeg);
+im = find(B.region.core > 0);
+la = q.latDeg(ceil(im / nLon)); lo = q.lonDeg(mod(im - 1, nLon) + 1);
+Y = shLowLevel.ylm(deg2rad(la(:)), deg2rad(lo(:)), idx) .* fP.';
+v = rms(Y * X, 'all');
+end
+
+function [rA, rB] = lgdPairsNear(M, lat0, lon0, rKm, R)
+% M pairs 490 km up, 220 km apart, random headings, midpoints uniform in
+% area within rKm of (lat0, lon0) (validate_regional_lgd_mascon.py).
+c0 = [cosd(lat0) * cosd(lon0), cosd(lat0) * sind(lon0), sind(lat0)];
+e1 = cross([0 0 1], c0); e1 = e1 / norm(e1);
+e2 = cross(c0, e1);
+psi = acos(1 - rand(M, 1) * (1 - cos(rKm * 1e3 / R)));
+az = 2 * pi * rand(M, 1);
+u = cos(psi) .* c0 + sin(psi) .* (cos(az) .* e1 + sin(az) .* e2);
+t = cross(u, randn(M, 3), 2);
+t = t ./ vecnorm(t, 2, 2);
+r = R + 490e3;
+th = 110e3 / r;
+rA = r * (cos(th) * u - sin(th) * t);
+rB = r * (cos(th) * u + sin(th) * t);
+end
+
 function [tsm, tsObs, Xt, idx] = climFixture(seed)
 %CLIMFIXTURE validate_climatology_restore.py CLAIM 2: nmax 6 (P = 45), a
 %   VAR(1) with a 1/(n+1)^2 signal behind a 240-epoch model series, and 36
