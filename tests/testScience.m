@@ -272,9 +272,9 @@ assumeTrue(testCase, isfolder(sf) && isfolder(fullfile(ef, 'ESMGFZ', 'HAM')) ...
 d = shxTestDataDir();
 kn = readmatrix(fullfile(d, 'loadLoveNumbers_Gegout97.txt'), ...
     FileType = 'text', NumHeaderLines = 2);
-ts = shSeries.read(fullfile(sf, '*.gfc'));
-[tbl, info] = ts.excitation(kn = kn, ...
-    TN14 = fullfile(d, 'TN-14_C30_C20_SLR_GSFC.txt'));
+tn14 = fullfile(d, 'TN-14_C30_C20_SLR_GSFC.txt');
+ts = coveredByTN14(testCase, shSeries.read(fullfile(sf, '*.gfc')), tn14);
+[tbl, info] = ts.excitation(kn = kn, TN14 = tn14);
 [mjdH, ham] = readEAMFolder(fullfile(ef, 'ESMGFZ', 'HAM'), 6);
 [mjdS, slam] = readEAMFolder(fullfile(ef, 'ESMGFZ', 'SLAM'), 3);
 [mjd, ia, ib] = intersect(round(2 * mjdH), round(2 * mjdS));
@@ -303,6 +303,22 @@ for j = 1:3
     verifyGreaterThan(testCase, r, 0.2, sprintf( ...
         '%s: detrended correlation with ESMGFZ HAM+SLAM is %.3f', names(j), r));
 end
+end
+
+function ts = coveredByTN14(testCase, ts, file)
+%COVEREDBYTN14 The months of TS that the TN-14 table FILE covers, by
+%   applyTN14's own rule: an entry within its default Tolerance, 0.05 yr.
+%   A series on disk grows every month, and the pinned table's last
+%   entry (fixtures-2026-08) is centred at 2026.45; without this a test
+%   errors on the months after it (shCoefficients:applyTN14:epochNotInTable)
+%   instead of measuring the ones it can. The dropped months are logged.
+tn = shLowLevel.readTN14(file);
+keep = arrayfun(@(e) min(abs(tn.epoch - e)) <= 0.05, ts.epochs(:)');
+if ~all(keep)
+    testCase.log(1, sprintf('%d of %d months lie outside the TN-14 table (it ends at %.2f) and are left out', ...
+        nnz(~keep), numel(keep), max(tn.epoch)));
+end
+ts = ts.select(keep);
 end
 
 function y = detrendOn(t, x)
@@ -365,8 +381,9 @@ if isempty(bf), bf = getpref('shAnalysis', 'BridgeFolder', ''); end
 assumeTrue(testCase, isfolder(sf) && isfolder(bf), ['set SHX_SERIES_FOLDER ' ...
     '(a GSM series of monthly .gfc files) and SHX_BRIDGE_FOLDER (the ' ...
     'monthly files of an HLSST series)']);
-gr = shSeries.read(fullfile(sf, '*.gfc'));
-gr = gr.applyTN14(fullfile(shxTestDataDir(), 'TN-14_C30_C20_SLR_GSFC.txt'));
+tn14 = fullfile(shxTestDataDir(), 'TN-14_C30_C20_SLR_GSFC.txt');
+gr = coveredByTN14(testCase, shSeries.read(fullfile(sf, '*.gfc')), tn14);
+gr = gr.applyTN14(tn14);
 hl = shSeries.read(fullfile(bf, '*.gfc'));
 % the full run: every filled month is one GRACE lacks, and it is flagged
 [ts, info] = shLowLevel.bridgeGaps(gr, hl);
