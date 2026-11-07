@@ -1,5 +1,65 @@
 # Changelog
 
+## [5.31.1] - 2026-11-07 - fetchICGEM: a partial series resumes, a rate limit stops it
+
+A PATCH release: two fixes to `shLowLevel.fetchICGEM`'s series download
+(Matthias: "Fix the two weaknesses"). No option or output changed; one
+new warning identifier.
+
+What happened in the field: QuantumFrontiers HLSST_SLR_COMB2023s on the
+acceptance machine, 2026-11-07. ICGEM refused the series archive. The
+per-file fallback then sent 480 requests into the rate limit, and 114 of
+them failed. The next call reported the 168 files left on disk
+"present, skipped", and kept doing so: without `Update = true`, which
+downloads everything again, the series could never be completed.
+
+### Fixed
+- **An interrupted series download is no longer "present".**
+  - The per-file path writes a marker `.fetchICGEM-incomplete` into the
+    series folder before its first request. It removes the marker only
+    once every file has arrived; a completed archive removes it too.
+  - A folder that holds the marker is not skipped: the next call
+    resumes, and the per-file path fetches only the missing files.
+  - `Mode = "files"` now always reads the listing and fetches what is
+    missing. That completes a folder an earlier version left partial,
+    which carries no marker.
+- **A rate limit stops the download instead of feeding it.**
+  - In `Mode = "auto"`, a refused series archive (HTTP 429) no longer
+    falls back to one request per file. The call stops, marks the
+    folder and warns.
+  - The per-file loop stops at the first file still refused after its
+    `Retries`.
+  - `Pause` now also follows a failed file; before, a failure went
+    straight on to the next request.
+  - New warning `shLowLevel:fetchICGEM:rateLimited`: the same call, made
+    later, fetches only what is missing.
+- **A 429 is recognised by its status phrase** ("status 429",
+  "HTTP 429", "Too Many Requests"), not by the bare digits.
+  - The message also carries the URL, and COST-G names such as
+    `GSM-2_2004290-...` hold "429": a failure on such a file was retried
+    as if rate-limited.
+  - This applies to the existing 30/60/120 s backoff as well.
+
+### Not changed
+A failure that is not a 429 still lets the per-file loop continue with
+the next file. On 2026-11-07, 80 of the 114 HLSST failures were a
+transport error ("A low level error has occurred") that could not be
+reproduced afterwards. The fix does not guess what it was.
+
+### Tests
+- `testRobustness/testFetchICGEMSeriesResumesAndStopsWhenRateLimited`
+  runs offline through a local mirror. The refusal is a mirror path
+  whose error message carries "HTTP 429", as a refused request's does.
+  It covers four cases:
+  - the per-file stop, with no request after the refused file;
+  - the marker, and the resume of a marked folder;
+  - no fallback after a refused archive;
+  - `Mode = "files"` completing an unmarked partial folder without
+    fetching a present file again.
+- Against v5.31.0 the test fails 13 verifications across the first
+  three cases; with the fix it passes. `testFetchICGEMSeriesOffline`
+  passes on both.
+
 ## [5.31.0] - 2026-11-06 - WP9 9i: background-model error as an additive SH covariance
 
 A MINOR release: one new function, one class route and one option of

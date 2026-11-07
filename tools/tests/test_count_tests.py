@@ -109,7 +109,7 @@ class TestCounting(unittest.TestCase):
         self.assertEqual(c["runs"], c["methods"])
 
 
-EXPECTED_RUNS = 496          # v5.31.0: 493 + the three 9i tests (background-model error)
+EXPECTED_RUNS = 497          # v5.31.1: 496 + the fetchICGEM resume/rate-limit test
                              # (5 correctness, 4 contract, 2 robustness)
 
 

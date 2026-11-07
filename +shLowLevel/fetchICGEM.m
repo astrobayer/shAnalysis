@@ -28,13 +28,28 @@ function [file, info] = fetchICGEM(model, opts)
 %                         server's whole-series ZIP in ONE request (the
 %                         rate limiter punishes hundreds of per-file
 %                         requests) and falls back to file-by-file on
-%                         failure; "archive" | "files" force either.
-%                         Per-file is resumable with every file
-%                         verified before the swap.
+%                         failure - but not when the archive itself was
+%                         rate-limited: hundreds of per-file requests
+%                         are what keep the limit up, so the call stops
+%                         and warns instead; "archive" | "files" force
+%                         either. Per-file is resumable with every file
+%                         verified before the swap, and stops at the
+%                         first file still rate-limited after its
+%                         Retries. "files" always reads the server
+%                         listing and fetches only the files missing on
+%                         disk, so it also completes a folder that an
+%                         earlier version left partial.
+%                         A series folder is complete only when its
+%                         download finished: until then it holds a
+%                         marker file .fetchICGEM-incomplete, and the
+%                         next call resumes instead of reporting the
+%                         files present
 %     FileList (table())  series mode: use this file table (from
 %                         listICGEM(Series=...)) instead of querying -
 %                         for subsetting or offline mirrors
-%     Pause (3)           seconds between models in bulk mode - the
+%     Pause (3)           seconds between models in bulk mode, and
+%                         between the files of a per-file series
+%                         download (after a failed file too) - the
 %                         ICGEM server RATE-LIMITS rapid requests
 %                         (HTTP 429), which looks like a stall
 %     Retries (3)         retry attempts on 429/timeout, with 30/60/120
@@ -101,6 +116,11 @@ function [file, info] = fetchICGEM(model, opts)
 %         the new layout to avoid downloading everything again
 %     shLowLevel:fetchICGEM:notFound
 %         no ICGEM model of that name exists (see shLowLevel.listICGEM)
+%     shLowLevel:fetchICGEM:rateLimited
+%         warning - ICGEM rate-limited a series download (HTTP 429) and
+%         the call stopped rather than send more requests; the folder
+%         keeps its .fetchICGEM-incomplete marker and the same call,
+%         made later, fetches only what is missing
 %     shLowLevel:fetchICGEM:updateFailed
 %         warning - a refresh download failed; the file already on disk
 %         stays authoritative
@@ -108,6 +128,7 @@ function [file, info] = fetchICGEM(model, opts)
 %   Claude (Fable 5), 2026-08-07 (v2.4.1).
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 %   MaxTries/BaseDelay: Claude (Opus 5.5), 2026-10-21 (A36).
+%   Incomplete marker, rate-limit stop: Claude (Opus 5.5), 2026-11-07.
 arguments
     model
     opts.Dest (1,1) string = ""
@@ -315,8 +336,7 @@ while true
         break
     catch errDl
         attempt = attempt + 1;
-        retryable = contains(errDl.message, '429') || ...
-            contains(errDl.message, 'Too Many Requests') || ...
+        retryable = isRateLimited(errDl) || ...
             contains(lower(errDl.message), 'timed out');
         if ~retryable || attempt > opts.Retries
             rethrow(errDl);
@@ -358,7 +378,10 @@ listF = @() string(reshape({dir(fullfile(char(dest), '**', ...
     char(opts.Files))).folder}, [], 1)) + filesep + ...
     string(reshape({dir(fullfile(char(dest), '**', char(opts.Files))).name}, [], 1));
 have = listF();
-if ~isempty(have) && ~opts.Update
+% a folder is complete only once its download finished: the marker is
+% written before the first per-file request and removed after the last
+marker = fullfile(char(dest), '.fetchICGEM-incomplete');
+if ~isempty(have) && ~opts.Update && ~isfile(marker) && opts.Mode ~= "files"
     files = reshape(have, 1, []); info.skipped = true;
     info.mode = "present";
     if ~opts.Quiet
@@ -383,6 +406,7 @@ if opts.Mode ~= "files"
             'Archive of "%s" contained no files matching %s.', ...
             row.series, opts.Files);
         shLowLevel.shReadGFC(char(files(1)));   % sanity: archive intact
+        if isfile(marker), delete(marker); end
         info.mode = "archive";
         if ~opts.Quiet
             fprintf('  done: %d files in %.0f s\n', numel(files), toc(tDl));
@@ -392,6 +416,15 @@ if opts.Mode ~= "files"
         if isfile(tmpf), delete(tmpf), end
         if opts.Mode == "archive"
             rethrow(errA);
+        end
+        if isRateLimited(errA)
+            % falling back would send one request per file into the
+            % limit that refused the one archive request
+            info.mode = "archive";
+            [files, info] = stopRateLimited(row, listF, marker, info, ...
+                "the series archive was refused, and the call did not fall " + ...
+                "back to one request per file");
+            return
         end
         if ~opts.Quiet
             fprintf(['  archive failed (%s) - falling back to ' ...
@@ -413,18 +446,27 @@ F = F(keep, :);
 assert(height(F) > 0, 'shLowLevel:fetchICGEM:emptySeries', ...
     'Series "%s" has no files matching %s.', row.series, opts.Files);
 files = strings(1, 0); nFetched = 0; nSkip = 0;
+todo = arrayfun(@(j) opts.Update || ...
+    ~isfile(fullfile(char(dest), char(F.name(j)))), (1:height(F))');
+if any(todo) && ~isfile(marker)
+    fclose(fopen(marker, 'w'));                 % incomplete until the last file
+end
+requested = false;
 for j = 1:height(F)
     fp = fullfile(char(dest), char(F.name(j)));
-    if isfile(fp) && ~opts.Update
+    if ~todo(j)
         files(1, end+1) = string(fp); %#ok<AGROW>
         nSkip = nSkip + 1;
         continue
     end
+    if requested
+        pause(opts.Pause);                      % ICGEM rate limit, after a failure too
+    end
+    requested = true;
     if ~opts.Quiet
         fprintf('  [%d/%d] %s\n', j, height(F), F.name(j));
     end
     tmpf = [fp '.part'];
-    fetchedThis = true;
     try
         fetchWithBackoff(F.url(j), tmpf, opts);
         shLowLevel.shReadGFC(tmpf);             % verify BEFORE swap
@@ -437,17 +479,45 @@ for j = 1:height(F)
         if ~opts.Quiet
             fprintf('  FAILED %s (%s)\n', F.name(j), err.message);
         end
-        fetchedThis = false;
-    end
-    if j < height(F) && fetchedThis
-        pause(opts.Pause);                      % ICGEM rate limit
+        if isRateLimited(err)
+            % still refused after its Retries: every further request
+            % only keeps the limit up
+            [files, info] = stopRateLimited(row, listF, marker, info, ...
+                sprintf("stopped at %s, %d of %d missing files fetched", ...
+                F.name(j), nFetched, nnz(todo)));
+            return
+        end
     end
 end
+if ~info.failed && isfile(marker), delete(marker); end
 info.skipped = nFetched == 0 && ~info.failed;
 if ~opts.Quiet
     fprintf('  series %s: %d fetched, %d present, failed: %d\n', ...
         row.series, nFetched, nSkip, info.failed);
 end
+end
+
+function tf = isRateLimited(err)
+%ISRATELIMITED The download was refused by the server's rate limit
+%   (HTTP 429), as httpFetch ("last status 429") and websave ("status 429
+%   ... Too Many Requests") report it.
+%   Anchored to the status phrase: the message also carries the URL, and
+%   a file name such as GSM-2_2004290-... holds the digits 429.
+tf = ~isempty(regexp(err.message, ...
+    'status 429|HTTP 429|Too ?Many ?Requests', 'once'));
+end
+
+function [files, info] = stopRateLimited(row, listF, marker, info, what)
+%STOPRATELIMITED End a series download that ICGEM rate-limited: keep the
+%   incomplete marker, report what is on disk, warn once. WHAT says
+%   where the call stopped.
+if ~isfile(marker), fclose(fopen(marker, 'w')); end
+files = reshape(listF(), 1, []);
+info.failed = true; info.skipped = false;
+warning('shLowLevel:fetchICGEM:rateLimited', ...
+    ['ICGEM rate-limited series %s (HTTP 429): %s; %d files on disk. ' ...
+    'Call fetchICGEM again later: it fetches only what is missing.'], ...
+    row.series, what, numel(files));
 end
 
 function c = retryOptions(opts)

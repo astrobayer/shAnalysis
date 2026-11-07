@@ -26,10 +26,10 @@ says whether it was *read* or *inferred*.
 
 | Fact | Value | Evidence |
 |---|---|---|
-| Version | **5.31.0**, 06-Nov-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
+| Version | **5.31.1**, 07-Nov-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
 | Branches | `main` only; `claude/getframe-recapture` and `claude/readshm` are gone (merged/deleted) | `GET /branches` |
 | Public surface | 3 classes / 108 methods, 138 `+shLowLevel` functions (+5 private), 3 root functions. 96 of the 138 are reachable from a class method; each of the other 42 is a named exception with its reason, and the backlog is empty (v5.24.0) | `tools/dev/api_extract.py`; `tools/dev/class_surface_audit.py` |
-| Tests | 5 classes, **482 methods / 496 runs**: Correctness 241, Contract 157, Robustness 62, Science 9, Performance 13 methods (27 runs, `budgetCase` x14 + `nmaxP` x2). On A8 8 filter out in an ordinary run - the optional real-data fixtures and the opt-in full-size closed loop (v5.27.2), 7 on a manual run that sets `closed_loop_nmax` (the GravIS-grid test joined them in v5.8.0, the ESMGFZ check in v5.11.0, the HLSST check in v5.12.0); on MATTHIASPC only 2 do, because `E:\DATAPOOL` supplies the SINEX files, the GravIS folder and - with `SHX_EARTHROTATION_FOLDER` and `SHX_BRIDGE_FOLDER` set for the run, no preference is stored - the ESMGFZ and HLSST series. The counter has matched the runner EXACTLY on the last ten green A8 runs and on every local Tier-A run. | `python3 tools/dev/count_tests.py` |
+| Tests | 5 classes, **483 methods / 497 runs**: Correctness 241, Contract 157, Robustness 63, Science 9, Performance 13 methods (27 runs, `budgetCase` x14 + `nmaxP` x2). On A8 8 filter out in an ordinary run - the optional real-data fixtures and the opt-in full-size closed loop (v5.27.2), 7 on a manual run that sets `closed_loop_nmax` (the GravIS-grid test joined them in v5.8.0, the ESMGFZ check in v5.11.0, the HLSST check in v5.12.0); on MATTHIASPC only 2 do, because `E:\DATAPOOL` supplies the SINEX files, the GravIS folder and - with `SHX_EARTHROTATION_FOLDER` and `SHX_BRIDGE_FOLDER` set for the run, no preference is stored - the ESMGFZ and HLSST series. The counter has matched the runner EXACTLY on the last ten green A8 runs and on every local Tier-A run. | `python3 tools/dev/count_tests.py` |
 | Python oracles | 39 `tools/dev/validate_*.py` (+ `regional_oracle_lib.py`, shared by the WP8 oracles) + `tools/audit/*` | listing |
 | Docs | **27** hand-written `html/*.html` (24 per-entity duplicates retired in v5.0.1, WP6 stage 3; `regionalBasis.html` added in v5.14.0) + **253 generated `html/ref/*.html`** (one per entity + index, `make_refpages.py`), one shared `html/shAnalysis.css`, `helptoc.xml`, `info.xml`, guide PDF (built by CI and attached to each GitHub release since v5.24.1, not committed - `doc_sync_audit` refuses a tracked copy), generated `html/apiReference.html`. `docs/` holds `apiExamples.json` and, where it was built, the PDF - no HTML page lives outside `html/` (gated). | listing |
 | CI | `gates` job on ubuntu (help_audit, doc_sync_audit, no_map_renderer, toolbox_dependency_audit, nv_casing_audit, fixture_tag_audit, gate self-tests `tools/tests/`, `count_tests`, `name_coverage`, `class_surface_audit`, `error_id_audit`, `option_values_audit`, `refpages_audit`, `make_demos --check`, `perf_baseline_audit`) + `runAllTests (self-hosted)` on A8/R2026a; fixtures from tag `fixtures-2026-08` | `.github/workflows/ci.yml` |
@@ -699,6 +699,16 @@ that need no new data first.
 Current entries only; every earlier one is in `tools/dev/RECORD.md` §1,
 verbatim. An entry moves there when it stops describing the current
 state; nothing is deleted.
+- 2026-11-07 — **5.31.1: `fetchICGEM` resumes a partial series and stops
+  on a rate limit** (Matthias: "Fix the two weaknesses"). Measured on the
+  acceptance machine with HLSST_SLR_COMB2023s: the archive was refused,
+  480 per-file requests went into the limit, and the 168 files left were
+  then "present, skipped" for good. A marker `.fetchICGEM-incomplete`
+  now says a folder is unfinished. A refused archive does not fall back
+  to per-file, and the per-file loop stops at the first file still
+  refused. 80 of the 114 failures were a bare "A low level error has
+  occurred", not reproduced afterwards (the server answered 429). It is
+  left as an ordinary failure, not guessed into a rate limit.
 - 2026-11-06 — **9i built as 5.31.0 from release differences**
   (Matthias: "Merge and go ahead with 9i"). `backgroundErrorCov` takes
   two releases or models of a background product and returns half the
@@ -1123,7 +1133,9 @@ One line per rule; the incident behind each, with its numbers, is in
 
 ### 6.4 Next action
 
-**State, 2026-11-06.** `main` is `1005fc7`, v5.30.0 (#150, 9h,
+**State, 2026-11-07.** v5.31.1 (`fetchICGEM` resume and rate-limit
+stop) is on branch `fix-fetchicgem-resume`; `main` is `784a0f7`, v5.31.0
+(#151, 9i, merged). Before that, `1005fc7`, v5.30.0 (#150, 9h,
 merged); every release since v5.24.1 carries
 `shAnalysis_workflow_guide.pdf`. v5.31.0 (9i, background-model error)
 is on branch `wp9-background-error`. A re-measurement is a manual run of the
