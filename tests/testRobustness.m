@@ -1263,6 +1263,79 @@ verifyError(tc, @() shLowLevel.fetchICGEM(row, Mode = "files", ...
     'shLowLevel:fetchICGEM:emptySeries');
 end
 
+function testFetchICGEMSeriesResumesAndStopsWhenRateLimited(tc)
+% v5.31.1: an interrupted series download is not "present", and a rate
+% limit stops the download instead of feeding it more requests. Measured
+% in the field on QuantumFrontiers HLSST_SLR_COMB2023s (2026-11-07): the
+% archive was refused, the per-file fallback sent 480 requests into the
+% limit (114 failed), and the next call reported the 168 files it had
+% left "present, skipped" - for good.
+%   Offline seam: fetchICGEM classifies a refusal by the status phrase in
+%   the error message, which carries the URL. A mirror path containing
+%   "HTTP 429" makes the local download fail with exactly that phrase, as
+%   httpFetch ("last status 429") or websave do for a refused request.
+d = tc.TestData.dataDir;
+src = fullfile(d, 'ITSG-Grace2018_n60_2008-04.gfc');
+mir = tempname; mkdir(mir);
+c1 = onCleanup(@() rmIfFolder(mir)); %#ok<NASGU>
+names = "ITSG-Grace2018_n60_2008-0" + (4:6)' + ".gfc";
+for k = 1:3, copyfile(src, fullfile(mir, names(k))); end
+refused = fullfile(mir, 'HTTP 429');            % never created: the request fails
+zf = fullfile(mir, 'series.zip');
+zip(zf, cellstr(fullfile(mir, names)));
+row = table("01_TEST", "TC", "Series R", "01_TEST/TC/Series R", ...
+    "file://" + string(mir), string(zf), 'VariableNames', ...
+    {'group', 'center', 'series', 'path', 'url', 'zip'});
+FL = table((1:3)', names, string(fullfile(mir, names)), ...
+    'VariableNames', {'idx', 'name', 'url'});
+quick = {'Pause', 0, 'Quiet', true, 'MaxTries', 1, 'Retries', 0};
+% (1) per-file: file 2 is refused -> the loop STOPS, file 3 is not asked for
+dB = tempname; cB = onCleanup(@() rmIfFolder(dB)); %#ok<NASGU>
+FLr = FL; FLr.url(2) = string(fullfile(refused, names(2)));
+[f1, i1] = verifyWarning(tc, @() shLowLevel.fetchICGEM(row, quick{:}, Mode = "files", ...
+    FileList = FLr, Dest = dB), 'shLowLevel:fetchICGEM:rateLimited');
+verifyTrue(tc, i1.failed);
+verifyEqual(tc, numel(f1), 1, 'only the file before the refusal is on disk');
+verifyFalse(tc, isfile(fullfile(dB, names(3))), ...
+    'no request after the refused one');
+marker = fullfile(dB, '.fetchICGEM-incomplete');
+verifyTrue(tc, isfile(marker), 'an interrupted folder is marked');
+% (2) the default call on that folder resumes - it is not "present";
+% auto mode takes the one archive request again
+[f2, i2] = shLowLevel.fetchICGEM(row, quick{:}, FileList = FL, Dest = dB);
+verifyEqual(tc, i2.mode, "archive", 'a marked folder is not complete');
+verifyFalse(tc, i2.failed);
+verifyEqual(tc, numel(f2), 3);
+verifyFalse(tc, isfile(marker), 'complete: the marker is gone');
+[~, i3] = shLowLevel.fetchICGEM(row, quick{:}, Dest = dB);
+verifyEqual(tc, i3.mode, "present", 'and now it is present');
+% (3) auto mode, archive refused: no fallback to one request per file
+dC = tempname; cC = onCleanup(@() rmIfFolder(dC)); %#ok<NASGU>
+rowR = row; rowR.zip = string(fullfile(refused, 'series.zip'));
+[f4, i4] = verifyWarning(tc, @() shLowLevel.fetchICGEM(rowR, quick{:}, FileList = FL, ...
+    Dest = dC), 'shLowLevel:fetchICGEM:rateLimited');
+verifyTrue(tc, i4.failed);
+verifyEqual(tc, i4.mode, "archive");
+verifyEmpty(tc, f4, 'no per-file fallback after a refused archive');
+verifyTrue(tc, isfile(fullfile(dC, '.fetchICGEM-incomplete')));
+% (4) a folder an earlier version left partial (no marker): the default
+% call still trusts it, Mode = "files" completes it and leaves the file
+% it already has alone (a sentinel byte survives)
+dD = tempname; mkdir(dD); cD = onCleanup(@() rmIfFolder(dD)); %#ok<NASGU>
+copyfile(src, fullfile(dD, names(1)));
+fid = fopen(fullfile(dD, names(1)), 'a'); fwrite(fid, '%'); fclose(fid);
+had = dir(fullfile(dD, names(1)));
+[~, i5] = shLowLevel.fetchICGEM(row, quick{:}, FileList = FL, Dest = dD);
+verifyEqual(tc, i5.mode, "present");
+[f6, i6] = shLowLevel.fetchICGEM(row, quick{:}, Mode = "files", FileList = FL, ...
+    Dest = dD);
+verifyEqual(tc, i6.mode, "files");
+verifyEqual(tc, numel(f6), 3);
+now = dir(fullfile(dD, names(1)));
+verifyEqual(tc, now.bytes, had.bytes, 'a present file is not fetched again');
+verifyFalse(tc, isfile(fullfile(dD, '.fetchICGEM-incomplete')));
+end
+
 function testFetchLoveNumbersMirror(tc)
 % v3.0.0: GROOPS Love-number fetch from a local mirror + parser contract
 d = tc.TestData.dataDir;
