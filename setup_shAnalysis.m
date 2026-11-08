@@ -27,8 +27,10 @@ function summary = setup_shAnalysis(opts)
 %                companions of the two shipped n60 fixture months
 %                (2008-04 GRACE, 2025-12 GRACE-FO).
 %   Downloads land in shLowLevel.dataFolder() subfolders (TN/, DDK/,
-%   series/itsg/monthly/); existing files are skipped, so re-running is cheap
-%   and idempotent. Failures are collected per file and reported - an
+%   series/itsg/monthly/) - in the data pool, <DATAPOOL>/GravityField,
+%   unless DataFolder= or the stored preference names another folder;
+%   never in the toolbox folder (v6.0.0). Existing files are skipped, so
+%   re-running is cheap and idempotent. Failures are collected per file and reported - an
 %   offline machine still gets a working path setup plus the shipped
 %   fixtures.
 %
@@ -95,7 +97,14 @@ function summary = setup_shAnalysis(opts)
 %                         falling back to tests/test_data - CI is
 %                         unaffected)
 %     Quiet (false)       suppress progress output
-%     DataFolder ("")  persistent data folder, applied BEFORE any fetcher runs
+%     DataFolder ("")  persistent data folder, applied BEFORE any fetcher
+%                      runs (stored as the preference shLowLevel.dataFolder
+%                      reads first); left empty, the data pool decides:
+%                      <DATAPOOL>/GravityField, then
+%                      <READING_DATA_POOL>/GravityField. A Download level
+%                      above "none" with none of them refuses before
+%                      anything is fetched: shLowLevel.dataFolder raises
+%                      its noDataPool (shLowLevel:dataFolder:noDataPool)
 %     Proxy ("")  per-call proxy URL, e.g. "http://proxy:8080" (empty: MATLAB Web Preferences)
 %
 %   Outputs
@@ -103,7 +112,8 @@ function summary = setup_shAnalysis(opts)
 %       root        (1,1) string   toolbox root folder
 %       pathAction  (1,1) string   "already-on-path" | "added-temporarily"
 %                                  | "added-permanently" | "planned"
-%       dataFolder  (1,1) string   download target root
+%       dataFolder  (1,1) string   download target root; "" when no data
+%                                  folder is set and nothing is downloaded
 %       plan        (1,:) string   human-readable action list
 %       fetched     (1,:) string   files newly downloaded (verified)
 %       skipped     (1,:) string   files already present (re-verified)
@@ -225,11 +235,12 @@ if strlength(opts.DataFolder) > 0 && ~opts.DryRun
     shLowLevel.dataFolder(char(opts.DataFolder));
 end
 if opts.DryRun
-    % read-only dataFolder lookup (shLowLevel.dataFolder() would mkdir)
-    if ispref('shAnalysis', 'dataFolder')
-        summary.dataFolder = string(getpref('shAnalysis', 'dataFolder'));
+    % read-only lookup: the one resolver, probed (no folder created, ""
+    % when no data pool is set); a DataFolder= given is what would be used
+    if strlength(opts.DataFolder) > 0
+        summary.dataFolder = opts.DataFolder;
     else
-        summary.dataFolder = string(fullfile(root, 'data'));
+        summary.dataFolder = shLowLevel.dataFolder(Probe = true);
     end
     if strlength(opts.SeriesFolder) > 0
         summary.testData(end+1) = "SHX_SERIES_FOLDER = " + opts.SeriesFolder;
@@ -271,7 +282,14 @@ if ~opts.Quiet
 end
 
 % ----------------------------------------------------------- downloads
-summary.dataFolder = string(shLowLevel.dataFolder());
+% the path alone needs no data folder; a download does, and refuses
+% (shLowLevel:dataFolder:noDataPool) before any fetcher runs when none
+% is set - it never falls back to the toolbox folder (v6.0.0)
+if level >= 2
+    summary.dataFolder = string(shLowLevel.dataFolder());
+else
+    summary.dataFolder = shLowLevel.dataFolder(Probe = true);
+end
 if level >= 2
     try
         [~, iTN] = shLowLevel.fetchTN(Providers = opts.Providers, ...

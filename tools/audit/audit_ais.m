@@ -8,7 +8,8 @@ function audit_ais
 %   Claude (Fable 5), 2026-08-12.
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 
-aux = 'E:\DATAPOOL\GravityField\GravIS';
+pool = char(shLowLevel.dataFolder());   % the data pool's GravityField root (DATAPOOL), no machine path
+aux = fullfile(pool, 'GravIS');
 S  = load(fullfile(aux, 'audit_chain_cache_g445.mat'));
 Su = load(fullfile(aux, 'audit_chain_cache_unf.mat'));
 lat = S.lat(:); lon = S.lon(:); Re = 6371e3;

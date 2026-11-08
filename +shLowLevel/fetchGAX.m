@@ -53,10 +53,10 @@ function [files, info] = fetchGAX(dest, opts)
 %           series    (1,:) string  the series actually used
 %
 %   Example
-%     f = shLowLevel.fetchGAX("E:/DATAPOOL/GravityField/GAX");
+%     gax = fullfile(shLowLevel.dataFolder(), "series", "GAX");  % the default
+%     f = shLowLevel.fetchGAX(gax);
 %     [out, rep] = shLowLevel.oceanChain(ser, kn = kn, OceanMask = oc, ...
-%         GADFolder = "E:/DATAPOOL/GravityField/GAX/GAD", ...
-%         GAAFolder = "E:/DATAPOOL/GravityField/GAX/GAA");
+%         GADFolder = fullfile(gax, "GAD"), GAAFolder = fullfile(gax, "GAA"));
 %
 %   See fetchITSGSINEX and fetchITSGBackground for the ITSG-side products;
 %   the ITSG background models are per-release means, NOT the AOD1B

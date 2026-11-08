@@ -16,10 +16,10 @@
 <h2>Description</h2>
 <p>FILES = shLowLevel.fetchGAX(DEST) downloads the monthly-mean dealiasing products needed for full ocean-mass restoration (Chambers &amp; Willis 2010) as ICGEM-converted .gfc files into DEST/&lt;PRODUCT&gt;/. The AOD1B products are identical across processing centres, so the GFZ series pages (which carry all four products from 2002 on) serve every GSM series including COST-G. Listing and download go through the toolbox&#x27;s Retry-After-aware fetch layer; files already present are skipped unless Update = true.</p>
 <h2>Examples</h2>
-<details class="example"><summary>From the help block</summary><div><pre><code>    f = shLowLevel.fetchGAX(&quot;E:/DATAPOOL/GravityField/GAX&quot;);
+<details class="example"><summary>From the help block</summary><div><pre><code>    gax = fullfile(shLowLevel.dataFolder(), &quot;series&quot;, &quot;GAX&quot;);  % the default
+    f = shLowLevel.fetchGAX(gax);
     [out, rep] = shLowLevel.oceanChain(ser, kn = kn, OceanMask = oc, ...
-        GADFolder = &quot;E:/DATAPOOL/GravityField/GAX/GAD&quot;, ...
-        GAAFolder = &quot;E:/DATAPOOL/GravityField/GAX/GAA&quot;);
+        GADFolder = fullfile(gax, &quot;GAD&quot;), GAAFolder = fullfile(gax, &quot;GAA&quot;));
 
   See fetchITSGSINEX and fetchITSGBackground for the ITSG-side products;
   the ITSG background models are per-release means, NOT the AOD1B
@@ -36,7 +36,7 @@
 <p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
 <h2>See Also</h2>
 <p class="none">No other entity is named in this help block.</p>
-<p class="prov">shAnalysis v5.31.3 (08-Nov-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+<p class="prov">shAnalysis v6.0.0 (08-Nov-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
 </div>
 </body>
 </html>

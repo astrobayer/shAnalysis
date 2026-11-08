@@ -23,9 +23,15 @@ function [ts, rep] = standardChain(folder, opts)
 %     Pattern ("*.gfc*")   file pattern for shSeries.fromFolder
 %     Truncate (NaN)       truncate to this nmax after reading
 %     TN14 (true)          apply SLR C20/C30
-%     TN14File ("")        explicit TN-14 path (default: dataFolder copy)
+%     TN14File ("")        explicit TN-14 path (default: the copy
+%                          shLowLevel.fetchTN writes, <dataFolder>/TN -
+%                          'tn' before v6.0.0, which Linux did not find).
+%                          A default path with no data folder set
+%                          refuses: shLowLevel.dataFolder raises its
+%                          noDataPool (shLowLevel:dataFolder:noDataPool)
 %     Degree1 ("GFZ")      TN-13 provider "GFZ" | "CSR" | "JPL" | "none"
-%     Degree1File ("")     explicit TN-13 path (default: dataFolder copy)
+%     Degree1File ("")     explicit TN-13 path (default: <dataFolder>/TN
+%                          copy, TN-13_GEOC_<Degree1>_RL06.3.txt)
 %     GIA ([])             shLowLevel trend field (shCoefficients, [1/yr])
 %                          subtracted as (t - GIAEpoch) * GIA
 %     GIAEpoch (NaN)       reference epoch of the GIA trend (NaN: mean
@@ -131,7 +137,7 @@ if ~opts.Quiet, fprintf('  %s\n', steps(end)); end
 if opts.TN14
     tnf = opts.TN14File;
     if strlength(tnf) == 0
-        tnf = fullfile(shLowLevel.dataFolder(), 'tn', ...
+        tnf = fullfile(shLowLevel.dataFolder(), 'TN', ...
             'TN-14_C30_C20_SLR_GSFC.txt');
     end
     if ~isfile(tnf)
@@ -154,7 +160,7 @@ end
 if opts.Degree1 ~= "none"
     d1f = opts.Degree1File;
     if strlength(d1f) == 0
-        d1f = fullfile(shLowLevel.dataFolder(), 'tn', ...
+        d1f = fullfile(shLowLevel.dataFolder(), 'TN', ...
             sprintf('TN-13_GEOC_%s_RL06.3.txt', opts.Degree1));
     end
     if ~isfile(d1f)

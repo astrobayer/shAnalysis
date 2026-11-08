@@ -385,7 +385,10 @@ s = setup_shAnalysis(Quiet = true);
 verifyEqual(tc, s.pathAction, "already-on-path");
 verifyEqual(tc, path, p0);
 verifyTrue(tc, s.ok);
-verifyTrue(tc, isfolder(s.dataFolder));
+% the path alone needs no data folder: s.dataFolder is what the one
+% resolver finds, "" where no data pool is set (v6.0.0; until then the
+% toolbox's own data/ folder, created here)
+verifyEqual(tc, s.dataFolder, shLowLevel.dataFolder(Probe = true));
 verifyTrue(tc, isempty(s.fetched) && isempty(s.failed));
 end
 
@@ -573,17 +576,17 @@ end
 
 function testUserSuppliedDDKFiles(tc)
 % Discovery test: validate EVERY Wbd_* binary present in test_data or
-% dataFolder/ddk (fetchDDK target). All eight released files were
+% dataFolder/DDK (fetchDDK target). All eight released files were
 % parsed and validated externally (Python, 2026-08-07): BIN v2.1
 % BDFULLV0, Lmax 120, 241 blocks, pack fully consumed, and the
 % diagonal gains strictly ordered with the regularization strength
 % DDK1 (a_1d14) .. DDK8 (a_5d9). This test re-runs the structural and
 % ordering checks on whatever subset is available locally.
 dirs = {tc.TestData.dataDir};
-try
-    dd = fullfile(shLowLevel.dataFolder(), 'DDK');   % fetchDDK target
+df = shLowLevel.dataFolder(Probe = true);   % "" where no data pool is set
+if strlength(df) > 0
+    dd = fullfile(df, 'DDK');                % fetchDDK target
     if isfolder(dd), dirs{end+1} = dd; end
-catch
 end
 files = [];
 for d = dirs

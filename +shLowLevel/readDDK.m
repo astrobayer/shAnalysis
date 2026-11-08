@@ -9,8 +9,9 @@ function W = readDDK(source, opts)
 %
 %   Accepted SOURCE forms:
 %     "DDK1".."DDK8"       the filter's name: the file is looked up in
-%                          <dataFolder>/DDK, then in the shipped test
-%                          data (shLowLevel.fetchDDK downloads it)
+%                          <dataFolder>/DDK (when a data folder is
+%                          set), then in the shipped test data
+%                          (shLowLevel.fetchDDK downloads it)
 %     binary Wbd file      the released filter files (Rietbroek/Kusche
 %                          'BIN' format, type BDFULLV0), e.g.
 %                          Wbd_2-120.a_1d12p_4 from
@@ -101,14 +102,19 @@ if (ischar(source) || isstring(source)) && ...
     sc = char(source);
     k = str2double(sc(4));
     fn = shLowLevel.ddkNames(); fn = fn(k);
-    cand = [ ...
-        string(fullfile(shLowLevel.dataFolder(), 'DDK', fn))
-        string(fullfile(shLowLevel.testDataDir(), fn))];
+    % the data folder is probed, not required (v6.0.0): with no data
+    % pool set the shipped sample still resolves
+    df = shLowLevel.dataFolder(Probe = true);
+    cand = string(fullfile(shLowLevel.testDataDir(), fn));
+    if strlength(df) > 0
+        cand = [string(fullfile(char(df), 'DDK', fn)); cand];
+    end
     hit = cand(arrayfun(@isfile, cand));
     assert(~isempty(hit), 'shLowLevel:readDDK:notFetched', ...
-        ['%s (%s) is not in %s or the shipped test data.\n' ...
-         'Download it once with shLowLevel.fetchDDK(%d).'], ...
-        upper(char(source)), fn, cand(1), k);
+        ['%s (%s) is not in %s (the data folder, when one is set, ' ...
+         'then the shipped test data).\nDownload it once with ' ...
+         'shLowLevel.fetchDDK(%d).'], ...
+        upper(char(source)), char(fn), char(strjoin(cand, ", ")), k);
     W = shLowLevel.readDDK(hit(1), Nmax = opts.Nmax);
     return
 end

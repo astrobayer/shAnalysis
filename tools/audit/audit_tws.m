@@ -12,11 +12,12 @@ function audit_tws
 %   Claude (Fable 5), 2026-08-12.
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 
-aux = 'E:\DATAPOOL\GravityField\GravIS';
-ser = 'E:\DATAPOOL\GravityField\icgem\series\02_COST-G__COST-G_Grace-Grace-FO_RL02.1';
-ddk = 'E:\DATAPOOL\GravityField\DDK';
-kn  = readmatrix(fullfile('C:\Users\matth\Documents\MATLAB\shAnalysis', ...
-    'tests','test_data','loadLoveNumbers_Gegout97.txt'), FileType='text', NumHeaderLines=2);
+pool = char(shLowLevel.dataFolder());   % the data pool's GravityField root (DATAPOOL), no machine path
+aux = fullfile(pool, 'GravIS');
+ser = fullfile(pool, 'icgem', 'series', '02_COST-G__COST-G_Grace-Grace-FO_RL02.1');
+ddk = fullfile(pool, 'DDK');
+kn  = readmatrix(fullfile(shLowLevel.testDataDir(), ...
+    'loadLoveNumbers_Gegout97.txt'), FileType='text', NumHeaderLines=2);
 GM = 3.986004415e14; R = 6378136.3;
 
 S = load_or_build(aux, ser);

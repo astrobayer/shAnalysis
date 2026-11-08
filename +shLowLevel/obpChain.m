@@ -66,7 +66,8 @@ function [out, rep] = obpChain(folder, opts)
 %     kn = readmatrix("loadLoveNumbers_Gegout97.txt", FileType = "text", ...
 %         NumHeaderLines = 2);
 %     [out, rep] = shLowLevel.obpChain(serFolder, kn = kn, ...
-%         OceanMask = oc, GADFolder = "E:/DATAPOOL/GravityField/GAX/GAD");
+%         OceanMask = oc, GADFolder = fullfile(shLowLevel.dataFolder(), ...
+%         "series", "GAX", "GAD"));
 %     imagesc(out.lon, out.lat, out.grid(:, :, end)); axis xy
 %
 %   Error identifiers
