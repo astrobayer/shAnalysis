@@ -26,7 +26,7 @@ says whether it was *read* or *inferred*.
 
 | Fact | Value | Evidence |
 |---|---|---|
-| Version | **5.31.2**, 07-Nov-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
+| Version | **5.31.3**, 08-Nov-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
 | Branches | `main` only; `claude/getframe-recapture` and `claude/readshm` are gone (merged/deleted) | `GET /branches` |
 | Public surface | 3 classes / 108 methods, 138 `+shLowLevel` functions (+5 private), 3 root functions. 96 of the 138 are reachable from a class method; each of the other 42 is a named exception with its reason, and the backlog is empty (v5.24.0) | `tools/dev/api_extract.py`; `tools/dev/class_surface_audit.py` |
 | Tests | 5 classes, **483 methods / 497 runs**: Correctness 241, Contract 157, Robustness 63, Science 9, Performance 13 methods (27 runs, `budgetCase` x14 + `nmaxP` x2). On A8 8 filter out in an ordinary run - the optional real-data fixtures and the opt-in full-size closed loop (v5.27.2), 7 on a manual run that sets `closed_loop_nmax` (the GravIS-grid test joined them in v5.8.0, the ESMGFZ check in v5.11.0, the HLSST check in v5.12.0); on MATTHIASPC only 2 do, because `E:\DATAPOOL` supplies the SINEX files, the GravIS folder and - with `SHX_EARTHROTATION_FOLDER` and `SHX_BRIDGE_FOLDER` set for the run, no preference is stored - the ESMGFZ and HLSST series. The counter has matched the runner EXACTLY on the last ten green A8 runs and on every local Tier-A run. | `python3 tools/dev/count_tests.py` |
@@ -699,6 +699,14 @@ that need no new data first.
 Current entries only; every earlier one is in `tools/dev/RECORD.md` §1,
 verbatim. An entry moves there when it stops describing the current
 state; nothing is deleted.
+- 2026-11-08 — **5.31.3: GravIS tests hold on a newer download** (Matthias:
+  "ensure that the test will also work with future downloads"). The
+  basin GeoJSON falls back to `data/gravis` in both GravIS chains. The
+  twsChain anchor runs on its validated span (SpanEnd 2025.96, 252
+  months). GFZ rewrites the TWS grid each month: its earlier months move
+  by about 1e-7 relative, as scipy confirms. So the scipy pins hold for
+  the 256-month edition only, and a newer edition is checked against the
+  raw netCDF read, bit for bit. A wider tolerance was never an option.
 - 2026-11-07 — **5.31.2: the real-data tests trim to TN-14, the fixture
   stays** (Matthias: "Go for 1"). A growing series outruns the pinned
   table: COST-G reaches July 2026, the table's last entry is centred at
@@ -1140,9 +1148,10 @@ One line per rule; the incident behind each, with its numbers, is in
 
 ### 6.4 Next action
 
-**State, 2026-11-07.** v5.31.2 (real-data tests trimmed to TN-14) is on
-branch `fix-tn14-span`; `main` is `a18feff`, v5.31.1 (#152, `fetchICGEM`
-resume and rate-limit stop, merged), after `784a0f7`, v5.31.0 (#151, 9i). Before that, `1005fc7`, v5.30.0 (#150, 9h,
+**State, 2026-11-08.** v5.31.3 (GravIS tests hold on a newer download)
+is on branch `fix-gravis-growth`; `main` is `90bf475`, v5.31.2 (#153,
+real-data tests trimmed to TN-14, merged), after `a18feff`, v5.31.1
+(#152) and `784a0f7`, v5.31.0 (#151, 9i). Before that, `1005fc7`, v5.30.0 (#150, 9h,
 merged); every release since v5.24.1 carries
 `shAnalysis_workflow_guide.pdf`. v5.31.0 (9i, background-model error)
 is on branch `wp9-background-error`. A re-measurement is a manual run of the

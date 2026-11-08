@@ -1359,7 +1359,11 @@ end
 function testGravisChainsRealData(testCase)
 %TESTGRAVISCHAINSREALDATA Opt-in science anchor (SHX_GRAVIS_FOLDER +
 %   SHX_SERIES_FOLDER + SHX_DDK_FOLDER): twsChain must reproduce the
-%   validated Amazonas numbers (guide V8) on the real series.
+%   validated Amazonas numbers (guide V8) on the real series. The
+%   numbers belong to the 252 months to 2025.96 that the GravIS portal
+%   series was compared over; SpanEnd keeps the test on that span while
+%   the downloaded series grows (v5.31.3; 259 months moved the amplitude
+%   by 0.02 cm, a span of 247 by 0.09 cm).
 % opt-in via env vars OR persistent MATLAB preferences - the latter
 % survive sessions without touching the environment:
 %   setpref("shAnalysis", "GravisFolder", "E:/.../GravIS") etc.
@@ -1375,7 +1379,9 @@ assumeTrue(testCase, ~isempty(gf) && ~isempty(sf) && ~isempty(df), ...
 kn = readmatrix(fullfile(shxTestDataDir(), ...
     'loadLoveNumbers_Gegout97.txt'), FileType = 'text', NumHeaderLines = 2);
 out = shLowLevel.twsChain(sf, gf, kn = kn, DDKFolder = df, ...
-    Basins = "Amazonas", Quiet = true);
+    Basins = "Amazonas", SpanEnd = 2025.96, Quiet = true);
+testCase.log(1, sprintf('%d months, %.3f to %.3f', numel(out.epochs), ...
+    out.epochs(1), out.epochs(end)));
 verifyEqual(testCase, out.trend(1), 0.01, AbsTol = 0.05);
 verifyEqual(testCase, out.amplitude(1), 20.6, AbsTol = 0.5);
 end
@@ -4364,8 +4370,23 @@ verifyError(testCase, @() shLowLevel.twsChain(d, kn = kn, Filter = "DDK3", ...
     DDKFolder = ddk, Quiet = true), 'shLowLevel:twsChain:missingDDK');
 clear c4                                       % restore the data folder now
 nb = tempname; mkdir(nb); c7 = onCleanup(@() rmIfFolder(nb)); %#ok<NASGU>
+verifyError(testCase, @() shLowLevel.greenlandChain(nb, nb, kn = kn, ...
+    BasinFile = "no_such_basins.json", Quiet = true), ...
+    'shLowLevel:gravisRegionChain:missingBasins');
+% a GravIS folder without basins_GIS.json falls back to the shipped copy
+% (v5.31.3): the chain gets past the basins and stops at the empty series
 verifyError(testCase, @() shLowLevel.greenlandChain(nb, nb, kn = kn, Quiet = true), ...
-    'shLowLevel:gravisRegionChain:missingBasins');           % no basins_GIS.json
+    'shSeries:read:noFiles');
+% the same for twsChain: an aux folder holding the tables but no
+% basins_rivbas.json (as a GravIS download has it) reaches the shipped one
+ax = tempname; mkdir(ax); c8 = onCleanup(@() rmIfFolder(ax)); %#ok<NASGU>
+src = shLowLevel.gravisDataFolder();
+for f = dir(fullfile(src, 'GRAVIS-2B_*'))'
+    copyfile(fullfile(src, f.name), ax);
+end
+out = shLowLevel.twsChain(d, ax, kn = kn, Filter = "none", ...
+    Basins = "Elbe River", Quiet = true);
+verifyEqual(testCase, out.name, "Elbe River");
 % the default noise policy needs an ocean mask; reached after the trend fit
 verifyError(testCase, @() shLowLevel.greenlandChain(d, kn = kn, Quiet = true), ...
     'shLowLevel:gravisRegionChain:noOcean');

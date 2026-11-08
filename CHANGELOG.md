@@ -1,5 +1,55 @@
 # Changelog
 
+## [5.31.3] - 2026-11-08 - the GravIS real-data tests survive a newer download
+
+A PATCH release (Matthias: "Fix them both and ensure that the test will
+also work with future downloads"). One behaviour change: where the two
+GravIS chains look for a basin file.
+
+### Fixed
+- `shLowLevel.twsChain` and `shLowLevel.gravisRegionChain` (behind
+  `greenlandChain` and `antarcticaChain`) failed with `missingBasins`
+  when GRAVISFOLDER held the GravIS tables but not the basin GeoJSON.
+  A GravIS aux download has no basin file, and the acceptance machine's
+  folder had none.
+  - The polygons ship in `data/gravis`, and `readBasin` already found
+    them there by name. The chains looked only at a path or in
+    GRAVISFOLDER.
+  - Both now look at a path, then GRAVISFOLDER, then `data/gravis`. A
+    file in GRAVISFOLDER still wins.
+  - Unlike the correction tables, the polygons do not trail the
+    solutions, so the shipped copy never goes stale.
+- `testContract/testGravisChainsRealData` now runs on the span its
+  reference numbers belong to: `SpanEnd = 2025.96`, 252 months.
+  - Measured with the real series: 259 months moved the Amazonas
+    amplitude by 0.02 cm, and a 247-month span moved it by 0.09 cm.
+  - The tolerances are unchanged.
+- `testRobustness/testReadGridOnTheGravISGrid` failed on the 2026-09-29
+  edition of the GravIS TWS grid, which has 260 months.
+  - GFZ does more than append a month: it rewrites the whole file. All
+    four pinned first-epoch cells moved by 7.45e-7 cm, and scipy
+    (`validate_readgrid.py`, CLAIM 3) reads the same new values as
+    `readGrid`.
+  - The scipy pins now apply to the 256-month edition the oracle read.
+  - On any other edition the test checks:
+    - the axes, the units and the ocean NaN count;
+    - the first epoch, and the oracle's last epoch found by its value;
+    - that the epochs increase;
+    - each of the four cells at the first, the oracle's last and the
+      newest epoch, equal bit for bit to the netCDF library's raw read.
+- `testContract/testDrivenGuardsOfChainFolders` pins the fallback in
+  both chains, plus `missingBasins` for a name found nowhere.
+
+### Measured
+- On MATTHIASPC (Tier A) with real data:
+  - COST-G RL02.1, 259 months;
+  - the GravIS folder `E:\DATAPOOL\GravityField\GravIS`, which has no
+    basin file;
+  - the TWS grid, 260 months, date_created 2026-09-29.
+- The six GravIS and chain-guard tests in `testContract` and the grid
+  test pass. Before the fix, `testGravisChainsRealData` errored and the
+  grid test failed.
+
 ## [5.31.2] - 2026-11-07 - two real-data tests measure only the months TN-14 covers
 
 A PATCH release, tests only (Matthias: "Go for 1").

@@ -58,7 +58,8 @@ function [gt, rep] = gravisRegionChain(region, folder, gravisFolder, opts)
 %         radius that was not a number became NaN weights, and a negative
 %         one weights of about 1 - no filter
 %     shLowLevel:gravisRegionChain:missingBasins
-%         the basin GeoJSON was not found
+%         the basin GeoJSON is not a path and in neither GRAVISFOLDER
+%         nor data/gravis
 %     shLowLevel:gravisRegionChain:noKn
 %         kn was not supplied; the chain will not assume a reference frame
 %     shLowLevel:gravisRegionChain:noOcean
@@ -92,11 +93,17 @@ if opts.Quiet, say = @(s) []; end
 if strlength(gravisFolder) == 0
     gravisFolder = shLowLevel.gravisDataFolder();
 end
-bf = char(opts.BasinFile);
-if ~isfile(bf), bf = fullfile(char(gravisFolder), bf); end
-if ~isfile(bf)
+% a path, else GRAVISFOLDER, else the shipped data/gravis copy (v5.31.3)
+bf = "";
+for c = [string(opts.BasinFile), ...
+        string(fullfile(char(gravisFolder), char(opts.BasinFile))), ...
+        string(fullfile(char(shLowLevel.gravisDataFolder()), char(opts.BasinFile)))]
+    if isfile(c), bf = c; break; end
+end
+if strlength(bf) == 0
     error('shLowLevel:gravisRegionChain:missingBasins', ...
-        ['Basin GeoJSON not found: %s. Fetch it from ' ...
+        ['Basin GeoJSON not found: %s (not a path, not in GRAVISFOLDER, ' ...
+         'not in data/gravis). Fetch it from ' ...
          'https://gravis.gfz.de/basins/GIS or /basins/AIS.'], opts.BasinFile);
 end
 [regs, binfo] = shLowLevel.readBasin(string.empty, File = string(bf));
