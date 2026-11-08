@@ -1,5 +1,27 @@
 # Changelog
 
+## [5.31.2] - 2026-11-07 - two real-data tests measure only the months TN-14 covers
+
+A PATCH release, tests only (Matthias: "Go for 1").
+
+### Fixed
+- `testScience/testBridgeGapsAgainstGRACE` and
+  `testScience/testExcitationAgainstESMGFZ` errored with
+  `shCoefficients:applyTN14:epochNotInTable`.
+  - The cause: a series folder grows every month, but the pinned TN-14
+    table (`fixtures-2026-08`) does not. Its last entry is centred at
+    2026.45, and COST-G RL02.1 on the acceptance machine now runs to
+    July 2026.
+  - Both tests now keep only the months `applyTN14` itself would accept:
+    a table entry within its default Tolerance, 0.05 yr. They log how
+    many months they left out.
+  - The fixture is unchanged.
+- Measured on MATTHIASPC (Tier A):
+  - COST-G RL02.1, 259 months, of which 1 was left out.
+  - HLSST_SLR_COMB2023s kalman, 240 months.
+  - ESMGFZ HAM/SLAM v1.2.
+  - Both tests pass; before the fix both errored.
+
 ## [5.31.1] - 2026-11-07 - fetchICGEM: a partial series resumes, a rate limit stops it
 
 A PATCH release: two fixes to `shLowLevel.fetchICGEM`'s series download
