@@ -28,7 +28,9 @@ function [out, rep] = twsChain(folder, gravisFolder, opts)
 %                errors: no frame is assumed
 %     BasinFile  ("basins_rivbas.json")  GravIS GeoJSON of the target
 %                basins ([lon lat] rings, read by shLowLevel.readBasin;
-%                https://gravis.gfz.de/basins/rivbas)
+%                https://gravis.gfz.de/basins/rivbas): a path, else
+%                looked up in GRAVISFOLDER, else in the shipped
+%                data/gravis folder (since v5.31.3)
 %     Basins     (strings(0,1))  feature names to process; the empty
 %                default processes every feature in BasinFile
 %     Filter     ("DDK3")  "none" | "gaussN" | "DDKn" (n = 1..8) | a W
@@ -75,7 +77,8 @@ function [out, rep] = twsChain(folder, gravisFolder, opts)
 %     shLowLevel:twsChain:emptyBasin
 %         a basin covers no grid point at the chosen GridStep
 %     shLowLevel:twsChain:missingBasins
-%         the basin GeoJSON was not found
+%         the basin GeoJSON is not a path and in neither GRAVISFOLDER
+%         nor data/gravis
 %     shLowLevel:twsChain:missingDDK
 %         the DDK binary was in none of the searched folders
 %     shLowLevel:twsChain:noKn
@@ -162,11 +165,18 @@ switch fspec.kind
 end
 steps(end+1) = "filter: " + filtName;
 % ---- basins
-bf = char(opts.BasinFile);
-if ~isfile(bf), bf = fullfile(char(gravisFolder), bf); end
-if ~isfile(bf)
+% a path, else GRAVISFOLDER, else the shipped data/gravis copy: the
+% polygons do not trail the solutions as the tables do (v5.31.3)
+bf = "";
+for c = [string(opts.BasinFile), ...
+        string(fullfile(char(gravisFolder), char(opts.BasinFile))), ...
+        string(fullfile(char(shLowLevel.gravisDataFolder()), char(opts.BasinFile)))]
+    if isfile(c), bf = c; break; end
+end
+if strlength(bf) == 0
     error('shLowLevel:twsChain:missingBasins', ...
-        ['Basin GeoJSON not found: %s. Fetch it from ' ...
+        ['Basin GeoJSON not found: %s (not a path, not in GRAVISFOLDER, ' ...
+         'not in data/gravis). Fetch it from ' ...
          'https://gravis.gfz.de/basins/rivbas.'], opts.BasinFile);
 end
 [regs, binfo] = shLowLevel.readBasin(string.empty, File = string(bf));

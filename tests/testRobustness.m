@@ -1681,6 +1681,14 @@ function testReadGridOnTheGravISGrid(testCase)
 %   ocean NaN and four land cells, the same stored doubles; then into
 %   analysis, which refuses the NaN until Fill is given. Opt-in, as the
 %   other real-data tests: the grid is 470 MB and does not ship.
+%   GFZ rewrites the file each month (v5.31.3): it appends the new month
+%   AND restores every earlier one - the 2026-09-29 edition (260 months)
+%   moved all four first-epoch cells by 7.45e-7 cm, and scipy read the
+%   same new values. The scipy pins therefore hold for the edition the
+%   oracle read (256 months, to 2026.29) only. A newer edition is held
+%   to what does not change: the axes, the units, the ocean NaN, the
+%   oracle's epochs found by value, and readGrid's cells equal, bit for
+%   bit, to the netCDF library's raw read of the same cells.
 gf = getenv('SHX_GRAVIS_FOLDER');
 if isempty(gf), gf = getpref('shAnalysis', 'GravisFolder', ''); end
 f = fullfile(gf, 'GRAVIS-3_GFZOP_0600_TWS_GRID_GFZ_0006.nc');
@@ -1688,23 +1696,52 @@ assumeTrue(testCase, isfile(f), ['set SHX_GRAVIS_FOLDER (or the ' ...
     'GravisFolder preference) to a folder holding ' ...
     'GRAVIS-3_GFZOP_0600_TWS_GRID_GFZ_0006.nc']);
 [tws, lat, lon, info] = shLowLevel.readGrid(f, Var = "tws");
-verifyEqual(testCase, size(tws), [180 360 256]);
+verifyEqual(testCase, size(tws, [1 2]), [180 360]);
+verifyGreaterThanOrEqual(testCase, size(tws, 3), 256);
 verifyEqual(testCase, [lat(1) lat(end) lon(1) lon(end)], [89.5 -89.5 0.5 359.5]);
 verifyEqual(testCase, info.units, "cm");
 verifyEqual(testCase, nnz(isnan(tws(:, :, 1))), 50090);
-% the oracle prints the epochs to 12 decimals
-verifyEqual(testCase, info.epochs([1 end]), ...
-    [2002.293949739980; 2026.287671232877], 'AbsTol', 1e-12);
-pins = [ -3.5 299.5  38.0889525086834  45.4425198018684
-          0.5  20.5  -4.34974389344529 -2.20421046756647
-         61.5  99.5  14.1325393794519  10.5241995489841
-         45.5  10.5   6.95832556320998 -6.57850620081513];
-for k = 1:size(pins, 1)
-    i = find(lat == pins(k, 1));
-    j = find(lon == pins(k, 2));
-    % the oracle prints 15 significant digits of the same stored doubles
-    verifyEqual(testCase, squeeze(tws(i, j, [1 end]))', pins(k, 3:4), ...
-        'RelTol', 1e-14);
+% the oracle prints the epochs to 12 decimals; a later edition keeps them
+ep = info.epochs(:);
+verifyTrue(testCase, all(diff(ep) > 0), 'the epochs are not increasing');
+verifyEqual(testCase, ep(1), 2002.293949739980, 'AbsTol', 1e-12);
+last = find(abs(ep - 2026.287671232877) <= 1e-12);
+verifyNumElements(testCase, last, 1, ...
+    'the oracle''s last epoch 2026.287671232877 is not in the grid');
+if isempty(last), return; end
+cells = [ -3.5 299.5;  0.5  20.5;  61.5  99.5;  45.5  10.5];
+if numel(ep) == 256
+    % the edition validate_readgrid.py read: scipy's 15 significant digits
+    pins = [ 38.0889525086834  45.4425198018684
+             -4.34974389344529 -2.20421046756647
+             14.1325393794519  10.5241995489841
+              6.95832556320998 -6.57850620081513];
+    for k = 1:size(cells, 1)
+        i = find(lat == cells(k, 1));
+        j = find(lon == cells(k, 2));
+        verifyEqual(testCase, squeeze(tws(i, j, [1 last]))', pins(k, :), ...
+            'RelTol', 1e-14);
+    end
+else
+    testCase.log(1, sprintf(['edition of %d months (to %.2f): the scipy pins ' ...
+        'belong to the 256-month edition; cells compared with the raw read'], ...
+        numel(ep), ep(end)));
+    ncid = netcdf.open(f, 'NOWRITE');
+    closer = onCleanup(@() netcdf.close(ncid)); %#ok<NASGU>
+    latF = double(netcdf.getVar(ncid, netcdf.inqVarID(ncid, 'lat')));
+    lonF = mod(double(netcdf.getVar(ncid, netcdf.inqVarID(ncid, 'lon'))), 360);
+    vid = netcdf.inqVarID(ncid, 'tws');
+    for k = 1:size(cells, 1)
+        i = find(lat == cells(k, 1));  iF = find(latF == cells(k, 1));
+        j = find(lon == cells(k, 2));  jF = find(lonF == cells(k, 2));
+        for t = [1 last numel(ep)]
+            % the file is (time, lat, lon); the library counts from 0,
+            % fastest dimension first
+            raw = double(netcdf.getVar(ncid, vid, [jF iF t] - 1, [1 1 1]));
+            verifyEqual(testCase, tws(i, j, t), raw, ...
+                sprintf('cell (%g, %g), epoch %d', cells(k, 1), cells(k, 2), t));
+        end
+    end
 end
 verifyError(testCase, @() shCoefficients.analysis(tws(:, :, 1) / 100, lat, ...
     lon, 30, LatType = "geodetic"), 'shCoefficients:analysis:nanInGrid');
