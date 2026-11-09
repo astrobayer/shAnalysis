@@ -1,5 +1,5 @@
 % shAnalysis - Spherical harmonic analysis toolbox
-% Version 6.0.3 (R2026a-compatible) 09-Nov-2026
+% Version 6.0.4 (R2026a-compatible) 09-Nov-2026
 %
 % The line above is what ver('shAnalysis') reports as the product name:
 % keep it a SHORT name, not a sentence and not a version string (pinned

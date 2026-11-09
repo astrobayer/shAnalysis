@@ -1,5 +1,21 @@
 # Changelog
 
+## [6.0.4] - 2026-11-09 - every listed fixture is read by the code
+
+A PATCH release (Matthias, 2026-11-09: fix the two fixtures 6.0.3 listed
+and no suite named). No toolbox function changes.
+
+### Changed
+- `tests/data/SOURCES.json` no longer lists `test_static.gfc.gz`: no
+  code reads it (the `.gz` round-trip test gzips its own file). The tag
+  `fixtures-2026-08` still carries it; the list names what the code
+  needs, 19 of the tag's 20 files.
+- `testEveryListedFixtureIsNamedOrCarried` counts the code under
+  `tools/` as naming a fixture, beside the suites:
+  `gravis_gis_basins.geojson` is read by `tools/audit/audit_gravis.m`.
+  Every listed file is now named, so the test passes without a fixture
+  folder instead of filtering.
+
 ## [6.0.3] - 2026-11-09 - the repository owns its fixture list
 
 A PATCH release (Matthias, 2026-11-09: the repository owns its

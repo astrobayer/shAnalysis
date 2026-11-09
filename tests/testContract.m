@@ -5033,13 +5033,15 @@ end
 
 function testEveryListedFixtureIsNamedOrCarried(testCase)
 %TESTEVERYLISTEDFIXTUREISNAMEDORCARRIED The converse: a listed file is
-%   named by a suite, or it is carried by the fixture set the suites run
-%   against (the tag's content, as checked out). Today two are carried
-%   and named by no suite - gravis_gis_basins.geojson and
-%   test_static.gfc.gz - so with no fixture folder this filters, naming
-%   them, rather than passing on a claim it cannot check.
+%   named by the repository's code - a suite, or a tool under tools/ - or
+%   it is carried by the fixture set the suites run against (the tag's
+%   content, as checked out). Since 6.0.4 every listed file is named:
+%   gravis_gis_basins.geojson is read by tools/audit/audit_gravis.m, and
+%   test_static.gfc.gz, read by nothing, left the list. With no fixture
+%   folder an unnamed file filters, naming it, rather than passing on a
+%   claim the test cannot check.
 listed = fixtureListFiles(testCase);
-code = suiteCode(testCase);
+code = suiteCode(testCase) + newline + toolCode(testCase);
 named = arrayfun(@(f) contains(code, f), listed);
 unnamed = listed(~named);
 if isempty(unnamed)
@@ -5050,7 +5052,7 @@ assumeTrue(testCase, isfolder(d), "no fixture folder (" + d + ...
     "): cannot confirm the fixture set carries " + strjoin(unnamed, ", "));
 carried = arrayfun(@(f) isfile(fullfile(d, f)), unnamed);
 verifyEmpty(testCase, unnamed(~carried), ...
-    "listed in SOURCES.json, named by no suite and not in " + d);
+    "listed in SOURCES.json, named by no suite or tool and not in " + d);
 end
 
 function testFixtureFolderHoldsEveryListedFile(testCase)
@@ -5090,6 +5092,18 @@ S = fixtureList(testCase);
 has = cellfun(@(s) isfield(s, 'files'), S.sources);
 f = cellfun(@(s) string(s.files(:)'), S.sources(has), UniformOutput = false);
 f = [strings(1, 0) f{:}];
+end
+
+function code = toolCode(testCase)
+%TOOLCODE The code lines of every tools/**/*.m, comment lines dropped: a
+%   tool that reads a fixture is a reason to list it (6.0.4).
+d = dir(fullfile(testCase.TestData.root, 'tools', '**', '*.m'));
+parts = strings(numel(d), 1);
+for k = 1:numel(d)
+    L = string(splitlines(fileread(fullfile(d(k).folder, d(k).name))));
+    parts(k) = strjoin(L(~startsWith(strtrim(L), "%")), newline);
+end
+code = strjoin(parts, newline);
 end
 
 function code = suiteCode(testCase)

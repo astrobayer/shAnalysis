@@ -26,7 +26,7 @@ says whether it was *read* or *inferred*.
 
 | Fact | Value | Evidence |
 |---|---|---|
-| Version | **6.0.3**, 09-Nov-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
+| Version | **6.0.4**, 09-Nov-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
 | Branches | `main` only; `claude/getframe-recapture` and `claude/readshm` are gone (merged/deleted) | `GET /branches` |
 | Public surface | 3 classes / 108 methods, 138 `+shLowLevel` functions (+5 private), 3 root functions. 96 of the 138 are reachable from a class method; each of the other 42 is a named exception with its reason, and the backlog is empty (v5.24.0) | `tools/dev/api_extract.py`; `tools/dev/class_surface_audit.py` |
 | Tests | 5 classes, **489 methods / 503 runs**: Correctness 241, Contract 163, Robustness 63, Science 9, Performance 13 methods (27 runs, `budgetCase` x14 + `nmaxP` x2). On A8 8 filter out in an ordinary run - the optional real-data fixtures and the opt-in full-size closed loop (v5.27.2), 7 on a manual run that sets `closed_loop_nmax` (the GravIS-grid test joined them in v5.8.0, the ESMGFZ check in v5.11.0, the HLSST check in v5.12.0); on MATTHIASPC only 2 do, because `E:\DATAPOOL` supplies the SINEX files, the GravIS folder and - with `SHX_EARTHROTATION_FOLDER` and `SHX_BRIDGE_FOLDER` set for the run, no preference is stored - the ESMGFZ and HLSST series. The counter has matched the runner EXACTLY on the last ten green A8 runs and on every local Tier-A run. | `python3 tools/dev/count_tests.py` |
@@ -1085,6 +1085,14 @@ state; nothing is deleted.
   (Matthias: "skip files that git ignores"): the fetched
   `icgem_*_fixture.html` pages were its only findings once the fixtures
   were present. Tracked or unignored pages are still findings.
+- 2026-11-09 — **6.0.4: every listed fixture is read by the code** (Matthias,
+  "fix all"): `test_static.gfc.gz`, read by nothing, left
+  `tests/data/SOURCES.json` (the tag still carries it; 19 of its 20 files
+  are listed). `testEveryListedFixtureIsNamedOrCarried` counts `tools/`
+  code beside the suites, so `gravis_gis_basins.geojson`
+  (`tools/audit/audit_gravis.m`) is named and the test passes without a
+  fixture folder instead of filtering. The installer's registry copy
+  changes in toolboxInstaller 2.4.0. PATCH: no function changes.
 - 2026-11-09 — **6.0.3: the repository owns its fixture list** (Matthias:
   the installer reads the test-data list from the repository, no longer
   from its registry). `tests/data/SOURCES.json`, `{"schema": 1,
@@ -1094,7 +1102,9 @@ state; nothing is deleted.
   the suites in both directions, reading the names from the code. Two
   listed fixtures are named by no suite (`gravis_gis_basins.geojson`,
   `test_static.gfc.gz`); kept, because the list is the registry's
-  verbatim - dropping them is Matthias' call. PATCH: no function changes.
+  verbatim - dropping them is Matthias' call (decided 6.0.4: the first is
+  read by a tool and stays, the second left the list). PATCH: no function
+  changes.
 
 ### 6.2 Verification board (◑ = one tier only, ☑ = both)
 The last releases only; the full board, in version order, is
@@ -1117,6 +1127,7 @@ The last releases only; the full board, in version order, is
 | v5.30.0 (WP9 9h: `regionalBasis(Ocean = ...)`, `out.landMean`) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally**; predicted 493 runs (Correctness 239, Contract 156). ☑ **CI self-hosted (A8) at `47dd85e` via PR #150, green — 493 runs, 485 passed, 0 failed, 8 filtered**; the count prediction matched EXACTLY, and the three 9h tests passed on their first run (0.07, 0.45 and 0.30 s) | ☑ PR #150 | ☑ 2026-11-06 |
 | v5.31.0 (WP9 9i: `backgroundErrorCov`, `AddNoiseCov`) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally**; predicted 496 runs (Correctness 241, Contract 157) | ☐ | ☐ |
 | v6.0.0 (the data pool: `dataFolder` resolves `<DATAPOOL>/GravityField`, no `<toolbox>/data`; `TN`/`DDK` spelled as written) | ☑ 17 gates + mlint + make_demos + 15 self-test suites, 0 findings | ☑ **Tier A on MATTHIASPC** (worktree, copied prefdir): predicted 499 runs (Contract 159), ran 499 in both configurations - owner's preferences and no pool at all. Failures outside the change: `testVersionMetadataIsConsistent` (worktree name) and speed budgets under load (an `origin/main` control failed the same). `testAPIExamplesRun` red with no pool, fixed, then green | ☐ | ☐ |
+| v6.0.4 (every listed fixture is read by the code: `test_static.gfc.gz` left the list; the converse test counts `tools/`) | ☑ doc_sync, error_id, help, nv_casing, toolbox_dependency, fixture_tag audits + make_demos --check, 0 findings; apiReference, refpages, demos regenerated | ◑ **Tier A on MATTHIASPC** (worktree): the four fixture-list tests of `testContract` - 3 passed and the folder test filtered without fixtures; with `SHX_TESTDATA_FOLDER` = the main clone's fixtures both folder-dependent tests passed. `testEveryListedFixtureIsNamedOrCarried` now PASSES without a fixture folder (it filtered at 6.0.3). Predicted 503 runs (no test added); the full suite was not run here | ☐ | ☐ |
 | v6.0.3 (the fixture list: `tests/data/SOURCES.json`, four `testContract` tests) | ☑ 14 CI gates + mlint + check_api/api_audit/attribution_sweep + 15 self-test files, 0 findings; guide built locally | ☑ **Tier A on MATTHIASPC** (worktree, copied prefdir, `SHX_TESTDATA_FOLDER` = the main clone's fetched fixtures): predicted 503 runs (Contract 163), ran 503, 493 passed, 2 filtered (`testUserSuppliedSINEXFiles`, `testRegionalClosedLoopAtFullSize`), 8 failed outside the change: `testVersionMetadataIsConsistent` (`ver` finds the main clone, 6.0.2 - the worktree name, as at v6.0.0) and seven 1.3x speed budgets on a desktop; an `origin/main` control in the same session failed `legendre_n360`/`n720` alike. The four new tests passed, and seven single-defect injections turned exactly the expected ones red or filtered | ☐ | ☐ |
 | v5.26.0 (WP9 9b: `shLowLevel.neqClimatology`) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally** (no bridge). ☑ **CI self-hosted (A8) at `4aa3aa9` via PR #139, green — 460 runs, 453 passed, 0 failed, 7 filtered** (the optional real-data fixtures); the count prediction matched EXACTLY, and the four 9b tests passed on their first run - no red round | ☑ PR #139 | ☑ 2026-10-24 |
 

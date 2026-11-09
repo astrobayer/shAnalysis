@@ -23,13 +23,12 @@
         "icgem_temporal_fixture.html",
         "loadLoveNumbers_Gegout97.txt",
         "test_static.gfc",
-        "test_static.gfc.gz",
         "test_variable.gfct"
       ],
       "MB": 11,
       "licence": "open",
       "licenceText": "CC-BY-4.0 (the fixture set's README); attribution of the individual products (ITSG, GRAVIS, CSR/GFZ/JPL technical notes, DDK filter matrices) in shAnalysis' NOTICE.",
-      "description": "shAnalysis' CI fixture set: the commit of the tag fixtures-2026-08 that its ci.yml checks out into tests/test_data (20 files, 11.06 MB; the tag's README is not copied). Fetched by a clone of the private repository with the credentials of the package's own clone (D33)."
+      "description": "shAnalysis' CI fixture set: the commit of the tag fixtures-2026-08 that its ci.yml checks out into tests/test_data (20 files, 11.06 MB; the tag's README is not copied). 19 are listed: those the repository's code reads (6.0.4: test_static.gfc.gz, read by nothing, is carried by the tag but not listed). Fetched by a clone of the private repository with the credentials of the package's own clone (D33)."
     }
   ]
 }
