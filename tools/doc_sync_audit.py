@@ -474,6 +474,43 @@ def guide_tracked(root, relpath=GUIDE_REL):
     return r.returncode == 0
 
 
+def git_ignored(root, relpaths):
+    """The subset of RELPATHS that git at ROOT ignores (6.0.1, Matthias
+    2026-11-09: the audit skips what git ignores). An install writes into
+    the tree - the fetched fixtures in tests/test_data, the help search
+    database - and those files are not the repository's, so they are no
+    finding. git check-ignore never reports a TRACKED file, so nothing the
+    repository ships escapes the audit. Without git (a tarball) nothing is
+    skipped."""
+    if not relpaths:
+        return set()
+    try:
+        # -z and bytes: NUL-separated both ways, so no newline translation
+        # (Windows text mode sent "path\r") and any file name survives
+        r = subprocess.run(["git", "-C", root, "check-ignore", "-z", "--stdin"],
+                           input=b"\0".join(x.encode("utf-8") for x in relpaths) + b"\0",
+                           capture_output=True)
+    except OSError:
+        return set()
+    if r.returncode not in (0, 1):  # 128: not a repository
+        return set()
+    return {os.path.normpath(x.decode("utf-8")) for x in r.stdout.split(b"\0") if x}
+
+
+def second_html_copies(root):
+    """Every .html file below ROOT outside html/ that git does not ignore,
+    as paths relative to ROOT, sorted."""
+    found = []
+    for dirpath, dirnames, filenames in os.walk(root):
+        dirnames[:] = [d for d in dirnames
+                       if d not in (".git", "html", "node_modules")]
+        for fn in filenames:
+            if fn.endswith(".html"):
+                found.append(os.path.relpath(os.path.join(dirpath, fn), root))
+    ignored = git_ignored(root, [f.replace(os.sep, "/") for f in found])
+    return sorted(f for f in found if os.path.normpath(f) not in ignored)
+
+
 def gitattributes_binary(root, relpath):
     """True when .gitattributes keeps RELPATH out of line-ending conversion
     ('binary' or '-text'). As in git, the LAST matching line wins, and a
@@ -969,15 +1006,9 @@ def main():
     # byte-identical copy of the generated apiReference.html for months;
     # nothing wrote it, nothing read it, and nothing compared the two, so
     # it simply aged. A second copy of a generated page is never right.
-    for dirpath, dirnames, filenames in os.walk(ROOT):
-        dirnames[:] = [d for d in dirnames
-                       if d not in (".git", "html", "node_modules")]
-        for fn in filenames:
-            if not fn.endswith(".html"):
-                continue
-            rel = os.path.relpath(os.path.join(dirpath, fn), ROOT)
-            probs.append("%s: HTML pages live in html/ only - this is a "
-                         "second copy that nothing regenerates" % rel)
+    for rel in second_html_copies(ROOT):
+        probs.append("%s: HTML pages live in html/ only - this is a "
+                     "second copy that nothing regenerates" % rel)
 
     # structural (audit F-6): content after </html> renders by browser
     # error recovery and passes every text-presence check above
