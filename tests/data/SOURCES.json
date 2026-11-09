@@ -1,0 +1,35 @@
+{
+  "schema": 1,
+  "sources": [
+    {
+      "id": "fixtures-2026-08",
+      "url": "git+https://github.com/astrobayer/shAnalysis.git#f14d4f24b36ac0ea0b1bff6b0172253440d74e65",
+      "files": [
+        "GRAVIS-2B_GIA_ICE-6G_D_VM5a_n10_trimmed.shm",
+        "GRAVIS-2B_GIA_ICE-6G_D_VM5a_n10_trimmed.shm.gz",
+        "GRAVIS-2B_MEAN_n10_trimmed.shm",
+        "ITSG-Grace2018_Kalman_n40_2008-04-15.gfc",
+        "ITSG-Grace2018_n60_2008-04.gfc",
+        "ITSG-Grace2018_n96_2008-04_head12.snx",
+        "ITSG-Grace_operational_n60_2025-12.gfc",
+        "TN-13_GEOC_CSR_RL06.3.txt",
+        "TN-13_GEOC_GFZ_RL06_3.txt",
+        "TN-13_GEOC_JPL_RL06.3.txt",
+        "TN-14_C30_C20_SLR_GSFC.txt",
+        "Wbd_2-120.a_1d12p_4",
+        "gravis_gis_basins.geojson",
+        "icgem_list_fixture.html",
+        "icgem_series_fixture.html",
+        "icgem_temporal_fixture.html",
+        "loadLoveNumbers_Gegout97.txt",
+        "test_static.gfc",
+        "test_static.gfc.gz",
+        "test_variable.gfct"
+      ],
+      "MB": 11,
+      "licence": "open",
+      "licenceText": "CC-BY-4.0 (the fixture set's README); attribution of the individual products (ITSG, GRAVIS, CSR/GFZ/JPL technical notes, DDK filter matrices) in shAnalysis' NOTICE.",
+      "description": "shAnalysis' CI fixture set: the commit of the tag fixtures-2026-08 that its ci.yml checks out into tests/test_data (20 files, 11.06 MB; the tag's README is not copied). Fetched by a clone of the private repository with the credentials of the package's own clone (D33)."
+    }
+  ]
+}

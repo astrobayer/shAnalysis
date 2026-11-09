@@ -146,7 +146,10 @@ shAnalysis/
                      ci.yml, which tools/fixture_tag_audit.py keeps on
                      the newest tag; local machines point
                      setup_shAnalysis(TestDataFolder=...) at a copy -
-                     CC-BY-4.0 contents, see NOTICE)
+                     CC-BY-4.0 contents, see NOTICE; the files are
+                     listed in tests/data/SOURCES.json, which the
+                     installer fetches from and testContract holds to
+                     the names the suites open)
   tools/             CI gates; tools/dev/ the doc generators and the
                      Python oracles (see its README)
 ```

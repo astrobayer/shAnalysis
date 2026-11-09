@@ -1,5 +1,44 @@
 # Changelog
 
+## [6.0.3] - 2026-11-09 - the repository owns its fixture list
+
+A PATCH release (Matthias, 2026-11-09: the repository owns its
+test-data list, and the toolbox installer reads it from there). No
+toolbox function changes; a data file, four tests and documentation.
+
+### Added
+- `tests/data/SOURCES.json`, `{"schema": 1, "sources": [...]}`: the
+  third-party files the suites read from the fixture folder, one entry
+  per download with `id`, `url`, `files`, `MB`, `licence`, `licenceText`
+  and `description`. Today one source, the fixture tag
+  `fixtures-2026-08` (20 files, 11 MB). The array is copied verbatim
+  from the installer's registry (`tests.data.sources`), where the list
+  lived until now and where nothing tied it to the tests.
+  It is not in `tests/test_data`: that folder is the fixture checkout
+  itself and git ignores it (6.0.1), so a list kept there would be
+  untracked and overwritten by the checkout that fills it.
+- Four `testContract` tests make the list the authority, reading the
+  names from the suites rather than restating them:
+  `testFixtureListIsWellFormed` (schema 1, every field present, unique
+  ids, unique file names); `testFixtureListCoversEveryFixtureTheSuitesOpen`
+  (every literal name joined to the fixture folder is listed;
+  `nope.shm`, opened on purpose without existing, is the one exception,
+  asserted as an exact set); `testEveryListedFixtureIsNamedOrCarried`
+  (every listed file is named by a suite or present in the fixture
+  folder; it filters with no fixture folder, naming the two files no
+  suite names); and `testFixtureFolderHoldsEveryListedFile` (the
+  fixture folder holds every listed file; filters with no folder).
+  Each was fault-injected: a wrong schema, a duplicate id, a missing
+  field, a dropped name a suite opens, an unread name, no folder and a
+  folder missing one file each turn exactly the expected tests red or
+  filtered. 499 -> 503 runs (Contract 159 -> 163).
+
+### Recorded, not changed
+- Two fixtures are carried by the tag and read by no suite:
+  `gravis_gis_basins.geojson` and `test_static.gfc.gz` (a `.gz` round
+  trip test gzips its own file). The list keeps them because it is the
+  registry's, verbatim; dropping them is Matthias' call.
+
 ## [6.0.2] - 2026-11-09 - the docs audit skips what git ignores
 
 A PATCH release. Only the documentation gate changes; no MATLAB file.

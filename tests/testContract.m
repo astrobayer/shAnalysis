@@ -4960,3 +4960,166 @@ verifyError(testCase, @() ts0.toGrid(-60:60:60, 0:90:270), ...
 verifyWarning(testCase, @() ts.mean(Range = [2004 2010], ...
     Estimator = "model"), 'shSeries:mean:sparseWindow');
 end
+
+% ------------------------------------------- the fixture list (6.0.3)
+% tests/data/SOURCES.json lists the third-party files the suites read
+% from the fixture folder (shxTestDataDir), and the toolbox installer
+% fetches them from that list. It used to live in the installer's
+% registry, where nothing tied it to the names these suites open; the
+% four tests below hold it to the code in both directions, reading the
+% names from the suites rather than restating them here.
+%
+% It is NOT in tests/test_data: that folder is the fixture checkout
+% itself, ignored by git (6.0.1), and a list kept there would be neither
+% tracked nor safe from the checkout that fills it.
+
+function testFixtureListIsWellFormed(testCase)
+%TESTFIXTURELISTISWELLFORMED The installer's contract: schema 1, and every
+%   source names id, url, files, MB, licence, licenceText, description.
+%   Ids are unique because the installer keys its state on them; file
+%   names are unique across sources because they land in ONE folder.
+S = fixtureList(testCase);
+verifyEqual(testCase, S.schema, 1, 'SOURCES.json: schema');
+src = S.sources;
+assertNotEmpty(testCase, src, 'SOURCES.json lists no source');
+textFields = ["id" "url" "licence" "licenceText" "description"];
+ids = strings(1, numel(src));
+names = cell(numel(src), 1);
+for k = 1:numel(src)
+    s = src{k};
+    absent = setdiff([textFields "files" "MB"], string(fieldnames(s)'));
+    verifyEmpty(testCase, absent, sprintf('source %d lacks: %s', k, ...
+        strjoin(absent, ', ')));
+    if ~isempty(absent)
+        continue
+    end
+    for fld = textFields
+        verifyTrue(testCase, ischar(s.(fld)) && ~isempty(s.(fld)), ...
+            sprintf('source %d: %s must be non-empty text', k, fld));
+    end
+    verifyTrue(testCase, iscellstr(s.files) && ~isempty(s.files), ...
+        sprintf('source %d: files must be a non-empty list', k));
+    verifyTrue(testCase, isnumeric(s.MB) && isscalar(s.MB) && ...
+        isfinite(s.MB) && s.MB > 0, ...
+        sprintf('source %d: MB must be one positive number', k));
+    ids(k) = string(s.id);
+    names{k} = string(s.files(:));
+    % a bare name: the fixture folder is flat
+    verifyFalse(testCase, any(contains(names{k}, ["/" "\"])), ...
+        sprintf('source %d: a file must be a bare name', k));
+end
+names = vertcat(strings(0, 1), names{:});
+verifyEqual(testCase, numel(unique(ids)), numel(ids), ...
+    "SOURCES.json: duplicate id among " + strjoin(ids, ", "));
+verifyEqual(testCase, numel(unique(names)), numel(names), ...
+    'SOURCES.json: a file name appears in two sources');
+end
+
+function testFixtureListCoversEveryFixtureTheSuitesOpen(testCase)
+%TESTFIXTURELISTCOVERSEVERYFIXTURETHESUITESOPEN Every literal name a
+%   suite joins to the fixture folder - fullfile(shxTestDataDir(), ...),
+%   fullfile(<x>.TestData.dataDir, ...), or a variable assigned from
+%   either in the same function - is listed. One name is opened on
+%   purpose without existing, and is the exact set below:
+%     nope.shm  testCorrectness asserts readSHM's refusal of a missing
+%               file in the fixture folder.
+opened = fixtureNamesOpened(testCase);
+% an extraction that finds nothing is a broken instrument
+assertNotEmpty(testCase, opened, 'no fixture name found in tests/*.m');
+missingByDesign = "nope.shm";
+verifyEqual(testCase, setdiff(opened, fixtureListFiles(testCase)), ...
+    missingByDesign, 'fixture names the suites open that SOURCES.json lacks');
+end
+
+function testEveryListedFixtureIsNamedOrCarried(testCase)
+%TESTEVERYLISTEDFIXTUREISNAMEDORCARRIED The converse: a listed file is
+%   named by a suite, or it is carried by the fixture set the suites run
+%   against (the tag's content, as checked out). Today two are carried
+%   and named by no suite - gravis_gis_basins.geojson and
+%   test_static.gfc.gz - so with no fixture folder this filters, naming
+%   them, rather than passing on a claim it cannot check.
+listed = fixtureListFiles(testCase);
+code = suiteCode(testCase);
+named = arrayfun(@(f) contains(code, f), listed);
+unnamed = listed(~named);
+if isempty(unnamed)
+    return
+end
+d = shxTestDataDir();
+assumeTrue(testCase, isfolder(d), "no fixture folder (" + d + ...
+    "): cannot confirm the fixture set carries " + strjoin(unnamed, ", "));
+carried = arrayfun(@(f) isfile(fullfile(d, f)), unnamed);
+verifyEmpty(testCase, unnamed(~carried), ...
+    "listed in SOURCES.json, named by no suite and not in " + d);
+end
+
+function testFixtureFolderHoldsEveryListedFile(testCase)
+%TESTFIXTUREFOLDERHOLDSEVERYLISTEDFILE What the list promises is what the
+%   fixture set delivers: each listed file is in the fixture folder. The
+%   folder may hold more (user-supplied SINEX archives go there too).
+%   Filters where no fixture folder exists; CI and an install have one.
+d = shxTestDataDir();
+assumeTrue(testCase, isfolder(d), "no fixture folder: " + d);
+listed = fixtureListFiles(testCase);
+present = arrayfun(@(f) isfile(fullfile(d, f)), listed);
+verifyEmpty(testCase, listed(~present), ...
+    "listed in SOURCES.json but absent from " + d);
+end
+
+function S = fixtureList(testCase)
+%FIXTURELIST tests/data/SOURCES.json, decoded; sources always a cell.
+p = fullfile(testCase.TestData.root, 'tests', 'data', 'SOURCES.json');
+assertTrue(testCase, isfile(p), 'tests/data/SOURCES.json is missing');
+% read as UTF-8 by fopen, which every supported release has (R2021a+)
+fid = fopen(p, 'r', 'n', 'UTF-8');
+txt = fread(fid, '*char')';
+fclose(fid);
+S = jsondecode(txt);
+assertTrue(testCase, isfield(S, 'schema') && isfield(S, 'sources'), ...
+    'SOURCES.json needs schema and sources');
+% jsondecode gives a struct array when the sources share their fields
+% and a cell when they do not; one shape for both
+if isstruct(S.sources)
+    S.sources = num2cell(S.sources);
+end
+end
+
+function f = fixtureListFiles(testCase)
+%FIXTURELISTFILES Every file name the list carries, as a row.
+S = fixtureList(testCase);
+has = cellfun(@(s) isfield(s, 'files'), S.sources);
+f = cellfun(@(s) string(s.files(:)'), S.sources(has), UniformOutput = false);
+f = [strings(1, 0) f{:}];
+end
+
+function code = suiteCode(testCase)
+%SUITECODE The code lines of every tests/*.m, comment lines dropped, so a
+%   name merely mentioned in prose - in this section, for one - does not
+%   count as a suite reading it.
+d = dir(fullfile(testCase.TestData.root, 'tests', '*.m'));
+parts = strings(numel(d), 1);
+for k = 1:numel(d)
+    L = string(splitlines(fileread(fullfile(d(k).folder, d(k).name))));
+    parts(k) = strjoin(L(~startsWith(strtrim(L), "%")), newline);
+end
+code = strjoin(parts, newline);
+end
+
+function names = fixtureNamesOpened(testCase)
+%FIXTURENAMESOPENED Literal file names joined to the fixture folder.
+%   Scoped per function, because a variable named d is the fixture folder
+%   in one test and a temporary folder in the next. A name built at run
+%   time, or a wildcard, is not a literal and is not seen.
+dirExpr = ["shxTestDataDir\(\)" "\w+\.TestData\.dataDir"];
+bodies = regexp(suiteCode(testCase), '\n(?=function\>)', 'split');
+found = cell(numel(bodies), 1);
+for k = 1:numel(bodies)
+    v = regexp(bodies(k), "^\s*(\w+)\s*=\s*(?:" + strjoin(dirExpr, "|") + ...
+        ")\s*;", 'tokens', 'lineanchors');
+    alts = [dirExpr string([v{:}])];
+    t = regexp(bodies(k), "fullfile\(\s*(?:" + strjoin(alts, "|") + ...
+        ")\s*,\s*(?:\.\.\.[^\n]*\n\s*)?['""]([^'""*]+\.[^'""*]+)['""]", 'tokens');
+    found{k} = string([t{:}]);
+end
+names = unique([strings(1, 0) found{:}]);
+end
