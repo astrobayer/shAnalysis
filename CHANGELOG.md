@@ -1,5 +1,31 @@
 # Changelog
 
+## [6.0.1] - 2026-11-09 - an install leaves `git status` empty
+
+A PATCH release (Matthias, 2026-11-09: "The uncommitted changes are due
+to the generation of help text while installing. This shall not
+generate uncommitted changes."). Only `.gitignore` changes; no MATLAB
+file, no fetch and no folder moves.
+
+### Fixed
+- After an install by the toolbox installer, `git status` listed two
+  untracked items: `tests/test_data/` and `tests/runAllTests_results.txt`.
+  `.gitignore` now ignores everything an install or a test run writes:
+  - `tests/test_data/`, where the installer fetches the test fixtures
+    (the tag `fixtures-2026-08`) and CI checks them out. The fixtures
+    stay there (Matthias' decision); they are only no longer reported.
+  - `tests/runAllTests_results.txt`, the log `runAllTests` overwrites on
+    every run, and the installer runs the tests after an install.
+  - `html/helpsearch-v*/`, the help-browser search index that
+    `setup_shAnalysis(Docs = true)` builds with `builddocsearchdb`. Its
+    help already said the index is not committed.
+- The rule `!tests/test_data/ITSG-Grace2018_n96_2008-04_head12.snx` is
+  gone. It was written on 2026-08-10 (`671d6e8`) to keep that file
+  tracked, but v3.26.3 (`dc01482`) took all 20 fixtures out of the
+  repository, this one included. Since then the rule said a file was
+  shipped that was not. The fixture comes from the fixture tag like the
+  other 19.
+
 ## [6.0.0] - 2026-11-08 - every download goes to the data pool
 
 A MAJOR release (Matthias, 2026-11-08: "All data go always to the data

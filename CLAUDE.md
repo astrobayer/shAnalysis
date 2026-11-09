@@ -26,7 +26,7 @@ says whether it was *read* or *inferred*.
 
 | Fact | Value | Evidence |
 |---|---|---|
-| Version | **6.0.0**, 08-Nov-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
+| Version | **6.0.1**, 09-Nov-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
 | Branches | `main` only; `claude/getframe-recapture` and `claude/readshm` are gone (merged/deleted) | `GET /branches` |
 | Public surface | 3 classes / 108 methods, 138 `+shLowLevel` functions (+5 private), 3 root functions. 96 of the 138 are reachable from a class method; each of the other 42 is a named exception with its reason, and the backlog is empty (v5.24.0) | `tools/dev/api_extract.py`; `tools/dev/class_surface_audit.py` |
 | Tests | 5 classes, **485 methods / 499 runs**: Correctness 241, Contract 159, Robustness 63, Science 9, Performance 13 methods (27 runs, `budgetCase` x14 + `nmaxP` x2). On A8 8 filter out in an ordinary run - the optional real-data fixtures and the opt-in full-size closed loop (v5.27.2), 7 on a manual run that sets `closed_loop_nmax` (the GravIS-grid test joined them in v5.8.0, the ESMGFZ check in v5.11.0, the HLSST check in v5.12.0); on MATTHIASPC only 2 do, because `E:\DATAPOOL` supplies the SINEX files, the GravIS folder and - with `SHX_EARTHROTATION_FOLDER` and `SHX_BRIDGE_FOLDER` set for the run, no preference is stored - the ESMGFZ and HLSST series. The counter has matched the runner EXACTLY on the last ten green A8 runs and on every local Tier-A run. | `python3 tools/dev/count_tests.py` |
@@ -1070,6 +1070,16 @@ state; nothing is deleted.
 - 2026-10-22 — **Five items stay open on purpose (A42)**: each needs data
   or a run this session did not have, and a fix built from a guess is
   6.3's confident nonsense.
+- 2026-11-09 — **An install leaves `git status` empty, as 6.0.1**
+  (Matthias: "This shall not generate uncommitted changes."). Everything
+  an install or a test run writes into the toolbox is ignored:
+  `tests/test_data/`, `tests/runAllTests_results.txt`,
+  `html/helpsearch-v*/`. The fixtures stay in `tests/test_data`
+  (Matthias' earlier decision); only git stops reporting them. The
+  `head12.snx` negation is dropped, not honoured: v3.26.3 (`dc01482`)
+  removed that file with the other 19 fixtures, so the rule from
+  `671d6e8` had described a tracked file that has not existed since.
+  Not tracking it again keeps one source for all 20, the tag.
 
 ### 6.2 Verification board (◑ = one tier only, ☑ = both)
 The last releases only; the full board, in version order, is
