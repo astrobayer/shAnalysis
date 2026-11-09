@@ -31,9 +31,12 @@ s = setup_shAnalysis(DryRun = true, Download = "starter")   % plan only</pre>
 </table>
 <p>Downloads land in <code class="inline">shLowLevel.dataFolder()</code> subfolders
 (<code class="inline">TN/</code>, <code class="inline">DDK/</code>,
-<code class="inline">series/itsg/monthly/</code>). Point
-<code class="inline">shLowLevel.dataFolder(PATH)</code> at a shared location first to
-reuse downloads across machines.</p>
+<code class="inline">series/itsg/monthly/</code>) - in the data pool,
+<code class="inline">&lt;DATAPOOL&gt;/GravityField</code>, never in the toolbox (v6.0.0).
+<code class="inline">DataFolder=</code> (or <code class="inline">shLowLevel.dataFolder(PATH)</code>)
+stores another folder instead. A download level above <code class="inline">"none"</code>
+with no data folder set refuses (<code class="inline">shLowLevel:dataFolder:noDataPool</code>)
+before anything is fetched; the path setup alone needs none.</p>
 
 <h2>Path handling</h2>
 <p>Already-on-path is detected (no duplicate entries). With
@@ -67,7 +70,7 @@ Contract-tested.</p>
 <tr><td>Months</td><td>["2008-04","2025-12"]</td><td>starter months (yyyy-mm)</td></tr>
 <tr><td>Nmax</td><td>96</td><td>ITSG starter degree (60 or 96)</td></tr>
 <tr><td>Update</td><td>false</td><td>refresh existing files through the fetchers' safe, parse-verified swap (TN-13/TN-14 grow monthly)</td></tr>
-<tr><td>DataFolder</td><td>""</td><td>persistent data folder, applied before any fetcher runs</td></tr>
+<tr><td>DataFolder</td><td>""</td><td>persistent data folder, applied before any fetcher runs; empty: the data pool, &lt;DATAPOOL&gt;/GravityField</td></tr>
 <tr><td>Proxy</td><td>""</td><td>per-call proxy URL, e.g. "http://proxy:8080" (empty: MATLAB Web Preferences)</td></tr>
 <tr><td>SeriesFolder, MasconFile, GravisFolder, DDKFolder, TestDataFolder</td><td>""</td><td>data locations for the opt-in tests and the chains: each is exported as its <code class="inline">SHX_*</code> environment variable for the session and stored as a preference (see below)</td></tr>
 <tr><td>Docs</td><td>false</td><td>builddocsearchdb(html/) for help-browser search, the reference pages included</td></tr>

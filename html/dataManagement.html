@@ -20,10 +20,23 @@ plain clone: they live on the orphan branch <code class="inline">testdata</code>
 W = shLowLevel.readDDK("DDK3");     % resolves through testDataDir</pre>
 
 <h2>shLowLevel.dataFolder</h2>
-<pre>shLowLevel.dataFolder("D:/geodata/shAnalysis")   % set once, persists across sessions
-shLowLevel.dataFolder()                    % query (default: &lt;toolbox&gt;/data)
-shLowLevel.dataFolder("reset")</pre>
-<p>All fetchers store beneath it, in the layout of v3.16: <code class="inline">series/</code> for time series (<code class="inline">series/itsg/monthly</code>, <code class="inline">daily</code>, <code class="inline">sinex</code> and <code class="inline">background</code>; one folder per ICGEM series; <code class="inline">series/GAX/&lt;product&gt;</code>), <code class="inline">static/</code> for ICGEM static models, <code class="inline">DDK/</code>, <code class="inline">TN/</code> and <code class="inline">loveNumbers/</code>. The fetchers warn once when they find data in a pre-v3.16 location. Point it at a shared network folder to reuse downloads across machines.</p>
+<pre>shLowLevel.dataFolder()                    % &lt;DATAPOOL&gt;/GravityField by default
+shLowLevel.dataFolder("D:/geodata/shAnalysis")   % or a folder of your own, persisted
+shLowLevel.dataFolder("reset")             % back to the data pool
+shLowLevel.dataFolder(Probe = true)        % look up only: "" when nothing is set</pre>
+<p>Data go to the data pool, never into the toolbox (v6.0.0). The folder is, in
+this order, the stored preference (<code class="inline">shLowLevel.dataFolder(PATH)</code> or
+<code class="inline">setup_shAnalysis(DataFolder=...)</code>), then
+<code class="inline">&lt;DATAPOOL&gt;/GravityField</code>, then
+<code class="inline">&lt;READING_DATA_POOL&gt;/GravityField</code>. With none of them a call
+that needs the folder refuses (<code class="inline">shLowLevel:dataFolder:noDataPool</code>);
+there is no <code class="inline">&lt;toolbox&gt;/data</code> default any more, and a folder
+inside the toolbox is refused (<code class="inline">shLowLevel:dataFolder:insideToolbox</code>).
+The installer's <code class="inline">startup.m</code> block sets <code class="inline">DATAPOOL</code>.
+The committed GravIS tables in <code class="inline">data/gravis</code>
+(<code class="inline">shLowLevel.gravisDataFolder</code>) and the test fixtures
+(<code class="inline">shLowLevel.testDataDir</code>) are found independently of it.</p>
+<p>All fetchers store beneath it, in the layout of v3.16: <code class="inline">series/</code> for time series (<code class="inline">series/itsg/monthly</code>, <code class="inline">daily</code>, <code class="inline">sinex</code> and <code class="inline">background</code>; one folder per ICGEM series; <code class="inline">series/GAX/&lt;product&gt;</code>), <code class="inline">static/</code> for ICGEM static models, <code class="inline">DDK/</code>, <code class="inline">TN/</code> and <code class="inline">loveNumbers/</code>, spelled exactly so (readers use the writers' spelling, which Linux requires). The fetchers warn once when they find data in a pre-v3.16 location. Point it at a shared network folder to reuse downloads across machines.</p>
 <h2>shLowLevel.fetchDDK / shLowLevel.readDDK("DDK&lt;n&gt;")</h2>
 <pre>shLowLevel.fetchDDK(1:8);                  % ~10 MB each, skips existing
 W5 = shLowLevel.readDDK("DDK5");           % name resolution against dataFolder

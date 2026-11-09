@@ -34,7 +34,10 @@ points ask for geoMap, and they say so before doing any work.
   numbers, AOD1B products. The `fetch*` family provisions once with
   skip-if-present semantics and retries politely on 429/5xx; chains and
   filters then run offline on local paths (the GravIS correction tables
-  ship frozen in `data/gravis`). Data locations persist across sessions
+  ship frozen in `data/gravis`). Downloads go to the data pool,
+  `<DATAPOOL>/GravityField` (`shLowLevel.dataFolder`), never into the
+  toolbox; with no `DATAPOOL`, `READING_DATA_POOL` or `DataFolder=` set a
+  download refuses. Data locations persist across sessions
   via `setup_shAnalysis(SeriesFolder=..., GravisFolder=..., DDKFolder=...)`.
 - **Synthesis and analysis.** Holmes-Featherstone Legendre functions to
   degree 2190, FFT grid synthesis, Clenshaw point synthesis, gradients and
@@ -131,7 +134,8 @@ shAnalysis/
   demo_shAnalysis.m  16 selectable demonstration cases
   Contents.m         product line and version (help shAnalysis)
   CHANGELOG.md       every release with its reasoning
-  data/gravis/       GravIS correction tables, frozen
+  data/gravis/       GravIS correction tables, frozen (committed; the
+                     only data in the toolbox - downloads go to the pool)
   docs/              apiExamples.json; the guide PDF when built locally
   html/              doc pages for MATLAB's `doc` browser (html/ref/:
                      one generated page per public entity)
@@ -151,6 +155,8 @@ shAnalysis/
 
 ```matlab
 cd shAnalysis
+% downloads go to <DATAPOOL>/GravityField: the installer sets DATAPOOL,
+% or name a folder once with setup_shAnalysis(DataFolder = ...)
 setup_shAnalysis(Permanent = true, Download = "core")   % path + TN files
 shLowLevel.makeTutorials(Cases = "core");   % Live Scripts to open and run
 % later, monthly refresh of the growing TN files (safe, parse-verified swap):

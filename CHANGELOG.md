@@ -1,5 +1,102 @@
 # Changelog
 
+## [6.0.0] - 2026-11-08 - every download goes to the data pool
+
+A MAJOR release (Matthias, 2026-11-08: "All data go always to the data
+pool. Only model code or libraries go to the toolbox."; the contract is
+the installer's `docs/DATA_POOL.md`). MAJOR because a documented call
+stops working: on a machine with no data folder set, `dataFolder()`,
+every fetcher's default `Dest` and `setup_shAnalysis(Download = "core")`
+used to fall back to `<toolbox>/data`, and now refuse.
+
+### Changed
+- `shLowLevel.dataFolder` resolves the data pool, in this order:
+  - the stored preference `getpref('shAnalysis', 'dataFolder')`, set by
+    `shLowLevel.dataFolder(PATH)` or `setup_shAnalysis(DataFolder = ...)`;
+  - `<DATAPOOL>/GravityField`;
+  - `<READING_DATA_POOL>/GravityField`, the older name, still honoured;
+  - otherwise `shLowLevel:dataFolder:noDataPool`. The message names
+    `DATAPOOL` and the `DataFolder=` option.
+  - There is no `<toolbox root>/data` default any more. A folder inside
+    the toolbox is refused, given or stored
+    (`shLowLevel:dataFolder:insideToolbox`).
+- `shLowLevel.dataFolder("reset")` removes the preference and returns
+  what the pool resolves to now, `""` when neither variable is set. It
+  neither refuses nor creates a folder. Until now it returned
+  `<toolbox>/data` and created it.
+- New option `Probe = true`: the same lookup with no side effect. It
+  creates no folder and returns `""` instead of refusing. `readDDK`'s
+  `"DDK<n>"` names, `twsChain`'s DDK search, the demos' series discovery
+  and `setup_shAnalysis`' summary use it, so their other candidates
+  still serve with no data pool set.
+- `setup_shAnalysis` sets the path with no data folder set; then
+  `summary.dataFolder` is `""`. A `Download` level above `"none"`
+  refuses with `noDataPool` before any fetcher runs. `DryRun` reports
+  the folder through the same resolver instead of a copy of it.
+- The fetchers are unchanged: their default `Dest` was already a
+  `dataFolder()` subfolder (`TN`, `DDK`, `loveNumbers`, `static`,
+  `series/itsg/{monthly,daily,sinex,background}`, `series/<icgem>`,
+  `series/GAX`), and `Dest =` still wins.
+- Committed files stay where they are. `data/gravis` is found through
+  `gravisDataFolder` and `readBasin`, and the test fixtures through
+  `testDataDir`; neither reads `dataFolder()`.
+- `tools/audit/*.m` and `tools/dev/machine_accept_v3110.m` read the pool
+  through `dataFolder()` instead of `E:\DATAPOOL\GravityField`;
+  `audit_tws` reads the Love numbers from `testDataDir()`.
+  `validate_readgrid.py` falls back to `<DATAPOOL>/GravityField/GravIS`.
+  The `fetchGAX`, `obpChain` and guide examples use
+  `<dataFolder>/series/GAX`, the `fetchGAX` default, not a machine path.
+
+### Fixed
+- `standardChain`'s default TN-13 and TN-14 paths read `<dataFolder>/tn`
+  while `fetchTN` writes `<dataFolder>/TN`. That is one folder on
+  Windows and two on Linux and macOS, where the chain never found a
+  fetched file. The chain now reads `TN`.
+- `twsChain` looks for the DDK binary only in `<dataFolder>/DDK`, the
+  folder `fetchDDK` writes. The lower-case `ddk` it also tried is gone:
+  one spelling per folder, the writer's.
+- `readDDK:notFetched` names every folder it looked in, not only the
+  first.
+
+### Tests
+- `testContract/testDataFolderResolvesThePool` (new) drives the
+  resolution order, `Probe`, both refusals, `"reset"` and
+  `setup_shAnalysis` with no data folder. It restores the preference,
+  both variables and the path.
+- `testContract/testStandardChainReadsTheTNFolderFetchTNWrites` (new):
+  `fetchTN` fills a fresh data folder from a local mirror of the
+  fixtures. Then the chain runs on its defaults, and the TN paths it
+  records must be the ones `fetchTN` wrote, compared case-exactly.
+  Fault-injected: with `'tn'` put back, the test fails on Windows too.
+- `testContract/testDataFolderAndDDKNames`: `"reset"` returns `""` with
+  no pool set, where it asserted a path ending in `data`.
+- `testCorrectness/testTwsChainFindsTheDDKFileOnTheDefaultPath` also
+  finds the file in `<dataFolder>/DDK` with no `DDKFolder`.
+- `testRobustness/testSetupPathIdempotent` compares `summary.dataFolder`
+  with the resolver; `testUserSuppliedDDKFiles` probes the data folder.
+- `testContract/testAPIExamplesRun` points the data folder at a
+  temporary pool holding the Love-number fixture. The
+  `fetchLoveNumbers()` example takes its skip-if-present path offline,
+  runs where no pool is set, and no longer writes into the toolbox's
+  `data/` folder, as it did on A8 until now.
+- `tools/tests/test_count_tests.py`: `EXPECTED_RUNS` 497 -> 499.
+
+### Measured
+- Tier A on MATTHIASPC (R2026a), the worktree first on the path, the
+  preferences in a copied `prefdir`, fixtures from a copy. Predicted 499
+  runs (Contract 159); both runs ran 499.
+  - With the owner's preferences (`dataFolder` = the pool): 491 passed,
+    6 failed, 2 incomplete (opt-in).
+  - With no `dataFolder` preference and neither variable set (A8's
+    case): 491 passed, 6 failed, 2 incomplete. One of the six was
+    `testAPIExamplesRun` (`fetchLoveNumbers()` refused); fixed above,
+    then it passed alone in the same configuration.
+  - The other failures are not this change.
+    `testVersionMetadataIsConsistent` fails in any worktree (folder
+    name). The speed budgets failed under load from other MATLAB
+    sessions: a control run of `testPerformance` on `origin/main` failed
+    `legendre_n360` and `legendre_n720` the same way.
+
 ## [5.31.3] - 2026-11-08 - the GravIS real-data tests survive a newer download
 
 A PATCH release (Matthias: "Fix them both and ensure that the test will

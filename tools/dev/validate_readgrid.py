@@ -92,7 +92,11 @@ def claim2():
 
 
 def claim3():
-    folder = os.environ.get("SHX_GRAVIS_FOLDER", "E:/DATAPOOL/GravityField/GravIS")
+    # SHX_GRAVIS_FOLDER, else the data pool's GravityField/GravIS
+    # (DATAPOOL, then READING_DATA_POOL) - no machine path (v6.0.0)
+    pool = os.environ.get("DATAPOOL") or os.environ.get("READING_DATA_POOL") or ""
+    folder = os.environ.get("SHX_GRAVIS_FOLDER") or (
+        os.path.join(pool, "GravityField", "GravIS") if pool else "")
     path = os.path.join(folder, "GRAVIS-3_GFZOP_0600_TWS_GRID_GFZ_0006.nc")
     if not os.path.isfile(path):
         print("CLAIM 3 skipped: %s not found" % path)

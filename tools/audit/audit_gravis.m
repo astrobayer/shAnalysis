@@ -4,9 +4,10 @@ function audit_gravis(variant)
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 if nargin < 1, variant = "all"; end
 R = 6378136.3; GM = 3.986004415e14; Re = 6371e3;      % Re: chapter's area radius
-aux = 'E:\DATAPOOL\GravityField\GravIS\';
-ser = 'E:\DATAPOOL\GravityField\icgem\series\02_COST-G__COST-G_Grace-Grace-FO_RL02.1';
-kn  = readmatrix('E:\DATAPOOL\GravityField\loveNumbers\loadLoveNumbers_Gegout97.txt', ...
+pool = char(shLowLevel.dataFolder());   % the data pool's GravityField root (DATAPOOL), no machine path
+aux = fullfile(pool, 'GravIS');
+ser = fullfile(pool, 'icgem', 'series', '02_COST-G__COST-G_Grace-Grace-FO_RL02.1');
+kn  = readmatrix(fullfile(pool, 'loveNumbers', 'loadLoveNumbers_Gegout97.txt'), ...
                  FileType='text', NumHeaderLines=2);
 S = load_or_build(aux, ser, kn, R, GM, true, "g445");
 lat = S.lat; lon = S.lon; GIS = S.GIS; UNION = S.UNION;
@@ -35,7 +36,7 @@ switch variant
         do("V4 union/none/300 (exp -240.2)", U, UNION, "none", 0, 300);
         do("V4 GIS-only/none/300 (exp -259.8)", U, GIS, "none", 0, 300);
     case "kn"   % Earth-model sensitivity: ak135 (CM, deg0-1 pinned) vs Gegout97
-        kn2 = readmatrix('E:\DATAPOOL\GravityField\loveNumbers\ak135_CM_pinned01.txt');
+        kn2 = readmatrix(fullfile(pool, 'loveNumbers', 'ak135_CM_pinned01.txt'));
         A2 = load_or_build(aux, ser, kn2, R, GM, true, "ak135");
         do("HEADLINE with kn=CM_ak135", A2, UNION, "gauss445", A2.sigTrend, 400);
         fprintf('kn delta at n=2..6: %s\n', mat2str(round(kn2(3:7)-kn(3:7),4)'));
@@ -43,7 +44,7 @@ switch variant
         error("unknown variant");
 end
 fprintf('reference (my basin fit, span<=2023.10): -231.15 | full-span ref: -220.82\n');
-save('E:\DATAPOOL\GravityField\GravIS\audit_runs.mat', 'runs');
+save(fullfile(pool, 'GravIS', 'audit_runs.mat'), 'runs');
 end
 
 function Gt = mass_gt(m, lat, lon, mask, Re)

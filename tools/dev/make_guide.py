@@ -283,9 +283,12 @@ setup_shAnalysis(Permanent = true, Download = "core")
 %         monthly archive, resumable);  DryRun = true shows the plan
 shLowLevel.makeTutorials(Cases = "core");   % Live Scripts to open and run
 """)
-story += [para("Downloads land under a persistent data folder "
-               "(<font face='Courier'>shLowLevel.dataFolder</font>), set "
-               "once with <font face='Courier'>DataFolder=</font>. The "
+story += [para("Downloads land in the data pool, never in the toolbox: "
+               "<font face='Courier'>shLowLevel.dataFolder</font> is "
+               "&lt;DATAPOOL&gt;/GravityField (the DATAPOOL environment "
+               "variable, then READING_DATA_POOL), unless "
+               "<font face='Courier'>DataFolder=</font> stores another "
+               "folder; with none of them a download refuses. The "
                "fetchers throttle themselves and verify every file by "
                "parsing it before it replaces anything, so an interrupted "
                "download is resumable and never leaves a corrupt file in "
@@ -2262,7 +2265,7 @@ story += [para("Degree 1 is excluded by default; include it only when "
 story += [para("G7b. Data management (v2.4.1, temporal catalogue "
                "v2.4.2)", "h2")]
 story += code("""
-shLowLevel.dataFolder("D:/geodata/shAnalysis");      % once; persists (getpref)
+shLowLevel.dataFolder()                       % <DATAPOOL>/GravityField by default
 shLowLevel.fetchDDK(1:8);                     % all released DDK filters
 W5 = shLowLevel.readDDK("DDK5");              % by name, from the data folder
 T = shLowLevel.listICGEM();                   % 180+ static models as a table
@@ -2955,7 +2958,7 @@ story += [para("<b>Bottom pressure versus barystatic - one step apart.</b> "
                "step further and removes the ocean mean of GAA "
                "(Chambers &amp; Willis 2010) to isolate water mass.")]
 story += code("""[obp, rep] = shLowLevel.obpChain(ser, kn = kn, OceanMask = oc, ...
-    GADFolder = "E:/DATAPOOL/GravityField/GAX/GAD");
+    GADFolder = fullfile(shLowLevel.dataFolder(), "series", "GAX", "GAD"));
 size(obp.grid)                 % nLat x nLon x T, land NaN
 rep.nRefEpochs                 % epochs inside the GravIS window""")
 story += [para("<b>Residual circulation, separated instead of ignored.</b> "
@@ -3084,7 +3087,8 @@ story += [para("<b>Offline by design.</b> No chain ever fetches: "
                "passed argument always wins; below it the "
                "setup_shAnalysis preferences (SeriesFolder, "
                "MasconFile, GravisFolder, DDKFolder - "
-               "setpref-persistent) and dataFolder() as the root for "
+               "setpref-persistent) and dataFolder() - the data "
+               "pool's GravityField folder - as the root for "
                "fetch targets; at the bottom the shipped freezes. The "
                "on-disk layout since v3.16 is uniform: temporal "
                "products under series/ (series/itsg/monthly|daily|"
@@ -3132,10 +3136,10 @@ story += [para("<b>Coastal leakage, controlled twice.</b> The crude "
 story += code("""[out, rep] = shLowLevel.oceanChain(ser, kn = kn, OceanMask = oc, ...
     GADFolder = gadF, GAAFolder = gaaF, ...
     CoastBufferKm = 300, RemoveLandLeakage = true);""")
-story += code("""f = shLowLevel.fetchGAX("E:/DATAPOOL/GravityField/GAX");
+story += code("""gax = fullfile(shLowLevel.dataFolder(), "series", "GAX");  % the default
+f = shLowLevel.fetchGAX(gax);
 [out, rep] = shLowLevel.oceanChain(ser, kn = kn, OceanMask = oc, ...
-    GADFolder = "E:/DATAPOOL/GravityField/GAX/GAD", ...
-    GAAFolder = "E:/DATAPOOL/GravityField/GAX/GAA");
+    GADFolder = fullfile(gax, "GAD"), GAAFolder = fullfile(gax, "GAA"));
 [rep.nGadRestored, rep.nGaaApplied]        % coverage, reported""")
 story += code("""idx = shLowLevel.shIndex(30, Nmin= 0);
 [G, lam, info] = shLowLevel.slepianBasis(idx, @(la, lo) double(la > 60));

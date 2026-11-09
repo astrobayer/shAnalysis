@@ -583,6 +583,16 @@ for f = ["ITSG-Grace2018_n60_2008-04.gfc", ...
          "ITSG-Grace2018_n96_2008-04_head12.snx"]
     copyfile(fullfile(d, f), tmp);
 end
+% the examples that fetch with their default Dest write to the data
+% folder. Point it at a temporary pool holding the Love-number fixture,
+% so fetchLoveNumbers() takes its skip-if-present path offline, runs
+% where no data pool is set (A8), and writes nothing into the user's
+% pool or - as until v6.0.0 - the toolbox's data/ folder.
+prefBack = keepDataFolderPref(); %#ok<NASGU>
+pool = fullfile(tmp, 'pool');
+mkdir(fullfile(pool, 'loveNumbers'));
+copyfile(fullfile(d, 'loadLoveNumbers_Gegout97.txt'), fullfile(pool, 'loveNumbers'));
+shLowLevel.dataFolder(pool);
 ws = buildAPIWorkspace(tmp);
 set(groot, 'defaultFigureVisible', 'off');
 cleanup3 = onCleanup(@() set(groot, 'defaultFigureVisible', 'on')); %#ok<NASGU>
@@ -914,8 +924,14 @@ f = shLowLevel.dataFolder(tmp);
 verifyEqual(testCase, char(f), char(string(tmp)));
 verifyTrue(testCase, isfolder(f));
 verifyEqual(testCase, char(shLowLevel.dataFolder()), char(string(tmp)));
+% "reset" removes the preference and reports what the data pool
+% resolves to - "" with neither variable set. Until v6.0.0 it returned
+% <toolbox>/data, which the data-pool contract retired.
+envBack = keepPoolEnv(); %#ok<NASGU>
+setenv('DATAPOOL', ''); setenv('READING_DATA_POOL', '');
 f2 = shLowLevel.dataFolder("reset");
-verifyTrue(testCase, endsWith(f2, "data"));
+verifyEqual(testCase, f2, "");
+verifyFalse(testCase, ispref('shAnalysis', 'dataFolder'));
 % DDK mapping: 8 unique released names, DDK3 matches the shipped file
 nm = shLowLevel.ddkNames();
 verifyEqual(testCase, numel(nm), 8);
@@ -930,6 +946,121 @@ verifyError(testCase, @() shLowLevel.readDDK("DDK7"), 'shLowLevel:readDDK:notFet
 verifyError(testCase, @() shLowLevel.fetchDDK(0), 'MATLAB:validators:mustBeInRange');
 end
 
+
+function testDataFolderResolvesThePool(testCase)
+%TESTDATAFOLDERRESOLVESTHEPOOL v6.0.0, the data-pool contract: the stored
+%   preference, then <DATAPOOL>/GravityField, then
+%   <READING_DATA_POOL>/GravityField, else a refusal naming DATAPOOL -
+%   never <toolbox>/data. Probe looks up without creating or refusing; a
+%   folder inside the toolbox is refused, given or stored;
+%   setup_shAnalysis sets the path with no data folder but refuses a
+%   download before fetching anything. The preference, both variables
+%   and the path are restored afterwards.
+prefBack = keepDataFolderPref(); %#ok<NASGU>
+envBack = keepPoolEnv(); %#ok<NASGU>
+p0 = path; pathBack = onCleanup(@() path(p0)); %#ok<NASGU>
+shLowLevel.dataFolder("reset");
+setenv('DATAPOOL', ''); setenv('READING_DATA_POOL', '');
+% nothing set: refuse; Probe answers "" instead
+verifyError(testCase, @() shLowLevel.dataFolder(), 'shLowLevel:dataFolder:noDataPool');
+verifyEqual(testCase, shLowLevel.dataFolder(Probe = true), "");
+p1 = tempname; p2 = tempname; p3 = tempname;
+cl = onCleanup(@() cellfun(@rmIfFolder, {p1, p2, p3})); %#ok<NASGU>
+% the older name alone; Probe creates nothing
+setenv('READING_DATA_POOL', p2);
+verifyEqual(testCase, shLowLevel.dataFolder(Probe = true), ...
+    string(fullfile(p2, 'GravityField')));
+verifyFalse(testCase, isfolder(fullfile(p2, 'GravityField')));
+% DATAPOOL wins over READING_DATA_POOL; the folder is made on demand
+setenv('DATAPOOL', p1);
+f = shLowLevel.dataFolder();
+verifyEqual(testCase, f, string(fullfile(p1, 'GravityField')));
+verifyTrue(testCase, isfolder(f));
+% the stored preference wins over both; "reset" hands back to the pool
+verifyEqual(testCase, shLowLevel.dataFolder(p3), string(p3));
+verifyEqual(testCase, shLowLevel.dataFolder(Probe = true), string(p3));
+verifyEqual(testCase, shLowLevel.dataFolder("reset"), ...
+    string(fullfile(p1, 'GravityField')));
+% inside the toolbox: refused when given (and nothing is stored) ...
+root = fileparts(fileparts(which('shLowLevel.dataFolder')));
+verifyError(testCase, @() shLowLevel.dataFolder(fullfile(root, 'data')), ...
+    'shLowLevel:dataFolder:insideToolbox');
+verifyFalse(testCase, ispref('shAnalysis', 'dataFolder'));
+% ... and when found stored (an old preference); Probe does not refuse
+setpref('shAnalysis', 'dataFolder', fullfile(root, 'data'));
+verifyError(testCase, @() shLowLevel.dataFolder(), ...
+    'shLowLevel:dataFolder:insideToolbox');
+verifyEqual(testCase, shLowLevel.dataFolder(Probe = true), "");
+shLowLevel.dataFolder("reset");
+% setup: the path alone needs no data folder, a download refuses first
+setenv('DATAPOOL', ''); setenv('READING_DATA_POOL', '');
+s = setup_shAnalysis(Quiet = true);
+verifyEqual(testCase, s.dataFolder, "");
+s = setup_shAnalysis(DryRun = true, Download = "core", Quiet = true);
+verifyEqual(testCase, s.dataFolder, "");
+verifyError(testCase, @() setup_shAnalysis(Download = "core", Quiet = true), ...
+    'shLowLevel:dataFolder:noDataPool');
+end
+
+function testStandardChainReadsTheTNFolderFetchTNWrites(testCase)
+%TESTSTANDARDCHAINREADSTHETNFOLDERFETCHTNWRITES v6.0.0: standardChain's
+%   default TN-13/TN-14 paths read <dataFolder>/tn while fetchTN writes
+%   <dataFolder>/TN - one folder on Windows, two on Linux, where the
+%   chain never found a fetched file. fetchTN itself fills a fresh data
+%   folder from a local mirror of the fixtures, then the chain runs on
+%   its defaults. The path it records must be the one fetchTN wrote,
+%   compared case-exactly, which catches the mismatch on Windows too,
+%   where the file lookup alone cannot.
+d = shxTestDataDir();
+tn14 = 'TN-14_C30_C20_SLR_GSFC.txt'; tn13 = 'TN-13_GEOC_CSR_RL06.3.txt';
+verifyTrue(testCase, isfile(fullfile(d, tn14)), 'missing fixture: ' + string(tn14));
+verifyTrue(testCase, isfile(fullfile(d, tn13)), 'missing fixture: ' + string(tn13));
+mir = tempname; mkdir(mir); c1 = onCleanup(@() rmIfFolder(mir)); %#ok<NASGU>
+copyfile(fullfile(d, tn14), mir);
+copyfile(fullfile(d, tn13), mir);
+prefBack = keepDataFolderPref(); %#ok<NASGU>
+df = tempname; c2 = onCleanup(@() rmIfFolder(df)); %#ok<NASGU>
+shLowLevel.dataFolder(df);
+[~, info] = shLowLevel.fetchTN(Providers = "CSR", BaseURL = string(mir), ...
+    Quiet = true);
+verifyEmpty(testCase, info.failed);
+fol = tempname; mkdir(fol); c3 = onCleanup(@() rmIfFolder(fol)); %#ok<NASGU>
+src = fullfile(d, 'ITSG-Grace2018_n60_2008-04.gfc');
+copyfile(src, fullfile(fol, 'ITSG-Grace2018_n60_2008-04.gfc'));
+copyfile(src, fullfile(fol, 'ITSG-Grace2018_n60_2008-05.gfc'));
+[ts, rep] = shLowLevel.standardChain(fol, Degree1 = "CSR", Filter = "none", ...
+    Quiet = true);
+verifyEqual(testCase, ts.nEpochs, 2);
+tnDir = string(fullfile(df, 'TN'));
+verifyTrue(testCase, any(rep.steps == "TN-14 C20/C30 (" + ...
+    string(fullfile(tnDir, tn14)) + ")"), strjoin(rep.steps, " | "));
+verifyTrue(testCase, any(rep.steps == "degree-1 CSR (" + ...
+    string(fullfile(tnDir, tn13)) + ")"), strjoin(rep.steps, " | "));
+end
+
+function c = keepDataFolderPref()
+% restores the data-folder preference as found (the user's own, or none)
+if ispref('shAnalysis', 'dataFolder')
+    old = getpref('shAnalysis', 'dataFolder');
+    c = onCleanup(@() setpref('shAnalysis', 'dataFolder', old));
+else
+    c = onCleanup(@() rmDataFolderPref());
+end
+end
+
+function rmDataFolderPref()
+if ispref('shAnalysis', 'dataFolder'), rmpref('shAnalysis', 'dataFolder'); end
+end
+
+function c = keepPoolEnv()
+% restores DATAPOOL and READING_DATA_POOL as found
+e1 = getenv('DATAPOOL'); e2 = getenv('READING_DATA_POOL');
+c = onCleanup(@() restorePoolEnv(e1, e2));
+end
+
+function restorePoolEnv(e1, e2)
+setenv('DATAPOOL', e1); setenv('READING_DATA_POOL', e2);
+end
 
 % ------------------------------------------------- tvANS option forwarding
 function testFilterForwardsTvANSOptions(testCase)

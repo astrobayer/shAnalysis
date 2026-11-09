@@ -40,6 +40,7 @@ function [out, rep] = twsChain(folder, gravisFolder, opts)
 %                default makes that first candidate the bare file name,
 %                i.e. the current folder. Then GRAVISFOLDER, then
 %                <dataFolder>/DDK, where shLowLevel.fetchDDK stores them
+%                (when a data folder is set; 'ddk' is no longer tried)
 %     GIAFile    ("GRAVIS-2B_COSTG_0200_GIA_ICE-6G_D_VM5a_0001.gz")
 %                "" disables the GIA step - and reproduces the 7x
 %                larger trend RMS documented in V8
@@ -139,17 +140,22 @@ switch fspec.kind
         % the released file names have one home, shLowLevel.ddkNames
         % (this chain carried its own copy of the eight until v5.7.0)
         fn = shLowLevel.ddkNames(); fn = fn(fspec.ddk);
-        % fetchDDK stores the files in <dataFolder>/DDK. The lower-case
-        % 'ddk' this chain used to look in is kept for files placed there
-        % by hand: the two are one folder on Windows, two on Linux and
-        % macOS, where a fetched file was not found here (A26)
+        % fetchDDK stores the files in <dataFolder>/DDK, and that is the
+        % one spelling looked in: the lower-case 'ddk' this chain also
+        % tried until v6.0.0 is one folder with DDK on Windows and a
+        % different one on Linux and macOS (A26; the data-pool contract:
+        % readers spell a folder as its writer does). The data folder is
+        % probed, not required: with no data pool set the first two
+        % candidates still serve.
         % a string column: before v5.23.4 this was char rows joined with
         % [;], a dimension error whenever two paths differ in length -
         % that is, on every default (Filter = "DDK3") call
         cand = [string(fullfile(char(opts.DDKFolder), char(fn))); ...
-                string(fullfile(char(gravisFolder), char(fn))); ...
-                string(fullfile(shLowLevel.dataFolder(), 'DDK', char(fn))); ...
-                string(fullfile(shLowLevel.dataFolder(), 'ddk', char(fn)))];
+                string(fullfile(char(gravisFolder), char(fn)))];
+        df = shLowLevel.dataFolder(Probe = true);
+        if strlength(df) > 0
+            cand(end+1) = string(fullfile(char(df), 'DDK', char(fn)));
+        end
         fp = "";
         for c = 1:numel(cand)
             if isfile(cand(c)), fp = cand(c); break; end

@@ -26,10 +26,10 @@ says whether it was *read* or *inferred*.
 
 | Fact | Value | Evidence |
 |---|---|---|
-| Version | **5.31.3**, 08-Nov-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
+| Version | **6.0.0**, 08-Nov-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
 | Branches | `main` only; `claude/getframe-recapture` and `claude/readshm` are gone (merged/deleted) | `GET /branches` |
 | Public surface | 3 classes / 108 methods, 138 `+shLowLevel` functions (+5 private), 3 root functions. 96 of the 138 are reachable from a class method; each of the other 42 is a named exception with its reason, and the backlog is empty (v5.24.0) | `tools/dev/api_extract.py`; `tools/dev/class_surface_audit.py` |
-| Tests | 5 classes, **483 methods / 497 runs**: Correctness 241, Contract 157, Robustness 63, Science 9, Performance 13 methods (27 runs, `budgetCase` x14 + `nmaxP` x2). On A8 8 filter out in an ordinary run - the optional real-data fixtures and the opt-in full-size closed loop (v5.27.2), 7 on a manual run that sets `closed_loop_nmax` (the GravIS-grid test joined them in v5.8.0, the ESMGFZ check in v5.11.0, the HLSST check in v5.12.0); on MATTHIASPC only 2 do, because `E:\DATAPOOL` supplies the SINEX files, the GravIS folder and - with `SHX_EARTHROTATION_FOLDER` and `SHX_BRIDGE_FOLDER` set for the run, no preference is stored - the ESMGFZ and HLSST series. The counter has matched the runner EXACTLY on the last ten green A8 runs and on every local Tier-A run. | `python3 tools/dev/count_tests.py` |
+| Tests | 5 classes, **485 methods / 499 runs**: Correctness 241, Contract 159, Robustness 63, Science 9, Performance 13 methods (27 runs, `budgetCase` x14 + `nmaxP` x2). On A8 8 filter out in an ordinary run - the optional real-data fixtures and the opt-in full-size closed loop (v5.27.2), 7 on a manual run that sets `closed_loop_nmax` (the GravIS-grid test joined them in v5.8.0, the ESMGFZ check in v5.11.0, the HLSST check in v5.12.0); on MATTHIASPC only 2 do, because `E:\DATAPOOL` supplies the SINEX files, the GravIS folder and - with `SHX_EARTHROTATION_FOLDER` and `SHX_BRIDGE_FOLDER` set for the run, no preference is stored - the ESMGFZ and HLSST series. The counter has matched the runner EXACTLY on the last ten green A8 runs and on every local Tier-A run. | `python3 tools/dev/count_tests.py` |
 | Python oracles | 39 `tools/dev/validate_*.py` (+ `regional_oracle_lib.py`, shared by the WP8 oracles) + `tools/audit/*` | listing |
 | Docs | **27** hand-written `html/*.html` (24 per-entity duplicates retired in v5.0.1, WP6 stage 3; `regionalBasis.html` added in v5.14.0) + **253 generated `html/ref/*.html`** (one per entity + index, `make_refpages.py`), one shared `html/shAnalysis.css`, `helptoc.xml`, `info.xml`, guide PDF (built by CI and attached to each GitHub release since v5.24.1, not committed - `doc_sync_audit` refuses a tracked copy), generated `html/apiReference.html`. `docs/` holds `apiExamples.json` and, where it was built, the PDF - no HTML page lives outside `html/` (gated). | listing |
 | CI | `gates` job on ubuntu (help_audit, doc_sync_audit, no_map_renderer, toolbox_dependency_audit, nv_casing_audit, fixture_tag_audit, gate self-tests `tools/tests/`, `count_tests`, `name_coverage`, `class_surface_audit`, `error_id_audit`, `option_values_audit`, `refpages_audit`, `make_demos --check`, `perf_baseline_audit`) + `runAllTests (self-hosted)` on A8/R2026a; fixtures from tag `fixtures-2026-08` | `.github/workflows/ci.yml` |
@@ -699,6 +699,21 @@ that need no new data first.
 Current entries only; every earlier one is in `tools/dev/RECORD.md` §1,
 verbatim. An entry moves there when it stops describing the current
 state; nothing is deleted.
+- 2026-11-08 — **6.0.0: every download goes to the data pool**
+  (Matthias: "All data go always to the data pool. Only model code or
+  libraries go to the toolbox."; contract: the installer's
+  `docs/DATA_POOL.md`). `dataFolder()` is the stored preference, then
+  `<DATAPOOL>/GravityField`, then `<READING_DATA_POOL>/GravityField`,
+  else `noDataPool`; no `<toolbox>/data` default, and a folder inside
+  the toolbox is refused. Lookups with a fallback use `Probe = true`.
+  Committed `data/gravis` and the fixtures are not read through it.
+  MAJOR, because a documented call - `dataFolder()` or a fetcher's
+  default `Dest` on a machine with no pool set - stops working; a
+  MINOR reading is possible and is Matthias' call in the PR. One
+  spelling per folder, the writer's: `standardChain` read `tn` where
+  `fetchTN` writes `TN`, `twsChain` tried `ddk` as well as `DDK`.
+  `setup_shAnalysis` keeps its `DataFolder=` option; no `DataPool=`
+  option was added (the contract allows the existing one).
 - 2026-11-08 — **5.31.3: GravIS tests hold on a newer download** (Matthias:
   "ensure that the test will also work with future downloads"). The
   basin GeoJSON falls back to `data/gravis` in both GravIS chains. The
@@ -1076,6 +1091,7 @@ The last releases only; the full board, in version order, is
 | v5.29.0 (WP9 9g: `maternCovariance`, `ProcessCov` / `StartCov` on `regionalKalman`) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally**; predicted 490 runs (Correctness 237, Contract 155). ☑ **CI self-hosted (A8) at `d1e82e0` via PR #149, green — 490 runs, 482 passed, 0 failed, 8 filtered**; the count prediction matched EXACTLY, and the four 9g tests passed on their first run (1.6, 2.6, 0.55 and 0.23 s) | ☑ PR #149 | ☑ 2026-11-06 |
 | v5.30.0 (WP9 9h: `regionalBasis(Ocean = ...)`, `out.landMean`) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally**; predicted 493 runs (Correctness 239, Contract 156). ☑ **CI self-hosted (A8) at `47dd85e` via PR #150, green — 493 runs, 485 passed, 0 failed, 8 filtered**; the count prediction matched EXACTLY, and the three 9h tests passed on their first run (0.07, 0.45 and 0.30 s) | ☑ PR #150 | ☑ 2026-11-06 |
 | v5.31.0 (WP9 9i: `backgroundErrorCov`, `AddNoiseCov`) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally**; predicted 496 runs (Correctness 241, Contract 157) | ☐ | ☐ |
+| v6.0.0 (the data pool: `dataFolder` resolves `<DATAPOOL>/GravityField`, no `<toolbox>/data`; `TN`/`DDK` spelled as written) | ☑ 17 gates + mlint + make_demos + 15 self-test suites, 0 findings | ☑ **Tier A on MATTHIASPC** (worktree, copied prefdir): predicted 499 runs (Contract 159), ran 499 in both configurations - owner's preferences and no pool at all. Failures outside the change: `testVersionMetadataIsConsistent` (worktree name) and speed budgets under load (an `origin/main` control failed the same). `testAPIExamplesRun` red with no pool, fixed, then green | ☐ | ☐ |
 | v5.26.0 (WP9 9b: `shLowLevel.neqClimatology`) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally** (no bridge). ☑ **CI self-hosted (A8) at `4aa3aa9` via PR #139, green — 460 runs, 453 passed, 0 failed, 7 filtered** (the optional real-data fixtures); the count prediction matched EXACTLY, and the four 9b tests passed on their first run - no red round | ☑ PR #139 | ☑ 2026-10-24 |
 
 ### 6.3 What the next session could be wrong for not reading
@@ -1148,8 +1164,9 @@ One line per rule; the incident behind each, with its numbers, is in
 
 ### 6.4 Next action
 
-**State, 2026-11-08.** v5.31.3 (GravIS tests hold on a newer download)
-is on branch `fix-gravis-growth`; `main` is `90bf475`, v5.31.2 (#153,
+**State, 2026-11-08.** v6.0.0 (every download goes to the data pool)
+is on branch `claude/data-pool`, a draft PR; `main` is `8d73568`, v5.31.3
+(#154, GravIS tests hold on a newer download). Before it, `90bf475`, v5.31.2 (#153,
 real-data tests trimmed to TN-14, merged), after `a18feff`, v5.31.1
 (#152) and `784a0f7`, v5.31.0 (#151, 9i). Before that, `1005fc7`, v5.30.0 (#150, 9h,
 merged); every release since v5.24.1 carries

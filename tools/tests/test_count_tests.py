@@ -109,7 +109,7 @@ class TestCounting(unittest.TestCase):
         self.assertEqual(c["runs"], c["methods"])
 
 
-EXPECTED_RUNS = 497          # v5.31.1: 496 + the fetchICGEM resume/rate-limit test
+EXPECTED_RUNS = 499          # v6.0.0: 497 + the data-pool resolution and TN-folder tests
                              # (5 correctness, 4 contract, 2 robustness)
 
 

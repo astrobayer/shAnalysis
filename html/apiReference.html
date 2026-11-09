@@ -3,7 +3,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="shAnalysis.css">
 </head><body><div class="content">
-<h1>shAnalysis API reference (v5.31.3)</h1>
+<h1>shAnalysis API reference (v6.0.0)</h1>
 <p>Generated from the source arguments blocks and help text - inputs,
 name-value options with defaults, and outputs for every public function
 and method. Regenerated with every release; the source of truth is the
@@ -342,13 +342,16 @@ code itself.</p>
 </table>
 </div>
 <div class="entry" id="shLowLevel.dataFolder">
-<h3><code>shLowLevel.dataFolder(newFolder)</code></h3>
-<p class="h1line">Get or set the persistent user data folder of the toolbox.</p>
-<p>F = shLowLevel.dataFolder()          returns the current data folder (created on demand). Default: &lt;toolbox root&gt;/data. F = shLowLevel.dataFolder(PATH)      sets and persists a user folder (MATLAB preference, survives sessions: setpref(&#x27;shAnalysis&#x27;,&#x27;dataFolder&#x27;)). F = shLowLevel.dataFolder(&quot;reset&quot;)   back to the default.</p>
+<h3><code>shLowLevel.dataFolder(newFolder, opts)</code></h3>
+<p class="h1line">Get or set the data folder of the toolbox, in the data pool.</p>
+<p>F = shLowLevel.dataFolder()          returns the current data folder (created on demand), resolved in this order (the data-pool contract, v6.0.0): 1. the stored preference getpref(&#x27;shAnalysis&#x27;,&#x27;dataFolder&#x27;), set by PATH below or by setup_shAnalysis(DataFolder = PATH) 2. &lt;getenv(&quot;DATAPOOL&quot;)&gt;/GravityField 3. &lt;getenv(&quot;READING_DATA_POOL&quot;)&gt;/GravityField (the older name, still honoured) 4. otherwise it REFUSES with shLowLevel:dataFolder:noDataPool. There is no &lt;toolbox root&gt;/data default any more: nothing downloaded lands in the toolbox folder. F = shLowLevel.dataFolder(PATH)      sets and persists a user folder (MATLAB preference, survives sessions: setpref(&#x27;shAnalysis&#x27;,&#x27;dataFolder&#x27;)). F = shLowLevel.dataFolder(&quot;reset&quot;)   removes the preference and returns what the pool resolves to now (&quot;&quot; when neither variable is set); it neither refuses nor creates a folder. F = shLowLevel.dataFolder(Probe = true)  the same lookup with no side effect: no folder is created, and &quot;&quot; is returned instead of either refusal. For lookups that have a fallback (readDDK&#x27;s &quot;DDK&lt;n&gt;&quot;, twsChain, the demos, setup_shAnalysis&#x27; summary).</p>
 <b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>newFolder</code></td><td>1 x 1</td><td>string</td><td>&quot;&quot;</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Probe</code></td><td>1 x 1</td><td>logical</td><td>false</td></tr></table>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
-<tr><td><code>folder</code></td><td>(1 x 1) string   current data folder (created on demand)</td></tr>
+<tr><td><code>folder</code></td><td>(1 x 1) string   current data folder (created on demand unless Probe)</td></tr>
 </table>
+<b>Example</b><pre>    setenv(&quot;DATAPOOL&quot;, &quot;D:/DATAPOOL&quot;);      % normally done by startup.m
+    f = shLowLevel.dataFolder()             % -&gt; D:/DATAPOOL/GravityField</pre>
 </div>
 <div class="entry" id="shLowLevel.ddkNames">
 <h3><code>shLowLevel.ddkNames()</code></h3>
@@ -536,10 +539,10 @@ code itself.</p>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
 <tr><td><code>info</code></td><td>(1,1) struct  fields products  (1 x nProducts) struct array, one per product, with nListed, nDownloaded, nSkipped, nFailed and nRemaining (what the budget cut off) series    (1,:) string  the series actually used</td></tr>
 </table>
-<b>Example</b><pre>    f = shLowLevel.fetchGAX(&quot;E:/DATAPOOL/GravityField/GAX&quot;);
+<b>Example</b><pre>    gax = fullfile(shLowLevel.dataFolder(), &quot;series&quot;, &quot;GAX&quot;);  % the default
+    f = shLowLevel.fetchGAX(gax);
     [out, rep] = shLowLevel.oceanChain(ser, kn = kn, OceanMask = oc, ...
-        GADFolder = &quot;E:/DATAPOOL/GravityField/GAX/GAD&quot;, ...
-        GAAFolder = &quot;E:/DATAPOOL/GravityField/GAX/GAA&quot;);
+        GADFolder = fullfile(gax, &quot;GAD&quot;), GAAFolder = fullfile(gax, &quot;GAA&quot;));
 
   See fetchITSGSINEX and fetchITSGBackground for the ITSG-side products;
   the ITSG background models are per-release means, NOT the AOD1B
@@ -1094,7 +1097,8 @@ code itself.</p>
 <b>Example</b><pre>    kn = readmatrix(&quot;loadLoveNumbers_Gegout97.txt&quot;, FileType = &quot;text&quot;, ...
         NumHeaderLines = 2);
     [out, rep] = shLowLevel.obpChain(serFolder, kn = kn, ...
-        OceanMask = oc, GADFolder = &quot;E:/DATAPOOL/GravityField/GAX/GAD&quot;);
+        OceanMask = oc, GADFolder = fullfile(shLowLevel.dataFolder(), ...
+        &quot;series&quot;, &quot;GAX&quot;, &quot;GAD&quot;));
     imagesc(out.lon, out.lat, out.grid(:, :, end)); axis xy</pre>
 </div>
 <div class="entry" id="shLowLevel.oceanChain">
@@ -1957,7 +1961,7 @@ code itself.</p>
 <b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
 <tr><td><code>root</code></td><td>(1,1) string   toolbox root folder</td></tr>
 <tr><td><code>pathAction</code></td><td>(1,1) string   &quot;already-on-path&quot; | &quot;added-temporarily&quot; | &quot;added-permanently&quot; | &quot;planned&quot;</td></tr>
-<tr><td><code>dataFolder</code></td><td>(1,1) string   download target root</td></tr>
+<tr><td><code>dataFolder</code></td><td>(1,1) string   download target root; &quot;&quot; when no data folder is set and nothing is downloaded</td></tr>
 <tr><td><code>plan</code></td><td>(1,:) string   human-readable action list</td></tr>
 <tr><td><code>fetched</code></td><td>(1,:) string   files newly downloaded (verified)</td></tr>
 <tr><td><code>skipped</code></td><td>(1,:) string   files already present (re-verified)</td></tr>
@@ -3207,4 +3211,4 @@ code itself.</p>
 <tr><td><code>obj</code></td><td>(1 x 1) shClimatology   copy with the note appended to its history</td></tr>
 </table>
 </div>
-<p class="provenance">Developed by Matthias Weigelt with the help of Claude (Fable 5), 08-Nov-2026 (v5.31.3). Generated by tools - do not edit.</p></div></body></html>
+<p class="provenance">Developed by Matthias Weigelt with the help of Claude (Fable 5), 08-Nov-2026 (v6.0.0). Generated by tools - do not edit.</p></div></body></html>

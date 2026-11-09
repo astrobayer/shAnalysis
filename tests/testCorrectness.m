@@ -7182,6 +7182,22 @@ fid = fopen(fullfile(ddk, fn), 'w'); fprintf(fid, 'not a filter\n'); fclose(fid)
 verifyError(testCase, @() shLowLevel.twsChain(d, kn = zeros(7, 1), ...
     DDKFolder = ddk, Filter = "DDK3", Quiet = true), ...
     'shLowLevel:readDDK:badLine');
+% v6.0.0: with no DDKFolder the file is found in <dataFolder>/DDK, the
+% folder fetchDDK writes and the one spelling looked in (the 'ddk' also
+% tried until then is a different folder on Linux)
+had = ispref('shAnalysis', 'dataFolder');
+if had
+    old = getpref('shAnalysis', 'dataFolder');
+    c3 = onCleanup(@() setpref('shAnalysis', 'dataFolder', old)); %#ok<NASGU>
+else
+    c3 = onCleanup(@() shLowLevel.dataFolder("reset")); %#ok<NASGU>
+end
+df = tempname; c4 = onCleanup(@() rmIfFolder(df)); %#ok<NASGU>
+shLowLevel.dataFolder(df);
+mkdir(fullfile(df, 'DDK'));
+copyfile(fullfile(ddk, fn), fullfile(df, 'DDK', fn));
+verifyError(testCase, @() shLowLevel.twsChain(d, kn = zeros(7, 1), ...
+    Filter = "DDK3", Quiet = true), 'shLowLevel:readDDK:badLine');
 end
 
 function testOceanChainsForwardQuiet(testCase)

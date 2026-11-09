@@ -11,14 +11,15 @@ function audit_degree1
 %   Developed by Matthias Weigelt with the help of Claude (Fable 5).
 rng(42);
 GM = 3.986004415e14; R = 6378136.3;
-kn = readmatrix('E:\DATAPOOL\GravityField\loveNumbers\loadLoveNumbers_Gegout97.txt', ...
+pool = char(shLowLevel.dataFolder());   % the data pool's GravityField root (DATAPOOL), no machine path
+kn = readmatrix(fullfile(pool, 'loveNumbers', 'loadLoveNumbers_Gegout97.txt'), ...
                 FileType='text', NumHeaderLines=2);
 latE = (-89:2:89)'; lonE = (0:2:358)';
 nT = 60; T = 120;
 t = 2004 + (0:T-1)'/12;  t(t>=2017 & t<2018.5) = [];  T = numel(t);
 
 % ---- land pattern: the REAL chain trend field, seasonally scaled
-L = load('E:\DATAPOOL\GravityField\GravIS\audit_chain_cache_unf.mat', ...
+L = load(fullfile(pool, 'GravIS', 'audit_chain_cache_unf.mat'), ...
          'trendGrid','lat','lon');
 oc = @(la,lo) trueOceanA(la,lo);
 [LO, LA] = meshgrid(L.lon, L.lat);

@@ -212,10 +212,14 @@ end
 function ts = tryRealSeries(Lcut)
 % real monthly series if shLowLevel.fetchITSG has populated its folder:
 % the v3.16 layout first, then the two pre-v3.16 locations
+% (the data folder is probed: with no data pool set, the fixtures remain)
 ts = [];
-cands = [string(fullfile(shLowLevel.dataFolder(), 'series', 'itsg', 'monthly')), ...
-    string(fullfile(shLowLevel.dataFolder(), 'itsg_series')), ...
-    string(fullfile(shLowLevel.testDataDir(), 'itsg_series'))];
+cands = string(fullfile(shLowLevel.testDataDir(), 'itsg_series'));
+df = shLowLevel.dataFolder(Probe = true);
+if strlength(df) > 0
+    cands = [string(fullfile(char(df), 'series', 'itsg', 'monthly')), ...
+        string(fullfile(char(df), 'itsg_series')), cands];
+end
 for d = cands
     if isfolder(d) && numel(dir(fullfile(d, '*.gfc*'))) >= 24
         try
