@@ -5070,7 +5070,11 @@ function S = fixtureList(testCase)
 %FIXTURELIST tests/data/SOURCES.json, decoded; sources always a cell.
 p = fullfile(testCase.TestData.root, 'tests', 'data', 'SOURCES.json');
 assertTrue(testCase, isfile(p), 'tests/data/SOURCES.json is missing');
-S = jsondecode(fileread(p, Encoding = "UTF-8"));
+% read as UTF-8 by fopen, which every supported release has (R2021a+)
+fid = fopen(p, 'r', 'n', 'UTF-8');
+txt = fread(fid, '*char')';
+fclose(fid);
+S = jsondecode(txt);
 assertTrue(testCase, isfield(S, 'schema') && isfield(S, 'sources'), ...
     'SOURCES.json needs schema and sources');
 % jsondecode gives a struct array when the sources share their fields
