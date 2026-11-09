@@ -1074,7 +1074,8 @@ state; nothing is deleted.
   (Matthias: "This shall not generate uncommitted changes."). Everything
   an install or a test run writes into the toolbox is ignored:
   `tests/test_data/`, `tests/runAllTests_results.txt`,
-  `html/helpsearch-v*/`. The fixtures stay in `tests/test_data`
+  `html/helpsearch-v*/`, `html/custom_toolbox.json` (the last two
+  written by `builddocsearchdb`, measured on R2026a). The fixtures stay in `tests/test_data`
   (Matthias' earlier decision); only git stops reporting them. The
   `head12.snx` negation is dropped, not honoured: v3.26.3 (`dc01482`)
   removed that file with the other 19 fixtures, so the rule from
