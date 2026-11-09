@@ -1,5 +1,21 @@
 # Changelog
 
+## [6.0.2] - 2026-11-09 - the docs audit skips what git ignores
+
+A PATCH release. Only the documentation gate changes; no MATLAB file.
+
+### Fixed
+- `doc_sync_audit`'s one-location rule ("HTML pages live in html/
+  only") walked the whole tree, so with the fixtures present it flagged
+  the three fetched pages `tests/test_data/icgem_*_fixture.html`.
+  It now skips what git ignores (Matthias, 2026-11-09: "skip files that
+  git ignores"), asked through one `git check-ignore -z --stdin` call.
+  git never reports a tracked file as ignored, so a tracked second copy
+  is still a finding, and so is an untracked page that no rule ignores;
+  without git nothing is skipped. Pinned by four tests in
+  `tools/tests/test_doc_sync_pdf.py` (`SecondHtmlCopies`); a probe page
+  in `docs/` is still caught.
+
 ## [6.0.1] - 2026-11-09 - an install leaves `git status` empty
 
 A PATCH release (Matthias, 2026-11-09: "The uncommitted changes are due
@@ -26,16 +42,6 @@ file, no fetch and no folder moves.
   repository, this one included. Since then the rule said a file was
   shipped that was not. The fixture comes from the fixture tag like the
   other 19.
-- `doc_sync_audit`'s one-location rule ("HTML pages live in html/
-  only") walked the whole tree, so with the fixtures present it flagged
-  the three fetched pages `tests/test_data/icgem_*_fixture.html`.
-  It now skips what git ignores (Matthias, 2026-11-09: "skip files that
-  git ignores"), asked through one `git check-ignore -z --stdin` call.
-  git never reports a tracked file as ignored, so a tracked second copy
-  is still a finding, and so is an untracked page that no rule ignores;
-  without git nothing is skipped. Pinned by four tests in
-  `tools/tests/test_doc_sync_pdf.py` (`SecondHtmlCopies`); a probe page
-  in `docs/` is still caught.
 
 ## [6.0.0] - 2026-11-08 - every download goes to the data pool
 
