@@ -125,5 +125,45 @@ class Tracked(unittest.TestCase):
         self.assertEqual(r.returncode, 0, ".gitignore must list the guide")
 
 
+
+class SecondHtmlCopies(unittest.TestCase):
+    """6.0.1: the one-location rule skips what git ignores (an install's
+    fetched fixtures), never a tracked or an untracked-but-not-ignored page."""
+
+    def repo(self):
+        d = tempfile.mkdtemp()
+        run = lambda *a: subprocess.run(["git", "-C", d] + list(a),
+                                        capture_output=True, check=True)
+        run("init", "-q")
+        for rel in ("html/page.html", "docs/stale.html", "docs/tracked.html",
+                    "tests/test_data/fixture.html"):
+            os.makedirs(os.path.join(d, os.path.dirname(rel)), exist_ok=True)
+            with open(os.path.join(d, *rel.split("/")), "w") as fh:
+                fh.write("<html></html>")
+        with open(os.path.join(d, ".gitignore"), "w") as fh:
+            fh.write("tests/test_data/\ndocs/tracked.html\n")
+        run("add", "-f", "docs/tracked.html")
+        return d
+
+    def test_an_ignored_page_is_skipped(self):
+        found = [f.replace(os.sep, "/") for f in dsa.second_html_copies(self.repo())]
+        self.assertNotIn("tests/test_data/fixture.html", found)
+
+    def test_an_untracked_page_is_still_a_finding(self):
+        found = [f.replace(os.sep, "/") for f in dsa.second_html_copies(self.repo())]
+        self.assertIn("docs/stale.html", found)
+
+    def test_a_tracked_page_is_a_finding_even_if_listed(self):
+        found = [f.replace(os.sep, "/") for f in dsa.second_html_copies(self.repo())]
+        self.assertIn("docs/tracked.html", found)
+        self.assertNotIn("html/page.html", found)
+
+    def test_without_git_nothing_is_skipped(self):
+        with tempfile.TemporaryDirectory() as d:
+            os.makedirs(os.path.join(d, "tests", "test_data"))
+            with open(os.path.join(d, "tests", "test_data", "f.html"), "w") as fh:
+                fh.write("<html></html>")
+            self.assertEqual(len(dsa.second_html_copies(d)), 1)
+
 if __name__ == "__main__":
     unittest.main(verbosity=1)

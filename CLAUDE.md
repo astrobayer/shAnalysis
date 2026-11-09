@@ -1081,6 +1081,10 @@ state; nothing is deleted.
   removed that file with the other 19 fixtures, so the rule from
   `671d6e8` had described a tracked file that has not existed since.
   Not tracking it again keeps one source for all 20, the tag.
+  `doc_sync_audit`'s one-location walk skips what git ignores
+  (Matthias: "skip files that git ignores"): the fetched
+  `icgem_*_fixture.html` pages were its only findings once the fixtures
+  were present. Tracked or unignored pages are still findings.
 
 ### 6.2 Verification board (◑ = one tier only, ☑ = both)
 The last releases only; the full board, in version order, is
