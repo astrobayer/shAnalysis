@@ -18,6 +18,17 @@ plain clone: they live on the orphan branch <code class="inline">testdata</code>
 <code class="inline">fixtures-YYYY-MM</code> tag. Point the resolver at a copy on a data drive.</p>
 <pre>setup_shAnalysis(TestDataFolder = "E:\DATAPOOL\GravityField\test_data")
 W = shLowLevel.readDDK("DDK3");     % resolves through testDataDir</pre>
+<p>Which files the fixture folder must hold is stated once, in
+<code class="inline">tests/data/SOURCES.json</code> (v6.0.3): a
+<code class="inline">{"schema": 1, "sources": [...]}</code> list with, per download,
+<code class="inline">id</code>, <code class="inline">url</code>, <code class="inline">files</code>,
+<code class="inline">MB</code>, <code class="inline">licence</code>,
+<code class="inline">licenceText</code> and <code class="inline">description</code>. The toolbox
+installer fetches the fixtures from it. It is tracked, and deliberately not inside
+<code class="inline">tests/test_data</code>, which git ignores. Four
+<code class="inline">testContract</code> tests hold it to the suites: every fixture name a suite
+opens is listed, every listed file is named by a suite or present in the fixture folder, and
+the fixture folder holds every listed file.</p>
 
 <h2>shLowLevel.dataFolder</h2>
 <pre>shLowLevel.dataFolder()                    % &lt;DATAPOOL&gt;/GravityField by default

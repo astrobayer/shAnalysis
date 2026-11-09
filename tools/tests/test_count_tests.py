@@ -109,7 +109,8 @@ class TestCounting(unittest.TestCase):
         self.assertEqual(c["runs"], c["methods"])
 
 
-EXPECTED_RUNS = 499          # v6.0.0: 497 + the data-pool resolution and TN-folder tests
+EXPECTED_RUNS = 503          # v6.0.3: 499 + the four fixture-list tests (contract)
+                             # v6.0.0: 497 + the data-pool resolution and TN-folder tests
                              # (5 correctness, 4 contract, 2 robustness)
 
 
