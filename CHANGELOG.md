@@ -1,5 +1,66 @@
 # Changelog
 
+## [6.0.5] - 2026-11-12 - the 9i review: background-model error, fixed
+
+A PATCH release: ten findings of a code review of 9i (5.31.0), fixed in
+one PR (Matthias: "Fix all of them in a single PR and proceed as
+suggested"). No API is removed. Two calls were made as recommended:
+ambiguous epochs are refused, not paired silently, and only the
+`AddNoiseCov` path factorises its noise covariance once.
+
+### Fixed
+- `regionalKalman`, a scalar `NoiseCov` with `AddNoiseCov`: the scalar
+  was added to every element of C (`diag` of a scalar is that scalar), a
+  rank-one all-ones term in place of s I. It is now s I.
+- `backgroundErrorCov` with `RemoveMean = false` divided by T - 1
+  although no mean was estimated: a T / (T - 1) overestimate, 25% at
+  T = 5. The divisor is now T. The default path (`RemoveMean = true`) is
+  unchanged.
+- `backgroundErrorCov` differenced series whose GM or R differ, so the
+  difference carried signal. Refused now, as `bridgeGaps` does, with
+  `constantsMismatch`.
+- `backgroundErrorCov` let NaN through into all of C. Refused now with
+  `nonFinite`, before any difference is formed.
+- `backgroundErrorCov` paired epochs many-to-one, so one epoch of TSB
+  could enter two differences. Refused now with `ambiguousEpochs`, in
+  both directions.
+
+### Changed
+- `AddNoiseCov` is checked before the process model and before the
+  first pass of `FitClimatology = "filtered"`, not after them.
+- `ProcessCov`, `StartCov` and `AddNoiseCov` share one check: P x P,
+  finite, symmetric to 1e-12 of the largest element, non-negative
+  diagonal. A matrix not symmetric is refused (`badAddNoiseCov`,
+  `badPrior`). Before, its lower triangle was ignored by the Cholesky
+  factorisation. A noise covariance plus `AddNoiseCov` that is not
+  positive definite is now refused as `badAddNoiseCov`, which names the
+  option, instead of `regionalNEQ:notPositiveDefinite`.
+- With `AddNoiseCov` and a noise covariance that is the same at every
+  epoch (scalar, vector or square `NoiseCov`), the sum and its Cholesky
+  factor are formed once and only b per epoch. This repeats
+  `regionalNEQ`'s weighting in its order, so the records are bitwise
+  the per-epoch ones (pinned). With formal sigmas, which change per
+  epoch, the factorisation stays per epoch, and the help says so.
+- `backgroundErrorCov`'s `info.rank` no longer runs an SVD of the P x P
+  covariance (8e11 flops at nmax 96). It is the rank of the P x T
+  differences for "full" without Shrink, and otherwise the number of
+  positive diagonal elements.
+
+### Validated
+- `validate_background_error.py` CLAIM 5 (new): with `RemoveMean`
+  false, the divisor-T estimate is unbiased. The mean trace ratio is
+  1.0016 over 4000 trials of T = 5; the old divisor gives 1.25.
+- New tests, 505 runs predicted (Correctness 242, Contract 164):
+  - `testRegionalKalmanAddNoiseCovWithEveryNoiseCovShape`: scalar,
+    vector and per-epoch `NoiseCov` with `AddNoiseCov`, each bitwise
+    equal to `NoiseCov` = (its matrix) + C. The scalar case fails on the
+    old code.
+  - `testBackgroundErrorCovRefusesBadInput`: the three new identifiers,
+    the asymmetric and the indefinite cases.
+- `testBackgroundErrorCovIsTheHalfDifferenceCovariance` also pins the
+  divisor T and `info.rank`, and the `AddNoiseCov` test has its own
+  seed.
+
 ## [6.0.4] - 2026-11-09 - every listed fixture is read by the code
 
 A PATCH release (Matthias, 2026-11-09: fix the two fixtures 6.0.3 listed

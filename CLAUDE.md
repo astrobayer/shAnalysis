@@ -26,10 +26,10 @@ says whether it was *read* or *inferred*.
 
 | Fact | Value | Evidence |
 |---|---|---|
-| Version | **6.0.4**, 09-Nov-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
+| Version | **6.0.5**, 12-Nov-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
 | Branches | `main` only; `claude/getframe-recapture` and `claude/readshm` are gone (merged/deleted) | `GET /branches` |
 | Public surface | 3 classes / 108 methods, 138 `+shLowLevel` functions (+5 private), 3 root functions. 96 of the 138 are reachable from a class method; each of the other 42 is a named exception with its reason, and the backlog is empty (v5.24.0) | `tools/dev/api_extract.py`; `tools/dev/class_surface_audit.py` |
-| Tests | 5 classes, **489 methods / 503 runs**: Correctness 241, Contract 163, Robustness 63, Science 9, Performance 13 methods (27 runs, `budgetCase` x14 + `nmaxP` x2). On A8 8 filter out in an ordinary run - the optional real-data fixtures and the opt-in full-size closed loop (v5.27.2), 7 on a manual run that sets `closed_loop_nmax` (the GravIS-grid test joined them in v5.8.0, the ESMGFZ check in v5.11.0, the HLSST check in v5.12.0); on MATTHIASPC only 2 do, because `E:\DATAPOOL` supplies the SINEX files, the GravIS folder and - with `SHX_EARTHROTATION_FOLDER` and `SHX_BRIDGE_FOLDER` set for the run, no preference is stored - the ESMGFZ and HLSST series. The counter has matched the runner EXACTLY on the last ten green A8 runs and on every local Tier-A run. | `python3 tools/dev/count_tests.py` |
+| Tests | 5 classes, **491 methods / 505 runs**: Correctness 242, Contract 164, Robustness 63, Science 9, Performance 13 methods (27 runs, `budgetCase` x14 + `nmaxP` x2). On A8 8 filter out in an ordinary run - the optional real-data fixtures and the opt-in full-size closed loop (v5.27.2), 7 on a manual run that sets `closed_loop_nmax` (the GravIS-grid test joined them in v5.8.0, the ESMGFZ check in v5.11.0, the HLSST check in v5.12.0); on MATTHIASPC only 2 do, because `E:\DATAPOOL` supplies the SINEX files, the GravIS folder and - with `SHX_EARTHROTATION_FOLDER` and `SHX_BRIDGE_FOLDER` set for the run, no preference is stored - the ESMGFZ and HLSST series. The counter has matched the runner EXACTLY on the last ten green A8 runs and on every local Tier-A run. | `python3 tools/dev/count_tests.py` |
 | Python oracles | 39 `tools/dev/validate_*.py` (+ `regional_oracle_lib.py`, shared by the WP8 oracles) + `tools/audit/*` | listing |
 | Docs | **27** hand-written `html/*.html` (24 per-entity duplicates retired in v5.0.1, WP6 stage 3; `regionalBasis.html` added in v5.14.0) + **253 generated `html/ref/*.html`** (one per entity + index, `make_refpages.py`), one shared `html/shAnalysis.css`, `helptoc.xml`, `info.xml`, guide PDF (built by CI and attached to each GitHub release since v5.24.1, not committed - `doc_sync_audit` refuses a tracked copy), generated `html/apiReference.html`. `docs/` holds `apiExamples.json` and, where it was built, the PDF - no HTML page lives outside `html/` (gated). | listing |
 | CI | `gates` job on ubuntu (help_audit, doc_sync_audit, no_map_renderer, toolbox_dependency_audit, nv_casing_audit, fixture_tag_audit, gate self-tests `tools/tests/`, `count_tests`, `name_coverage`, `class_surface_audit`, `error_id_audit`, `option_values_audit`, `refpages_audit`, `make_demos --check`, `perf_baseline_audit`) + `runAllTests (self-hosted)` on A8/R2026a; fixtures from tag `fixtures-2026-08` | `.github/workflows/ci.yml` |
@@ -699,6 +699,26 @@ that need no new data first.
 Current entries only; every earlier one is in `tools/dev/RECORD.md` §1,
 verbatim. An entry moves there when it stops describing the current
 state; nothing is deleted.
+- 2026-11-12 — **The 9i review fixed in one PR, 6.0.5** (Matthias: "Fix
+  all of them in a single PR and proceed as suggested", on a plan that
+  put all ten findings of a code review of 5.31.0 into one patch). Two
+  calls made as recommended: an epoch that pairs with two is REFUSED
+  (`ambiguousEpochs`) rather than paired silently - a duplicated month
+  is a data defect; and only the `AddNoiseCov` path factorises a
+  constant noise covariance once - the older constant-noise paths keep
+  their per-epoch `regionalNEQ` call and their rounding, which existing
+  tests pin. The factor-once route repeats `regionalNEQ`'s weighting in
+  its order, so it is bitwise the per-epoch route, not merely close.
+- 2026-11-12 — **The covariance check stops at symmetry and the
+  diagonal.** Definiteness is left to the one Cholesky factor of noise +
+  C: a rank-deficient empirical C (T < P) is legal when added to a
+  definite noise covariance, and a P x P eigenvalue check would cost
+  what the cache saves. A failure there is re-raised as `badAddNoiseCov`
+  so the message names the option.
+- 2026-11-12 — **Next, as the plan put it:** 6.0.6 makes the sea-level
+  equation one implementation, with the old `seaLevelFingerprint` loop
+  kept test-local as the captured reference so A8 proves bitwise (the
+  A33 pattern) - no Tier-A session needed; then 9j as 6.1.0.
 - 2026-11-08 — **6.0.0: every download goes to the data pool**
   (Matthias: "All data go always to the data pool. Only model code or
   libraries go to the toolbox."; contract: the installer's
@@ -1125,9 +1145,10 @@ The last releases only; the full board, in version order, is
 | v5.28.1 (WP8 8j: LGD records in a mascon basis, oracle + two tests) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle (claims 1, 3-10 pass, CLAIM 2 refuted as recorded), 0 findings | ☑ **Tier A on MATTHIASPC** (temp clone, R2026a): the two 8j tests 2 of 2 at `8325964` (77 s; one red round first at `f37a4e7`, the test's own case E on the wrong series). ☑ **CI self-hosted (A8) at `c0d43b9` via PR #147, green — 486 runs, 478 passed, 0 failed, 8 filtered**; the count prediction matched EXACTLY; the 8j tests 27 s and 65 s | ☑ PR #147 | ☑ 2026-11-06 |
 | v5.29.0 (WP9 9g: `maternCovariance`, `ProcessCov` / `StartCov` on `regionalKalman`) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally**; predicted 490 runs (Correctness 237, Contract 155). ☑ **CI self-hosted (A8) at `d1e82e0` via PR #149, green — 490 runs, 482 passed, 0 failed, 8 filtered**; the count prediction matched EXACTLY, and the four 9g tests passed on their first run (1.6, 2.6, 0.55 and 0.23 s) | ☑ PR #149 | ☑ 2026-11-06 |
 | v5.30.0 (WP9 9h: `regionalBasis(Ocean = ...)`, `out.landMean`) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally**; predicted 493 runs (Correctness 239, Contract 156). ☑ **CI self-hosted (A8) at `47dd85e` via PR #150, green — 493 runs, 485 passed, 0 failed, 8 filtered**; the count prediction matched EXACTLY, and the three 9h tests passed on their first run (0.07, 0.45 and 0.30 s) | ☑ PR #150 | ☑ 2026-11-06 |
-| v5.31.0 (WP9 9i: `backgroundErrorCov`, `AddNoiseCov`) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally**; predicted 496 runs (Correctness 241, Contract 157) | ☐ | ☐ |
+| v5.31.0 (WP9 9i: `backgroundErrorCov`, `AddNoiseCov`) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally**; predicted 496 runs (Correctness 241, Contract 157). ☑ **CI self-hosted (A8) at `ab7acec` via PR #151, green — 496 runs, 488 passed, 0 failed, 8 filtered**; the count prediction matched EXACTLY, and the three 9i tests passed on their first run | ☑ PR #151 | ☑ 2026-11-06 |
 | v6.0.0 (the data pool: `dataFolder` resolves `<DATAPOOL>/GravityField`, no `<toolbox>/data`; `TN`/`DDK` spelled as written) | ☑ 17 gates + mlint + make_demos + 15 self-test suites, 0 findings | ☑ **Tier A on MATTHIASPC** (worktree, copied prefdir): predicted 499 runs (Contract 159), ran 499 in both configurations - owner's preferences and no pool at all. Failures outside the change: `testVersionMetadataIsConsistent` (worktree name) and speed budgets under load (an `origin/main` control failed the same). `testAPIExamplesRun` red with no pool, fixed, then green | ☐ | ☐ |
 | v6.0.4 (every listed fixture is read by the code: `test_static.gfc.gz` left the list; the converse test counts `tools/`) | ☑ doc_sync, error_id, help, nv_casing, toolbox_dependency, fixture_tag audits + make_demos --check, 0 findings; apiReference, refpages, demos regenerated | ◑ **Tier A on MATTHIASPC** (worktree): the four fixture-list tests of `testContract` - 3 passed and the folder test filtered without fixtures; with `SHX_TESTDATA_FOLDER` = the main clone's fixtures both folder-dependent tests passed. `testEveryListedFixtureIsNamedOrCarried` now PASSES without a fixture folder (it filtered at 6.0.3). Predicted 503 runs (no test added); the full suite was not run here | ☐ | ☐ |
+| v6.0.5 (the 9i review: ten findings - scalar NoiseCov with AddNoiseCov, divisor T, GM/R, NaN and one-to-one epochs in `backgroundErrorCov`, early and shared covariance checks, factor-once noise, no P x P SVD) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the extended oracle, 0 findings | ◑ **Tier B locally**; predicted 505 runs (Correctness 242, Contract 164) | ☐ | ☐ |
 | v6.0.3 (the fixture list: `tests/data/SOURCES.json`, four `testContract` tests) | ☑ 14 CI gates + mlint + check_api/api_audit/attribution_sweep + 15 self-test files, 0 findings; guide built locally | ☑ **Tier A on MATTHIASPC** (worktree, copied prefdir, `SHX_TESTDATA_FOLDER` = the main clone's fetched fixtures): predicted 503 runs (Contract 163), ran 503, 493 passed, 2 filtered (`testUserSuppliedSINEXFiles`, `testRegionalClosedLoopAtFullSize`), 8 failed outside the change: `testVersionMetadataIsConsistent` (`ver` finds the main clone, 6.0.2 - the worktree name, as at v6.0.0) and seven 1.3x speed budgets on a desktop; an `origin/main` control in the same session failed `legendre_n360`/`n720` alike. The four new tests passed, and seven single-defect injections turned exactly the expected ones red or filtered | ☐ | ☐ |
 | v5.26.0 (WP9 9b: `shLowLevel.neqClimatology`) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally** (no bridge). ☑ **CI self-hosted (A8) at `4aa3aa9` via PR #139, green — 460 runs, 453 passed, 0 failed, 7 filtered** (the optional real-data fixtures); the count prediction matched EXACTLY, and the four 9b tests passed on their first run - no red round | ☑ PR #139 | ☑ 2026-10-24 |
 
@@ -1201,18 +1222,15 @@ One line per rule; the incident behind each, with its numbers, is in
 
 ### 6.4 Next action
 
-**State, 2026-11-08.** v6.0.0 (every download goes to the data pool)
-is on branch `claude/data-pool`, a draft PR; `main` is `8d73568`, v5.31.3
-(#154, GravIS tests hold on a newer download). Before it, `90bf475`, v5.31.2 (#153,
-real-data tests trimmed to TN-14, merged), after `a18feff`, v5.31.1
-(#152) and `784a0f7`, v5.31.0 (#151, 9i). Before that, `1005fc7`, v5.30.0 (#150, 9h,
-merged); every release since v5.24.1 carries
-`shAnalysis_workflow_guide.pdf`. v5.31.0 (9i, background-model error)
-is on branch `wp9-background-error`. A re-measurement is a manual run of the
+**State, 2026-11-12.** `main` is `9ae0227`, v6.0.4 (#159, the fixture
+list read by the code); v6.0.0 (#155) moved every download to the data
+pool. 9i (5.31.0, #151) is merged; its review's ten findings are fixed
+as v6.0.5 on branch `wp9-9i-review`. Every release since v5.24.1 carries
+`shAnalysis_workflow_guide.pdf`. A re-measurement is a manual run of the
 CI workflow with `closed_loop_nmax`, read from the log's `CLOSEDLOOP`
-lines. Every finding in 4.1 is CLOSED except A42,
-which holds five low items that need data or a run, not effort. Read the version from
-1's table or `Contents.m` line 2, never from this paragraph.
+lines. Every finding in 4.1 is CLOSED except A42, which holds five low
+items that need data or a run, not effort. Read the version from 1's
+table or `Contents.m` line 2, never from this paragraph.
 
 **Open, in the order of what they buy:**
 0. **WP9, in its table's order** (approved 2026-10-23): 9e is checked
@@ -1224,9 +1242,11 @@ which holds five low items that need data or a run, not effort. Read the version
    real normal equations - their C20/C30 correlations - is debt for the
    acceptance machine. 9g is done (6.1, 2026-11-06); choosing the range
    and sigma fields from data is not part of it. 9h is done (6.1,
-   2026-11-06); merging its column solve with `seaLevelFingerprint` is a
-   Tier-A follow-up. 9i is done (6.1, 2026-11-06); its size on a real
-   release pair is acceptance-machine debt. 9j is next and last. Waiting on
+   2026-11-06); merging its column solve with `seaLevelFingerprint` is
+   next, as 6.0.6, with a test-local captured reference (6.1,
+   2026-11-12). 9i is done (6.1, 2026-11-06) and its review fixed as
+   6.0.5; its size on a real release pair is acceptance-machine debt.
+   9j is last, as 6.1.0. Waiting on
    Matthias: whether 8f now runs on A8 - memory is measured to suffice;
    it needs ESA ESM output and the ITSG-Grace2018 covariances there. Real-data
    debt for the acceptance machine: 9a against `bridgeGaps` on COST-G and

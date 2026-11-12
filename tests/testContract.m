@@ -3701,6 +3701,44 @@ verifyError(testCase, @() shLowLevel.regionalBasis(idx, cap, Ocean = ocean, ...
     kn = knCM, hn = hn), 'shLowLevel:regionalBasis:badLoveNumbers');
 end
 
+function testBackgroundErrorCovRefusesBadInput(testCase)
+%TESTBACKGROUNDERRORCOVREFUSESBADINPUT 6.0.5: the review's guards, each
+%   driven by its identifier - GM or R that differ, a NaN coefficient, an
+%   epoch that pairs with two; and AddNoiseCov / ProcessCov that are not
+%   symmetric, or a noise covariance plus AddNoiseCov that is not
+%   definite, refused before any filter work.
+tsA = wp7Series(6, 30, 162);
+tsB = wp7Series(6, 30, 163);
+tsR = shSeries(tsB.Cs, Ss = tsB.Ss, Epochs = tsB.epochs, GM = tsB.GM, R = 6378137);
+verifyError(testCase, @() shLowLevel.backgroundErrorCov(tsA, tsR), ...
+    'shLowLevel:backgroundErrorCov:constantsMismatch');
+Cn = tsB.Cs;
+Cn(3, 1, 5) = NaN;
+tsN = shSeries(Cn, Ss = tsB.Ss, Epochs = tsB.epochs, GM = tsB.GM, R = tsB.R);
+verifyError(testCase, @() shLowLevel.backgroundErrorCov(tsA, tsN), ...
+    'shLowLevel:backgroundErrorCov:nonFinite');
+ep = tsB.epochs(:);
+ep(6) = ep(5) + 0.1 / 365.25;                   % two epochs of B near one of A
+tsD = shSeries(tsB.Cs, Ss = tsB.Ss, Epochs = ep, GM = tsB.GM, R = tsB.R);
+verifyError(testCase, @() shLowLevel.backgroundErrorCov(tsA, tsD), ...
+    'shLowLevel:backgroundErrorCov:ambiguousEpochs');
+verifyError(testCase, @() shLowLevel.backgroundErrorCov(tsD, tsA), ...
+    'shLowLevel:backgroundErrorCov:ambiguousEpochs');
+tsm = wp7Series(6, 120, 164);
+B = tsA.regionalBasis(@(la, lo) double(la > 50));
+P = B.idx.P;
+Ca = eye(P) * 1e-20;
+Ca(1, 2) = 1e-21;                               % not symmetric
+verifyError(testCase, @() shLowLevel.regionalKalman(tsA, B, ModelSeries = tsm, ...
+    AddNoiseCov = Ca), 'shLowLevel:regionalKalman:badAddNoiseCov');
+verifyError(testCase, @() shLowLevel.regionalKalman(tsA, B, ModelSeries = tsm, ...
+    ProcessCov = Ca), 'shLowLevel:regionalKalman:badPrior');
+Ci = zeros(P);
+Ci(1:2, 1:2) = [1 5; 5 1] * 1e-20;              % symmetric, indefinite
+verifyError(testCase, @() shLowLevel.regionalKalman(tsA, B, ModelSeries = tsm, ...
+    NoiseCov = 1e-24, AddNoiseCov = Ci), 'shLowLevel:regionalKalman:badAddNoiseCov');
+end
+
 function testBackgroundErrorCovRouteAndIDs(testCase)
 %TESTBACKGROUNDERRORCOVROUTEANDIDS WP9 9i: ts.backgroundErrorCov is the
 %   lane - bitwise, with options and without - ts.regionalKalman forwards

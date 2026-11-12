@@ -32,6 +32,10 @@ Claims, bounds written before their run:
            (pooled z-rms > 1.3); with C_hat from 60 months of release
            differences added the pooled z-rms is within 0.9..1.15 and
            the error below the formal-only filter's in every seed
+  CLAIM 5  (6.0.5) with RemoveMean false no mean is estimated and the
+           divisor is T: over 4000 trials of T = 5 epochs of zero-mean
+           errors the mean of trace(C_hat) / trace(C) is within 0.02 of 1
+           (the former divisor T - 1 gives T / (T - 1) = 1.25)
 
 Run: python3 tools/dev/validate_background_error.py   (numpy)
 
@@ -55,10 +59,13 @@ def check(name, ok, msg):
         FAIL.append(name)
 
 
-def estimate(a, b, structure="full", split=0.5, shrink=0.0, n=None):
+def estimate(a, b, structure="full", split=0.5, shrink=0.0, n=None, remove_mean=True):
     d = a - b
-    d = d - d.mean(axis=0, keepdims=True)
-    S = d.T @ d / (d.shape[0] - 1)
+    dof = d.shape[0]
+    if remove_mean:
+        d = d - d.mean(axis=0, keepdims=True)
+        dof -= 1
+    S = d.T @ d / dof
     C = split * S
     if structure == "diagonal":
         C = np.diag(np.diag(C))
@@ -177,6 +184,21 @@ print(f"   pooled z-rms: formal only {zf:.3f}, formal + C_hat {zb:.3f}; "
       f"error lower in {n_ok} of 20 seeds")
 check("CLAIM 4", zf > 1.3 and 0.9 <= zb <= 1.15 and n_ok == 20,
       f"z-rms {zf:.3f} -> {zb:.3f}, lower error in {n_ok}/20")
+
+# ---------------------------------------------------------------- CLAIM 5
+g5 = np.random.default_rng(5)
+idx5 = rl.sh_index(4)
+P5 = idx5[0].size
+C5 = error_cov(idx5, g5)
+L5 = np.linalg.cholesky(C5)
+r5 = []
+for _ in range(4000):
+    a5 = g5.standard_normal((5, P5)) @ L5.T
+    b5 = g5.standard_normal((5, P5)) @ L5.T
+    r5.append(np.trace(estimate(a5, b5, remove_mean=False)) / np.trace(C5))
+m5 = float(np.mean(r5))
+check("CLAIM 5", abs(m5 - 1) < 0.02,
+      f"RemoveMean false, divisor T: mean trace ratio {m5:.4f} over 4000 trials of T = 5")
 
 print("FAILED: " + ", ".join(FAIL) if FAIL else "ALL CLAIMS PASS")
 sys.exit(1 if FAIL else 0)

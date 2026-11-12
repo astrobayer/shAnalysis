@@ -6493,6 +6493,14 @@ verifyEqual(testCase, info.nEpochs, T);
 verifyLessThan(testCase, norm(C - Ct, 'fro') / norm(Ct, 'fro'), 3 * sqrt(P / T));
 C1 = shLowLevel.backgroundErrorCov(tsA, tsB, Split = 1);
 verifyLessThan(testCase, norm(C1 - 2 * C, 'fro') / norm(C, 'fro'), 1e-12);
+[~, iR] = shLowLevel.backgroundErrorCov(tsA, tsB);
+verifyEqual(testCase, iR.rank, rank(D));        % from the P x T differences
+Dr = Xa - Xb;
+Cr = 0.5 * (Dr * Dr') / T;                      % no mean estimated: divisor T
+Cr = (Cr + Cr') / 2;
+C0 = shLowLevel.backgroundErrorCov(tsA, tsB, RemoveMean = false);
+% 1e-12: the same sums as above (exact round trips), one order of operations
+verifyLessThan(testCase, norm(C0 - Cr, 'fro') / norm(Cr, 'fro'), 1e-12);
 Cd = shLowLevel.backgroundErrorCov(tsA, tsB, Structure = "degree");
 v = diag(C);
 for n = 2:4
@@ -6514,6 +6522,7 @@ function testRegionalKalmanAddNoiseCovIsAddedToEveryEpoch(testCase)
 [tsm, tsObs, ~, idx] = scaleFixture(95, 1);
 B = shLowLevel.regionalBasis(idx, [], Type = "sh");
 P = idx.P;
+rng(196);                                       % C's own seed (6.0.5)
 G = randn(P) / sqrt(P);
 Cb = 1e-22 * (G * G' + eye(P));
 Cb = (Cb + Cb') / 2;
@@ -6525,6 +6534,35 @@ verifyTrue(testCase, isequaln(t1, t2) && isequaln(o1, o2), ...
     'AddNoiseCov is not the formal variances plus C');
 [~, o0] = shLowLevel.regionalKalman(tsObs, B, args{:});
 verifyGreaterThan(testCase, mean(o1.sigA(:)), mean(o0.sigA(:)));
+end
+
+function testRegionalKalmanAddNoiseCovWithEveryNoiseCovShape(testCase)
+%TESTREGIONALKALMANADDNOISECOVWITHEVERYNOISECOVSHAPE 6.0.5: AddNoiseCov
+%   = C with each NoiseCov shape is that shape's covariance plus C, bitwise
+%   the chain given NoiseCov = (its matrix) + C. A scalar s is s I (it
+%   was added to every element before), a vector its diagonal, a per-epoch
+%   (P, M) matrix one diagonal per epoch. The scalar and vector cases take
+%   the factor-once route, which repeats regionalNEQ's weighting.
+[tsm, tsObs, ~, idx] = scaleFixture(97, 1);
+B = shLowLevel.regionalBasis(idx, [], Type = "sh");
+P = idx.P;
+rng(197);
+G = randn(P) / sqrt(P);
+Cb = 1e-22 * (G * G' + eye(P));
+Cb = (Cb + Cb') / 2;
+args = {"ModelSeries", tsm, "Climatology", false};
+s = 2e-22;
+v = 1e-22 * (1 + (1:P)' / P);
+cases = {s, s * eye(P) + Cb; v, diag(v) + Cb; ...
+    repmat(v, 1, tsObs.nEpochs), diag(v) + Cb};
+names = ["scalar", "vector", "per-epoch"];
+for c = 1:3
+    [t1, o1] = shLowLevel.regionalKalman(tsObs, B, args{:}, NoiseCov = cases{c, 1}, ...
+        AddNoiseCov = Cb);
+    [t2, o2] = shLowLevel.regionalKalman(tsObs, B, args{:}, NoiseCov = cases{c, 2});
+    verifyTrue(testCase, isequaln(t1, t2) && isequaln(o1, o2), ...
+        sprintf('a %s NoiseCov with AddNoiseCov is not its matrix plus C', names(c)));
+end
 end
 
 function testRegionalKalmanOrderTwoOnTheSHBasisIsKalmanChain(testCase)

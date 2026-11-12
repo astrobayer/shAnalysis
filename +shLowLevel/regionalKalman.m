@@ -180,9 +180,16 @@ function [ts, out] = regionalKalman(obsIn, B, opts)
 %                    matfile is deleted after smoothing
 %     AddNoiseCov ([])  (P,P) double  solution mode: an SH covariance in
 %                    B.idx order added to every epoch's noise covariance
-%                    (the formal sigmas' or NoiseCov's) - the error of a
-%                    background model the series had removed, e.g. from
-%                    shLowLevel.backgroundErrorCov; refused in record mode
+%                    (the formal sigmas' or NoiseCov's; a scalar NoiseCov
+%                    s is s I) - the error of a background model the
+%                    series had removed, e.g. from
+%                    shLowLevel.backgroundErrorCov; refused in record mode.
+%                    Symmetric with a non-negative diagonal; the sum must
+%                    be positive definite. When the noise is the same at
+%                    every epoch (scalar, vector or square NoiseCov) the
+%                    sum is factorised once; with formal sigmas, which
+%                    change per epoch, once per epoch - a P x P Cholesky,
+%                    about 3e11 flops at nmax 96
 %     ProcessCov ([])  (P,P) double  SH covariance in B.idx order that
 %                    replaces the process noise: Q0 = Proj C Proj', then
 %                    scaled by QScale / EstimateQScale, see above
@@ -304,11 +311,12 @@ function [ts, out] = regionalKalman(obsIn, B, opts)
 %         QBlocks is not one label 1..nB per basis coefficient with every
 %         block used, or QScale has neither 1 nor nB entries
 %     shLowLevel:regionalKalman:badAddNoiseCov
-%         AddNoiseCov is not a finite P x P matrix in the basis' index, or
-%         was given in record mode
+%         AddNoiseCov is not a finite, symmetric P x P matrix with a
+%         non-negative diagonal in the basis' index, was given in record
+%         mode, or makes the noise covariance not positive definite
 %     shLowLevel:regionalKalman:badPrior
-%         ProcessCov or StartCov is not a finite P x P matrix in the
-%         basis' index
+%         ProcessCov or StartCov is not a finite, symmetric P x P matrix
+%         with a non-negative diagonal in the basis' index
 %
 %   References
 %     Kurtenbach, E. (2012), Entwicklung eines Kalman-Filters zur
@@ -391,6 +399,25 @@ if hasBg && ~(isa(bg, 'shSeries') && isscalar(bg) && bg.nmax == L)
     error('shLowLevel:regionalKalman:badBackground', ...
         'Background must be an shSeries reaching degree %d, the basis'' band limit.', L);
 end
+addC = opts.AddNoiseCov;                        % 9i, checked before any work
+if ~isempty(addC)
+    if ~isa(obsIn, 'shSeries')
+        error('shLowLevel:regionalKalman:badAddNoiseCov', ...
+            ['AddNoiseCov is a solution-mode option; add it to the records'' ' ...
+             'covariances before forming their normal equations.']);
+    end
+    if ~covOK(addC, P)
+        error('shLowLevel:regionalKalman:badAddNoiseCov', ['AddNoiseCov must be a ' ...
+            'finite, symmetric %d x %d matrix in B.idx order with a non-negative ' ...
+            'diagonal.'], P, P);
+    end
+end
+if (~isempty(opts.ProcessCov) && ~covOK(opts.ProcessCov, P)) || ...
+        (~isempty(opts.StartCov) && ~covOK(opts.StartCov, P))
+    error('shLowLevel:regionalKalman:badPrior', ['ProcessCov and StartCov must be ' ...
+        'finite, symmetric %d x %d matrices in B.idx order with a non-negative ' ...
+        'diagonal.'], P, P);
+end
 
 % ---- 1. process model in the basis
 [blocks, nB] = qBlocks(opts.QBlocks, K);
@@ -451,18 +478,9 @@ if solMode
         [climObs, tsObs] = tsObs.climatology;
     end
     obsEpochs = tsObs.epochs(:);
-    addC = opts.AddNoiseCov;
-    if ~isempty(addC) && ~(isequal(size(addC), [P P]) && all(isfinite(addC(:))))
-        error('shLowLevel:regionalKalman:badAddNoiseCov', ...
-            'AddNoiseCov must be a finite %d x %d matrix in B.idx order.', P, P);
-    end
-    getObs = @(k) solutionRecord(tsObs, k, B, opts.NoiseCov, addC);
+    cache = constantNoiseCache(opts.NoiseCov, addC, B, P);
+    getObs = @(k) solutionRecord(tsObs, k, B, opts.NoiseCov, addC, cache);
 elseif isstruct(obsIn)
-    if ~isempty(opts.AddNoiseCov)
-        error('shLowLevel:regionalKalman:badAddNoiseCov', ...
-            ['AddNoiseCov is a solution-mode option; add it to the records'' ' ...
-             'covariances before forming their normal equations.']);
-    end
     recs = obsIn(:).';
     if ~all(isfield(recs, {'N', 'b', 'epoch'}))
         error('shLowLevel:regionalKalman:badRecord', ...
@@ -594,11 +612,8 @@ out = struct('mode', modeName, 'basisType', B.type, 'K', K, ...
 end
 
 function Cb = basisCov(C, B, P)
-% An SH covariance (P x P, B.idx order) in the basis: Proj C Proj'.
-if ~isequal(size(C), [P P]) || ~all(isfinite(C(:)))
-    error('shLowLevel:regionalKalman:badPrior', ...
-        'ProcessCov and StartCov must be finite %d x %d matrices in B.idx order.', P, P);
-end
+% An SH covariance (P x P, B.idx order) in the basis: Proj C Proj'
+% (checked by covOK before section 1).
 Cb = full(B.Proj * C * B.Proj.');
 Cb = (Cb + Cb.') / 2;
 end
@@ -662,10 +677,59 @@ qEst.exitFlag = flag;
 end
 
 % ---------------------------------------------------------------- local
-function o = solutionRecord(tsObs, k, B, noiseCov, addC)
+function ok = covOK(C, P)
+% One check for every SH covariance option: P x P, finite, symmetric to
+% 1e-12 of its largest element, a non-negative diagonal. Definiteness is
+% left to the Cholesky factor the chain forms (a rank-deficient
+% empirical C is legal when added to a definite noise covariance).
+ok = isnumeric(C) && isequal(size(C), [P P]) && all(isfinite(C(:)));
+if ok
+    sc = max(abs(C(:)));
+    ok = max(abs(C - C.'), [], 'all') <= 1e-12 * sc && all(diag(C) >= 0);
+end
+end
+
+function cache = constantNoiseCache(noiseCov, addC, B, P)
+% With AddNoiseCov and a noise covariance that is the same at every epoch
+% (scalar, vector or square NoiseCov), the epoch covariance C0 = noise + C
+% and its Cholesky factor are formed once and only b changes per epoch -
+% the operations of regionalNEQ's weighting, in its order, so the records
+% are the ones regionalNEQ(B, "solution", Cov = C0) returns.
+cache = [];
+if isempty(addC) || isempty(noiseCov) || ...
+        ~(isvector(noiseCov) || size(noiseCov, 2) == size(noiseCov, 1))
+    return
+end
+C0 = expandNoise(noiseCov, P) + addC;
+[Lc, flag] = chol((C0 + C0') / 2, 'lower');
+if flag ~= 0
+    error('shLowLevel:regionalKalman:badAddNoiseCov', ...
+        ['The noise covariance plus AddNoiseCov is not positive definite ' ...
+         '(Cholesky failed at column %d).'], flag);
+end
+Aw = Lc \ B.T;
+N = full(Aw' * Aw);
+cache = struct('Lc', Lc, 'Aw', Aw, 'N', (N + N') / 2);
+end
+
+function C = expandNoise(C, P)
+% A scalar variance is s I, a vector the diagonal, a square matrix itself.
+if isscalar(C)
+    C = C * eye(P);
+elseif isvector(C)
+    C = diag(C);
+end
+end
+
+function o = solutionRecord(tsObs, k, B, noiseCov, addC, cache)
 % One epoch of the series as a basis normal equation (regionalNEQ).
 g = tsObs.at(k);
 l = shLowLevel.vecFromCS(g.C, g.S, B.idx);
+if ~isempty(cache)                              % 9i: constant noise + C
+    yw = cache.Lc \ l;
+    o = struct('l', [], 'R', [], 'N', cache.N, 'b', full(cache.Aw' * yw));
+    return
+end
 if isempty(noiseCov)
     if isempty(g.sigmaC) || all(g.sigmaC(:) == 0)
         error('shLowLevel:regionalKalman:noNoise', ...
@@ -679,10 +743,19 @@ else
     C = noiseCov(:, k);
 end
 if ~isempty(addC)                               % 9i: background-model error
-    if isvector(C), C = diag(C); end
-    C = C + addC;
+    C = expandNoise(C, numel(l)) + addC;
+    try
+        rec = shLowLevel.regionalNEQ(B, "solution", Solution = l, Cov = C);
+    catch me
+        if me.identifier ~= "shLowLevel:regionalNEQ:notPositiveDefinite"
+            rethrow(me);
+        end
+        error('shLowLevel:regionalKalman:badAddNoiseCov', ...
+            'Epoch %d: the noise covariance plus AddNoiseCov is not positive definite.', k);
+    end
+else
+    rec = shLowLevel.regionalNEQ(B, "solution", Solution = l, Cov = C);
 end
-rec = shLowLevel.regionalNEQ(B, "solution", Solution = l, Cov = C);
 o = struct('l', [], 'R', [], 'N', rec.N, 'b', rec.b);
 end
 
