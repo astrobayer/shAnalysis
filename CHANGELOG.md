@@ -1,5 +1,32 @@
 # Changelog
 
+## [6.0.6] - 2026-11-12 - one sea-level equation
+
+A PATCH release, the second step of the plan that 6.0.5 began (Matthias:
+"Fix all of them in a single PR and proceed as suggested"). No result
+changes. That is proven on A8 against the old code, not argued.
+
+### Changed
+- The elastic sea-level equation has one implementation: the private
+  `sleSolve`, which solves K land loads at once.
+  `shLowLevel.seaLevelFingerprint` calls it with one load, and
+  `regionalBasis(..., Ocean = ...)` with every basis column.
+- Since v5.30.0 the two had carried their own copies of the loop, which
+  was knowingly left as the A17 shape (CLAUDE.md 6.1, 2026-11-06). The
+  merge then waited for a Tier-A session to capture a reference.
+
+### Validated
+- `testSeaLevelFingerprintIsItsCapturedLoop`: the pre-6.0.6
+  `seaLevelFingerprint` body is kept verbatim in the test file (the A33
+  pattern), with only its error identifiers renamed.
+  - The new function and the captured one must agree **bitwise** on S,
+    the grid and info, for a handle load and a polygon load.
+  - A CI run on A8 is therefore the proof, without an acceptance-machine
+    session.
+- `testRegionalBasisOceanIsTheSeaLevelEquation`, which pins a basis
+  column against `seaLevelFingerprint`, is unchanged.
+- Tests: +1 (Correctness 243), 506 runs predicted.
+
 ## [6.0.5] - 2026-11-12 - the 9i review: background-model error, fixed
 
 A PATCH release: ten findings of a code review of 9i (5.31.0), fixed in

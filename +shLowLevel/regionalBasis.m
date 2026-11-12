@@ -529,26 +529,16 @@ X0 = zeros(idx0.P, size(T, 2));
 X0(map, :) = T;
 sigL = (1 - O) .* (Y0 * (fSDr .* X0));          % the land part of each column
 Ml = w0' * sigL;
-eust = -Ml / (rhoW * Aoc);
-S = O .* eust;
-tolAbs = opts.SeaLevelTol * max(max(abs(eust)), realmin);
-dS = Inf;
-for it = 1:opts.SeaLevelMaxIter
-    c = (Y0' * (w0 .* (sigL + rhoW * S))) ./ fSDr;
-    NU = Y0 * (fNU .* c);
-    kap = (-Ml / rhoW - w0' * (O .* NU)) / Aoc;
-    Snew = O .* (NU + kap);
-    dS = max(abs(Snew - S), [], 'all');
-    S = Snew;
-    if dS < tolAbs, break; end
-end
+% the one solver of the sea-level equation (private sleSolve, v6.0.6)
+[S, it, ~, ~, conv] = sleSolve(sigL, O, Y0, w0, fSDr, fNU, rhoW, ...
+    opts.SeaLevelTol, opts.SeaLevelMaxIter);
 tot = sigL + rhoW * S;
 c = (Y0' * (w0 .* tot)) ./ fSDr;
 T2 = c(map, :);
 massRes = max(abs(w0' * tot) ./ max(abs(Ml), realmin));
 cw = w .* core;
 fp = struct('ocean', O, 'oceanFraction', Aoc, 'iterations', it, ...
-    'converged', dS < tolAbs, 'massResidual', massRes, ...
+    'converged', conv, 'massResidual', massRes, ...
     'coreLandEWH', (cw' * sigL) / (rhoW * sum(cw)));
 end
 

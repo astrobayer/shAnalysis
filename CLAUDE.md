@@ -26,10 +26,10 @@ says whether it was *read* or *inferred*.
 
 | Fact | Value | Evidence |
 |---|---|---|
-| Version | **6.0.5**, 12-Nov-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
+| Version | **6.0.6**, 12-Nov-2026 | `Contents.m` line 2, `CITATION.cff`, `CHANGELOG.md` line 3 agree |
 | Branches | `main` only; `claude/getframe-recapture` and `claude/readshm` are gone (merged/deleted) | `GET /branches` |
-| Public surface | 3 classes / 108 methods, 138 `+shLowLevel` functions (+5 private), 3 root functions. 96 of the 138 are reachable from a class method; each of the other 42 is a named exception with its reason, and the backlog is empty (v5.24.0) | `tools/dev/api_extract.py`; `tools/dev/class_surface_audit.py` |
-| Tests | 5 classes, **491 methods / 505 runs**: Correctness 242, Contract 164, Robustness 63, Science 9, Performance 13 methods (27 runs, `budgetCase` x14 + `nmaxP` x2). On A8 8 filter out in an ordinary run - the optional real-data fixtures and the opt-in full-size closed loop (v5.27.2), 7 on a manual run that sets `closed_loop_nmax` (the GravIS-grid test joined them in v5.8.0, the ESMGFZ check in v5.11.0, the HLSST check in v5.12.0); on MATTHIASPC only 2 do, because `E:\DATAPOOL` supplies the SINEX files, the GravIS folder and - with `SHX_EARTHROTATION_FOLDER` and `SHX_BRIDGE_FOLDER` set for the run, no preference is stored - the ESMGFZ and HLSST series. The counter has matched the runner EXACTLY on the last ten green A8 runs and on every local Tier-A run. | `python3 tools/dev/count_tests.py` |
+| Public surface | 3 classes / 108 methods, 138 `+shLowLevel` functions (+6 private), 3 root functions. 96 of the 138 are reachable from a class method; each of the other 42 is a named exception with its reason, and the backlog is empty (v5.24.0) | `tools/dev/api_extract.py`; `tools/dev/class_surface_audit.py` |
+| Tests | 5 classes, **492 methods / 506 runs**: Correctness 243, Contract 164, Robustness 63, Science 9, Performance 13 methods (27 runs, `budgetCase` x14 + `nmaxP` x2). On A8 8 filter out in an ordinary run - the optional real-data fixtures and the opt-in full-size closed loop (v5.27.2), 7 on a manual run that sets `closed_loop_nmax` (the GravIS-grid test joined them in v5.8.0, the ESMGFZ check in v5.11.0, the HLSST check in v5.12.0); on MATTHIASPC only 2 do, because `E:\DATAPOOL` supplies the SINEX files, the GravIS folder and - with `SHX_EARTHROTATION_FOLDER` and `SHX_BRIDGE_FOLDER` set for the run, no preference is stored - the ESMGFZ and HLSST series. The counter has matched the runner EXACTLY on the last ten green A8 runs and on every local Tier-A run. | `python3 tools/dev/count_tests.py` |
 | Python oracles | 39 `tools/dev/validate_*.py` (+ `regional_oracle_lib.py`, shared by the WP8 oracles) + `tools/audit/*` | listing |
 | Docs | **27** hand-written `html/*.html` (24 per-entity duplicates retired in v5.0.1, WP6 stage 3; `regionalBasis.html` added in v5.14.0) + **253 generated `html/ref/*.html`** (one per entity + index, `make_refpages.py`), one shared `html/shAnalysis.css`, `helptoc.xml`, `info.xml`, guide PDF (built by CI and attached to each GitHub release since v5.24.1, not committed - `doc_sync_audit` refuses a tracked copy), generated `html/apiReference.html`. `docs/` holds `apiExamples.json` and, where it was built, the PDF - no HTML page lives outside `html/` (gated). | listing |
 | CI | `gates` job on ubuntu (help_audit, doc_sync_audit, no_map_renderer, toolbox_dependency_audit, nv_casing_audit, fixture_tag_audit, gate self-tests `tools/tests/`, `count_tests`, `name_coverage`, `class_surface_audit`, `error_id_audit`, `option_values_audit`, `refpages_audit`, `make_demos --check`, `perf_baseline_audit`) + `runAllTests (self-hosted)` on A8/R2026a; fixtures from tag `fixtures-2026-08` | `.github/workflows/ci.yml` |
@@ -1149,6 +1149,7 @@ The last releases only; the full board, in version order, is
 | v6.0.0 (the data pool: `dataFolder` resolves `<DATAPOOL>/GravityField`, no `<toolbox>/data`; `TN`/`DDK` spelled as written) | ☑ 17 gates + mlint + make_demos + 15 self-test suites, 0 findings | ☑ **Tier A on MATTHIASPC** (worktree, copied prefdir): predicted 499 runs (Contract 159), ran 499 in both configurations - owner's preferences and no pool at all. Failures outside the change: `testVersionMetadataIsConsistent` (worktree name) and speed budgets under load (an `origin/main` control failed the same). `testAPIExamplesRun` red with no pool, fixed, then green | ☐ | ☐ |
 | v6.0.4 (every listed fixture is read by the code: `test_static.gfc.gz` left the list; the converse test counts `tools/`) | ☑ doc_sync, error_id, help, nv_casing, toolbox_dependency, fixture_tag audits + make_demos --check, 0 findings; apiReference, refpages, demos regenerated | ◑ **Tier A on MATTHIASPC** (worktree): the four fixture-list tests of `testContract` - 3 passed and the folder test filtered without fixtures; with `SHX_TESTDATA_FOLDER` = the main clone's fixtures both folder-dependent tests passed. `testEveryListedFixtureIsNamedOrCarried` now PASSES without a fixture folder (it filtered at 6.0.3). Predicted 503 runs (no test added); the full suite was not run here | ☐ | ☐ |
 | v6.0.5 (the 9i review: ten findings - scalar NoiseCov with AddNoiseCov, divisor T, GM/R, NaN and one-to-one epochs in `backgroundErrorCov`, early and shared covariance checks, factor-once noise, no P x P SVD) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the extended oracle, 0 findings | ◑ **Tier B locally**; predicted 505 runs (Correctness 242, Contract 164) | ☐ | ☐ |
+| v6.0.6 (one sea-level equation: private `sleSolve` for `seaLevelFingerprint` and `regionalBasis(Ocean)`, the old loop kept test-local) | ☑ 17 gates + mlint + make_demos + 15 self-test suites, 0 findings | ◑ **Tier B locally**; predicted 506 runs (Correctness 243); the bitwise proof is A8's | ☐ | ☐ |
 | v6.0.3 (the fixture list: `tests/data/SOURCES.json`, four `testContract` tests) | ☑ 14 CI gates + mlint + check_api/api_audit/attribution_sweep + 15 self-test files, 0 findings; guide built locally | ☑ **Tier A on MATTHIASPC** (worktree, copied prefdir, `SHX_TESTDATA_FOLDER` = the main clone's fetched fixtures): predicted 503 runs (Contract 163), ran 503, 493 passed, 2 filtered (`testUserSuppliedSINEXFiles`, `testRegionalClosedLoopAtFullSize`), 8 failed outside the change: `testVersionMetadataIsConsistent` (`ver` finds the main clone, 6.0.2 - the worktree name, as at v6.0.0) and seven 1.3x speed budgets on a desktop; an `origin/main` control in the same session failed `legendre_n360`/`n720` alike. The four new tests passed, and seven single-defect injections turned exactly the expected ones red or filtered | ☐ | ☐ |
 | v5.26.0 (WP9 9b: `shLowLevel.neqClimatology`) | ☑ 17 gates + mlint + make_demos + 15 self-test suites + the new oracle, 0 findings | ◑ **Tier B locally** (no bridge). ☑ **CI self-hosted (A8) at `4aa3aa9` via PR #139, green — 460 runs, 453 passed, 0 failed, 7 filtered** (the optional real-data fixtures); the count prediction matched EXACTLY, and the four 9b tests passed on their first run - no red round | ☑ PR #139 | ☑ 2026-10-24 |
 
@@ -1225,7 +1226,8 @@ One line per rule; the incident behind each, with its numbers, is in
 **State, 2026-11-12.** `main` is `9ae0227`, v6.0.4 (#159, the fixture
 list read by the code); v6.0.0 (#155) moved every download to the data
 pool. 9i (5.31.0, #151) is merged; its review's ten findings are fixed
-as v6.0.5 on branch `wp9-9i-review`. Every release since v5.24.1 carries
+as v6.0.5 on branch `wp9-9i-review` (#160), and v6.0.6 (one sea-level
+equation) is stacked on it, on `wp9-one-sea-level`. Every release since v5.24.1 carries
 `shAnalysis_workflow_guide.pdf`. A re-measurement is a manual run of the
 CI workflow with `closed_loop_nmax`, read from the log's `CLOSEDLOOP`
 lines. Every finding in 4.1 is CLOSED except A42, which holds five low
@@ -1242,9 +1244,8 @@ table or `Contents.m` line 2, never from this paragraph.
    real normal equations - their C20/C30 correlations - is debt for the
    acceptance machine. 9g is done (6.1, 2026-11-06); choosing the range
    and sigma fields from data is not part of it. 9h is done (6.1,
-   2026-11-06); merging its column solve with `seaLevelFingerprint` is
-   next, as 6.0.6, with a test-local captured reference (6.1,
-   2026-11-12). 9i is done (6.1, 2026-11-06) and its review fixed as
+   2026-11-06); its column solve and `seaLevelFingerprint` share one
+   solver since 6.0.6, proven bitwise against the captured old loop. 9i is done (6.1, 2026-11-06) and its review fixed as
    6.0.5; its size on a real release pair is acceptance-machine debt.
    9j is last, as 6.1.0. Waiting on
    Matthias: whether 8f now runs on A8 - memory is measured to suffice;

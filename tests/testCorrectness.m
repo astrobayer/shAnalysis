@@ -5128,6 +5128,102 @@ verifyEqual(testCase, N.K, 3);
 end
 
 % ------------------------------------------- WP9 9c: the mascon basis
+function testSeaLevelFingerprintIsItsCapturedLoop(testCase)
+%TESTSEALEVELFINGERPRINTISITSCAPTUREDLOOP 6.0.6: seaLevelFingerprint
+%   now calls the one private solver regionalBasis (Ocean) calls too. Its
+%   pre-6.0.6 body is kept below, verbatim, as the captured reference
+%   (the A33 pattern), and the two agree BITWISE on every output - handle
+%   and polygon loads, the configuration of testFingerprintConservation.
+L = 24; n = (0:L)';
+kn = -0.30 * n ./ (n + 3.0);
+hn = -0.90 * n ./ (n + 2.0) - 0.1;
+idx = shLowLevel.shIndex(L, Nmin = 0);
+ocean = @(la, lo) ~(la > 55 & (lo < 60 | lo > 300));
+loads = {@(la, lo) -100 * double(la > 65 & lo < 40), [66 5; 66 35; 80 35; 80 5]};
+for k = 1:2
+    [S1, g1, i1] = shLowLevel.seaLevelFingerprint(loads{k}, ocean, idx, ...
+        kn = kn, hn = hn, LoadValue = -100);
+    [S0, g0, i0] = capturedSeaLevelFingerprint(loads{k}, ocean, idx, ...
+        kn = kn, hn = hn, LoadValue = -100);
+    verifyTrue(testCase, isequal(S1, S0) && isequaln(g1, g0) && isequaln(i1, i0), ...
+        sprintf('load %d: the shared solver is not the captured loop, bitwise', k));
+end
+end
+
+function [S, grid, info] = capturedSeaLevelFingerprint(loadRegion, ocean, idx, opts)
+% shLowLevel.seaLevelFingerprint as it was before v6.0.6 (git 9ae0227),
+% verbatim but for its error identifiers, renamed so they are not
+% counted as raised by the toolbox. Do not edit: it is the reference.
+arguments
+    loadRegion
+    ocean
+    idx (1,1) struct
+    opts.kn double
+    opts.hn double
+    opts.LoadValue (1,1) double = 1
+    opts.rho_water (1,1) double = 1000
+    opts.rho_ave (1,1) double = 5517
+    opts.R (1,1) double = 6378136.3
+    opts.OverSample (1,1) double {mustBeInteger, mustBePositive} = 2
+    opts.MaxIter (1,1) double {mustBeInteger, mustBePositive} = 50
+    opts.Tol (1,1) double = 1e-8
+end
+assert(idx.minDegree == 0, 'test:capturedSLE:badIndex', ...
+    'idx must use Nmin = 0 (mass conservation needs degrees 0-1).');
+n1 = idx.Lmax + 1;
+for fld = ["kn", "hn"]
+    assert(numel(opts.(fld)) >= n1, 'test:capturedSLE:missingLoveNumbers', ...
+        'Love numbers %s must cover degrees 0..%d.', fld, idx.Lmax);
+end
+[Y, w, grid] = shLowLevel.synthesisMatrix(idx, ...
+    NLat = opts.OverSample * n1, NLon = opts.OverSample * (2 * idx.Lmax + 2));
+[O, ~] = shLowLevel.evalMask(idx, ocean, OverSample = opts.OverSample);
+
+latRow = repelem(grid.latDeg(:), numel(grid.lonDeg));
+lonRow = repmat(grid.lonDeg(:), numel(grid.latDeg), 1);
+if isa(loadRegion, 'function_handle')
+    sigL = double(loadRegion(latRow, lonRow));
+elseif isnumeric(loadRegion) && size(loadRegion, 2) == 2 && size(loadRegion, 1) >= 3
+    sigL = opts.LoadValue * ...
+        double(inpolygon(lonRow, latRow, loadRegion(:, 2), loadRegion(:, 1)));
+elseif isnumeric(loadRegion) && numel(loadRegion) == numel(O)
+    sigL = double(loadRegion(:));
+else
+    error('test:capturedSLE:badLoad', ...
+        'LOADREGION must be a function handle, polygon, or Ngrid x 1 values.');
+end
+sigL = sigL .* (1 - O);                            % land only
+
+nn = (0:idx.Lmax)';
+fSD = opts.R * opts.rho_ave / 3 * (2*nn + 1) ./ (1 + opts.kn(1:n1));
+fN  = opts.R * ones(n1, 1);
+fU  = opts.R * opts.hn(1:n1) ./ (1 + opts.kn(1:n1));
+fSDr = fSD(idx.n + 1); fNr = fN(idx.n + 1); fUr = fU(idx.n + 1);
+
+Aoc = w' * O;
+Mland = w' * sigL;                                 % sphere-mean kg/m^2
+eust = -Mland / (opts.rho_water * Aoc);
+S = eust * O;
+dS = Inf; kap = eust;
+tolAbs = opts.Tol * max(abs(eust), realmin);
+for it = 1:opts.MaxIter
+    sig = sigL + opts.rho_water * S;
+    cSig = Y' * (w .* sig);                        % quadrature analysis
+    cSt = cSig ./ fSDr;                            % Stokes
+    NU = Y * ((fNr - fUr) .* cSt);                 % geoid - uplift
+    kap = (-Mland / opts.rho_water - w' * (O .* NU)) / Aoc;
+    Snew = O .* (NU + kap);
+    dS = max(abs(Snew - S));
+    S = Snew;
+    if dS < tolAbs, break; end
+end
+massRes = w' * (sigL + opts.rho_water * S);
+S2D = reshape(S, numel(grid.lonDeg), numel(grid.latDeg))';
+info = struct('iterations', it, 'dS', dS, 'massResidual', massRes, ...
+    'eustatic', eust, 'kappa', kap, 'areaFractionOcean', Aoc, ...
+    'S2D', S2D, 'converged', dS < tolAbs);
+end
+
 function testRegionalBasisOceanIsTheSeaLevelEquation(testCase)
 %TESTREGIONALBASISOCEANISTHESEALEVELEQUATION WP9 9h: with Ocean, a
 %   column of T is the land part of the basis function plus its elastic

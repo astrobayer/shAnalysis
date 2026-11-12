@@ -117,23 +117,12 @@ fSDr = fSD(idx.n + 1); fNr = fN(idx.n + 1); fUr = fU(idx.n + 1);
 Aoc = w' * O;
 Mland = w' * sigL;                                 % sphere-mean kg/m^2
 eust = -Mland / (opts.rho_water * Aoc);
-S = eust * O;
-dS = Inf; kap = eust;
-tolAbs = opts.Tol * max(abs(eust), realmin);
-for it = 1:opts.MaxIter
-    sig = sigL + opts.rho_water * S;
-    cSig = Y' * (w .* sig);                        % quadrature analysis
-    cSt = cSig ./ fSDr;                            % Stokes
-    NU = Y * ((fNr - fUr) .* cSt);                 % geoid - uplift
-    kap = (-Mland / opts.rho_water - w' * (O .* NU)) / Aoc;
-    Snew = O .* (NU + kap);
-    dS = max(abs(Snew - S));
-    S = Snew;
-    if dS < tolAbs, break; end
-end
+% the one solver of the sea-level equation (private sleSolve, v6.0.6)
+[S, it, dS, kap, conv] = sleSolve(sigL, O, Y, w, fSDr, fNr - fUr, ...
+    opts.rho_water, opts.Tol, opts.MaxIter);
 massRes = w' * (sigL + opts.rho_water * S);
 S2D = reshape(S, numel(grid.lonDeg), numel(grid.latDeg))';
 info = struct('iterations', it, 'dS', dS, 'massResidual', massRes, ...
     'eustatic', eust, 'kappa', kap, 'areaFractionOcean', Aoc, ...
-    'S2D', S2D, 'converged', dS < tolAbs);
+    'S2D', S2D, 'converged', conv);
 end
