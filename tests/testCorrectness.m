@@ -5128,6 +5128,76 @@ verifyEqual(testCase, N.K, 3);
 end
 
 % ------------------------------------------- WP9 9c: the mascon basis
+function testSeaLevelBudgetClosesAndDetectsAGap(testCase)
+%TESTSEALEVELBUDGETCLOSESANDDETECTSAGAP WP9 9j: on a noise-free closed
+%   budget the residual trend vanishes and the budget closes; the residual
+%   trend is trend(total - steric) - trend(mass) (one design); the annual
+%   amplitude and the day of its maximum come back; and with AR(1) noise a
+%   0.6 mm/yr component missing from total is called open
+%   (validate_ocean_validation.py CLAIMs 1 and 3: 1.1e-17 mm/yr, and open
+%   in 100% of 400 seeds).
+T = 180;
+t = 2003 + ((1:T)' - 0.5) / 12;
+ann = @(a, ph) a * cos(2 * pi * (t - ph));
+m = 2.0 * (t - 2010) + ann(8, 0.75);
+s = 1.3 * (t - 2010) + ann(4, 0.2);
+mk = @(v) struct('epochs', t, 'value', v);
+rep = shLowLevel.seaLevelBudget(mk(m), mk(m + s), mk(s));
+% 1e-12: least-squares rounding of a trend of order 1 (oracle 1.1e-17)
+verifyLessThan(testCase, abs(rep.trend(3)), 1e-12);
+verifyTrue(testCase, rep.closes);
+verifyLessThan(testCase, abs(rep.trend(3) - (rep.trend(2) - rep.trend(1))), 1e-12);
+verifyLessThan(testCase, abs(rep.trend(1) - 2), 1e-10);   % exact data, rounding
+verifyLessThan(testCase, abs(rep.annualAmp(1) - 8), 1e-10);
+verifyLessThan(testCase, abs(rep.annualPhase(1) - 0.75 * 365.25), 1e-8);
+verifyEqual(testCase, rep.nEpochs, T);
+rng(199);
+ar = @() filter(sqrt(1 - 0.25), [1 -0.5], 1.5 * randn(T, 1));
+gap = 0.6 * (t - 2010);
+rep2 = shLowLevel.seaLevelBudget(mk(m + ar()), mk(m + s - gap + ar()), mk(s + ar()));
+verifyFalse(testCase, rep2.closes);
+verifyLessThan(testCase, abs(rep2.trend(3) + 0.6), 4 * rep2.trendSigma(3));
+end
+
+function testBprCompareMetrics(testCase)
+%TESTBPRCOMPAREMETRICS WP9 9j: a recorder on a land block's edge near lon
+%   0/360 is compared with the nearest OCEAN pixel; hPa become cm EWH
+%   (1 hPa = 1.019716 cm); NSE, correlation, gain, RMS and the amplitude
+%   ratio are their formulas (validate_ocean_validation.py CLAIM 4).
+lat = (-89.5:1:89.5)';
+lon = (0.5:1:359.5)';
+[LO, LA] = meshgrid(lon, lat);
+land = abs(LA - 10) < 3 & (LO < 3 | LO > 357);
+rng(198);
+T = 60;
+ep = 2010 + ((1:T)' - 0.5) / 12;
+g = randn(T, 1);
+grid = repmat(reshape(0.1 * randn(1, T), 1, 1, T), numel(lat), numel(lon));
+i0 = find(lat == 13.5);
+j0 = find(lon == 359.5);
+grid(i0, j0, :) = reshape(g, 1, 1, T);
+grid(repmat(land, 1, 1, T)) = NaN;
+obp = struct('grid', grid, 'lat', lat, 'lon', lon, 'epochs', ep);
+hpa = 100 / (1000 * 9.80665) * 100;
+o = 0.8 * g + 0.3 * randn(T, 1);
+st = struct('lat', 10.2, 'lon', 359.9, 'epochs', ep, 'value', o / hpa);
+rep = shLowLevel.bprCompare(obp, st);
+verifyEqual(testCase, rep.pixel, [13.5, 359.5]);
+verifyLessThan(testCase, abs(hpa - 1.019716), 1e-6);
+oa = o - mean(o);
+ga = g - mean(g);
+% 1e-12: one conversion round trip and the sums (oracle 1.1e-16)
+verifyLessThan(testCase, max(abs(rep.station - oa)), 1e-12);
+verifyLessThan(testCase, abs(rep.nse - (1 - sum((oa - ga).^2) / sum(oa.^2))), 1e-12);
+verifyLessThan(testCase, abs(rep.correlation.r - (oa' * ga) / sqrt((oa' * oa) * (ga' * ga))), 1e-12);
+verifyLessThan(testCase, abs(rep.gain - sum(oa .* ga) / sum(ga.^2)), 1e-12);
+verifyLessThan(testCase, abs(rep.rms - sqrt(mean((oa - ga).^2))), 1e-12);
+verifyLessThan(testCase, abs(rep.ampRatio - std(ga) / std(oa)), 1e-12);
+repc = shLowLevel.bprCompare(obp, struct('lat', 10.2, 'lon', 359.9, 'epochs', ep, ...
+    'value', o), Units = "cm");
+verifyLessThan(testCase, abs(repc.nse - rep.nse), 1e-12);
+end
+
 function testSeaLevelFingerprintIsItsCapturedLoop(testCase)
 %TESTSEALEVELFINGERPRINTISITSCAPTUREDLOOP 6.0.6: seaLevelFingerprint
 %   now calls the one private solver regionalBasis (Ocean) calls too. Its

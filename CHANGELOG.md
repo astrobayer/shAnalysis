@@ -1,5 +1,57 @@
 # Changelog
 
+## [6.1.0] - 2026-11-12 - WP9 9j: ocean mass validated against the sea-level budget and bottom pressure
+
+A MINOR release: two new functions, the last row of WP9 (Matthias: "Fix
+all of them in a single PR and proceed as suggested", on a plan that put
+9j third, as 6.1.0).
+
+### Added
+- `shLowLevel.seaLevelBudget(mass, total, steric)` closes the budget
+  between GRACE ocean mass, altimetric total and Argo steric sea level,
+  given as means.
+  - It works on the common epochs, paired one-to-one.
+  - It fits r = total - steric - mass, and the two sides, with bias,
+    trend, annual and semi-annual terms (`fitDeterministicModel`,
+    `ARCorrect`, `T0 = 2000`).
+  - It returns the trends with AR(1)-corrected sigmas, the annual
+    amplitudes and the day of each maximum, and `closes` (|trend(r)| <=
+    2 sigma).
+  - It also returns the residual RMS and the effective correlation of
+    the detrended sides.
+  - New identifiers: `badInput`, `ambiguousEpochs`, `tooFewEpochs`.
+- `shLowLevel.bprCompare(obp, station)` compares a bottom-pressure
+  recorder with `obpChain`'s grid at the nearest ocean pixel, across lon
+  0/360.
+  - `Units = "hPa"` (default) or `"cm"`; hPa is converted with
+    100 / (rho_w g) m, 1.019716 cm for 1000 and 9.80665.
+  - It returns the anomalies, an AR(1)-corrected correlation, NSE, RMS,
+    gain and amplitude ratio.
+  - New identifiers: `badInput`, `noOcean`, `ambiguousEpochs`,
+    `tooFewEpochs`.
+- Neither function has a class route; both are exceptions in
+  `class_surface_audit`, because their inputs are means and chain
+  outputs, not fields.
+
+### Validated
+`tools/dev/validate_ocean_validation.py` (numpy):
+- CLAIM 1: trend(r) = trend(total - steric) - trend(mass) to 4.4e-16,
+  and a noise-free closed budget gives 1.1e-17 mm/yr.
+- CLAIM 2: with AR(1) noise (phi 0.5, 1.5 mm per component, 180
+  months), a closed budget is called closed in 92.8% of 400 seeds
+  (bound 90%).
+- CLAIM 3: a 0.6 mm/yr gap is called open in 100% of the seeds (bound
+  80%).
+- CLAIM 4: the hPa conversion, the nearest ocean pixel across lon 0/360,
+  and the formulas for NSE, correlation, gain and RMS to 1.1e-16.
+
+### Recorded
+- No altimetry, Argo or bottom-pressure product is reachable from this
+  session. The published budget (WCRP Global Sea Level Budget Group
+  2018) is the real-data check for the acceptance machine; no number for
+  it is written here.
+- Tests: +3 (Correctness 245, Contract 165), 509 runs predicted.
+
 ## [6.0.6] - 2026-11-12 - one sea-level equation
 
 A PATCH release, the second step of the plan that 6.0.5 began (Matthias:

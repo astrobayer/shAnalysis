@@ -131,6 +131,11 @@ EXCEPTIONS = {
     "neqAddCoefficients": ("adds coefficient observations to a NORMAL "
                            "EQUATION, which no class object holds - the "
                            "neqClimatology reason"),
+    "seaLevelBudget": ("compares three plain series (ocean mass, altimetry, "
+                       "Argo steric) that are means, not fields - no class "
+                       "object is its input"),
+    "bprCompare": ("reads an obpChain grid output and a recorder series, "
+                   "not a field - the gridScaling reason"),
 }
 
 # Numerical lanes with no class route YET, each with the route it would

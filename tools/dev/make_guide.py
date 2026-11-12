@@ -1871,6 +1871,29 @@ C = tsAOD06.backgroundErrorCov(tsAOD07, Shrink = 0.1);
 [tsK, out] = tsGrace.regionalKalman(B, ModelSeries = tsESM, AddNoiseCov = C);
 """)
 
+story += [para("Ocean mass validated: the sea-level budget and bottom pressure (v6.1.0)", "h3"),
+          para("Two comparisons close the ocean side. shLowLevel.seaLevelBudget "
+               "takes GRACE ocean mass (oceanChain's oceanMean), altimetric "
+               "total sea level and Argo steric sea level as means. It fits "
+               "the residual total - steric - mass with bias, trend, annual "
+               "and semi-annual terms and an AR(1)-corrected sigma, and calls "
+               "the budget closed when the residual trend is within two "
+               "sigma. In tools/dev/validate_ocean_validation.py a closed "
+               "budget with AR(1) noise is called closed in 92.8% of 400 "
+               "seeds, and a 0.6 mm/yr gap is called open in all of them. "
+               "shLowLevel.bprCompare takes one bottom-pressure recorder and "
+               "obpChain's grid at the nearest ocean pixel (across lon 0/360), "
+               "converts hPa to cm EWH (1 hPa = 1.019716 cm), and returns "
+               "correlation, NSE, RMS, gain and amplitude ratio. The real-data "
+               "check is the published budget (WCRP 2018), run where the "
+               "products are.")]
+story += code("""
+mass = struct('epochs', oc.epochs, 'value', 10 * oc.oceanMean);    % mm
+rep = shLowLevel.seaLevelBudget(mass, gmsl, argo);
+b = shLowLevel.bprCompare(obpOut, struct('lat', -57.5, 'lon', 295, ...
+    'epochs', t, 'value', p_hPa));
+""")
+
 story += [para("40. References", "h2"),
           *bullets([
     "Chambers, D.P., Willis, J.K. (2010): A global evaluation of ocean "
@@ -1974,6 +1997,9 @@ story += [para("40. References", "h2"),
     "Wahr, J., Molenaar, M., Bryan, F. (1998): Time variability of the "
     "Earth's gravity field. J. Geophys. Res. 103, 30205&ndash;30229. "
     "(The EWH kernel of Section 4.)",
+    "WCRP Global Sea Level Budget Group (2018): Global sea-level budget "
+    "1993-present. Earth Syst. Sci. Data 10, 1551&ndash;1590. (The budget "
+    "of chapter 39.)",
     "Weigelt, M. et al. (2024): Bridging the gap between GRACE and GRACE "
     "Follow-On by combining high-low satellite-to-satellite tracking data "
     "and satellite laser ranging. J. Geodesy 98, 84. (Chapter 32.)",

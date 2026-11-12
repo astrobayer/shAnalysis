@@ -3701,6 +3701,44 @@ verifyError(testCase, @() shLowLevel.regionalBasis(idx, cap, Ocean = ocean, ...
     kn = knCM, hn = hn), 'shLowLevel:regionalBasis:badLoveNumbers');
 end
 
+function testOceanValidationIDs(testCase)
+%TESTOCEANVALIDATIONIDS WP9 9j: every identifier of seaLevelBudget and
+%   bprCompare is driven by the guard it names.
+t = 2003 + ((1:30)' - 0.5) / 12;
+ok = struct('epochs', t, 'value', sin(t));
+verifyError(testCase, @() shLowLevel.seaLevelBudget(struct('epochs', t), ok, ok), ...
+    'shLowLevel:seaLevelBudget:badInput');
+verifyError(testCase, @() shLowLevel.seaLevelBudget(struct('epochs', t, ...
+    'value', [sin(t); 1]), ok, ok), 'shLowLevel:seaLevelBudget:badInput');
+short = struct('epochs', t(1:20), 'value', sin(t(1:20)));
+verifyError(testCase, @() shLowLevel.seaLevelBudget(short, ok, ok), ...
+    'shLowLevel:seaLevelBudget:tooFewEpochs');
+td = t;
+td(6) = td(5) + 0.01;                           % two epochs near one
+dup = struct('epochs', td, 'value', sin(td));
+verifyError(testCase, @() shLowLevel.seaLevelBudget(ok, dup, ok), ...
+    'shLowLevel:seaLevelBudget:ambiguousEpochs');
+verifyError(testCase, @() shLowLevel.seaLevelBudget(dup, ok, ok), ...
+    'shLowLevel:seaLevelBudget:ambiguousEpochs');
+lat = (-80:20:80)';
+lon = (10:20:350)';
+grid = randn(numel(lat), numel(lon), 30);
+obp = struct('grid', grid, 'lat', lat, 'lon', lon, 'epochs', t);
+st = struct('lat', 0, 'lon', 30, 'epochs', t, 'value', randn(30, 1));
+verifyError(testCase, @() shLowLevel.bprCompare(struct('grid', grid), st), ...
+    'shLowLevel:bprCompare:badInput');
+verifyError(testCase, @() shLowLevel.bprCompare(obp, struct('lat', [0 1], 'lon', 30, ...
+    'epochs', t, 'value', randn(30, 1))), 'shLowLevel:bprCompare:badInput');
+verifyError(testCase, @() shLowLevel.bprCompare(struct('grid', NaN(size(grid)), ...
+    'lat', lat, 'lon', lon, 'epochs', t), st), 'shLowLevel:bprCompare:noOcean');
+verifyError(testCase, @() shLowLevel.bprCompare(obp, struct('lat', 0, 'lon', 30, ...
+    'epochs', t(1:5), 'value', randn(5, 1))), 'shLowLevel:bprCompare:tooFewEpochs');
+verifyError(testCase, @() shLowLevel.bprCompare(obp, struct('lat', 0, 'lon', 30, ...
+    'epochs', td, 'value', randn(30, 1))), 'shLowLevel:bprCompare:ambiguousEpochs');
+verifyError(testCase, @() shLowLevel.bprCompare(struct('grid', grid, 'lat', lat, ...
+    'lon', lon, 'epochs', td), st), 'shLowLevel:bprCompare:ambiguousEpochs');
+end
+
 function testBackgroundErrorCovRefusesBadInput(testCase)
 %TESTBACKGROUNDERRORCOVREFUSESBADINPUT 6.0.5: the review's guards, each
 %   driven by its identifier - GM or R that differ, a NaN coefficient, an

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shLowLevel.bprCompare &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shLowLevel.bprCompare</nav>
+<h1>shLowLevel.bprCompare</h1>
+<p class="h1line">A bottom-pressure recorder against an obpChain grid.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>rep = shLowLevel.bprCompare(obp, station)</code><code>rep = shLowLevel.bprCompare(obp, station, Units=&quot;hPa&quot;, Tolerance=0.05, RhoWater=1000, ...)</code></div>
+<h2>Description</h2>
+<p>REP = shLowLevel.bprCompare(OBP, STATION) compares the series of one ocean-bottom-pressure recorder with the GRACE ocean-bottom-pressure field of <a href="shLowLevel_obpChain.html"><code>shLowLevel.obpChain</code></a> at the nearest ocean pixel (great-circle distance, across lon 0/360; NaN pixels are land). Both series are taken as anomalies about their mean over the epochs they share, in cm of equivalent water height; a recorder in hPa is converted with 1 hPa = 100 / (RhoWater g) m,   1.019716 cm for 1000 and 9.80665. WP9 9j. A recorder sees the full column, water and air, as obpChain&#x27;s field does (GAD restored, nothing subtracted); its drift and tides must be removed before - that is the recorder&#x27;s processing, not this toolbox&#x27;s.</p>
+<h2>Examples</h2>
+<details class="example"><summary>From the help block</summary><div><pre><code>    [out, ~] = shLowLevel.obpChain(folder, kn = kn, OceanMask = oc, ...
+        GADFolder = gad);
+    bpr = struct(&#x27;lat&#x27;, -57.5, &#x27;lon&#x27;, 295, &#x27;epochs&#x27;, t, &#x27;value&#x27;, p_hPa);
+    rep = shLowLevel.bprCompare(out, bpr);
+    fprintf(&quot;r = %.2f, NSE = %.2f\n&quot;, rep.correlation.r, rep.nse)</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>obp</code></td><td>1 x 1</td><td>struct</td><td><code>required</code></td><td class="desc">struct  an <a href="shLowLevel_obpChain.html"><code>shLowLevel.obpChain</code></a> output: grid (nLat x nLon x T) [cm EWH], lat (nLat,1), lon (nLon,1) [deg], epochs (T,1)</td></tr><tr><td><code>station</code></td><td>1 x 1</td><td>struct</td><td><code>required</code></td><td class="desc">struct  fields lat, lon [deg] (scalars), epochs (M,1) [decimal years], value (M,1)</td></tr></table>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>Units</code></td><td>1 x 1</td><td>string</td><td><code>&quot;hPa&quot;</code></td><td class="desc">&quot;hPa&quot; | &quot;cm&quot;   the unit of station.value; &quot;cm&quot; is cm of equivalent water height</td></tr><tr><td><code>Tolerance</code></td><td>1 x 1</td><td>double</td><td><code>0.05</code></td><td class="desc">(1,1) double  max |epoch difference| [yr]; pairs are one-to-one</td></tr><tr><td><code>RhoWater</code></td><td>1 x 1</td><td>double</td><td><code>1000</code></td><td class="desc">(1,1) double  [kg/m^3]</td></tr><tr><td><code>G</code></td><td>1 x 1</td><td>double</td><td><code>9.80665</code></td><td class="desc">(1,1) double  gravity [m/s^2] for the conversion</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>rep</code></td><td class="desc">(1,1) struct  fields pixel        (1,2) double  [lat lon] of the pixel used [deg] distanceKm   (1,1) double  station to pixel, on a sphere of 6371 km nEpochs      (1,1) double  common epochs used epochs       (T,1) double  their epochs (the recorder&#x27;s) station      (T,1) double  recorder anomaly [cm EWH] grace        (T,1) double  grid anomaly [cm EWH] correlation  (1,1) struct  <a href="shLowLevel_effectiveCorr.html"><code>shLowLevel.effectiveCorr</code></a>, which documents every field nse          (1,1) double  Nash-Sutcliffe efficiency rms          (1,1) double  RMS difference [cm] gain         (1,1) double  slope of the recorder on the grid ampRatio     (1,1) double  std(grid) / std(recorder)</td></tr></table>
+<h2>Error Identifiers</h2>
+<table><tr><th>Identifier</th><th>Raised when</th></tr><tr><td><code>shLowLevel:bprCompare:badInput</code></td><td class="desc">OBP lacks grid, lat, lon or epochs, or STATION lacks lat, lon, epochs or value, or their sizes disagree</td></tr><tr><td><code>shLowLevel:bprCompare:noOcean</code></td><td class="desc">the grid has no finite pixel</td></tr><tr><td><code>shLowLevel:bprCompare:ambiguousEpochs</code></td><td class="desc">an epoch of one series lies within Tolerance of two of the other</td></tr><tr><td><code>shLowLevel:bprCompare:tooFewEpochs</code></td><td class="desc">fewer than 8 epochs are common to the recorder and the grid</td></tr></table>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<ul class="seealso"><li><a href="shLowLevel_obpChain.html"><code>shLowLevel.obpChain</code></a></li></ul>
+<p class="prov">shAnalysis v6.1.0 (12-Nov-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>

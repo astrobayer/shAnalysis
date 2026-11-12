@@ -3,7 +3,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="shAnalysis.css">
 </head><body><div class="content">
-<h1>shAnalysis API reference (v6.0.6)</h1>
+<h1>shAnalysis API reference (v6.1.0)</h1>
 <p>Generated from the source arguments blocks and help text - inputs,
 name-value options with defaults, and outputs for every public function
 and method. Regenerated with every release; the source of truth is the
@@ -15,6 +15,7 @@ code itself.</p>
 <a href="#shLowLevel.basinDeconvolve">basinDeconvolve</a>
 <a href="#shLowLevel.basinKernel">basinKernel</a>
 <a href="#shLowLevel.basinScaling">basinScaling</a>
+<a href="#shLowLevel.bprCompare">bprCompare</a>
 <a href="#shLowLevel.bridgeGaps">bridgeGaps</a>
 <a href="#shLowLevel.buildCondFun">buildCondFun</a>
 <a href="#shLowLevel.buildNoiseCov">buildNoiseCov</a>
@@ -109,6 +110,7 @@ code itself.</p>
 <a href="#shLowLevel.rotationExcitation">rotationExcitation</a>
 <a href="#shLowLevel.rtsSmoother">rtsSmoother</a>
 <a href="#shLowLevel.safeMove">safeMove</a>
+<a href="#shLowLevel.seaLevelBudget">seaLevelBudget</a>
 <a href="#shLowLevel.seaLevelFingerprint">seaLevelFingerprint</a>
 <a href="#shLowLevel.sensitivityKernel">sensitivityKernel</a>
 <a href="#shLowLevel.shAnalysisGrid">shAnalysisGrid</a>
@@ -218,6 +220,21 @@ code itself.</p>
 <tr><td><code>k</code></td><td>(1,1) double  regression scaling factor</td></tr>
 <tr><td><code>info</code></td><td>(1,1) struct  fields sigmaK    (1,1) double   1-sigma of the regression factor kMonthly  (T x 1) double  per-month factors; present only with PerMonth matched   (T x 1) logical  which epochs matched between the two series nMatched  (1,1) double   nnz(matched), the epochs the regression actually used aTrue     (T x 1) double  basin average of the model field aFilt     (T x 1) double  basin average after filtering</td></tr>
 </table>
+</div>
+<div class="entry" id="shLowLevel.bprCompare">
+<h3><code>shLowLevel.bprCompare(obp, station, opts)</code></h3>
+<p class="h1line">A bottom-pressure recorder against an obpChain grid.</p>
+<p>REP = shLowLevel.bprCompare(OBP, STATION) compares the series of one ocean-bottom-pressure recorder with the GRACE ocean-bottom-pressure field of shLowLevel.obpChain at the nearest ocean pixel (great-circle distance, across lon 0/360; NaN pixels are land). Both series are taken as anomalies about their mean over the epochs they share, in cm of equivalent water height; a recorder in hPa is converted with 1 hPa = 100 / (RhoWater g) m,   1.019716 cm for 1000 and 9.80665. WP9 9j. A recorder sees the full column, water and air, as obpChain&#x27;s field does (GAD restored, nothing subtracted); its drift and tides must be removed before - that is the recorder&#x27;s processing, not this toolbox&#x27;s.</p>
+<b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>obp</code></td><td>1 x 1</td><td>struct</td><td>required</td></tr><tr><td><code>station</code></td><td>1 x 1</td><td>struct</td><td>required</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Units</code></td><td>1 x 1</td><td>string</td><td>&quot;hPa&quot;</td></tr><tr><td><code>Tolerance</code></td><td>1 x 1</td><td>double</td><td>0.05</td></tr><tr><td><code>RhoWater</code></td><td>1 x 1</td><td>double</td><td>1000</td></tr><tr><td><code>G</code></td><td>1 x 1</td><td>double</td><td>9.80665</td></tr></table>
+<b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
+<tr><td><code>rep</code></td><td>(1,1) struct  fields pixel        (1,2) double  [lat lon] of the pixel used [deg] distanceKm   (1,1) double  station to pixel, on a sphere of 6371 km nEpochs      (1,1) double  common epochs used epochs       (T,1) double  their epochs (the recorder&#x27;s) station      (T,1) double  recorder anomaly [cm EWH] grace        (T,1) double  grid anomaly [cm EWH] correlation  (1,1) struct  shLowLevel.effectiveCorr, which documents every field nse          (1,1) double  Nash-Sutcliffe efficiency rms          (1,1) double  RMS difference [cm] gain         (1,1) double  slope of the recorder on the grid ampRatio     (1,1) double  std(grid) / std(recorder)</td></tr>
+</table>
+<b>Example</b><pre>    [out, ~] = shLowLevel.obpChain(folder, kn = kn, OceanMask = oc, ...
+        GADFolder = gad);
+    bpr = struct(&#x27;lat&#x27;, -57.5, &#x27;lon&#x27;, 295, &#x27;epochs&#x27;, t, &#x27;value&#x27;, p_hPa);
+    rep = shLowLevel.bprCompare(out, bpr);
+    fprintf(&quot;r = %.2f, NSE = %.2f\n&quot;, rep.correlation.r, rep.nse)</pre>
 </div>
 <div class="entry" id="shLowLevel.bridgeGaps">
 <h3><code>shLowLevel.bridgeGaps(ref, bridge, opts)</code></h3>
@@ -1483,6 +1500,21 @@ code itself.</p>
     shLowLevel.safeMove(tmpf, &quot;ITSG-Grace2018_n60_2008-04.gfc&quot;);
 
   See also movefile, shLowLevel.fetchICGEM, shLowLevel.fetchITSG.</pre>
+</div>
+<div class="entry" id="shLowLevel.seaLevelBudget">
+<h3><code>shLowLevel.seaLevelBudget(mass, total, steric, opts)</code></h3>
+<p class="h1line">Ocean mass against altimetry minus steric sea level.</p>
+<p>REP = shLowLevel.seaLevelBudget(MASS, TOTAL, STERIC) closes the sea- level budget on the epochs the three series share: GRACE ocean mass (shLowLevel.oceanChain&#x27;s oceanMean, converted to the unit of the others), total sea level from altimetry and the steric part from Argo, all as global or basin means. The residual r = total - steric - mass and the two sides mass and total - steric are fitted with bias, trend, annual and semi-annual terms (shLowLevel.fitDeterministicModel, ARCorrect, T0 = 2000.0), and the budget CLOSES when |trend(r)| &lt;= 2 sigma(trend(r)), sigma AR(1)-corrected. The three fits share one design, so trend(r) is trend(total - steric) - trend(mass) exactly. WP9 9j; the published budget (WCRP Global Sea Level Budget Group 2018 and its updates) is the real-data check, run where the products are.</p>
+<b>Inputs</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>mass</code></td><td>1 x 1</td><td>struct</td><td>required</td></tr><tr><td><code>total</code></td><td>1 x 1</td><td>struct</td><td>required</td></tr><tr><td><code>steric</code></td><td>1 x 1</td><td>struct</td><td>required</td></tr></table>
+<b>Options (name = value)</b><table><tr><th>name</th><th>size</th><th>type</th><th>default</th></tr><tr><td><code>Tolerance</code></td><td>1 x 1</td><td>double</td><td>0.05</td></tr></table>
+<b>Outputs</b><table><tr><th>name</th><th>description</th></tr>
+<tr><td><code>rep</code></td><td>(1,1) struct  fields nEpochs      (1,1) double  common epochs used epochs       (T,1) double  their epochs (MASS&#x27;s) names        (1,3) string  &quot;mass&quot;, &quot;total - steric&quot;, &quot;residual&quot; trend        (3,1) double  trends [unit/yr], in names&#x27; order trendSigma   (3,1) double  their AR(1)-corrected 1-sigma annualAmp    (3,1) double  annual amplitudes [unit] annualPhase  (3,1) double  day of year of the annual maximum closes       (1,1) logical  |trend(r)| &lt;= 2 sigma(trend(r)) residualRMS  (1,1) double  RMS of r about its mean [unit] correlation  (1,1) struct  shLowLevel.effectiveCorr of the detrended mass and total - steric, which documents every field</td></tr>
+</table>
+<b>Example</b><pre>    [oc, ~] = shLowLevel.oceanChain(folder, kn = kn, OceanMask = oc);
+    mass = struct(&#x27;epochs&#x27;, oc.epochs, &#x27;value&#x27;, 10 * oc.oceanMean);  % mm
+    rep = shLowLevel.seaLevelBudget(mass, gmsl, argo);
+    tr = rep.trend; sg = rep.trendSigma;               % mass, sides, residual
+    fprintf(&quot;residual %.2f +- %.2f mm/yr\n&quot;, tr(3), sg(3))</pre>
 </div>
 <div class="entry" id="shLowLevel.seaLevelFingerprint">
 <h3><code>shLowLevel.seaLevelFingerprint(loadRegion, ocean, idx, opts)</code></h3>
@@ -3211,4 +3243,4 @@ code itself.</p>
 <tr><td><code>obj</code></td><td>(1 x 1) shClimatology   copy with the note appended to its history</td></tr>
 </table>
 </div>
-<p class="provenance">Developed by Matthias Weigelt with the help of Claude (Fable 5), 12-Nov-2026 (v6.0.6). Generated by tools - do not edit.</p></div></body></html>
+<p class="provenance">Developed by Matthias Weigelt with the help of Claude (Fable 5), 12-Nov-2026 (v6.1.0). Generated by tools - do not edit.</p></div></body></html>

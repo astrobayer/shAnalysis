@@ -109,7 +109,7 @@ class TestCounting(unittest.TestCase):
         self.assertEqual(c["runs"], c["methods"])
 
 
-EXPECTED_RUNS = 506          # v6.0.6: 505 + the captured sea-level loop (correctness)
+EXPECTED_RUNS = 509          # v6.1.0: 506 + the three 9j tests (ocean validation)
                              # v6.0.0: 497 + the data-pool resolution and TN-folder tests
                              # (5 correctness, 4 contract, 2 robustness)
 

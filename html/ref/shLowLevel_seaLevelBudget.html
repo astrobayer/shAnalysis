@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shLowLevel.seaLevelBudget &mdash; shAnalysis</title>
+<link rel="stylesheet" href="../shAnalysis.css">
+</head>
+<body>
+<div class="page">
+<nav class="crumb"><a href="../shAnalysis.html">shAnalysis</a> &rsaquo; <a href="index.html">Reference</a> &rsaquo; shLowLevel.seaLevelBudget</nav>
+<h1>shLowLevel.seaLevelBudget</h1>
+<p class="h1line">Ocean mass against altimetry minus steric sea level.</p>
+<h2>Syntax</h2>
+<div class="syntax"><code>rep = shLowLevel.seaLevelBudget(mass, total, steric)</code><code>rep = shLowLevel.seaLevelBudget(mass, total, steric, Tolerance=0.05)</code></div>
+<h2>Description</h2>
+<p>REP = shLowLevel.seaLevelBudget(MASS, TOTAL, STERIC) closes the sea- level budget on the epochs the three series share: GRACE ocean mass (<a href="shLowLevel_oceanChain.html"><code>shLowLevel.oceanChain</code></a>&#x27;s oceanMean, converted to the unit of the others), total sea level from altimetry and the steric part from Argo, all as global or basin means. The residual r = total - steric - mass and the two sides mass and total - steric are fitted with bias, trend, annual and semi-annual terms (<a href="shLowLevel_fitDeterministicModel.html"><code>shLowLevel.fitDeterministicModel</code></a>, ARCorrect, T0 = 2000.0), and the budget CLOSES when |trend(r)| &lt;= 2 sigma(trend(r)), sigma AR(1)-corrected. The three fits share one design, so trend(r) is trend(total - steric) - trend(mass) exactly. WP9 9j; the published budget (WCRP Global Sea Level Budget Group 2018 and its updates) is the real-data check, run where the products are.</p>
+<h2>Examples</h2>
+<details class="example"><summary>From the help block</summary><div><pre><code>    [oc, ~] = shLowLevel.oceanChain(folder, kn = kn, OceanMask = oc);
+    mass = struct(&#x27;epochs&#x27;, oc.epochs, &#x27;value&#x27;, 10 * oc.oceanMean);  % mm
+    rep = shLowLevel.seaLevelBudget(mass, gmsl, argo);
+    tr = rep.trend; sg = rep.trendSigma;               % mass, sides, residual
+    fprintf(&quot;residual %.2f +- %.2f mm/yr\n&quot;, tr(3), sg(3))</code></pre></div></details>
+<h2>Input Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>mass</code></td><td>1 x 1</td><td>struct</td><td><code>required</code></td><td class="desc"></td></tr><tr><td><code>total</code></td><td>1 x 1</td><td>struct</td><td><code>required</code></td><td class="desc"></td></tr><tr><td><code>steric</code></td><td>1 x 1</td><td>struct</td><td><code>required</code></td><td class="desc"></td></tr></table>
+<h2>Name-Value Arguments</h2>
+<table><tr><th>Name</th><th>Size</th><th>Type</th><th>Default</th><th>Description</th></tr><tr><td><code>Tolerance</code></td><td>1 x 1</td><td>double</td><td><code>0.05</code></td><td class="desc">(1,1) double  max |epoch difference| [yr] for two epochs to be one; pairs are one-to-one</td></tr></table>
+<h2>Output Arguments</h2>
+<table><tr><th>Name</th><th>Description</th></tr><tr><td><code>rep</code></td><td class="desc">(1,1) struct  fields nEpochs      (1,1) double  common epochs used epochs       (T,1) double  their epochs (MASS&#x27;s) names        (1,3) string  &quot;mass&quot;, &quot;total - steric&quot;, &quot;residual&quot; trend        (3,1) double  trends [unit/yr], in names&#x27; order trendSigma   (3,1) double  their AR(1)-corrected 1-sigma annualAmp    (3,1) double  annual amplitudes [unit] annualPhase  (3,1) double  day of year of the annual maximum closes       (1,1) logical  |trend(r)| &lt;= 2 sigma(trend(r)) residualRMS  (1,1) double  RMS of r about its mean [unit] correlation  (1,1) struct  <a href="shLowLevel_effectiveCorr.html"><code>shLowLevel.effectiveCorr</code></a> of the detrended mass and total - steric, which documents every field</td></tr></table>
+<h2>Error Identifiers</h2>
+<table><tr><th>Identifier</th><th>Raised when</th></tr><tr><td><code>shLowLevel:seaLevelBudget:badInput</code></td><td class="desc">an input lacks epochs or value, or the two differ in length or are not finite</td></tr><tr><td><code>shLowLevel:seaLevelBudget:ambiguousEpochs</code></td><td class="desc">an epoch of one series lies within Tolerance of two of another</td></tr><tr><td><code>shLowLevel:seaLevelBudget:tooFewEpochs</code></td><td class="desc">fewer than 24 epochs are common to the three series</td></tr></table>
+<h2>Version History</h2>
+<p>Releases are described in <a href="../../CHANGELOG.md">CHANGELOG.md</a>, which is the authority. Per-entity history is not reproduced here: matching entity names against the changelog reaches 74&ndash;81&nbsp;% depending on how loosely it matches, below the bar set for the measurement, so a per-page history would be part guess.</p>
+<h2>See Also</h2>
+<ul class="seealso"><li><a href="shLowLevel_oceanChain.html"><code>shLowLevel.oceanChain</code></a></li><li><a href="shLowLevel_fitDeterministicModel.html"><code>shLowLevel.fitDeterministicModel</code></a></li></ul>
+<p class="prov">shAnalysis v6.1.0 (12-Nov-2026) &mdash; page generated from the help block by <code>tools/dev/make_refpages.py</code>. Developed by Matthias Weigelt with the help of Claude (Fable 5).</p>
+</div>
+</body>
+</html>
