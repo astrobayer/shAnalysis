@@ -90,6 +90,10 @@ on:
   # them empty, and the test filters.
   workflow_dispatch:
     inputs:
+      runner:
+        description: "auto | a8 | hosted - narrows the routing, never widens it"
+        required: false
+        default: auto
       closed_loop_nmax:
         description: "WP9 9d: degrees of the full-size closed loop, e.g. 60,96 (empty: skip)"
         required: false
@@ -247,13 +251,37 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+  # Where may MATLAB run for this event: A8, a GitHub-hosted runner, or
+  # nowhere? One decision for the whole organisation, in
+  # astrobayer/ci-actions (ci-route; docs/CI_GUIDE.md section 2): members
+  # only, no forks, A8 from a public repository only for the allow-listed
+  # user. This job never fails - a refusal arrives in the MATLAB job as
+  # runner=none and matlab-setup turns that required context red.
+  route:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      runner: ${{ steps.route.outputs.runner }}
+      runs-on: ${{ steps.route.outputs.runs-on }}
+      reason: ${{ steps.route.outputs.reason }}
+    steps:
+      - id: route
+        uses: astrobayer/ci-actions/ci-route@v1.4.0
+        with:
+          policy: ${{ vars.CI_MATLAB_RUNNER }}
+          request: ${{ github.event.inputs.runner }}
+
   test:
-    name: runAllTests (${{ matrix.os }})
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [self-hosted]
-    runs-on: ${{ matrix.os }}
+    needs: [route]
+    # The NAME stays literal: `runAllTests (self-hosted)` is the required
+    # status context on main, and the one-entry matrix that used to produce
+    # it selected the runner literally, which ci-route's lint (W1) refuses.
+    # The runner now comes from the route job; the context name is kept so
+    # no merge is blocked before the ruleset is updated (CI_GUIDE §3.4).
+    name: runAllTests (self-hosted)
+    runs-on: ${{ fromJSON(needs.route.outputs.runs-on) }}
     # The whole job normally finishes in about three minutes. A cap well
     # above that turns a hung step into a fast, visible failure instead
     # of a run that sits pending until somebody notices: the MathWorks
@@ -276,12 +304,17 @@ jobs:
       # timeout-minutes sits here and not in the action: GitHub's
       # composite-action schema rejects the key on a step.
       # The guard `if: matrix.os != 'self-hosted'` is gone with the step it
-      # protected. The matrix STAYS, single entry and all: the job name
-      # `runAllTests (${{ matrix.os }})` is the required status context
-      # `runAllTests (self-hosted)`, so collapsing the matrix would rename
-      # the check and block the branch until the ruleset is edited.
-      - uses: astrobayer/ci-actions/matlab-probe@v1.0.0
-        timeout-minutes: 2
+      # protected. (2026-11-13: the one-entry matrix is gone too; the job
+      # name now carries the required context literally - see the job head.)
+      # MATLAB on the routed runner: probed on A8, installed by setup-matlab on a
+      # GitHub-hosted runner (public repositories only), or a red step quoting
+      # the routing refusal. Replaces matlab-probe; same immutable-tag rule.
+      - uses: astrobayer/ci-actions/matlab-setup@v1.4.0
+        timeout-minutes: 15
+        with:
+          runner: ${{ needs.route.outputs.runner }}
+          reason: ${{ needs.route.outputs.reason }}
+          products: ${{ vars.CI_MATLAB_PRODUCTS }}
 
       # Fixtures live outside main (v3.26.1) so main need not carry the
       # 11 MB. They are pinned to a dated TAG, not a branch: a tag makes
@@ -328,7 +361,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0 (node24)
         with:
-          name: test-results-${{ matrix.os }}
+          name: test-results-${{ needs.route.outputs.runner }}
           path: |
             tests/perf_log.csv
             tests/closedloop_log.csv
