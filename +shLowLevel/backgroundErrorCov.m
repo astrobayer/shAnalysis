@@ -9,7 +9,10 @@ function [C, info] = backgroundErrorCov(tsA, tsB, opts)
 %   holds the two errors and none of the signal; with the mean removed
 %   and the two errors independent and of equal size,
 %       E[d d'] = 2 C,   so   C = Split * S_d,   Split = 1/2,
-%   S_d the sample covariance of the differences (divisor T - 1). Add C
+%   S_d the sample covariance of the differences (divisor T - 1; T with
+%   RemoveMean = false, where no mean is estimated). The two series must
+%   share GM and R, hold only finite coefficients, and pair one-to-one: an
+%   epoch of either within Tolerance of two of the other is refused. Add C
 %   to the observations' noise covariance - shLowLevel.regionalKalman's
 %   AddNoiseCov does that at every epoch.
 %
@@ -59,7 +62,10 @@ function [C, info] = backgroundErrorCov(tsA, tsB, opts)
 %           nEpochs    (1,1) double  common epochs used
 %           epochs     (T,1) double  their epochs (TSA's) [decimal years]
 %           structure  (1,1) string  the Structure option
-%           rank       (1,1) double  rank of C (at most T - 1 for "full")
+%           rank       (1,1) double  rank of C: of the T differences for
+%                      "full" without Shrink (at most T - 1 with the mean
+%                      removed), else the number of positive diagonal
+%                      elements
 %           degreeRMS  (nmax+1,1) double  per degree the RMS of the
 %                      estimated error over the degree's coefficients,
 %                      sqrt(mean diag C); NaN below Nmin
@@ -76,9 +82,15 @@ function [C, info] = backgroundErrorCov(tsA, tsB, opts)
 %         TSA or TSB is not an shSeries, or their nmax differ
 %     shLowLevel:backgroundErrorCov:tooFewEpochs
 %         fewer than 3 epochs are common to the two series
+%     shLowLevel:backgroundErrorCov:constantsMismatch
+%         the two series' GM or R differ (relative 1e-9)
+%     shLowLevel:backgroundErrorCov:nonFinite
+%         a series holds NaN or Inf coefficients
+%     shLowLevel:backgroundErrorCov:ambiguousEpochs
+%         an epoch of one series lies within Tolerance of two of the other
 %
 %   Developed by Matthias Weigelt with the help of Claude (Opus 5.5),
-%   2026-11-06 (WP9 9i).
+%   2026-11-06 (WP9 9i; input checks, divisor and rank 2026-11-12).
 arguments
     tsA
     tsB
@@ -98,6 +110,17 @@ if tsA.nmax ~= tsB.nmax
         'The two series reach degree %d and %d; truncate to one nmax first.', ...
         tsA.nmax, tsB.nmax);
 end
+if abs(tsA.GM - tsB.GM) > 1e-9 * tsA.GM || abs(tsA.R - tsB.R) > 1e-9 * tsA.R
+    error('shLowLevel:backgroundErrorCov:constantsMismatch', ...
+        ['GM and R differ (%.10g, %.10g against %.10g, %.10g): rescale one ' ...
+         'series to the other first, or the difference carries signal.'], ...
+        tsA.GM, tsA.R, tsB.GM, tsB.R);
+end
+if ~all(isfinite(tsA.Cs(:))) || ~all(isfinite(tsA.Ss(:))) || ...
+        ~all(isfinite(tsB.Cs(:))) || ~all(isfinite(tsB.Ss(:)))
+    error('shLowLevel:backgroundErrorCov:nonFinite', ...
+        'A series holds NaN or Inf coefficients; drop or fill those epochs first.');
+end
 L = tsA.nmax;
 idx = shLowLevel.shIndex(L, Nmin = opts.Nmin);
 ea = tsA.epochs(:);
@@ -105,11 +128,20 @@ eb = tsB.epochs(:);
 ka = [];
 kb = [];
 for k = 1:numel(ea)
-    [dmin, j] = min(abs(eb - ea(k)));
-    if ~isempty(dmin) && dmin <= opts.Tolerance
-        ka(end + 1, 1) = k; %#ok<AGROW>
-        kb(end + 1, 1) = j; %#ok<AGROW>
+    near = find(abs(eb - ea(k)) <= opts.Tolerance);
+    if numel(near) > 1
+        error('shLowLevel:backgroundErrorCov:ambiguousEpochs', ...
+            '%d epochs of TSB lie within Tolerance of TSA''s epoch %.4f.', ...
+            numel(near), ea(k));
     end
+    if isscalar(near)
+        ka(end + 1, 1) = k; %#ok<AGROW>
+        kb(end + 1, 1) = near; %#ok<AGROW>
+    end
+end
+if numel(unique(kb)) < numel(kb)
+    error('shLowLevel:backgroundErrorCov:ambiguousEpochs', ...
+        'An epoch of TSB lies within Tolerance of two epochs of TSA.');
 end
 T = numel(ka);
 if T < 3
@@ -122,11 +154,13 @@ for t = 1:T
         - shLowLevel.vecFromCS(tsB.Cs(:, :, kb(t)), tsB.Ss(:, :, kb(t)), idx);
 end
 mu = zeros(idx.P, 1);
+dof = T;                                        % no mean estimated
 if opts.RemoveMean
     mu = mean(D, 2);
     D = D - mu;
+    dof = T - 1;
 end
-C = opts.Split * (D * D.') / (T - 1);
+C = opts.Split * (D * D.') / dof;
 switch opts.Structure
     case "diagonal"
         C = diag(diag(C));
@@ -147,6 +181,11 @@ v = diag(C);
 for n = opts.Nmin:L
     dr(n + 1) = sqrt(mean(v(idx.n == n)));
 end
+if opts.Structure == "full" && opts.Shrink == 0
+    rk = rank(D);                               % P x T, no P x P SVD
+else
+    rk = nnz(diag(C) > 0);                      % diagonal or shrunk: the diagonal decides
+end
 info = struct('nEpochs', T, 'epochs', ea(ka), 'structure', opts.Structure, ...
-    'rank', rank(C), 'degreeRMS', dr, 'meanDiff', mu);
+    'rank', rk, 'degreeRMS', dr, 'meanDiff', mu);
 end

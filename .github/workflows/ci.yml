@@ -254,6 +254,17 @@ jobs:
       matrix:
         os: [self-hosted]
     runs-on: ${{ matrix.os }}
+    # v6.0.5: same-repository pull requests only. The repository is public
+    # and A8 is a self-hosted runner holding the data pool and the MATLAB
+    # licence, so a pull request from a fork must never run its code
+    # there. Push, workflow_dispatch and a PR from a branch of this
+    # repository run as before; a fork PR skips this job (the gates job
+    # still runs on GitHub's image), and a maintainer who wants its tests
+    # pushes the branch here first. A skipped required check counts as
+    # passed, so the merge of a fork PR is a maintainer's review, not CI.
+    if: >-
+      github.event_name != 'pull_request' ||
+      github.event.pull_request.head.repo.full_name == github.repository
     # The whole job normally finishes in about three minutes. A cap well
     # above that turns a hung step into a fast, visible failure instead
     # of a run that sits pending until somebody notices: the MathWorks
@@ -280,7 +291,7 @@ jobs:
       # `runAllTests (${{ matrix.os }})` is the required status context
       # `runAllTests (self-hosted)`, so collapsing the matrix would rename
       # the check and block the branch until the ruleset is edited.
-      - uses: astrobayer/ci-actions/matlab-probe@v1.0.0
+      - uses: astrobayer/ci-actions/matlab-probe@f8b4135aac24a9cd721b4f6d837cf393db3576b4 # v1.0.0
         timeout-minutes: 2
 
       # Fixtures live outside main (v3.26.1) so main need not carry the
