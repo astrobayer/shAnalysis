@@ -1,0 +1,7 @@
+# Every change to this repository needs the owner's review (ruleset
+# "Code-owner review" on main, docs/CI_GUIDE.md section 3 in
+# astrobayer/ci-actions). The workflow folder is named separately so that a
+# later, finer split of ownership cannot drop it by accident: whoever edits
+# .github/ edits what runs on A8.
+*           @matweigelt
+/.github/   @matweigelt
