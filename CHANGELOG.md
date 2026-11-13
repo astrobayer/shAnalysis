@@ -45,6 +45,11 @@ ambiguous epochs are refused, not paired silently, and only the
   covariance (8e11 flops at nmax 96). It is the rank of the P x T
   differences for "full" without Shrink, and otherwise the number of
   positive diagonal elements.
+- CI: the self-hosted `runAllTests` job runs only for pushes, manual
+  runs and pull requests from a branch of this repository. The
+  repository is public, and a fork's pull request must not run code
+  on A8, which holds the data pool and the MATLAB licence. A fork PR
+  skips the job; the `gates` job still runs on GitHub's image.
 
 ### Validated
 - `validate_background_error.py` CLAIM 5 (new): with `RemoveMean`
