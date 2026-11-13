@@ -291,7 +291,7 @@ jobs:
       # `runAllTests (${{ matrix.os }})` is the required status context
       # `runAllTests (self-hosted)`, so collapsing the matrix would rename
       # the check and block the branch until the ruleset is edited.
-      - uses: astrobayer/ci-actions/matlab-probe@v1.0.0
+      - uses: astrobayer/ci-actions/matlab-probe@f8b4135aac24a9cd721b4f6d837cf393db3576b4 # v1.0.0
         timeout-minutes: 2
 
       # Fixtures live outside main (v3.26.1) so main need not carry the

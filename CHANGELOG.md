@@ -49,7 +49,10 @@ ambiguous epochs are refused, not paired silently, and only the
   runs and pull requests from a branch of this repository. The
   repository is public, and a fork's pull request must not run code
   on A8, which holds the data pool and the MATLAB licence. A fork PR
-  skips the job; the `gates` job still runs on GitHub's image.
+  skips the job; the `gates` job still runs on GitHub's image. The
+  `matlab-probe` action is pinned to its v1.0.0 commit SHA, like every
+  other action here, so the workflow starts under an organisation
+  policy that requires full-length SHAs.
 
 ### Validated
 - `validate_background_error.py` CLAIM 5 (new): with `RemoveMean`
